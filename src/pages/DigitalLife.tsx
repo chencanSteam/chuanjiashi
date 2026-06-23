@@ -238,7 +238,7 @@ export default function DigitalLife() {
               </div>
             )}
             {relativesList.map((r, i) => (
-              <div className={`relative-item ${activeRel === i ? 'active' : ''}`} key={i} onClick={() => { setActiveRel(i); addToast(`切换至：${r.name}`, 'info'); }}>
+              <div className={`relative-item ${activeRel === i ? 'active' : ''}`} key={i} onClick={() => setActiveRel(i)}>
                 <Avatar name={r.name} size={46} />
                 <div className="relative-info">
                   <div className="relative-name">{r.name}</div>
@@ -397,7 +397,10 @@ export default function DigitalLife() {
                 <div className="material-count">{m.count}</div>
               </div>
             ))}
-            <button className="btn btn-outline upload-btn" onClick={() => addToast('上传新素材', 'success')}>上传新素材</button>
+            <label className="btn btn-outline upload-btn" style={{ cursor: 'pointer' }}>
+              上传新素材
+              <input type="file" hidden onChange={() => addToast('素材上传成功', 'success')} />
+            </label>
           </div>
         </div>
 

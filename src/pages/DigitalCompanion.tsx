@@ -144,7 +144,7 @@ export default function DigitalCompanion() {
       <header className="page-header"><h1 className="page-title">数字陪伴</h1></header>
 
       <div className="tabs">
-        {tabs.map((t) => <button key={t.key} className={`tab ${activeTab === t.key ? 'active' : ''}`} onClick={() => { setActiveTab(t.key); addToast(`切换到：${t.label}`, 'info'); }}>{t.label}</button>)}
+        {tabs.map((t) => <button key={t.key} className={`tab ${activeTab === t.key ? 'active' : ''}`} onClick={() => setActiveTab(t.key)}>{t.label}</button>)}
       </div>
 
       {activeTab === 'chat' && (
@@ -153,7 +153,7 @@ export default function DigitalCompanion() {
             <div className="card-header"><h3 className="card-title">陪伴对象</h3></div>
             <div className="card-body contacts-body">
               {contacts.map((c) => (
-                <div key={c.name} className={`contact-item ${activeContact === c.name ? 'active' : ''}`} onClick={() => { setActiveContact(c.name); setMessages(initMessages.chat); addToast(`切换陪伴对象：${c.name}`, 'info'); }}>
+                <div key={c.name} className={`contact-item ${activeContact === c.name ? 'active' : ''}`} onClick={() => { setActiveContact(c.name); setMessages(initMessages.chat); }}>
                   <Avatar name={c.name} size={40} />
                   <div className="contact-info">
                     <div className="contact-name">{c.name}<span className="contact-status">{c.status}</span></div>
@@ -191,7 +191,7 @@ export default function DigitalCompanion() {
                     <div className="chat-more-menu">
                       <button onClick={() => { setActiveTab('schedule'); setShowMoreChat(false); }}>查看日程</button>
                       <button onClick={() => { setActiveTab('share'); setShowMoreChat(false); }}>家庭群聊</button>
-                      <button onClick={() => { setShowMoreChat(false); addToast('已清空聊天记录', 'info'); }}>清空记录</button>
+                      <button onClick={() => { setMessages([]); setShowMoreChat(false); addToast('已清空聊天记录', 'info'); }}>清空记录</button>
                     </div>
                   )}
                 </div>

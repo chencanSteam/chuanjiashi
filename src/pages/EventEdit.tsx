@@ -18,6 +18,7 @@ export default function EventEdit() {
   const safeYear = year ?? '1992';
   const detail = eventDetails[safeYear] ?? eventDetails['1992'];
   const [title, setTitle] = useState(detail.title);
+  const [subtitle, setSubtitle] = useState(detail.subtitle);
   const [content, setContent] = useState(detail.content);
   const [tags, setTags] = useState(detail.tags);
   const [showTagInput, setShowTagInput] = useState(false);
@@ -36,7 +37,7 @@ export default function EventEdit() {
       <div className="card">
         <div className="card-header">
           <h3 className="card-title">事件信息</h3>
-          <button className="btn btn-primary" onClick={() => addToast('事件已保存', 'success')}><Save size={14} /> 保存</button>
+          <button className="btn btn-primary" onClick={() => { addToast('事件已保存', 'success'); navigate(-1); }}><Save size={14} /> 保存</button>
         </div>
         <div className="card-body event-edit-body">
           <div className="form-row">
@@ -49,7 +50,7 @@ export default function EventEdit() {
           </div>
           <div className="form-row">
             <label><MapPin size={14} /> 副标题</label>
-            <input type="text" defaultValue={detail.subtitle} />
+            <input type="text" value={subtitle} onChange={(e) => setSubtitle(e.target.value)} />
           </div>
           <div className="form-row form-row-vertical">
             <label><FileText size={14} /> 事件描述</label>
