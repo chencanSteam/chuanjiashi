@@ -1,0 +1,167 @@
+.training-records-page {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.training-records-summary .training-summary-body {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  padding: 16px;
+}
+
+.training-records-summary .training-summary-body > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.training-records-summary .training-summary-body strong {
+  font-size: 18px;
+  color: #1f2937;
+  margin-left: auto;
+}
+
+.training-records-filter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  margin-right: 12px;
+  color: #9ca3af;
+}
+
+.training-records-filter button {
+  border: 1px solid #e8ecea;
+  background: #fff;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  color: #6b7280;
+  cursor: pointer;
+}
+
+.training-records-filter button.active {
+  background: #1B5E4B;
+  color: #fff;
+  border-color: #1B5E4B;
+}
+
+.training-records-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.training-record-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: #fff;
+  border: 1px solid #f0f2f1;
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+.training-record-main {
+  flex: 1;
+}
+
+.training-record-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 6px;
+}
+
+.training-record-meta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 12px;
+  color: #9ca3af;
+  margin-bottom: 8px;
+}
+
+.training-record-meta span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.training-record-status {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+}
+
+.training-record-status.done {
+  color: #1B5E4B;
+  background: rgba(27, 94, 75, 0.08);
+}
+
+.training-record-status.running {
+  color: #D97706;
+  background: rgba(217, 119, 6, 0.08);
+}
+
+.training-record-params {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.training-record-tag {
+  font-size: 11px;
+  color: #6b7280;
+  background: #f3f4f6;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.training-record-bar {
+  height: 6px;
+  background: #f0f2f1;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.training-record-bar > div {
+  height: 100%;
+  background: #1B5E4B;
+  border-radius: 999px;
+}
+
+.training-record-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.training-records-empty {
+  text-align: center;
+  padding: 40px;
+  color: #9ca3af;
+  font-size: 13px;
+}
+
+@media (max-width: 900px) {
+  .training-records-summary .training-summary-body {
+    grid-template-columns: 1fr;
+  }
+}

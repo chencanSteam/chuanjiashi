@@ -1,0 +1,68 @@
+:root {
+  --primary: #1B5E4B;
+  --primary-dark: #144A3B;
+  --accent: #2D7A66;
+  --accent-light: #4CA88E;
+  --bg: #f5f7f6;
+  --card-bg: #ffffff;
+  --text: #1f2937;
+  --text-muted: #6b7280;
+  --border-light: #e8ecea;
+  --shadow: 0 1px 3px rgba(0,0,0,0.05), 0 6px 18px rgba(27,94,75,0.06);
+  --radius: 10px;
+  --radius-lg: 14px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+h1, h2, h3, h4, h5, h6, p {
+  margin: 0;
+}
+
+button {
+  font-family: inherit;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c9d2ce;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8b5ae;
+}
+
+.hidden-sm {
+  display: block;
+}
+
+@media (max-width: 1200px) {
+  .hidden-sm {
+    display: none;
+  }
+}

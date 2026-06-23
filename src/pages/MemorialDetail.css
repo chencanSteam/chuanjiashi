@@ -1,0 +1,206 @@
+.memorial-detail-page .page-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.memorial-detail-page .page-title {
+  margin: 0;
+}
+
+.memorial-hero-card {
+  background: linear-gradient(135deg, #e8f3ee, #c8ddd4);
+}
+
+.memorial-hero-body {
+  padding: 28px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.memorial-hero-art {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.memorial-hero-info {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.memorial-hero-name {
+  font-size: 22px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.memorial-hero-title {
+  font-size: 13px;
+  color: #1B5E4B;
+  margin-top: 4px;
+}
+
+.memorial-hero-years {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 4px;
+}
+
+.memorial-detail-body {
+  padding: 24px;
+}
+
+.memorial-bio {
+  font-size: 14px;
+  color: #4b5563;
+  line-height: 1.9;
+  margin-bottom: 24px;
+}
+
+.memorial-section {
+  margin-bottom: 24px;
+}
+
+.memorial-section h4 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.memorial-photos {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.memorial-photo {
+  height: 100px;
+  border-radius: 10px;
+  background: #e8ecea;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.memorial-photo:hover {
+  transform: translateY(-2px);
+}
+
+.memorial-articles {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.memorial-article {
+  padding: 14px;
+  border: 1px solid #f0f2f1;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.memorial-article:hover {
+  background: #f9faf9;
+}
+
+.article-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.article-meta {
+  font-size: 11px;
+  color: #9ca3af;
+  margin-top: 4px;
+}
+
+.memorial-actions {
+  display: flex;
+  gap: 12px;
+}
+
+@media (max-width: 900px) {
+  .memorial-hero-body {
+    flex-direction: column;
+    text-align: center;
+  }
+  .memorial-photos {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .memorial-actions {
+    flex-direction: column;
+  }
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modal-content {
+  background: #fff;
+  border-radius: 14px;
+  width: 420px;
+  max-width: 90%;
+  padding: 20px;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.modal-header h4 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.modal-close {
+  background: transparent;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+}
+
+.modal-body {
+  font-size: 13px;
+  color: #4b5563;
+  line-height: 1.6;
+}
+
+.memorial-preview-photo {
+  height: 180px;
+  background: #e8ecea;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.memorial-preview-text {
+  line-height: 1.8;
+}

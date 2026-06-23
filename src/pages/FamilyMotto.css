@@ -1,0 +1,27 @@
+.family-motto-page .page-header {
+  align-items: center;
+  gap: 16px;
+}
+
+.motto-textarea {
+  width: 100%;
+  border: 1px solid #e8ecea;
+  border-radius: 10px;
+  padding: 14px;
+  font-size: 14px;
+  line-height: 1.7;
+  color: #1f2937;
+  outline: none;
+  resize: vertical;
+}
+
+.motto-textarea:focus {
+  border-color: #1B5E4B;
+}
+
+.motto-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}

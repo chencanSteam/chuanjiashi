@@ -1,0 +1,15 @@
+.archive-sub-page .page-header {
+  align-items: center;
+  gap: 16px;
+}
+
+.archive-sub-row {
+  padding: 12px 0;
+  border-bottom: 1px solid #f0f2f1;
+  font-size: 14px;
+  color: #1f2937;
+}
+
+.archive-sub-row:last-child {
+  border-bottom: none;
+}

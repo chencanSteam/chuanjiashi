@@ -1,0 +1,38 @@
+.family-relations-page .page-header {
+  align-items: center;
+  gap: 16px;
+}
+
+.relation-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid #f0f2f1;
+}
+
+.relation-row:last-child {
+  border-bottom: none;
+}
+
+.relation-person {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: #1f2937;
+  flex: 1;
+}
+
+.relation-person:last-child {
+  justify-content: flex-end;
+}
+
+.relation-label {
+  font-size: 12px;
+  color: #1B5E4B;
+  background: rgba(27,94,75,0.08);
+  padding: 3px 12px;
+  border-radius: 999px;
+}

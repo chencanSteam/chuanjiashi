@@ -1,0 +1,252 @@
+.hall-activity-detail-page .page-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.hall-activity-detail-page .page-title {
+  margin: 0;
+}
+
+.hall-activity-hero {
+  background: linear-gradient(135deg, #fff8f0, #f9faf9);
+}
+
+.hall-activity-hero .card-body {
+  padding: 24px;
+}
+
+.activity-hero-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1f2937;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.activity-hero-date {
+  font-size: 13px;
+  color: #6b7280;
+  margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.activity-hero-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.activity-hero-stats div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.activity-hero-stats strong {
+  font-size: 22px;
+  color: #1f2937;
+}
+
+.activity-hero-stats span {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.activity-progress-bar {
+  height: 8px;
+  background: #e8ecea;
+  border-radius: 999px;
+  margin-bottom: 14px;
+  overflow: hidden;
+}
+
+.activity-progress-fill {
+  width: 60%;
+  height: 100%;
+  background: #1B5E4B;
+  border-radius: 999px;
+}
+
+.activity-stages {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #9ca3af;
+  text-align: center;
+}
+
+.activity-stages .active {
+  color: #1B5E4B;
+  font-weight: 600;
+}
+
+.activity-rank-body {
+  padding: 20px;
+}
+
+.activity-rank-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 0;
+  border-bottom: 1px solid #f0f2f1;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.activity-rank-item:hover {
+  background: #f9faf9;
+}
+
+.activity-rank-item:last-child {
+  border-bottom: none;
+}
+
+.rank-num {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #f5f7f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #6b7280;
+}
+
+.rank-main {
+  flex: 1;
+}
+
+.rank-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 6px;
+}
+
+.rank-bar {
+  height: 6px;
+  background: #e8ecea;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.rank-fill {
+  height: 100%;
+  background: #1B5E4B;
+  border-radius: 999px;
+}
+
+.rank-votes {
+  font-size: 13px;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.view-all-rank {
+  width: 100%;
+  margin-top: 10px;
+  padding: 10px;
+  border: none;
+  background: transparent;
+  color: #9ca3af;
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  transition: color 0.2s;
+}
+
+.view-all-rank:hover {
+  color: #1B5E4B;
+}
+
+@media (max-width: 900px) {
+  .activity-hero-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .activity-rank-item {
+    flex-wrap: wrap;
+  }
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 20px;
+}
+
+.modal-content {
+  background: #fff;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 360px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid #f0f2f1;
+}
+
+.modal-header h4 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.modal-close {
+  border: none;
+  background: #f3f4f6;
+  border-radius: 6px;
+  padding: 6px;
+  cursor: pointer;
+}
+
+.modal-body {
+  padding: 16px 20px;
+}
+
+.share-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.share-option {
+  border: 1px solid #f0f2f1;
+  background: #fff;
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 14px;
+  cursor: pointer;
+  color: #374151;
+}
+
+.share-option:hover {
+  background: #f8f9f9;
+}
+
+.view-all-rank .rotate {
+  transform: rotate(180deg);
+}

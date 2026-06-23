@@ -1,0 +1,53 @@
+.archive-places-page .page-header {
+  align-items: center;
+  gap: 16px;
+}
+
+.places-map {
+  position: relative;
+  height: 220px;
+  background: linear-gradient(135deg, #e8f3ee, #d4e7de);
+  border-radius: 12px;
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+
+.place-pin {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  color: #1B5E4B;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.places-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.place-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #f0f2f1;
+  font-size: 14px;
+}
+
+.place-row:last-child {
+  border-bottom: none;
+}
+
+.place-name {
+  color: #1f2937;
+  font-weight: 500;
+}
+
+.place-count {
+  font-size: 12px;
+  color: #9ca3af;
+}

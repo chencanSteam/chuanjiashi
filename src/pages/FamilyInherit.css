@@ -1,0 +1,58 @@
+.family-inherit-page .page-header {
+  align-items: center;
+  gap: 16px;
+}
+
+.inherit-status-tag {
+  font-size: 12px;
+  color: #1B5E4B;
+  background: rgba(27,94,75,0.08);
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+
+.inherit-status-tag.pending {
+  color: #d97706;
+  background: rgba(217,119,6,0.1);
+}
+
+.inherit-desc {
+  font-size: 14px;
+  color: #4b5563;
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+
+.inherit-section h4 {
+  font-size: 14px;
+  color: #1f2937;
+  margin-bottom: 12px;
+}
+
+.inherit-row-simple {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid #f0f2f1;
+  font-size: 13px;
+}
+
+.inherit-row-simple:last-child {
+  border-bottom: none;
+}
+
+.inherit-row-simple span {
+  color: #6b7280;
+}
+
+.inherit-row-simple strong {
+  color: #1f2937;
+  font-weight: 500;
+}
+
+.inherit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}

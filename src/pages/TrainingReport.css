@@ -1,0 +1,165 @@
+.training-report-page {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.training-report-grid {
+  display: grid;
+  grid-template-columns: 0.8fr 1.2fr;
+  gap: 18px;
+}
+
+.training-overall-card {
+  grid-column: 1 / -1;
+}
+
+.training-overall-body {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 24px;
+}
+
+.training-overall-score {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  color: #1B5E4B;
+}
+
+.training-overall-value {
+  font-size: 42px;
+  font-weight: 700;
+  color: #1f2937;
+  line-height: 1;
+}
+
+.training-overall-label {
+  font-size: 13px;
+  color: #9ca3af;
+}
+
+.training-overall-desc {
+  flex: 1;
+  font-size: 13px;
+  color: #6b7280;
+  line-height: 1.6;
+}
+
+.training-metrics-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+}
+
+.training-metric-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.training-metric-label {
+  width: 100px;
+  font-size: 13px;
+  color: #1f2937;
+  flex-shrink: 0;
+}
+
+.training-metric-bar {
+  flex: 1;
+  height: 8px;
+  background: #f0f2f1;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.training-metric-bar > div {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.3s;
+}
+
+.training-metric-value {
+  width: 32px;
+  text-align: right;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.training-trend-body {
+  padding: 20px;
+}
+
+.training-trend-chart {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  height: 180px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f0f2f1;
+  margin-bottom: 12px;
+}
+
+.training-trend-column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.training-trend-bar-wrap {
+  width: 100%;
+  height: 160px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.training-trend-bar {
+  width: 24px;
+  background: #1B5E4B;
+  border-radius: 4px 4px 0 0;
+  transition: height 0.3s;
+}
+
+.training-trend-date {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.training-trend-score {
+  font-size: 12px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.training-trend-summary {
+  font-size: 13px;
+  color: #6b7280;
+  text-align: center;
+}
+
+.training-summary-text {
+  padding: 20px;
+  font-size: 13px;
+  color: #6b7280;
+  line-height: 1.8;
+}
+
+@media (max-width: 1100px) {
+  .training-report-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media print {
+  .page-actions,
+  .btn-ghost {
+    display: none !important;
+  }
+}

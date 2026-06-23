@@ -1,0 +1,517 @@
+.hall-module-page {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.hall-module-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #1B5E4B;
+}
+
+.hall-module-desc {
+  font-size: 12px;
+  color: #9ca3af;
+  font-weight: 400;
+}
+
+.hall-module-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.hall-module-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.hall-module-hint {
+  font-size: 12px;
+  color: #9ca3af;
+  text-align: center;
+  padding: 8px;
+}
+
+/* Modal */
+.hall-module-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.hall-module-modal {
+  background: #fff;
+  border-radius: 12px;
+  width: 480px;
+  max-width: 90vw;
+  padding: 20px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
+}
+
+.hall-module-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.hall-module-modal-header h4 {
+  font-size: 15px;
+  color: #1f2937;
+  margin: 0;
+}
+
+.hall-module-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.hall-module-form input,
+.hall-module-form textarea {
+  border: 1px solid #e8ecea;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+  outline: none;
+  resize: vertical;
+}
+
+.hall-module-form input:focus,
+.hall-module-form textarea:focus {
+  border-color: #1B5E4B;
+}
+
+.hall-module-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+/* 家训家规 */
+.hall-rules-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.hall-rule-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  background: #fff;
+  border: 1px solid #f0f2f1;
+  border-radius: 10px;
+  padding: 16px;
+  transition: box-shadow 0.2s;
+}
+
+.hall-rule-card:hover {
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+}
+
+.hall-rule-index {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(27, 94, 75, 0.08);
+  color: #1B5E4B;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.hall-rule-body {
+  flex: 1;
+}
+
+.hall-rule-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 6px;
+}
+
+.hall-rule-text {
+  font-size: 13px;
+  color: #6b7280;
+  line-height: 1.6;
+}
+
+.hall-rule-tags {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.hall-rule-tag {
+  font-size: 11px;
+  color: #1B5E4B;
+  background: rgba(27, 94, 75, 0.08);
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+/* 家风故事 */
+.hall-stories-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.hall-story-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: #fff;
+  border: 1px solid #f0f2f1;
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.hall-story-main {
+  flex: 1;
+}
+
+.hall-story-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 6px;
+}
+
+.hall-story-excerpt {
+  font-size: 13px;
+  color: #6b7280;
+  line-height: 1.6;
+  margin: 0 0 10px;
+}
+
+.hall-story-meta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.hall-story-like {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid #e8ecea;
+  background: #fff;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 12px;
+  color: #6b7280;
+  cursor: pointer;
+}
+
+.hall-story-like.liked {
+  color: #1B5E4B;
+  border-color: #1B5E4B;
+  background: rgba(27, 94, 75, 0.06);
+}
+
+/* 家风课程 */
+.hall-courses-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.hall-course-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: #fff;
+  border: 1px solid #f0f2f1;
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+.hall-course-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: rgba(27, 94, 75, 0.08);
+  color: #1B5E4B;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.hall-course-info {
+  flex: 1;
+}
+
+.hall-course-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 6px;
+}
+
+.hall-course-meta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.hall-course-status {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+}
+
+.hall-course-status.published {
+  color: #1B5E4B;
+  background: rgba(27, 94, 75, 0.08);
+}
+
+.hall-course-status.draft {
+  color: #6b7280;
+  background: #f3f4f6;
+}
+
+/* 最美家庭 */
+.hall-election-summary {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.hall-election-summary > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #fff;
+  border: 1px solid #f0f2f1;
+  border-radius: 10px;
+  padding: 14px 16px;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.hall-election-summary strong {
+  font-size: 18px;
+  color: #1f2937;
+  margin-left: auto;
+}
+
+.hall-candidates-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.hall-candidate-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: #fff;
+  border: 1px solid #f0f2f1;
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+.hall-candidate-rank {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(27, 94, 75, 0.08);
+  color: #1B5E4B;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.hall-candidate-info {
+  flex: 1;
+}
+
+.hall-candidate-family {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 4px;
+}
+
+.hall-candidate-desc {
+  font-size: 12px;
+  color: #6b7280;
+  margin-bottom: 8px;
+}
+
+.hall-candidate-votes {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.hall-vote-bar {
+  flex: 1;
+  height: 6px;
+  background: #f0f2f1;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.hall-vote-bar > div {
+  height: 100%;
+  background: #1B5E4B;
+  border-radius: 999px;
+  transition: width 0.3s;
+}
+
+.hall-candidate-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* AI家风导师 */
+.hall-mentor-test {
+  background: #fff;
+  border: 1px solid #f0f2f1;
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.hall-mentor-test h4 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: #1f2937;
+  margin: 0 0 12px;
+}
+
+.hall-mentor-input {
+  display: flex;
+  gap: 10px;
+}
+
+.hall-mentor-input input {
+  flex: 1;
+  border: 1px solid #e8ecea;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+  outline: none;
+}
+
+.hall-mentor-input input:focus {
+  border-color: #1B5E4B;
+}
+
+.hall-mentor-answer {
+  margin-top: 12px;
+  padding: 12px;
+  background: rgba(27, 94, 75, 0.06);
+  border-radius: 8px;
+  font-size: 13px;
+  color: #1f2937;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  line-height: 1.6;
+}
+
+.hall-qa-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.hall-qa-card {
+  position: relative;
+  background: #fff;
+  border: 1px solid #f0f2f1;
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+.hall-qa-q,
+.hall-qa-a {
+  display: flex;
+  gap: 8px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.hall-qa-q {
+  color: #1f2937;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.hall-qa-q span,
+.hall-qa-a span {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.hall-qa-q span {
+  background: rgba(27, 94, 75, 0.12);
+  color: #1B5E4B;
+}
+
+.hall-qa-a {
+  color: #6b7280;
+}
+
+.hall-qa-a span {
+  background: #f3f4f6;
+  color: #9ca3af;
+}
+
+/* Common delete button */
+.hall-item-delete {
+  border: none;
+  background: transparent;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  transition: color 0.2s, background 0.2s;
+}
+
+.hall-item-delete:hover {
+  color: #dc2626;
+  background: rgba(220, 38, 38, 0.06);
+}
+
+@media (max-width: 900px) {
+  .hall-election-summary {
+    grid-template-columns: 1fr;
+  }
+}

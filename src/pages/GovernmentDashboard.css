@@ -1,0 +1,92 @@
+.government-dashboard-page .page-header {
+  align-items: center;
+  gap: 16px;
+}
+
+.gov-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.gov-stat-card .card-body {
+  text-align: center;
+  padding: 20px;
+}
+
+.gov-stat-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 10px;
+}
+
+.gov-stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.gov-stat-label {
+  font-size: 12px;
+  color: #9ca3af;
+  margin-top: 2px;
+}
+
+.gov-task-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid #f0f2f1;
+  cursor: pointer;
+}
+
+.gov-task-row:last-child {
+  border-bottom: none;
+}
+
+.gov-task-title {
+  font-size: 14px;
+  color: #1f2937;
+  font-weight: 500;
+}
+
+.gov-task-date {
+  font-size: 12px;
+  color: #9ca3af;
+  margin-top: 2px;
+}
+
+.gov-task-status {
+  font-size: 12px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.gov-task-status.done {
+  background: rgba(27,94,75,0.08);
+  color: #1B5E4B;
+}
+
+.gov-task-status.progress {
+  background: rgba(217,119,6,0.1);
+  color: #d97706;
+}
+
+.gov-task-status.warn {
+  background: rgba(239,68,68,0.1);
+  color: #ef4444;
+}
+
+@media (max-width: 1000px) {
+  .gov-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

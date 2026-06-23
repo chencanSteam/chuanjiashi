@@ -1,0 +1,74 @@
+.genealogy-table-page .page-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.genealogy-table-page .page-title {
+  margin: 0;
+}
+
+.table-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.genealogy-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #e8ecea;
+  border-radius: 8px;
+  padding: 7px 10px;
+}
+
+.genealogy-search input {
+  border: none;
+  outline: none;
+  font-size: 12px;
+  background: transparent;
+  width: 140px;
+}
+
+.full-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.full-table th,
+.full-table td {
+  text-align: left;
+  padding: 14px 18px;
+  border-bottom: 1px solid #f0f2f1;
+  font-size: 13px;
+}
+
+.full-table th {
+  color: #9ca3af;
+  font-weight: 600;
+  background: #f9faf9;
+}
+
+.full-table tbody tr {
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.full-table tbody tr:hover {
+  background: #f9faf9;
+}
+
+.full-table td > span {
+  margin-left: 8px;
+}
+
+@media (max-width: 900px) {
+  .table-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .genealogy-search {
+    width: 100%;
+  }
+}

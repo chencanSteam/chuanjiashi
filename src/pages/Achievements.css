@@ -1,0 +1,116 @@
+.achievements-page .card-body {
+  padding: 20px;
+}
+
+.achievement-add {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 18px;
+  padding: 16px;
+  background: #f8f9f9;
+  border-radius: 10px;
+  border: 1px dashed #d6ddd9;
+}
+
+.achievement-add textarea {
+  grid-column: 1 / -1;
+  border: 1px solid #e8ecea;
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 13px;
+  resize: vertical;
+}
+
+.achievement-add input,
+.achievement-add select {
+  border: 1px solid #e8ecea;
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 13px;
+  outline: none;
+}
+
+.achievement-add-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.achievement-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.achievement-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 1px solid #f0f2f1;
+  border-radius: 10px;
+}
+
+.achievement-year {
+  width: 56px;
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: #1B5E4B;
+  margin-top: 2px;
+}
+
+.achievement-main {
+  flex: 1;
+}
+
+.achievement-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.achievement-category {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: #e8ecea;
+  color: #4b5563;
+}
+
+.achievement-category.事业 { background: #d1fae5; color: #065f46; }
+.achievement-category.荣誉 { background: #fef3c7; color: #92400e; }
+.achievement-category.公益 { background: #e0e7ff; color: #3730a3; }
+.achievement-category.作品 { background: #fce7f3; color: #9d174d; }
+
+.achievement-desc {
+  font-size: 12px;
+  color: #9ca3af;
+  margin-top: 4px;
+}
+
+.achievement-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+@media (max-width: 900px) {
+  .achievement-add {
+    grid-template-columns: 1fr;
+  }
+  .achievement-item {
+    flex-direction: column;
+    gap: 10px;
+  }
+  .achievement-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}

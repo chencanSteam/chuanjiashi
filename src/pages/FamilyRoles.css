@@ -1,0 +1,37 @@
+.family-roles-page .page-header {
+  align-items: center;
+  gap: 16px;
+}
+
+.roles-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.roles-table th,
+.roles-table td {
+  text-align: left;
+  padding: 12px;
+  border-bottom: 1px solid #f0f2f1;
+}
+
+.roles-table th {
+  color: #9ca3af;
+  font-weight: 500;
+  font-size: 12px;
+}
+
+.roles-table td {
+  color: #4b5563;
+}
+
+.role-name {
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.btn-xs {
+  padding: 3px 8px;
+  font-size: 12px;
+}

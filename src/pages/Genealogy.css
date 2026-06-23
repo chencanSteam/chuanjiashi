@@ -1,0 +1,533 @@
+.genealogy-page {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.genealogy-stats-row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+}
+
+.genealogy-stat {
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.genealogy-stat:hover {
+  transform: translateY(-2px);
+}
+
+.genealogy-stat .card-body {
+  padding: 14px 10px;
+}
+
+.genealogy-stat-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: rgba(27,94,75,0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 8px;
+}
+
+.genealogy-stat-label {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.genealogy-stat-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 2px 0;
+}
+
+.genealogy-stat-trend {
+  font-size: 11px;
+  color: #1B5E4B;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+.tree-layout {
+  display: grid;
+  grid-template-columns: 260px 1fr 260px;
+  grid-template-rows: auto auto;
+  gap: 18px;
+}
+
+.search-card {
+  grid-row: 1 / 3;
+}
+
+.genealogy-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #e8ecea;
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-bottom: 14px;
+}
+
+.genealogy-search input {
+  border: none;
+  outline: none;
+  font-size: 12px;
+  width: 100%;
+  background: transparent;
+}
+
+.surname-filter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #6b7280;
+  margin-bottom: 14px;
+}
+
+.surname-filter select {
+  border: 1px solid #e8ecea;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.advanced-search {
+  width: 100%;
+  padding: 8px;
+  cursor: pointer;
+  border: 1px dashed #d0d8d4;
+  border-radius: 8px;
+  background: #fff;
+  color: #6b7280;
+  font-size: 12px;
+  cursor: pointer;
+  margin-bottom: 18px;
+}
+
+.surname-origin {
+  border-top: 1px solid #f0f2f1;
+  padding-top: 16px;
+}
+
+.surname-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1f2937;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.surname-badge {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #1B5E4B;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+.surname-meta {
+  font-size: 12px;
+  color: #4b5563;
+  margin-bottom: 6px;
+}
+
+.surname-meta span {
+  color: #9ca3af;
+  margin-right: 6px;
+}
+
+.surname-desc {
+  font-size: 12px;
+  color: #6b7280;
+  cursor: pointer;
+  line-height: 1.7;
+  margin-top: 8px;
+}
+
+.surname-desc .expand-hint {
+  color: #1B5E4B;
+  margin-left: 4px;
+}
+
+.advanced-search-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.advanced-search-panel input,
+.advanced-search-panel select {
+  border: 1px solid #e8ecea;
+  border-radius: 6px;
+  padding: 7px;
+  font-size: 12px;
+  outline: none;
+}
+
+.big-tree-card {
+  grid-column: 2 / 3;
+  grid-row: 1 / 3;
+}
+
+.big-tree-body {
+  padding: 24px;
+  overflow-x: auto;
+}
+
+.card-title span {
+  font-size: 12px;
+  color: #9ca3af;
+  font-weight: 400;
+  margin-left: 6px;
+}
+
+.tree-tools {
+  display: flex;
+  gap: 8px;
+}
+
+.icon-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid #e8ecea;
+  border-radius: 6px;
+  padding: 6px 10px;
+  background: #fff;
+  color: #6b7280;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.big-tree-gen {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 26px;
+}
+
+.big-gen-label {
+  width: 50px;
+  font-size: 12px;
+  color: #1B5E4B;
+  font-weight: 600;
+  padding-top: 14px;
+}
+
+.big-gen-members {
+  display: flex;
+  gap: 24px;
+}
+
+.big-tree-member {
+  text-align: center;
+  min-width: 60px;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.big-tree-member:hover {
+  transform: translateY(-2px);
+}
+
+.big-tree-member .avatar {
+  margin: 0 auto 6px;
+}
+
+.big-tree-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.big-tree-years {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.add-member {
+  text-align: center;
+  padding: 10px;
+  cursor: pointer;
+  border: 1px dashed #d0d8d4;
+  border-radius: 8px;
+  color: #6b7280;
+  font-size: 13px;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
+.migration-card {
+  grid-column: 3 / 4;
+}
+
+.migration-body {
+  padding: 20px;
+}
+
+.migration-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.migration-list div {
+  font-size: 12px;
+  color: #4b5563;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+}
+
+.migration-list span {
+  color: #1B5E4B;
+  font-weight: 600;
+}
+
+.pending-card {
+  grid-column: 3 / 4;
+}
+
+.pending-body {
+  padding: 20px;
+}
+
+.pending-item {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid #f0f2f1;
+}
+
+.pending-main {
+  flex: 1;
+}
+
+.pending-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.pending-desc {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.pending-btn {
+  padding: 5px 10px;
+  border: 1px solid #1B5E4B;
+  border-radius: 6px;
+  background: #fff;
+  color: #1B5E4B;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.table-card,
+.export-genealogy-card,
+.docs-card {
+  min-height: 500px;
+}
+
+.table-body {
+  padding: 0;
+}
+
+.genealogy-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.genealogy-table th,
+.genealogy-table td {
+  text-align: left;
+  padding: 14px 18px;
+  border-bottom: 1px solid #f0f2f1;
+  font-size: 13px;
+}
+
+.genealogy-table th {
+  color: #9ca3af;
+  font-weight: 500;
+  background: #f9faf9;
+}
+
+.genealogy-table tbody tr {
+  cursor: pointer;
+}
+
+.genealogy-table td {
+  color: #1f2937;
+}
+
+.export-genealogy-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.export-option {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid #f0f2f1;
+  border-radius: 10px;
+}
+
+.export-option > div {
+  flex: 1;
+}
+
+.export-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.export-desc {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.docs-body {
+  padding: 20px;
+}
+
+.doc-item {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid #f0f2f1;
+  transition: transform 0.2s;
+}
+
+.doc-item:hover {
+  transform: translateX(4px);
+}
+
+.doc-thumb {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: rgba(27,94,75,0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #1B5E4B;
+}
+
+.doc-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.doc-meta {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.upload-doc {
+  width: 100%;
+  padding: 10px;
+  border: 1px dashed #d0d8d4;
+  border-radius: 8px;
+  background: #fff;
+  color: #6b7280;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
+@media (max-width: 1300px) {
+  .genealogy-stats-row {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .tree-layout {
+    grid-template-columns: 1fr;
+  }
+  .big-tree-card,
+  .migration-card,
+  .pending-card,
+  .search-card {
+    grid-column: auto;
+    grid-row: auto;
+  }
+}
+
+@media (max-width: 900px) {
+  .genealogy-stats-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.big-tree-card.fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  border-radius: 0;
+  max-width: 100vw;
+  max-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.big-tree-card.fullscreen .big-tree-body {
+  flex: 1;
+  overflow: auto;
+}
+
+.tree-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 20px;
+  border-bottom: 1px solid #f0f2f1;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.tree-filter-bar label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.icon-btn.active {
+  border-color: #1B5E4B;
+  color: #1B5E4B;
+  background: rgba(27,94,75,0.04);
+}
+
+.extra-members .big-gen-label {
+  color: #D4A373;
+}

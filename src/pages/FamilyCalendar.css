@@ -1,0 +1,181 @@
+.family-calendar-page .page-header {
+  align-items: center;
+  gap: 16px;
+}
+
+.calendar-nav {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.cal-nav-arrow.left {
+  transform: rotate(180deg);
+}
+
+.fcal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  text-align: center;
+  font-size: 13px;
+}
+
+.fcal-weekday {
+  color: #9ca3af;
+  padding: 6px;
+}
+
+.fcal-day {
+  padding: 8px 5px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: #4b5563;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  transition: background 0.2s;
+}
+
+.fcal-day:hover {
+  background: #f5f7f6;
+}
+
+.fcal-day.empty {
+  cursor: default;
+  pointer-events: none;
+}
+
+.fcal-day.active {
+  background: #1B5E4B;
+  color: #fff;
+}
+
+.fcal-day.has-event {
+  font-weight: 600;
+}
+
+.fcal-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #D4A373;
+}
+
+.fcal-day.active .fcal-dot {
+  background: #fff;
+}
+
+.fcal-events {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid #f0f2f1;
+}
+
+.fcal-event {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.fcal-event:hover,
+.fcal-event.active {
+  background: rgba(27,94,75,0.06);
+}
+
+.fcal-event-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #D4A373;
+  flex-shrink: 0;
+}
+
+.fcal-event-day {
+  color: #9ca3af;
+  flex-shrink: 0;
+  min-width: 32px;
+}
+
+.fcal-event-title {
+  color: #1f2937;
+  flex: 1;
+}
+
+.fcal-event-type {
+  font-size: 11px;
+  color: #1B5E4B;
+  background: rgba(27,94,75,0.08);
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.fcal-event-del {
+  background: transparent;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 3px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.6;
+}
+
+.fcal-event-del:hover {
+  opacity: 1;
+  background: rgba(239,68,68,0.1);
+  color: #ef4444;
+}
+
+.fcal-add-btn {
+  width: 100%;
+  margin-top: 14px;
+}
+
+.fcal-form {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: 60px 1fr 80px;
+  gap: 8px;
+  align-items: center;
+}
+
+.fcal-form-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.fcal-form-actions .btn {
+  padding: 5px 12px;
+  font-size: 12px;
+}
+
+.fcal-input {
+  border: 1px solid #e8ecea;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 13px;
+  outline: none;
+  color: #1f2937;
+}
+
+.fcal-input:focus {
+  border-color: #1B5E4B;
+}
+
+.fcal-input-day {
+  text-align: center;
+}

@@ -1,0 +1,134 @@
+.story-library-page {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.story-library-page .page-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.story-library-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.story-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #e8ecea;
+  border-radius: 8px;
+  padding: 8px 10px;
+  color: #9ca3af;
+  flex: 1;
+  max-width: 320px;
+}
+
+.story-search input {
+  border: none;
+  outline: none;
+  font-size: 13px;
+  width: 100%;
+  background: transparent;
+}
+
+.story-library-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.story-add-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  background: #f8f9f9;
+  border-radius: 8px;
+}
+
+.story-add-row input {
+  border: 1px solid #e8ecea;
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 13px;
+  outline: none;
+  flex: 1;
+}
+
+.story-library-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid #f0f2f1;
+  border-radius: 10px;
+}
+
+.story-library-info {
+  flex: 1;
+}
+
+.story-library-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 6px;
+}
+
+.story-library-meta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.story-status {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+}
+
+.story-status.published {
+  color: #1B5E4B;
+  background: rgba(27, 94, 75, 0.08);
+}
+
+.story-status.draft {
+  color: #6b7280;
+  background: #f3f4f6;
+}
+
+.story-library-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.story-library-empty {
+  text-align: center;
+  padding: 40px;
+  color: #9ca3af;
+  font-size: 13px;
+}
+
+.story-edit-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex: 1;
+}
+
+.story-edit-row input {
+  border: 1px solid #e8ecea;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 13px;
+  flex: 1;
+}

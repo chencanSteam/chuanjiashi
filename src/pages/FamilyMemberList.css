@@ -1,0 +1,115 @@
+.member-list-page .page-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.member-list-page .page-title {
+  margin: 0;
+}
+
+.member-list-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.member-list-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid #f0f2f1;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: transform 0.2s, border-color 0.2s;
+}
+
+.member-list-item:hover {
+  transform: translateY(-2px);
+  border-color: #1B5E4B;
+}
+
+.member-list-info {
+  flex: 1;
+}
+
+.member-list-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.member-list-role {
+  font-weight: 400;
+  color: #6b7280;
+}
+
+.member-list-tag {
+  font-size: 10px;
+  color: #D4A373;
+  background: rgba(212,163,115,0.12);
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+.member-list-tag.deceased {
+  color: #9ca3af;
+  background: #f0f2f1;
+}
+
+.member-list-gen {
+  font-size: 12px;
+  color: #9ca3af;
+  margin-top: 2px;
+}
+
+.member-list-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+@media (max-width: 900px) {
+  .member-list-grid {
+    grid-template-columns: 1fr;
+  }
+  .member-list-actions {
+    flex-direction: column;
+  }
+}
+
+.member-add-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.member-add-row input {
+  flex: 1;
+  border: 1px solid #e8ecea;
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 13px;
+}
+
+.member-add-row button {
+  border: none;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.member-add-row button:first-of-type {
+  background: #1B5E4B;
+  color: #fff;
+}
+
+.member-add-row button:last-of-type {
+  background: #f3f4f6;
+  color: #4b5563;
+}

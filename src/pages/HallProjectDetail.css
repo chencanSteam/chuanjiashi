@@ -1,0 +1,163 @@
+.hall-project-detail-page .page-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.hall-project-detail-page .page-title {
+  margin: 0;
+}
+
+.hall-project-hero {
+  background: linear-gradient(135deg, #e8f3ee, #c8ddd4);
+}
+
+.hall-project-hero .card-body {
+  padding: 24px;
+}
+
+.hall-project-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.hall-project-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.6);
+  color: #1B5E4B;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hall-project-name {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.hall-project-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 6px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.hall-project-status {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+.hall-project-status.building {
+  color: #D4A373;
+  background: rgba(212,163,115,0.12);
+}
+
+.hall-project-status.published {
+  color: #1B5E4B;
+  background: rgba(27,94,75,0.1);
+}
+
+.hall-project-desc {
+  font-size: 13px;
+  color: #4b5563;
+  line-height: 1.7;
+}
+
+.hall-project-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.hall-modules {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.hall-module-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid #f0f2f1;
+  border-radius: 10px;
+  font-size: 13px;
+  color: #1f2937;
+  cursor: pointer;
+  transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+  position: relative;
+}
+
+.hall-module-card:hover {
+  transform: translateY(-2px);
+  border-color: #1B5E4B;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+}
+
+.hall-module-card.active {
+  border-color: #1B5E4B;
+  background: rgba(27,94,75,0.06);
+}
+
+.hall-module-card:not(.active) {
+  opacity: 0.65;
+}
+
+.hall-module-name {
+  flex: 1;
+}
+
+.hall-module-toggle {
+  border: none;
+  background: transparent;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s, background 0.2s;
+}
+
+.hall-module-toggle:hover {
+  color: #1B5E4B;
+  background: rgba(27, 94, 75, 0.08);
+}
+
+.hall-module-card.active .hall-module-toggle {
+  color: #1B5E4B;
+}
+
+.hall-module-arrow {
+  color: #d0d8d4;
+  transition: color 0.2s;
+}
+
+.hall-module-card:hover .hall-module-arrow {
+  color: #1B5E4B;
+}
+
+.hall-deploy-actions {
+  display: flex;
+  gap: 10px;
+}
+
+@media (max-width: 900px) {
+  .hall-modules {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .hall-project-actions,
+  .hall-deploy-actions {
+    flex-direction: column;
+  }
+}
