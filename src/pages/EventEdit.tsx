@@ -2,6 +2,7 @@ import { ArrowLeft, Calendar, MapPin, Tag, Image as ImageIcon, FileText, Save } 
 import { useNavigate, useParams } from 'react-router-dom';
 import { useState } from 'react';
 import { useToast } from '../hooks/useToast';
+import { generateImageDataUrl } from '../utils/mediaPlaceholder';
 import './EventEdit.css';
 
 const eventDetails: Record<string, { title: string; subtitle: string; content: string; tags: string[] }> = {
@@ -17,13 +18,35 @@ export default function EventEdit() {
   const { addToast } = useToast();
   const safeYear = year ?? '1992';
   const detail = eventDetails[safeYear] ?? eventDetails['1992'];
-  const [title, setTitle] = useState(detail.title);
-  const [subtitle, setSubtitle] = useState(detail.subtitle);
-  const [content, setContent] = useState(detail.content);
-  const [tags, setTags] = useState(detail.tags);
+  const loadSaved = (): typeof detail => {
+    const saved = localStorage.getItem(`event-${safeYear}`);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        return {
+          title: parsed.title ?? detail.title,
+          subtitle: parsed.subtitle ?? detail.subtitle,
+          content: parsed.content ?? detail.content,
+          tags: parsed.tags ?? detail.tags,
+        };
+      } catch { /* ignore */ }
+    }
+    return detail;
+  };
+  const initial = loadSaved();
+  const [title, setTitle] = useState(initial.title);
+  const [subtitle, setSubtitle] = useState(initial.subtitle);
+  const [content, setContent] = useState(initial.content);
+  const [tags, setTags] = useState(initial.tags);
   const [showTagInput, setShowTagInput] = useState(false);
   const [newTag, setNewTag] = useState('');
   const [preview, setPreview] = useState<{ title: string; type: string } | null>(null);
+
+  const saveEvent = () => {
+    localStorage.setItem(`event-${safeYear}`, JSON.stringify({ title, subtitle, content, tags }));
+    addToast('事件已保存', 'success');
+    navigate(-1);
+  };
 
   return (
     <div className="detail-page event-edit-page">
@@ -37,7 +60,7 @@ export default function EventEdit() {
       <div className="card">
         <div className="card-header">
           <h3 className="card-title">事件信息</h3>
-          <button className="btn btn-primary" onClick={() => { addToast('事件已保存', 'success'); navigate(-1); }}><Save size={14} /> 保存</button>
+          <button className="btn btn-primary" onClick={saveEvent}><Save size={14} /> 保存</button>
         </div>
         <div className="card-body event-edit-body">
           <div className="form-row">
@@ -91,7 +114,7 @@ export default function EventEdit() {
           <div className="modal-content preview-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header"><h4>{preview.title}</h4><button className="modal-close" onClick={() => setPreview(null)}>关闭</button></div>
             <div className="modal-body preview-body">
-              {preview.type === 'image' && <div className="preview-image"><ImageIcon size={64} /></div>}
+              {preview.type === 'image' && <img className="preview-image" src={generateImageDataUrl(preview.title)} alt={preview.title} />}
               {preview.type === 'doc' && <div className="preview-doc"><FileText size={48} /></div>}
               <p>正在预览：{preview.title}</p>
             </div>

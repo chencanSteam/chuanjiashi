@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../hooks/useToast';
 import {
@@ -91,6 +91,7 @@ export default function DigitalLife() {
   const [chatInput, setChatInput] = useState('');
   const [trainingValues, setTrainingValues] = useState(trainingParams);
   const [playingVoice, setPlayingVoice] = useState<number | null>(null);
+  const audioRef = useRef<{ osc: OscillatorNode; ctx: AudioContext } | null>(null);
 
   const [relativesList, setRelativesList] = useState(initialRelatives);
   const [showCreate, setShowCreate] = useState(false);
@@ -126,9 +127,29 @@ export default function DigitalLife() {
   };
 
   const playVoice = (i: number) => {
+    if (playingVoice !== null) {
+      audioRef.current?.osc.stop();
+      audioRef.current = null;
+    }
+    if (playingVoice === i) {
+      setPlayingVoice(null);
+      return;
+    }
     setPlayingVoice(i);
-    addToast(`播放语音样本：${voiceSamples[i].title}`, 'info');
-    setTimeout(() => setPlayingVoice(null), 2000);
+    const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    const ctx = new AudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(220 + i * 80, ctx.currentTime);
+    gain.gain.setValueAtTime(0.05, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 2);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.onended = () => setPlayingVoice(null);
+    osc.start();
+    osc.stop(ctx.currentTime + 2);
+    audioRef.current = { osc, ctx };
   };
 
   const startTraining = () => {

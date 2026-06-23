@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import Avatar from '../components/ui/Avatar';
 import { useToast } from '../hooks/useToast';
+import { generateImageDataUrl } from '../utils/mediaPlaceholder';
 import './FamilySpace.css';
 
 const tabs = [
@@ -675,7 +676,7 @@ export default function FamilySpace() {
           <div className="modal-content preview-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header"><h4>{photoPreview.title}</h4><button className="modal-close" onClick={() => setPhotoPreview(null)}><X size={16} /></button></div>
             <div className="modal-body preview-body">
-              <div className="preview-image"><Image size={64} /></div>
+              <img className="preview-image" src={generateImageDataUrl(photoPreview.title)} alt={photoPreview.title} />
               <p>正在预览：{photoPreview.title}</p>
             </div>
           </div>

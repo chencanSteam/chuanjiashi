@@ -1339,4 +1339,5 @@
   justify-content: center;
   color: #1B5E4B;
   margin-bottom: 12px;
+  object-fit: cover;
 }

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ArrowLeft, Image, Play, FileText, Music, Plus, Download, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../hooks/useToast';
+import { generateImageDataUrl, generateVideoPoster, generateAudioUrl } from '../utils/mediaPlaceholder';
 import './ArchiveMedia.css';
 
 const mediaItems = [
@@ -87,9 +88,9 @@ export default function ArchiveMedia() {
           <div className="modal-content preview-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header"><h4>{preview.title}</h4><button className="modal-close" onClick={() => setPreview(null)}>关闭</button></div>
             <div className="modal-body preview-body">
-              {preview.type === 'image' && <div className="preview-image"><Image size={64} /></div>}
-              {preview.type === 'video' && <div className="preview-video"><Play size={48} /></div>}
-              {preview.type === 'audio' && <div className="preview-audio"><Music size={48} /></div>}
+              {preview.type === 'image' && <img className="preview-image" src={generateImageDataUrl(preview.title)} alt={preview.title} />}
+              {preview.type === 'video' && <video className="preview-video" controls poster={generateVideoPoster(preview.title)} />}
+              {preview.type === 'audio' && <audio className="preview-audio" controls src={generateAudioUrl()} />}
               {preview.type === 'doc' && <div className="preview-doc"><FileText size={48} /></div>}
               <p>正在预览：{preview.title}</p>
             </div>
