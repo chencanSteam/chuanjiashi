@@ -8,16 +8,24 @@ import {
   Database,
   HelpCircle,
   ChevronRight,
+  Sparkles,
+  Mic,
+  BookOpen,
+  UserCircle2,
+  FolderOpen,
+  AlertCircle,
   CheckCircle,
   Trash2,
   X,
 } from 'lucide-react';
 import Avatar from '../components/ui/Avatar';
 import { useToast } from '../hooks/useToast';
+import { loadQuota, type AIQuota } from '../data/aiMock';
 import './Settings.css';
 
 const sidebarItems = [
   { key: 'account', icon: User, label: '账户信息' },
+  { key: 'quota', icon: Sparkles, label: 'AI额度' },
   { key: 'notification', icon: Bell, label: '通知设置' },
   { key: 'privacy', icon: Shield, label: '隐私与安全' },
   { key: 'family', icon: Users, label: '家庭成员' },
@@ -67,6 +75,7 @@ export default function Settings() {
   const [managingMember, setManagingMember] = useState<typeof familyMembers[0] | null>(null);
   const [helpArticle, setHelpArticle] = useState<string | null>(null);
   const [visibility, setVisibility] = useState<Record<string, string>>({ 基本信息: '家人可见', 多媒体档案: '家人可见', 人生事件: '部分公开', 成就与作品: '公开展示' });
+  const [quota] = useState<AIQuota>(() => loadQuota());
 
   const toggleNotification = (i: number) => {
     setNotifications((prev) => {
@@ -193,6 +202,53 @@ export default function Settings() {
                 <div className="setting-row"><span>自动备份</span><div className={`toggle-switch ${autoBackup ? 'on' : ''}`} onClick={() => { setAutoBackup((v) => !v); addToast(`自动备份已${!autoBackup ? '开启' : '关闭'}`, 'success'); }}></div></div>
                 <div className="setting-row"><span>备份频率</span><select value={backupFreq} onChange={(e) => { setBackupFreq(e.target.value); addToast(`备份频率：${e.target.value}`, 'info'); }}><option>每天</option><option>每周</option></select></div>
                 <button className="btn btn-outline" onClick={() => addToast('立即备份', 'success')}>立即备份</button>
+              </div>
+            </div>
+          )}
+
+          {active === 'quota' && (
+            <div className="card settings-card">
+              <div className="card-header"><h3 className="card-title"><Sparkles size={16} /> AI 额度</h3></div>
+              <div className="card-body settings-body">
+                <div className="setting-row">
+                  <span>当前套餐</span>
+                  <strong>{quota.plan}</strong>
+                </div>
+                {[
+                  { key: 'interviewQuestion', label: 'AI采访问题', icon: Mic },
+                  { key: 'followUp', label: 'AI延伸问题', icon: Sparkles },
+                  { key: 'biographyGenerate', label: '传记生成', icon: BookOpen },
+                  { key: 'digitalDialog', label: '数字人对话', icon: UserCircle2 },
+                ].map((item) => {
+                  const q = quota[item.key as keyof AIQuota] as { used: number; total: number };
+                  const pct = Math.round((q.used / q.total) * 100);
+                  return (
+                    <div className="setting-row" key={item.key}>
+                      <span><item.icon size={14} /> {item.label}</span>
+                      <div className="quota-line" style={{ minWidth: 160, gap: 12 }}>
+                        <div className="usage-bar">
+                          <div className="usage-fill" style={{ width: `${pct}%` }} />
+                        </div>
+                        <span>{q.used} / {q.total}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+                <div className="setting-row">
+                  <span><FolderOpen size={14} /> 素材存储</span>
+                  <div className="quota-line" style={{ minWidth: 160, gap: 12 }}>
+                    <div className="usage-bar">
+                      <div className="usage-fill storage" style={{ width: `${Math.round((quota.storage.usedMB / quota.storage.totalMB) * 100)}%` }} />
+                    </div>
+                    <span>{quota.storage.usedMB}MB / {quota.storage.totalMB}MB</span>
+                  </div>
+                </div>
+                {(quota.interviewQuestion.used >= quota.interviewQuestion.total || quota.followUp.used >= quota.followUp.total || quota.biographyGenerate.used >= quota.biographyGenerate.total || quota.digitalDialog.used >= quota.digitalDialog.total) && (
+                  <div className="quota-alert">
+                    <AlertCircle size={14} /> 部分额度已用完，可点击下方按钮升级套餐。
+                  </div>
+                )}
+                <button className="btn btn-primary save-btn" onClick={() => addToast('已跳转至套餐升级（演示）', 'info')}>升级套餐</button>
               </div>
             </div>
           )}

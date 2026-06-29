@@ -1,17 +1,17 @@
+import { useMemo, useState } from 'react';
 import { ArrowLeft, MapPin } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { loadPlaces, type Place } from '../data/familyData';
 import './ArchivePlaces.css';
 
-const places = [
-  { name: '江苏省苏州市', count: 28 },
-  { name: '浙江省杭州市', count: 12 },
-  { name: '上海市', count: 9 },
-  { name: '安徽省黄山市', count: 5 },
-  { name: '北京市', count: 3 },
-];
+function getArchiveId() {
+  return localStorage.getItem('cj_current_archive_id') ?? 'default';
+}
 
 export default function ArchivePlaces() {
   const navigate = useNavigate();
+  const archiveId = useMemo(() => getArchiveId(), []);
+  const [places] = useState<Place[]>(() => loadPlaces(archiveId));
 
   return (
     <div className="detail-page archive-places-page">
@@ -29,20 +29,21 @@ export default function ArchivePlaces() {
         <div className="card-body">
           <div className="places-map">
             {places.map((p, i) => (
-              <div className="place-pin" key={i} style={{ left: `${18 + i * 16}%`, top: `${22 + (i % 3) * 20}%` }}>
+              <div className="place-pin" key={p.id} style={{ left: `${18 + (i % 5) * 16}%`, top: `${22 + (i % 3) * 20}%` }}>
                 <MapPin size={16} />
-                <span>{p.name}</span>
+                <span>{p.place}</span>
               </div>
             ))}
           </div>
           <div className="places-list">
-            {places.map((p, i) => (
-              <div className="place-row" key={i}>
-                <span className="place-name">{p.name}</span>
-                <span className="place-count">{p.count} 条记录</span>
+            {places.map((p) => (
+              <div className="place-row" key={p.id}>
+                <span className="place-name">{p.place}</span>
+                <span className="place-count">{p.count || 1} 条记录</span>
               </div>
             ))}
           </div>
+          {places.length === 0 && <div className="places-empty">暂无地点足迹，可去「人生档案 → 地点足迹」添加</div>}
         </div>
       </div>
     </div>

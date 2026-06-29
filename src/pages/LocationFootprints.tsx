@@ -1,37 +1,54 @@
-import { useState } from 'react';
-import { MapPin, Plus, Trash2 } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { MapPin, Plus, Trash2, Map } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
+import { useNavigate } from 'react-router-dom';
+import { loadPlaces, savePlaces, addPlace, removePlace, type Place } from '../data/familyData';
 import './LocationFootprints.css';
 
-const initialPlaces = [
-  { id: 1, place: '江苏苏州', year: '1958', event: '出生、成长', left: 72, top: 58 },
-  { id: 2, place: '南京', year: '1984', event: '进修企业管理', left: 68, top: 56 },
-  { id: 3, place: '上海', year: '1992', event: '拓展业务', left: 76, top: 60 },
-  { id: 4, place: '广东深圳', year: '2008', event: '分公司成立', left: 66, top: 78 },
-];
+function getArchiveId() {
+  return localStorage.getItem('cj_current_archive_id') ?? 'default';
+}
 
 export default function LocationFootprints() {
+  const navigate = useNavigate();
   const { addToast } = useToast();
-  const [places, setPlaces] = useState(initialPlaces);
+  const archiveId = useMemo(() => getArchiveId(), []);
+  const [places, setPlaces] = useState<Place[]>(() => loadPlaces(archiveId));
   const [place, setPlace] = useState('');
   const [year, setYear] = useState('');
   const [event, setEvent] = useState('');
 
-  const addPlace = () => {
+  useEffect(() => {
+    savePlaces(archiveId, places);
+  }, [places, archiveId]);
+
+  const addPlaceLocal = () => {
     if (!place.trim() || !year.trim()) {
       addToast('请填写地点与年份', 'error');
       return;
     }
-    const left = 40 + Math.round(Math.random() * 40);
-    const top = 30 + Math.round(Math.random() * 45);
-    setPlaces((prev) => [{ id: Date.now(), place: place.trim(), year: year.trim(), event: event.trim() || '事件', left, top }, ...prev]);
+    const added = addPlace(archiveId, {
+      place: place.trim(),
+      year: year.trim(),
+      event: event.trim() || '事件',
+      left: 40 + Math.round(Math.random() * 40),
+      top: 30 + Math.round(Math.random() * 45),
+    });
+    setPlaces((prev) => {
+      const existing = prev.find((p) => p.place === added.place);
+      if (existing) {
+        return prev.map((p) => (p.id === existing.id ? added : p));
+      }
+      return [added, ...prev];
+    });
     setPlace('');
     setYear('');
     setEvent('');
     addToast('地点足迹已添加', 'success');
   };
 
-  const removePlace = (id: number) => {
+  const removePlaceLocal = (id: string) => {
+    removePlace(archiveId, id);
     setPlaces((prev) => prev.filter((p) => p.id !== id));
     addToast('已删除', 'info');
   };
@@ -41,6 +58,9 @@ export default function LocationFootprints() {
       <div className="card">
         <div className="card-header">
           <h3 className="card-title"><MapPin size={16} /> 地点足迹</h3>
+          <button className="btn btn-ghost" onClick={() => navigate('/archive/places')}>
+            <Map size={14} /> 查看地图
+          </button>
         </div>
         <div className="card-body">
           <div className="lf-map">
@@ -61,7 +81,7 @@ export default function LocationFootprints() {
             <input type="text" placeholder="地点" value={place} onChange={(e) => setPlace(e.target.value)} />
             <input type="text" placeholder="年份" value={year} onChange={(e) => setYear(e.target.value)} />
             <input type="text" placeholder="事件" value={event} onChange={(e) => setEvent(e.target.value)} />
-            <button className="btn btn-primary" onClick={addPlace}><Plus size={14} /> 添加足迹</button>
+            <button className="btn btn-primary" onClick={addPlaceLocal}><Plus size={14} /> 添加足迹</button>
           </div>
           <div className="lf-list">
             {places.map((p) => (
@@ -71,7 +91,7 @@ export default function LocationFootprints() {
                   <div className="lf-place">{p.place}</div>
                   <div className="lf-event">{p.event}</div>
                 </div>
-                <button className="hall-item-delete" onClick={() => removePlace(p.id)}><Trash2 size={14} /></button>
+                <button className="hall-item-delete" onClick={() => removePlaceLocal(p.id)}><Trash2 size={14} /></button>
               </div>
             ))}
           </div>

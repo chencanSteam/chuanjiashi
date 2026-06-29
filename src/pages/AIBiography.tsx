@@ -1,228 +1,200 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useToast } from '../hooks/useToast';
 import {
   ChevronRight,
-  Plus,
-  Settings,
   BookOpen,
   FileText,
+  FolderOpen,
   Image,
-  Play,
-  File,
-  Bold,
-  Italic,
-  Underline,
-  AlignLeft,
-  List,
-  MoreHorizontal,
   Sparkles,
   Wand2,
-  Palette,
-  ToggleRight,
-  Type,
   Download,
   FileType,
-  BookMarked,
-  Shield,
-  RefreshCw,
-  Clock,
-  Baby,
-  GraduationCap,
-  Briefcase,
-  Heart,
-  Rocket,
-  Coffee,
-  Trash2,
-  ArrowUp,
-  ArrowDown,
+  Save,
+  CheckCircle2,
+  Circle,
+  Upload,
+  Music,
+  Video,
+  File,
 } from 'lucide-react';
-import Avatar from '../components/ui/Avatar';
+import { useToast } from '../hooks/useToast';
+import Modal from '../components/ui/Modal';
+import { generateImageDataUrl, generateVideoPoster, generateAudioUrl } from '../utils/mediaPlaceholder';
+import {
+  biographyChapterTitles,
+  loadQuota,
+  consumeBiographyGenerate,
+  loadJson,
+  saveJson,
+  type AIQuota,
+  type ChapterData,
+  type ReviewEvent,
+} from '../data/aiMock';
+import { assembleBiography, loadInterviewAnswers } from '../utils/biographyAssembler';
 import './AIBiography.css';
 
-const stats = [
-  { icon: FileText, label: '素材总数', value: '2,345', trend: '12.6%', path: '/archive' },
-  { icon: BookOpen, label: '章节数量', value: '9', trend: '-', path: '/biography' },
-  { icon: Type, label: '金句提炼', value: '48', trend: '20.0%', path: '/biography' },
-  { icon: Clock, label: '最近更新', value: '2025-05-24 10:32', sub: '婚恋家庭', path: '/biography' },
-];
+interface Archive {
+  id: string;
+  name: string;
+  gender?: '男' | '女';
+  birthYear: string;
+  origin: string;
+  occupation: string;
+}
 
-const initialChapters = [
-  '前言', '童年', '求学', '工作', '婚恋家庭', '家风传承', '人生感悟', '年谱', '后记',
-];
+function loadCurrentArchive(): Archive | null {
+  try {
+    const currentId = localStorage.getItem('cj_current_archive_id');
+    if (!currentId) return null;
+    const raw = localStorage.getItem('cj_archives');
+    if (!raw) return null;
+    const archives: Archive[] = JSON.parse(raw);
+    return archives.find((a) => a.id === currentId) || null;
+  } catch {
+    return null;
+  }
+}
 
-const initialEditorContent = `人生如河，岁月如歌。每个人的生命旅程都是独一无二的篇章，承载着家族的记忆，也映照着时代的变迁。本传记旨在记录张明远先生（1958年生）的人生历程，梳理其成长轨迹、重要抉择与心路历程，传承其优良家风与人生智慧，启迪后人，薪火相传。\n\n一、童年\n1958年，张明远先生出生于江苏苏州的一个书香门第之家。父亲张文轩先生是一位中学教师，母亲李淑贞女士勤劳贤慧，操持家务，孝敬长辈。在父母的言传身教下，他从小养成了勤奋好学、诚实守信的品格。\n\n父亲常说：“做人要正直，做事要踏实，读书要用心。”这句话伴随我一生，成为我前进的动力。\n\n二、求学\n1965年，我进入苏州市立实验小学。那时的校园古朴宁静，青砖黛瓦间充满了书香气息。老师们严谨治学，同学们互帮互助。我尤其对文学和历史产生了浓厚的兴趣，常常泡在图书馆里，一读就是一整天。\n\n1976年，我考入南京大学机械工程专业。大学四年，是我人生中最重要的转折点之一。在那里，我不仅学到了专业知识，更结识了一群志同道合的朋友。我们曾一起在实验室熬夜，也曾在紫金山下畅谈理想。\n\n三、工作\n1982年大学毕业后，我被分配到南京机床厂担任技术员。那时的工厂条件艰苦，但我始终保持着学习的热情。从基层做起，我逐步成长为技术骨干，参与了多个重要项目的设计与研发。\n\n1992年，在改革开放的浪潮中，我辞去稳定的工作，与两位合作伙伴共同创立明远机械有限公司。创业初期条件艰苦，但团队齐心协力，逐步打开市场，产品远销海外，为公司奠定了坚实基础。`;
+function initChapters(): ChapterData[] {
+  return biographyChapterTitles.map((title) => ({
+    title,
+    materials: title === '前言' || title === '后记' ? 2 : 5,
+    status: 'notGenerated',
+    updatedAt: null,
+    content: '',
+  }));
+}
 
-const aiTools = [
-  { label: '续写', icon: ChevronRight },
-  { label: '润色', icon: Palette },
-  { label: '扩写', icon: Type },
-  { label: '缩写', icon: FileText },
-  { label: '调整语气', icon: Settings },
-  { label: '提炼金句', icon: Sparkles },
-  { label: '纠错', icon: Wand2 },
-];
+interface ArchiveMediaItem {
+  id: string;
+  title: string;
+  date: string;
+  type: 'image' | 'video' | 'audio' | 'doc';
+  stage?: string;
+}
 
-const timeline = [
-  { year: '1958', title: '出生', desc: '出生于苏州一个普通工人家庭，父母勤劳善良。', Icon: Baby, color: '#1B5E4B' },
-  { year: '1976', title: '考入大学', desc: '努力学习，顺利考入大学，开启人生新阶段。', Icon: GraduationCap, color: '#1B5E4B' },
-  { year: '1982', title: '参加工作', desc: '毕业后进入国营企业，踏实工作，虚心学习。', Icon: Briefcase, color: '#1B5E4B' },
-  { year: '1988', title: '结婚成家', desc: '与妻子喜结连理，组建自己的小家庭。', Icon: Heart, color: '#DB2777' },
-  { year: '1992', title: '创业', desc: '辞职下海，创办公司，开启创业之路，迎接新挑战。', Icon: Rocket, color: '#1B5E4B' },
-  { year: '2020', title: '退休', desc: '光荣退休，开启人生新篇章，享受美好生活。', Icon: Coffee, color: '#D97706' },
-];
-
-const archives = [
-  { title: '童年照片', count: '126 张', type: 'image' },
-  { title: '荣誉证书', count: '8 份', type: 'doc' },
-  { title: '工作合影', count: '24 张', type: 'image' },
-  { title: '手写笔记', count: '38 页', type: 'doc' },
-  { title: '采访视频', count: '03:42', type: 'video' },
-  { title: '书画作品', count: '12 幅', type: 'image' },
-];
-
-const relations = [
-  { role: '父亲', name: '张文轩', side: 'left' },
-  { role: '母亲', name: '李淑贞', side: 'left' },
-  { role: '妻子', name: '王丽华', side: 'right' },
-  { role: '儿子', name: '张子文', side: 'right' },
-  { role: '女儿', name: '张子涵', side: 'right' },
-];
-
-const recentEdits = [
-  { title: '婚恋家庭', date: '05-22' },
-  { title: '家风传承', date: '05-22' },
-  { title: '童年', date: '05-20' },
-  { title: '人生感悟', date: '05-18' },
-  { title: '求学', date: '05-15' },
-];
-
-const coverColors = ['#e8f3ee', '#fce7f3', '#fef3c7', '#dbeafe'];
+function loadArchiveMediaItems(archiveId: string): ArchiveMediaItem[] {
+  try {
+    const raw = localStorage.getItem(`cj_media_${archiveId}`);
+    if (raw) return JSON.parse(raw) as ArchiveMediaItem[];
+  } catch {
+    // ignore
+  }
+  return [];
+}
 
 export default function AIBiography() {
-  const { addToast } = useToast();
   const navigate = useNavigate();
+  const { addToast } = useToast();
+  const archive = useMemo(() => loadCurrentArchive(), []);
+  const archiveId = archive?.id || 'default';
+  const subjectName = archive?.name || '张明远';
 
-  const [chapterList, setChapterList] = useState(initialChapters);
-  const [activeChap, setActiveChap] = useState(0);
-  const [manageMode, setManageMode] = useState(false);
-  const [showAddInput, setShowAddInput] = useState(false);
-  const [newChapter, setNewChapter] = useState('');
-
-  const [editorText, setEditorText] = useState(initialEditorContent);
-  const [aiPrompt, setAiPrompt] = useState('');
-  const [aiWorking, setAiWorking] = useState(false);
-
-  const [aiToggle1, setAiToggle1] = useState(true);
-  const [aiToggle2, setAiToggle2] = useState(true);
+  const [quota, setQuota] = useState<AIQuota>(() => loadQuota());
+  const [chapters, setChapters] = useState<ChapterData[]>(() =>
+    loadJson<ChapterData[]>(`cj_biography_chapters_${archiveId}`, initChapters())
+  );
+  const [activeIndex, setActiveIndex] = useState(0);
   const [generating, setGenerating] = useState(false);
-  const [progress, setProgress] = useState(68);
-  const [savedAt, setSavedAt] = useState('10:32:15');
-
-  const [coverColor, setCoverColor] = useState(0);
-  const [activeTimeline, setActiveTimeline] = useState<string | null>(null);
   const [exporting, setExporting] = useState<Record<string, boolean>>({});
-  const [showMoreFormats, setShowMoreFormats] = useState(false);
-  const [outlineList, setOutlineList] = useState<string[]>([]);
+  const archiveMediaItems = useMemo(() => loadArchiveMediaItems(archiveId), [archiveId]);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importText, setImportText] = useState('');
+  const [importingFile, setImportingFile] = useState(false);
+  const [preview, setPreview] = useState<{ type: string; title: string } | null>(null);
 
-  const wordCount = editorText.replace(/\s/g, '').length;
+  const activeChapter = chapters[activeIndex];
 
-  const selectChapter = (i: number) => {
-    setActiveChap(i);
-    addToast(`已切换到「${chapterList[i]}」`, 'info');
+  useEffect(() => {
+    saveJson(`cj_biography_chapters_${archiveId}`, chapters);
+  }, [chapters, archiveId]);
+
+  const generatedCount = chapters.filter((c) => c.status !== 'notGenerated').length;
+
+  const statusBadge = (status: ChapterData['status']) => {
+    if (status === 'generated') return <span className="chapter-status generated"><CheckCircle2 size={12} /> 已生成</span>;
+    if (status === 'edited') return <span className="chapter-status edited"><Sparkles size={12} /> 已编辑</span>;
+    return <span className="chapter-status not-generated"><Circle size={12} /> 未生成</span>;
   };
 
-  const addChapter = () => {
-    const title = newChapter.trim();
-    if (!title) {
-      addToast('请输入章节名称', 'error');
-      return;
+  const updateChapter = (index: number, patch: Partial<ChapterData>) => {
+    setChapters((prev) => prev.map((c, i) => (i === index ? { ...c, ...patch } : c)));
+  };
+
+  const handleGenerate = async () => {
+    if (activeChapter.status !== 'notGenerated') {
+      // re-generate path: still consume quota
     }
-    setChapterList((prev) => [...prev, title]);
-    setActiveChap(chapterList.length);
-    setNewChapter('');
-    setShowAddInput(false);
-    addToast(`已新增章节「${title}」`, 'success');
-  };
+    const nextQuota = consumeBiographyGenerate(quota);
+    setQuota(nextQuota);
+    setGenerating(true);
 
-  const removeChapter = (i: number, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (chapterList.length <= 1) {
-      addToast('至少保留一个章节', 'error');
-      return;
-    }
-    const title = chapterList[i];
-    setChapterList((prev) => prev.filter((_, idx) => idx !== i));
-    if (activeChap >= i && activeChap > 0) setActiveChap(activeChap - 1);
-    addToast(`已删除章节「${title}」`, 'info');
-  };
-
-  const moveChapter = (i: number, dir: -1 | 1, e: React.MouseEvent) => {
-    e.stopPropagation();
-    const j = i + dir;
-    if (j < 0 || j >= chapterList.length) return;
-    const next = [...chapterList];
-    [next[i], next[j]] = [next[j], next[i]];
-    setChapterList(next);
-    if (activeChap === i) setActiveChap(j);
-    else if (activeChap === j) setActiveChap(i);
-  };
-
-  const applyAiTool = (label: string) => {
-    if (aiWorking) return;
-    setAiWorking(true);
     setTimeout(() => {
-      setEditorText((prev) => {
-        const additions: Record<string, string> = {
-          续写: '\n\n[AI 续写] 后来，我将这些经历整理成册，成为家族记忆的一部分。',
-          润色: '\n\n[AI 润色] 文字已优化，语句更加流畅自然。',
-          扩写: '\n\n[AI 扩写] 在那些年里，每一次抉择都凝聚着家人的支持与时代的机遇。',
-          缩写: '\n\n[AI 缩写] 人生历经求学、工作与创业，始终秉持正直踏实的家风。',
-          调整语气: '\n\n[AI 调整语气] 段落语气已调整为更温暖、亲切的表达。',
-          提炼金句: '\n\n【金句】家风如灯，照亮后人前行的路。',
-          纠错: '\n\n[AI 纠错] 已完成错别字与语法检查。',
-        };
-        return prev + (additions[label] || `\n\n[AI ${label} 完成]`);
+      const reviewEvents = loadJson<ReviewEvent[]>(`cj_review_events_${archiveId}`, []);
+      const highlights = loadJson<string[]>(`cj_review_highlights_${archiveId}`, []);
+      const answers = loadInterviewAnswers(archiveId);
+      const assembled = assembleBiography({
+        archiveName: subjectName,
+        events: reviewEvents,
+        highlights,
+        answers,
       });
-      setAiWorking(false);
-      addToast(`AI ${label} 完成`, 'success');
-    }, 600);
-  };
-
-  const generateFromPrompt = () => {
-    const prompt = aiPrompt.trim();
-    if (!prompt || aiWorking) return;
-    setAiWorking(true);
-    addToast('AI 正在处理您的需求…', 'info');
-    setTimeout(() => {
-      setEditorText((prev) => prev + `\n\n[AI 生成] 根据“${prompt}”，补充了相关内容，并已融入当前章节。`);
-      setAiPrompt('');
-      setAiWorking(false);
-      addToast('AI 已生成内容', 'success');
+      const content = assembled[activeChapter.title] || `${subjectName}的${activeChapter.title}内容待补充。`;
+      updateChapter(activeIndex, {
+        status: 'generated',
+        content,
+        updatedAt: new Date().toLocaleString('zh-CN'),
+      });
+      setGenerating(false);
+      addToast(`「${activeChapter.title}」生成完成`, 'success');
     }, 1000);
   };
 
-  const generate = () => {
-    if (generating || progress >= 100) return;
+  const handlePolish = () => {
     setGenerating(true);
-    addToast('AI 正在生成章节…', 'info');
-    let p = progress;
-    const id = setInterval(() => {
-      p += 4;
-      if (p >= 100) {
-        p = 100;
-        clearInterval(id);
-        setGenerating(false);
-        addToast('章节生成完成', 'success');
-      }
-      setProgress(p);
-    }, 200);
+    setTimeout(() => {
+      const addition = `\n\n[AI 润色] 本章语言已进一步打磨，叙事更加流畅，情感表达也更为温暖。`;
+      const content = activeChapter.content + addition;
+      updateChapter(activeIndex, {
+        status: 'edited',
+        content,
+        updatedAt: new Date().toLocaleString('zh-CN'),
+      });
+      setGenerating(false);
+      addToast(`「${activeChapter.title}」润色完成`, 'success');
+    }, 800);
   };
 
-  const autoSave = () => {
-    const now = new Date().toLocaleTimeString('zh-CN', { hour12: false });
-    setSavedAt(now);
-    addToast('已自动保存', 'success');
+  const saveDraft = () => {
+    updateChapter(activeIndex, {
+      status: activeChapter.status === 'notGenerated' ? 'edited' : activeChapter.status,
+      updatedAt: new Date().toLocaleString('zh-CN'),
+    });
+    addToast('本章内容已保存', 'success');
+  };
+
+  const saveToMyWorks = () => {
+    const reviewEvents = loadJson<ReviewEvent[]>(`cj_review_events_${archiveId}`, []);
+    const highlights = loadJson<string[]>(`cj_review_highlights_${archiveId}`, []);
+    const answers = loadInterviewAnswers(archiveId);
+    const assembled = assembleBiography({
+      archiveName: subjectName,
+      events: reviewEvents,
+      highlights,
+      answers,
+    });
+    localStorage.setItem(
+      `cj_biography_${archiveId}`,
+      JSON.stringify({
+        title: `${subjectName}传记`,
+        author: 'AI 整理',
+        createdAt: new Date().toLocaleString('zh-CN'),
+        chapters: assembled,
+      })
+    );
+    addToast('传记已保存至「我的传记」', 'success');
+    navigate('/my-works');
   };
 
   const exportFile = (type: string) => {
@@ -231,317 +203,365 @@ export default function AIBiography() {
     setTimeout(() => {
       setExporting((prev) => ({ ...prev, [type]: false }));
       addToast(`${type} 导出完成`, 'success');
-    }, 1500);
+    }, 1200);
   };
 
-  const changeCover = () => {
-    setCoverColor((i) => (i + 1) % coverColors.length);
-    addToast('封面已更换', 'success');
+  const selectChapter = (i: number) => {
+    setActiveIndex(i);
   };
 
-  const formatTool = (type: string) => {
-    setEditorText((prev) => {
-      if (type === 'bold') return prev + '\n\n**加粗文本示例**';
-      if (type === 'italic') return prev + '\n\n*斜体文本示例*';
-      if (type === 'underline') return prev + '\n\n<u>下划线文本示例</u>';
-      if (type === 'list') return prev + '\n\n- 列表项一\n- 列表项二';
-      if (type === 'h1') return prev + '\n\n# 一级标题';
-      if (type === 'quote') return prev + '\n\n> 引用文本';
-      if (type === 'divider') return prev + '\n\n---';
-      return prev;
+  const parseImportedBiography = (text: string): Record<string, string> => {
+    const result: Record<string, string> = {};
+    const titles = biographyChapterTitles;
+    const titlePattern = new RegExp(`^(\\s*[第前后]?\\s*(?:${titles.join('|')})\\s*[：:、\\s])`, 'm');
+    if (!titlePattern.test(text)) {
+      result[activeChapter.title] = text.trim();
+      return result;
+    }
+    const lines = text.split(/\r?\n/);
+    let currentTitle = '';
+    const buffers: Record<string, string[]> = {};
+    for (const line of lines) {
+      const matchedTitle = titles.find((t) => {
+        const reg = new RegExp(`^\\s*(?:第[一二三四五六七八九十\\d]+[章节]\\s*[、:：\\s])?\\s*${t}\\s*[：:、\\s]?`);
+        return reg.test(line);
+      });
+      if (matchedTitle) {
+        currentTitle = matchedTitle;
+        buffers[currentTitle] = buffers[currentTitle] || [];
+        continue;
+      }
+      if (currentTitle) {
+        buffers[currentTitle].push(line);
+      }
+    }
+    titles.forEach((t) => {
+      if (buffers[t]?.length) {
+        result[t] = buffers[t].join('\n').trim();
+      }
     });
-    const map: Record<string, string> = { bold: '加粗', italic: '斜体', underline: '下划线', list: '列表', h1: '标题', quote: '引用', divider: '分割线' };
-    addToast(`已应用${map[type] ?? type}`, 'info');
+    if (Object.keys(result).length === 0) {
+      result[activeChapter.title] = text.trim();
+    }
+    return result;
   };
+
+  const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImportingFile(true);
+    const reader = new FileReader();
+    reader.onload = () => {
+      setImportText((reader.result as string) || '');
+      setImportingFile(false);
+      addToast('文件读取成功，请确认导入', 'success');
+    };
+    reader.onerror = () => {
+      setImportingFile(false);
+      addToast('文件读取失败，请尝试复制文本后粘贴', 'error');
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
+  const confirmImport = () => {
+    const text = importText.trim();
+    if (!text) {
+      addToast('请先粘贴或上传传记内容', 'error');
+      return;
+    }
+    const parsed = parseImportedBiography(text);
+    const now = new Date().toLocaleString('zh-CN');
+    setChapters((prev) =>
+      prev.map((c) => {
+        const content = parsed[c.title];
+        if (!content) return c;
+        return {
+          ...c,
+          content,
+          status: 'edited',
+          updatedAt: now,
+        };
+      })
+    );
+    setShowImportModal(false);
+    setImportText('');
+    addToast('已有传记导入成功', 'success');
+  };
+
+
 
   return (
     <div className="biography-page">
       <header className="page-header">
         <div>
           <h1 className="page-title">AI传记生成</h1>
+          <div className="breadcrumb">
+            <span>首页</span> / <span className="active">AI传记生成</span>
+          </div>
+          <p className="page-subtitle">基于人生档案与采访素材，自动生成传记章节</p>
         </div>
         <div className="page-actions">
-          <button className="btn btn-outline" onClick={autoSave}><RefreshCw size={14} /> 自动保存于 {savedAt}</button>
+          <button className="btn btn-outline" onClick={() => setShowImportModal(true)}>
+            <Upload size={14} /> 导入已有传记
+          </button>
+          <button className="btn btn-outline" onClick={() => navigate('/archive')}>
+            <FolderOpen size={14} /> 完善人生档案
+          </button>
+          <button className="btn btn-outline" onClick={() => navigate('/interview-review')}>
+            <FileText size={14} /> 查看采访整理
+          </button>
+          <button className="btn btn-primary" onClick={saveToMyWorks}>
+            <BookOpen size={14} /> 保存到我的传记
+          </button>
         </div>
       </header>
-
-      <div className="bio-stats-row">
-        {stats.map((s, i) => (
-          <div className="card bio-stat" key={i} onClick={() => s.path && navigate(s.path)}>
-            <div className="card-body">
-              <div className="bio-stat-icon"><s.icon size={22} color="#1B5E4B" /></div>
-              <div className="bio-stat-label">{s.label}</div>
-              <div className="bio-stat-value">{s.label === '章节数量' ? chapterList.length : s.value}</div>
-              {s.trend ? <div className="bio-stat-trend">较上月 <ChevronRight size={10} className="trend-up" /> {s.trend}</div> : <div className="bio-stat-sub">{s.sub}</div>}
-            </div>
-          </div>
-        ))}
-      </div>
 
       <div className="biography-main">
         <div className="card chapter-tree">
           <div className="card-header">
-            <h3 className="card-title">章节结构</h3>
-            {!showAddInput && (
-              <button className="btn btn-ghost" onClick={() => setShowAddInput(true)}><Plus size={14} /> 新增章节</button>
-            )}
+            <h3 className="card-title">章节目录</h3>
           </div>
-          <div className="card-body">
-            {showAddInput && (
-              <div className="chapter-add-row">
-                <input
-                  type="text"
-                  value={newChapter}
-                  onChange={(e) => setNewChapter(e.target.value)}
-                  placeholder="输入章节名称"
-                  onKeyDown={(e) => e.key === 'Enter' && addChapter()}
-                  autoFocus
-                />
-                <button className="btn btn-primary" onClick={addChapter}>保存</button>
-                <button className="btn btn-ghost" onClick={() => { setShowAddInput(false); setNewChapter(''); }}>取消</button>
-              </div>
-            )}
-            <div className="chapter-list">
-              {chapterList.map((title, i) => (
-                <div className={`chapter-item ${activeChap === i ? 'active' : ''}`} key={i} onClick={() => selectChapter(i)}>
+          <div className="card-body chapter-tree-body">
+            {chapters.map((chapter, i) => (
+              <div
+                className={`chapter-item ${activeIndex === i ? 'active' : ''}`}
+                key={chapter.title}
+                onClick={() => selectChapter(i)}
+              >
+                <div className="chapter-item-left">
                   <BookOpen size={16} />
-                  <span>{title}</span>
-                  {manageMode && (
-                    <span className="chapter-actions">
-                      <button onClick={(e) => moveChapter(i, -1, e)} disabled={i === 0}><ArrowUp size={12} /></button>
-                      <button onClick={(e) => moveChapter(i, 1, e)} disabled={i === chapterList.length - 1}><ArrowDown size={12} /></button>
-                      <button onClick={(e) => removeChapter(i, e)}><Trash2 size={12} /></button>
-                    </span>
-                  )}
+                  <span>{chapter.title}</span>
                 </div>
-              ))}
-            </div>
-            <button className={`chapter-manage ${manageMode ? 'active' : ''}`} onClick={() => setManageMode((v) => !v)}><Settings size={14} /> {manageMode ? '完成管理' : '章节管理'}</button>
+                <div className="chapter-item-right">
+                  {statusBadge(chapter.status)}
+                  <ChevronRight size={14} className="chapter-arrow" />
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="chapter-progress">
+            <div className="progress-text">完成度 {Math.round((generatedCount / chapters.length) * 100)}%</div>
+            <div className="progress-bar"><div className="progress-fill" style={{ width: `${(generatedCount / chapters.length) * 100}%` }} /></div>
           </div>
         </div>
 
         <div className="card editor-card">
           <div className="card-header">
-            <h3 className="card-title">传记编辑器</h3>
+            <h3 className="card-title">{activeChapter.title}</h3>
             <div className="editor-meta">
-              <span>自动保存于 {savedAt}</span>
-              <span><RefreshCw size={12} /></span>
-              <span>字数：{wordCount.toLocaleString()}</span>
-              <span><ChevronRight size={12} /> 全屏编辑</span>
-            </div>
-          </div>
-          <div className="editor-toolbar">
-            <select className="tool-select"><option>正文</option></select>
-            <select className="tool-select"><option>思源宋体</option></select>
-            <select className="tool-select"><option>16</option></select>
-            <button className="tool-btn" onClick={() => formatTool('bold')}><Bold size={14} /></button>
-            <button className="tool-btn" onClick={() => formatTool('italic')}><Italic size={14} /></button>
-            <button className="tool-btn" onClick={() => formatTool('underline')}><Underline size={14} /></button>
-            <button className="tool-btn" onClick={() => formatTool('align')}><AlignLeft size={14} /></button>
-            <button className="tool-btn" onClick={() => formatTool('list')}><List size={14} /></button>
-            <label className="tool-btn" style={{ position: 'relative' }}>
-              <Image size={14} />
-              <input type="file" accept="image/*" hidden onChange={() => addToast('图片上传成功', 'success')} />
-            </label>
-            <div style={{ position: 'relative' }}>
-              <button className="tool-btn" onClick={() => setShowMoreFormats((v) => !v)}><MoreHorizontal size={14} /></button>
-              {showMoreFormats && (
-                <div className="format-popover">
-                  <button onClick={() => { formatTool('h1'); setShowMoreFormats(false); }}>标题</button>
-                  <button onClick={() => { formatTool('quote'); setShowMoreFormats(false); }}>引用</button>
-                  <button onClick={() => { formatTool('divider'); setShowMoreFormats(false); }}>分割线</button>
-                </div>
-              )}
+              {activeChapter.updatedAt && <span>最后更新：{activeChapter.updatedAt}</span>}
+              <span>字数：{activeChapter.content.replace(/\s/g, '').length}</span>
             </div>
           </div>
           <div className="editor-body">
-            <h2 className="editor-chapter-title">{chapterList[activeChap] ?? '前言'}</h2>
-            <div className="editor-text">
-              {editorText.split('\n\n').map((p, i) => (
-                <p key={i}>{p.split('\n').map((line, j) => <span key={j}>{line}<br /></span>)}</p>
-              ))}
-            </div>
-            <div className="editor-quote">父亲常说：“做人要正直，做事要踏实，读书要用心。”这句话伴随我一生，成为我前进的动力。</div>
-          </div>
-          <div className="ai-assistant-bar">
-            <div className="ai-tools">
-              <span className="ai-tools-title"><Sparkles size={14} /> AI写作助手</span>
-              {aiTools.map((t, i) => (
-                <button className="ai-tool" key={i} onClick={() => applyAiTool(t.label)} disabled={aiWorking}><t.icon size={12} /> {t.label}</button>
-              ))}
-            </div>
-            <div className="ai-input-row">
-              <input
-                type="text"
-                placeholder="请输入您的写作需求，如：帮我把整体润色这一段…"
-                value={aiPrompt}
-                onChange={(e) => setAiPrompt(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && generateFromPrompt()}
-                disabled={aiWorking}
+            {activeChapter.status === 'notGenerated' && !activeChapter.content ? (
+              <div className="editor-empty">
+                <Sparkles size={40} color="#1B5E4B" />
+                <h3>本章尚未生成</h3>
+                <p>点击「生成本章」，AI 将基于人生档案、采访素材和本章上传的素材生成初稿。</p>
+              </div>
+            ) : (
+              <textarea
+                className="chapter-editor"
+                value={activeChapter.content}
+                onChange={(e) =>
+                  updateChapter(activeIndex, {
+                    content: e.target.value,
+                    status: activeChapter.status === 'notGenerated' ? 'edited' : activeChapter.status,
+                  })
+                }
+                placeholder="在此编辑本章内容…"
               />
-              <button className="btn btn-primary" onClick={generateFromPrompt} disabled={aiWorking}><Sparkles size={14} /> {aiWorking ? '生成中…' : '生成'}</button>
-            </div>
+            )}
+          </div>
+          <div className="editor-toolbar">
+            <button className="btn btn-primary" onClick={handleGenerate} disabled={generating}>
+              <Sparkles size={14} /> {activeChapter.status === 'notGenerated' ? '生成本章' : '重新生成本章'}
+            </button>
+            <button className="btn btn-outline" onClick={handlePolish} disabled={generating || activeChapter.status === 'notGenerated'}>
+              <Wand2 size={14} /> 润色本章
+            </button>
+            <button className="btn btn-outline" onClick={saveDraft} disabled={!activeChapter.content.trim()}>
+              <Save size={14} /> 保存本章
+            </button>
+            {generating && <span className="generating-hint">AI 生成中…</span>}
           </div>
         </div>
 
         <div className="biography-side">
           <div className="card settings-card">
             <div className="card-header">
-              <h3 className="card-title">生成设置</h3>
+              <h3 className="card-title"><BookOpen size={14} /> 本章参考素材</h3>
+              <span
+                className="card-extra"
+                style={{ cursor: 'pointer' }}
+                onClick={() => navigate('/archive')}
+              >
+                <Upload size={12} /> 去上传
+              </span>
             </div>
             <div className="card-body settings-body">
-              <div className="setting-row">
-                <label>风格模板</label>
-                <select><option>温馨叙事风（推荐）</option></select>
-              </div>
-              <div className="setting-row">
-                <label>语气选择</label>
-                <select><option>真诚、温暖、富有感染力</option></select>
-              </div>
-              <div className="setting-row">
-                <label>多语言翻译</label>
-                <select><option>中文（简体）</option></select>
-              </div>
-              <div className="setting-toggle">
-                <span>AI润色</span>
-                <button className={`toggle ${aiToggle1 ? 'on' : ''}`} onClick={() => setAiToggle1(!aiToggle1)}><ToggleRight size={20} /></button>
-              </div>
-              <div className="setting-toggle">
-                <span>AI摘要生成</span>
-                <button className={`toggle ${aiToggle2 ? 'on' : ''}`} onClick={() => setAiToggle2(!aiToggle2)}><ToggleRight size={20} /></button>
-              </div>
-              <button className="btn btn-primary generate-chapter" onClick={generate} disabled={generating}><Sparkles size={14} /> {generating ? '生成中…' : '智能生成章节'}</button>
-              <button className="btn btn-outline outline-btn" onClick={() => setOutlineList(chapterList.map((c, i) => `${i + 1}. ${c}`))}><List size={14} /> 生成目录大纲</button>
-              {outlineList.length > 0 && (
-                <div className="outline-list-preview">
-                  {outlineList.map((o, i) => <div className="outline-list-item" key={i}>{o}</div>)}
+              {archiveMediaItems.length === 0 ? (
+                <div className="material-empty">
+                  暂无人生档案素材，上传后可作为本章生成参考
+                </div>
+              ) : (
+                <div className="material-groups">
+                  {[
+                    { type: 'image' as const, label: '照片', icon: Image },
+                    { type: 'video' as const, label: '视频', icon: Video },
+                    { type: 'audio' as const, label: '音频', icon: Music },
+                    { type: 'doc' as const, label: '文档', icon: File },
+                  ].map((g) => {
+                    const items = archiveMediaItems.filter((m) => m.type === g.type);
+                    if (items.length === 0) return null;
+                    return (
+                      <div className="material-group" key={g.type}>
+                        <div className="material-group-header">
+                          <span className="material-group-title">
+                            <g.icon size={14} /> {g.label}
+                          </span>
+                          <span className="material-group-count">{items.length}</span>
+                        </div>
+                        <div className="material-group-list">
+                          {items.map((m) => (
+                            <div
+                              className="material-item"
+                              key={m.id}
+                              title={m.title}
+                              onClick={() => setPreview({ type: m.type, title: m.title })}
+                            >
+                              <span className="material-item-name">{m.title}</span>
+                              <span className="material-item-stage">{m.stage || m.date}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
-            </div>
-          </div>
-
-          <div className="card cover-card">
-            <div className="card-header">
-              <h3 className="card-title">封面预览</h3>
-            </div>
-            <div className="card-body cover-body">
-              <div className="book-cover" style={{ background: `linear-gradient(135deg, ${coverColors[coverColor]}, #fff)` }}>
-                <div className="book-title">张明远传记</div>
-                <div className="book-subtitle">平凡人生不凡足迹</div>
+              <div className="setting-row">
+                <label>叙事风格</label>
+                <select className="setting-select">
+                  <option>温馨叙事风</option>
+                  <option>纪实简洁风</option>
+                  <option>文学散文风</option>
+                </select>
               </div>
-              <button className="btn btn-outline cover-btn" onClick={changeCover}><RefreshCw size={14} /> 更换封面</button>
+              <div className="setting-row">
+                <label>章节长度</label>
+                <select className="setting-select">
+                  <option>适中</option>
+                  <option>精简</option>
+                  <option>详细</option>
+                </select>
+              </div>
             </div>
           </div>
 
           <div className="card export-card">
             <div className="card-header">
-              <h3 className="card-title">导出与发布</h3>
+              <h3 className="card-title"><Download size={14} /> 导出</h3>
             </div>
             <div className="card-body export-body">
-              <button className="export-btn" onClick={() => exportFile('Word')} disabled={exporting.Word}><FileType size={18} /> {exporting.Word ? '导出中…' : '导出 Word'}</button>
-              <button className="export-btn" onClick={() => exportFile('PDF')} disabled={exporting.PDF}><Download size={18} /> {exporting.PDF ? '导出中…' : '导出 PDF'}</button>
-              <button className="export-btn" onClick={() => exportFile('实体书排版')} disabled={exporting['实体书排版']}><BookMarked size={18} /> {exporting['实体书排版'] ? '生成中…' : '实体书排版'}</button>
-              <button className="export-btn" onClick={() => exportFile('版权存证')} disabled={exporting['版权存证']}><Shield size={18} /> {exporting['版权存证'] ? '提交中…' : '版权存证'}</button>
+              <button className="export-btn" onClick={() => exportFile('Word')} disabled={exporting.Word}>
+                <FileType size={18} /> {exporting.Word ? '导出中…' : '导出 Word'}
+              </button>
+              <button className="export-btn" onClick={() => exportFile('PDF')} disabled={exporting.PDF}>
+                <Download size={18} /> {exporting.PDF ? '导出中…' : '导出 PDF'}
+              </button>
+              <button className="export-btn" onClick={() => exportFile('实体书排版')} disabled={exporting['实体书排版']}>
+                <BookOpen size={18} /> {exporting['实体书排版'] ? '生成中…' : '实体书排版'}
+              </button>
+            </div>
+          </div>
+
+          <div className="card quick-gen-card">
+            <div className="card-header">
+              <h3 className="card-title">快捷生成</h3>
+            </div>
+            <div className="card-body quick-gen-body">
+              <button className="btn btn-outline" onClick={() => { setActiveIndex(0); }}>
+                生成前言
+              </button>
+              <button className="btn btn-outline" onClick={() => { setActiveIndex(chapters.length - 1); }}>
+                生成后记
+              </button>
+              <button className="btn btn-outline" onClick={() => { navigate('/digital-person'); }}>
+                <Sparkles size={14} /> 创建数字人
+              </button>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="bio-bottom">
-        <div className="card timeline-card">
-          <div className="card-header">
-            <h3 className="card-title">人生时间轴</h3>
-            <button className="btn btn-ghost">查看全部</button>
-          </div>
-          <div className="card-body timeline-body">
-            {timeline.map((t, i) => (
-              <div className={`timeline-node ${activeTimeline === t.year ? 'active' : ''}`} key={i} onClick={() => setActiveTimeline(t.year)}>
-                <div className="timeline-icon" style={{ background: t.color }}>
-                  <t.Icon size={16} />
-                </div>
-                <div className="timeline-main">
-                  <div className="timeline-head">
-                    <span className="timeline-year">{t.year}</span>
-                    <span className="timeline-title">{t.title}</span>
-                  </div>
-                  <div className="timeline-desc">{t.desc}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="card archive-card">
-          <div className="card-header">
-            <h3 className="card-title">多媒体档案库</h3>
-            <button className="btn btn-ghost" onClick={() => navigate('/archive')}>查看全部</button>
-          </div>
-          <div className="card-body archive-grid">
-            {archives.map((a, i) => (
-              <div className="archive-thumb" key={i} onClick={() => navigate('/archive')}>
-                <div className="archive-icon">{a.type === 'image' ? <Image size={20} /> : a.type === 'video' ? <Play size={20} /> : <File size={20} />}</div>
-                <div className="archive-title">{a.title}</div>
-                <div className="archive-count">{a.count}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="card relation-card" onClick={() => navigate('/family')}>
-          <div className="card-header">
-            <h3 className="card-title">人物关系图谱</h3>
-          </div>
-          <div className="card-body relation-body">
-            <div className="relation-center">
-              <Avatar name="张明远" size={64} />
-              <span>张明远</span>
+      {preview && (
+        <div className="modal-overlay" onClick={() => setPreview(null)}>
+          <div className="modal-content preview-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h4>{preview.title}</h4>
+              <button className="modal-close" onClick={() => setPreview(null)}>
+                关闭
+              </button>
             </div>
-            <div className="relation-others">
-              {relations.map((r, i) => (
-                <div className={`relation-item ${r.side}`} key={i}>
-                  <Avatar name={r.name} size={40} />
-                  <div className="relation-role">{r.role}</div>
-                  <div className="relation-name">{r.name}</div>
+            <div className="modal-body preview-body">
+              {preview.type === 'image' && (
+                <img className="preview-image" src={generateImageDataUrl(preview.title)} alt={preview.title} />
+              )}
+              {preview.type === 'video' && <video className="preview-video" controls poster={generateVideoPoster(preview.title)} />}
+              {preview.type === 'audio' && <audio className="preview-audio" controls src={generateAudioUrl()} />}
+              {preview.type === 'doc' && (
+                <div className="preview-doc">
+                  <FileText size={48} />
                 </div>
-              ))}
-            </div>
-            <div className="relation-legend">
-              <span><span className="legend-line green" /> 直系亲属</span>
-              <span><span className="legend-line purple" /> 配偶关系</span>
-              <span><span className="legend-line blue" /> 子女关系</span>
+              )}
+              <p>正在预览：{preview.title}</p>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
-      <div className="bio-footer">
-        <div className="card recent-card">
-          <div className="card-header">
-            <h3 className="card-title">最近编辑</h3>
-            <button className="btn btn-ghost" onClick={() => navigate('/biography')}>查看更多 <ChevronRight size={14} /></button>
+      <Modal
+        open={showImportModal}
+        title="导入已有传记"
+        onClose={() => setShowImportModal(false)}
+        footer={
+          <div className="import-modal-footer">
+            <button className="btn btn-outline" onClick={() => setShowImportModal(false)}>取消</button>
+            <button className="btn btn-primary" onClick={confirmImport} disabled={!importText.trim() || importingFile}>
+              <Upload size={14} /> 确认导入
+            </button>
           </div>
-          <div className="card-body recent-body">
-            {recentEdits.map((e, i) => (
-              <div className="recent-item" key={i} onClick={() => navigate('/biography')}>
-                <FileText size={16} color="#1B5E4B" />
-                <span className="recent-title">{e.title}</span>
-                <span className="recent-date">编辑于 {e.date}</span>
-              </div>
-            ))}
+        }
+      >
+        <div className="import-modal-body">
+          <p className="import-modal-tip">
+            如果您已有写好的传记内容，可粘贴文本或上传 .txt 文件。系统会尝试根据章节标题自动拆分到对应章节；若未识别到章节标题，则将内容导入当前选中的「{activeChapter.title}」。
+          </p>
+          <textarea
+            className="import-modal-textarea"
+            rows={10}
+            placeholder="请粘贴传记全文…"
+            value={importText}
+            onChange={(e) => setImportText(e.target.value)}
+          />
+          <div className="import-modal-upload">
+            <label className="btn btn-outline" htmlFor="biography-import-file">
+              {importingFile ? '读取中…' : '上传文本文件'}
+            </label>
+            <input
+              id="biography-import-file"
+              type="file"
+              accept=".txt,.doc,.docx,.pdf"
+              style={{ display: 'none' }}
+              onChange={handleImportFile}
+            />
+            <span className="import-modal-hint">推荐 .txt；Word/PDF 可能因格式原因无法正确读取</span>
           </div>
         </div>
-
-        <div className="card progress-card">
-          <div className="card-header">
-            <h3 className="card-title">写作进度</h3>
-          </div>
-          <div className="card-body">
-            <div className="progress-text">完成度 {progress}%</div>
-            <div className="progress-bar"><div className="progress-fill" style={{ width: `${progress}%` }} /></div>
-            <div className="progress-desc">已完成 {Math.floor(progress / 100 * chapterList.length)} / {chapterList.length} 章节</div>
-          </div>
-        </div>
-      </div>
+      </Modal>
     </div>
   );
 }

@@ -322,3 +322,41 @@
   padding: 6px 8px;
   font-size: 13px;
 }
+
+.quota-line {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 160px;
+}
+
+.usage-bar {
+  flex: 1;
+  height: 6px;
+  background: #e8ecea;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.usage-fill {
+  height: 100%;
+  background: #1B5E4B;
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.usage-fill.storage {
+  background: #B8860B;
+}
+
+.quota-alert {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: #fef3c7;
+  color: #92400e;
+  border-radius: 8px;
+  font-size: 12px;
+}

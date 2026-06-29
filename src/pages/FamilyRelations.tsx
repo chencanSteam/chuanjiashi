@@ -1,20 +1,75 @@
-import { ArrowLeft, Users } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { ArrowLeft, Users, Plus, X, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Avatar from '../components/ui/Avatar';
+import { useToast } from '../hooks/useToast';
+import {
+  loadFamilyMembers,
+  loadFamilyRelations,
+  saveFamilyRelations,
+  addRelation,
+  removeRelation,
+  type FamilyRelation,
+  type FamilyMember,
+} from '../data/familyData';
 import './FamilyRelations.css';
 
-const relations = [
-  { from: '张明远', to: '李婉如', relation: '配偶' },
-  { from: '张明远', to: '张子涵', relation: '父子' },
-  { from: '张明远', to: '张浩然', relation: '祖孙' },
-  { from: '张建国', to: '张明远', relation: '父子' },
-  { from: '张志远', to: '张建国', relation: '父子' },
-  { from: '张建军', to: '刘芳', relation: '配偶' },
-  { from: '张子涵', to: '张若曦', relation: '配偶' },
-];
+function getArchiveId() {
+  return localStorage.getItem('cj_current_archive_id') ?? 'default';
+}
+
+const relationOptions = ['配偶', '父子', '父女', '母子', '母女', '祖孙', '兄弟姐妹', '其他'];
 
 export default function FamilyRelations() {
   const navigate = useNavigate();
+  const { addToast } = useToast();
+  const archiveId = useMemo(() => getArchiveId(), []);
+  const [relations, setRelations] = useState<FamilyRelation[]>(() => loadFamilyRelations(archiveId));
+  const [members] = useState<FamilyMember[]>(() => loadFamilyMembers(archiveId));
+  const [showAdd, setShowAdd] = useState(false);
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
+  const [relation, setRelation] = useState(relationOptions[0]);
+
+  useEffect(() => {
+    saveFamilyRelations(archiveId, relations);
+  }, [relations, archiveId]);
+
+  const memberNames = members.map((m) => m.name);
+  const allNames = Array.from(new Set([...memberNames, ...relations.flatMap((r) => [r.from, r.to])]));
+
+  const handleAdd = () => {
+    if (!from.trim() || !to.trim()) {
+      addToast('请填写双方姓名', 'error');
+      return;
+    }
+    if (from.trim() === to.trim()) {
+      addToast('不能与自己建立关系', 'error');
+      return;
+    }
+    const exists = relations.some(
+      (r) =>
+        (r.from === from.trim() && r.to === to.trim()) ||
+        (r.from === to.trim() && r.to === from.trim())
+    );
+    if (exists) {
+      addToast('该关系已存在', 'error');
+      return;
+    }
+    const added = addRelation(archiveId, { from: from.trim(), to: to.trim(), relation });
+    setRelations((prev) => [...prev, added]);
+    setFrom('');
+    setTo('');
+    setRelation(relationOptions[0]);
+    setShowAdd(false);
+    addToast('关系已添加', 'success');
+  };
+
+  const handleRemove = (id: string) => {
+    removeRelation(archiveId, id);
+    setRelations((prev) => prev.filter((r) => r.id !== id));
+    addToast('关系已删除', 'info');
+  };
 
   return (
     <div className="detail-page family-relations-page">
@@ -28,22 +83,40 @@ export default function FamilyRelations() {
       <div className="card">
         <div className="card-header">
           <h3 className="card-title"><Users size={16} /> 家庭关系网络</h3>
-          <button className="btn btn-primary" onClick={() => navigate('/family/members')}>添加关系</button>
+          <button className="btn btn-primary" onClick={() => setShowAdd(true)}><Plus size={14} /> 添加关系</button>
         </div>
         <div className="card-body">
-          {relations.map((r, i) => (
-            <div className="relation-row" key={i}>
-              <div className="relation-person">
+          {showAdd && (
+            <div className="relation-add-form">
+              <input list="member-names" type="text" placeholder="甲方姓名" value={from} onChange={(e) => setFrom(e.target.value)} />
+              <select value={relation} onChange={(e) => setRelation(e.target.value)}>
+                {relationOptions.map((r) => <option key={r} value={r}>{r}</option>)}
+              </select>
+              <input list="member-names" type="text" placeholder="乙方姓名" value={to} onChange={(e) => setTo(e.target.value)} />
+              <datalist id="member-names">
+                {allNames.map((n) => <option key={n} value={n} />)}
+              </datalist>
+              <button className="btn btn-primary" onClick={handleAdd}>添加</button>
+              <button className="btn btn-ghost" onClick={() => { setShowAdd(false); setFrom(''); setTo(''); }}><X size={14} /></button>
+            </div>
+          )}
+          {relations.map((r) => (
+            <div className="relation-row" key={r.id}>
+              <div className="relation-person" onClick={() => navigate(`/family/members/${encodeURIComponent(r.from)}`)}>
                 <Avatar name={r.from} size={32} />
                 <span>{r.from}</span>
               </div>
               <span className="relation-label">{r.relation}</span>
-              <div className="relation-person">
+              <div className="relation-person" onClick={() => navigate(`/family/members/${encodeURIComponent(r.to)}`)}>
                 <Avatar name={r.to} size={32} />
                 <span>{r.to}</span>
               </div>
+              <button className="relation-delete" onClick={() => handleRemove(r.id)} title="删除">
+                <Trash2 size={14} />
+              </button>
             </div>
           ))}
+          {relations.length === 0 && <div className="relation-empty">暂无关系，点击右上角添加</div>}
         </div>
       </div>
     </div>

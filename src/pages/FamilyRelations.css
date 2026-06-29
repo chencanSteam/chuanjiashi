@@ -3,6 +3,27 @@
   gap: 16px;
 }
 
+.relation-add-form {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 12px;
+  background: #f8f9f9;
+  border-radius: 10px;
+  margin-bottom: 12px;
+}
+
+.relation-add-form input,
+.relation-add-form select {
+  border: 1px solid #e8ecea;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13px;
+  outline: none;
+  min-width: 120px;
+}
+
 .relation-row {
   display: flex;
   align-items: center;
@@ -23,6 +44,7 @@
   font-size: 14px;
   color: #1f2937;
   flex: 1;
+  cursor: pointer;
 }
 
 .relation-person:last-child {
@@ -35,4 +57,26 @@
   background: rgba(27,94,75,0.08);
   padding: 3px 12px;
   border-radius: 999px;
+}
+
+.relation-delete {
+  border: none;
+  background: transparent;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.relation-delete:hover {
+  color: #dc2626;
+  background: #fee2e2;
+}
+
+.relation-empty {
+  text-align: center;
+  color: #9ca3af;
+  font-size: 13px;
+  padding: 24px 0;
 }

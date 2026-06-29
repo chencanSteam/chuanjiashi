@@ -32,7 +32,7 @@ export default function TrainingReport() {
   const downloadReport = () => {
     setDownloading(true);
     setTimeout(() => {
-      const blob = new Blob(['数字人格训练报告\n综合得分：' + overall + '\n生成时间：' + new Date().toLocaleString('zh-CN')], { type: 'text/plain' });
+      const blob = new Blob(['数字人训练报告\n综合得分：' + overall + '\n生成时间：' + new Date().toLocaleString('zh-CN')], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;

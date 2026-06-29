@@ -1,35 +1,48 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, Search, Users, Clock, BookOpen } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../hooks/useToast';
 import Avatar from '../components/ui/Avatar';
+import {
+  loadFamilyMembers,
+  saveFamilyMembers,
+  addOrUpdateMember,
+  type FamilyMember,
+} from '../data/familyData';
 import './FamilyMemberList.css';
 
-const initialMembers = [
-  { name: '张明远', role: '我', tag: '家主', gen: '第1代' },
-  { name: '李婉如', role: '配偶', gen: '第1代' },
-  { name: '张子涵', role: '长子', gen: '第2代' },
-  { name: '张若曦', role: '儿媳', gen: '第2代' },
-  { name: '张浩然', role: '孙子', gen: '第3代' },
-  { name: '张志远', role: '祖父', tag: '已故', gen: '第1代' },
-  { name: '王淑兰', role: '祖母', tag: '已故', gen: '第1代' },
-  { name: '张建国', role: '父亲', gen: '第2代' },
-  { name: '李秀英', role: '母亲', gen: '第2代' },
-  { name: '张建军', role: '叔叔', gen: '第2代' },
-  { name: '刘芳', role: '婶婶', gen: '第2代' },
-  { name: '张伟', role: '堂兄', gen: '第3代' },
-  { name: '陈静', role: '堂嫂', gen: '第3代' },
-];
+function getArchiveId() {
+  return localStorage.getItem('cj_current_archive_id') ?? 'default';
+}
 
 export default function FamilyMemberList() {
   const navigate = useNavigate();
   const { addToast } = useToast();
-  const [members, setMembers] = useState(initialMembers);
+  const archiveId = useMemo(() => getArchiveId(), []);
+  const [members, setMembers] = useState<FamilyMember[]>(() => loadFamilyMembers(archiveId));
   const [search, setSearch] = useState('');
   const [showAdd, setShowAdd] = useState(false);
   const [newName, setNewName] = useState('');
 
+  useEffect(() => {
+    saveFamilyMembers(archiveId, members);
+  }, [members, archiveId]);
+
   const filteredMembers = members.filter((m) => m.name.includes(search));
+
+  const handleAdd = () => {
+    const name = newName.trim();
+    if (!name) return;
+    if (members.some((m) => m.name === name)) {
+      addToast('该成员已存在', 'error');
+      return;
+    }
+    const added = addOrUpdateMember(archiveId, { name, role: '成员', gen: '其他' });
+    setMembers((prev) => [...prev, added]);
+    setNewName('');
+    setShowAdd(false);
+    addToast('成员已添加', 'success');
+  };
 
   return (
     <div className="detail-page member-list-page">
@@ -37,7 +50,7 @@ export default function FamilyMemberList() {
         <button className="btn btn-ghost" onClick={() => navigate(-1)}>
           <ArrowLeft size={16} /> 返回
         </button>
-        <h1 className="page-title">家庭成员（32人）</h1>
+        <h1 className="page-title">家庭成员（{members.length}人）</h1>
       </header>
 
       <div className="card">
@@ -48,8 +61,8 @@ export default function FamilyMemberList() {
         <div className="card-body">
           {showAdd && (
             <div className="member-add-row">
-              <input type="text" placeholder="成员姓名" value={newName} onChange={(e) => setNewName(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { const name = newName.trim(); if (name) { setMembers((prev) => [...prev, { name, role: '成员', gen: '其他' }]); setNewName(''); setShowAdd(false); addToast('成员已添加', 'success'); } } }} autoFocus />
-              <button onClick={() => { const name = newName.trim(); if (name) { setMembers((prev) => [...prev, { name, role: '成员', gen: '其他' }]); setNewName(''); setShowAdd(false); addToast('成员已添加', 'success'); } }}>添加</button>
+              <input type="text" placeholder="成员姓名" value={newName} onChange={(e) => setNewName(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') handleAdd(); }} autoFocus />
+              <button onClick={handleAdd}>添加</button>
               <button onClick={() => { setShowAdd(false); setNewName(''); }}>取消</button>
             </div>
           )}
@@ -58,10 +71,10 @@ export default function FamilyMemberList() {
             <input type="text" placeholder="搜索成员姓名" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
           <div className="member-list-grid">
-            {filteredMembers.map((m, i) => (
+            {filteredMembers.map((m) => (
               <div
                 className="member-list-item"
-                key={i}
+                key={m.id}
                 onClick={() => navigate(`/family/members/${encodeURIComponent(m.name)}`)}
               >
                 <Avatar name={m.name} size={48} />
