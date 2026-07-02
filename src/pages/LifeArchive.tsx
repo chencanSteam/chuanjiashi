@@ -1,11 +1,8 @@
 import { useEffect, useMemo, useState, type ComponentType } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Clock,
-  Image,
-  Users,
-  MapPin,
-  ChevronRight,
+    Image,
+    MapPin,
   Edit3,
   FileText,
   Music,
@@ -61,16 +58,6 @@ const tabs = [
   { key: 'privacy', label: '隐私与权限' },
 ];
 
-const stats = [
-  { label: '档案完整度', value: '86%', sub: '4', trend: '8%' },
-  { label: '关键事件', value: '128', trend: '12' },
-  { label: '多媒体素材', value: '2,345', trend: '236' },
-  { label: '人生阶段', value: '7', trend: '-' },
-  { label: '授权成员', value: '5', trend: '1' },
-];
-
-const statIcons = [Clock, Image, MapPin, Users];
-
 const eventDetails: Record<string, { title: string; subtitle: string; content: string; tags: string[] }> = {
   '1958': { title: '出生', subtitle: '出生于江苏苏州', content: '1958年3月12日，张明远出生于江苏苏州一个普通的教师家庭。童年的苏州小巷、评弹声与父亲的教诲，构成了他最早的记忆底色。', tags: ['出生', '苏州', '童年'] },
   '1970': { title: '求学', subtitle: '苏州市立实验小学', content: '在苏州市立实验小学，张明远养成了良好的学习习惯。班主任王老师的影响深远，让他明白了知识改变命运的道理。', tags: ['小学', '求学', '启蒙'] },
@@ -89,6 +76,7 @@ interface Archive {
   birthYear: string;
   origin: string;
   occupation: string;
+  tags?: string[];
 }
 
 interface TagItem {
@@ -618,6 +606,7 @@ export default function LifeArchive() {
 
   const handleAddEvent = () => {
     const year = newEventYear.trim();
+    const endYear = newEventEndYear.trim();
     const title = newEventTitle.trim();
     const desc = newEventDesc.trim();
     if (!year || !title) {
@@ -630,6 +619,7 @@ export default function LifeArchive() {
     }
     const newEvent: TimelineEvent = {
       year,
+      endYear: endYear || undefined,
       title,
       desc,
       Icon: Star,
@@ -647,6 +637,7 @@ export default function LifeArchive() {
     );
     setSelectedYear(year);
     setNewEventYear('');
+    setNewEventEndYear('');
     setNewEventTitle('');
     setNewEventDesc('');
     setShowAddEvent(false);
@@ -770,31 +761,28 @@ export default function LifeArchive() {
 
   return (
     <div className="archive-page">
-      <header className="page-header">
-        <div>
-          <h1 className="page-title">人生档案</h1>
+      <header className="page-header archive-page-header">
+        <h1 className="page-title">人生档案</h1>
+        <div className="archive-header-actions">
+          <div className="archive-current">
+            <span className="archive-name">{currentArchive.name}的档案</span>
+            <select value={currentArchiveId} onChange={(e) => handleSwitchArchive(e.target.value)}>
+              {archives.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name}的档案
+                </option>
+              ))}
+            </select>
+          </div>
+          <button
+            className="btn btn-primary"
+            onClick={() => setShowNewArchive(true)}
+            disabled={!canManageArchives}
+          >
+            <Plus size={14} /> 新建档案
+          </button>
         </div>
       </header>
-
-      <div className="archive-header">
-        <div className="archive-current">
-          <span className="archive-name">{currentArchive.name}的档案</span>
-          <select value={currentArchiveId} onChange={(e) => handleSwitchArchive(e.target.value)}>
-            {archives.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.name}的档案
-              </option>
-            ))}
-          </select>
-        </div>
-        <button
-          className="btn btn-primary"
-          onClick={() => setShowNewArchive(true)}
-          disabled={!canManageArchives}
-        >
-          <Plus size={14} /> 新建档案
-        </button>
-      </div>
 
       {showNewArchive && (
         <div className="card new-archive-card">
@@ -870,38 +858,6 @@ export default function LifeArchive() {
             {t.label}
           </button>
         ))}
-      </div>
-
-      <div className="archive-stats-row">
-        {stats.map((s, i) => {
-          const statPaths = ['/archive/completeness', '/archive/events', '/archive/media', '/archive/places', '/archive/members'];
-          return (
-            <div className="card archive-stat" key={i} onClick={() => navigate(statPaths[i])}>
-              <div className="card-body">
-                {i === 0 ? (
-                  <div className="complete-circle">86%</div>
-                ) : (
-                  <div className="archive-stat-icon">
-                    {(() => {
-                      const Icon = statIcons[i - 1];
-                      return Icon ? <Icon size={20} color="#1B5E4B" /> : null;
-                    })()}
-                  </div>
-                )}
-                <div className="archive-stat-label">{s.label}</div>
-                <div className="archive-stat-value">
-                  {s.label === '关键事件' ? events.length.toString() : s.value}
-                </div>
-                {s.sub && <div className="archive-stat-sub">{s.sub}</div>}
-                {s.trend && (
-                  <div className="archive-stat-trend">
-                    较上月 <ChevronRight size={10} className="trend-up" /> {s.trend}
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        })}
       </div>
 
       {activeTab === 'timeline' && (
@@ -1000,7 +956,6 @@ export default function LifeArchive() {
                           ))}
                         </div>
                       </div>
-                      <div className="event-desc">{e.desc}</div>
                     </div>
                     {canEdit && (
                       <div className="event-actions">
@@ -1026,7 +981,7 @@ export default function LifeArchive() {
                         </button>
                       </div>
                     )}
-                    {active && <ChevronRight size={18} className="event-arrow" />}
+
                   </div>
                 );
               })}

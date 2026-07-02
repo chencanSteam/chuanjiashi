@@ -558,11 +558,8 @@ export default function DigitalLife() {
 
   return (
     <div className="digital-page">
-      <header className="page-header">
-        <div>
-          <h1 className="page-title">数字人</h1>
-          <div className="page-subtitle">创建数字亲人，训练人格模型，让爱与记忆在数字世界延续</div>
-        </div>
+      <header className="page-header digital-header">
+        <h1 className="page-title">数字人</h1>
         <div className="page-actions">
           <button className="btn btn-primary" onClick={openWizard}><Plus size={14} /> 创建数字亲人</button>
           <button className="btn btn-outline" onClick={() => navigate('/settings/help')}>使用指南</button>

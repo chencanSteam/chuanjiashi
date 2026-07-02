@@ -1,4 +1,6 @@
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
+import type { LucideIcon } from 'lucide-react';
 import {
   LayoutDashboard,
   Mic,
@@ -16,17 +18,46 @@ import {
   Bell,
   HelpCircle,
   LogOut,
+  Shield,
+  Briefcase,
+  ChevronRight,
+  ChevronDown,
+  UserCheck,
+  Wallet,
+  TrendingUp,
+  Link2,
+  ClipboardList,
+  Share2,
+  User,
+  Bell as BellIcon,
+  Shield as ShieldIcon,
+  Database,
+  Sparkles,
 } from 'lucide-react';
 import Avatar from './ui/Avatar';
 import { useAuth } from '../hooks/useAuth';
 import { useVersion } from '../hooks/useVersion';
+import GuideTour, { openGuide } from './GuideTour';
 import './Layout.css';
 
-// 完整版导航入口
-const navItemsFull = [
+interface NavItem {
+  to: string;
+  icon: LucideIcon;
+  label: string;
+}
+
+interface NavGroup {
+  key: string;
+  icon: LucideIcon;
+  label: string;
+  items: NavItem[];
+}
+
+// 基础导航入口
+const baseNavItemsFull: NavItem[] = [
   { to: '/', icon: LayoutDashboard, label: '首页' },
-  { to: '/interview', icon: Mic, label: 'AI智能采访' },
   { to: '/archive', icon: FolderOpen, label: '人生档案' },
+  { to: '/interview', icon: Mic, label: 'AI智能采访' },
   { to: '/biography', icon: BookOpen, label: 'AI传记生成' },
   { to: '/my-works', icon: BookMarked, label: '我的传记' },
   { to: '/family', icon: Users, label: '家庭空间' },
@@ -35,33 +66,86 @@ const navItemsFull = [
   { to: '/digital-person', icon: UserCircle2, label: '数字人' },
   { to: '/digital-companion', icon: MessageCircleHeart, label: '数字陪伴' },
   { to: '/government', icon: Building2, label: '政务客户服务' },
-  { to: '/settings', icon: Settings, label: '系统设置' },
 ];
 
-// MVP 版导航入口：保留核心闭环 + 基础数字人体验
-const navItemsMVP = [
+const baseNavItemsMVP: NavItem[] = [
   { to: '/', icon: LayoutDashboard, label: '首页' },
-  { to: '/interview', icon: Mic, label: 'AI智能采访' },
   { to: '/archive', icon: FolderOpen, label: '人生档案' },
+  { to: '/interview', icon: Mic, label: 'AI智能采访' },
   { to: '/biography', icon: BookOpen, label: 'AI传记生成' },
   { to: '/my-works', icon: BookMarked, label: '我的传记' },
   { to: '/digital-person', icon: UserCircle2, label: '数字人' },
-  { to: '/settings', icon: Settings, label: '系统设置' },
 ];
 
-// const isMVP = import.meta.env.VITE_MVP_MODE === 'true';
-// const navItems = isMVP ? navItemsMVP : navItemsFull;
+const adminGroupItems: NavItem[] = [
+  { to: '/admin/biographers', icon: Users, label: '传记师管理' },
+  { to: '/admin/partners', icon: UserCheck, label: '合伙人管理' },
+  { to: '/admin/partner-applications', icon: ClipboardList, label: '合伙人申请' },
+  { to: '/admin/partner-customers', icon: Link2, label: '客户归属' },
+  { to: '/admin/commission-records', icon: TrendingUp, label: '分润流水' },
+  { to: '/admin/withdrawals', icon: Wallet, label: '提现审核' },
+  { to: '/admin/user-invites', icon: Share2, label: '用户邀请奖励' },
+];
+
+const settingsGroupItems: NavItem[] = [
+  { to: '/settings/account', icon: User, label: '账户信息' },
+  { to: '/settings/invite', icon: Share2, label: '我的邀请' },
+  { to: '/settings/quota', icon: Sparkles, label: 'AI额度' },
+  { to: '/settings/notification', icon: BellIcon, label: '通知设置' },
+  { to: '/settings/privacy', icon: ShieldIcon, label: '隐私与安全' },
+  { to: '/settings/family', icon: Users, label: '家庭成员' },
+  { to: '/settings/storage', icon: Database, label: '存储与备份' },
+  { to: '/settings/help', icon: HelpCircle, label: '帮助与反馈' },
+];
+
+function isGroupActive(group: NavGroup, pathname: string): boolean {
+  return group.items.some((item) => pathname.startsWith(item.to));
+}
 
 export default function Layout() {
   const { user, logout } = useAuth();
   const { isMVP } = useVersion();
-  const navItems = isMVP ? navItemsMVP : navItemsFull;
+  const baseNavItems = isMVP ? baseNavItemsMVP : baseNavItemsFull;
+  const location = useLocation();
+  const pathname = location.pathname;
+
+  const roleNavItems: NavItem[] = [];
+  if (user?.roles?.includes('partner')) {
+    roleNavItems.push({ to: '/partner-center', icon: Briefcase, label: '合伙人中心' });
+  }
+
+  const isAdminUser = user?.roles?.includes('admin') ?? false;
+
+  const adminGroup: NavGroup | null = isAdminUser
+    ? { key: 'admin', icon: Shield, label: '管理后台', items: adminGroupItems }
+    : null;
+
+  const settingsGroup: NavGroup = { key: 'settings', icon: Settings, label: '系统设置', items: settingsGroupItems };
+
+  const [expanded, setExpanded] = useState<Record<string, boolean>>(() => ({
+    admin: isAdminUser ? adminGroupItems.some((item) => pathname.startsWith(item.to)) : false,
+    settings: settingsGroupItems.some((item) => pathname.startsWith(item.to)),
+  }));
+
+  useEffect(() => {
+    setExpanded((prev) => ({
+      ...prev,
+      admin: isAdminUser ? adminGroupItems.some((item) => pathname.startsWith(item.to)) : prev.admin,
+      settings: settingsGroupItems.some((item) => pathname.startsWith(item.to)),
+    }));
+  }, [pathname, isAdminUser]);
+
+  const toggleGroup = (key: string) => {
+    setExpanded((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
   const navigate = useNavigate();
   const displayName = user?.name || user?.phone || '用户';
   const handleLogout = () => {
     logout();
     navigate('/login', { replace: true });
   };
+
   return (
     <div className="layout">
       <aside className="sidebar">
@@ -103,7 +187,7 @@ export default function Layout() {
 
         <nav className="nav">
           <ul className="nav-list">
-            {navItems.map((item) => (
+            {baseNavItems.map((item) => (
               <li className="nav-item" key={item.to}>
                 <NavLink
                   to={item.to}
@@ -115,6 +199,71 @@ export default function Layout() {
                 </NavLink>
               </li>
             ))}
+            {roleNavItems.map((item) => (
+              <li className="nav-item" key={item.to}>
+                <NavLink
+                  to={item.to}
+                  className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+                >
+                  <item.icon className="nav-icon" size={18} />
+                  <span>{item.label}</span>
+                </NavLink>
+              </li>
+            ))}
+            {adminGroup && (
+              <li className={`nav-item nav-group ${isGroupActive(adminGroup, pathname) ? 'active' : ''}`} key="admin-group">
+                <button
+                  className="nav-group-header"
+                  onClick={() => toggleGroup('admin')}
+                  type="button"
+                >
+                  <adminGroup.icon className="nav-icon" size={18} />
+                  <span>{adminGroup.label}</span>
+                  {expanded.admin ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                </button>
+                {expanded.admin && (
+                  <ul className="nav-sub-list">
+                    {adminGroup.items.map((item) => (
+                      <li className="nav-sub-item" key={item.to}>
+                        <NavLink
+                          to={item.to}
+                          className={({ isActive }) => `nav-sub-link ${isActive ? 'active' : ''}`}
+                        >
+                          <item.icon className="nav-icon" size={16} />
+                          <span>{item.label}</span>
+                        </NavLink>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </li>
+            )}
+            <li className={`nav-item nav-group ${isGroupActive(settingsGroup, pathname) ? 'active' : ''}`} key="settings-group">
+              <button
+                className="nav-group-header"
+                onClick={() => toggleGroup('settings')}
+                type="button"
+              >
+                <settingsGroup.icon className="nav-icon" size={18} />
+                <span>{settingsGroup.label}</span>
+                {expanded.settings ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+              </button>
+              {expanded.settings && (
+                <ul className="nav-sub-list">
+                  {settingsGroup.items.map((item) => (
+                    <li className="nav-sub-item" key={item.to}>
+                      <NavLink
+                        to={item.to}
+                        className={({ isActive }) => `nav-sub-link ${isActive ? 'active' : ''}`}
+                      >
+                        <item.icon className="nav-icon" size={16} />
+                        <span>{item.label}</span>
+                      </NavLink>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </li>
           </ul>
         </nav>
 
@@ -132,7 +281,7 @@ export default function Layout() {
               <Bell size={18} />
               <span className="badge">12</span>
             </button>
-            <button className="icon-btn" title="帮助中心">
+            <button className="icon-btn" title="帮助中心" onClick={openGuide}>
               <HelpCircle size={18} />
             </button>
             <div className="user-card">
@@ -152,6 +301,7 @@ export default function Layout() {
           <Outlet />
         </main>
       </div>
+      <GuideTour />
     </div>
   );
 }

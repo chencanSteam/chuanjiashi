@@ -4,82 +4,6 @@
   gap: 18px;
 }
 
-.archive-stats-row {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 16px;
-}
-
-.archive-stat {
-  text-align: center;
-  cursor: pointer;
-  transition: transform 0.2s;
-}
-
-.archive-stat:hover {
-  transform: translateY(-2px);
-}
-
-.archive-stat .card-body {
-  padding: 14px 10px;
-}
-
-.complete-circle {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  border: 3px solid #e8ecea;
-  border-top-color: #1B5E4B;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 13px;
-  font-weight: 700;
-  color: #1f2937;
-  margin: 0 auto 8px;
-}
-
-.archive-stat-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  background: rgba(27,94,75,0.08);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto 8px;
-}
-
-.archive-stat-label {
-  font-size: 12px;
-  color: #9ca3af;
-}
-
-.archive-stat-value {
-  font-size: 18px;
-  font-weight: 700;
-  color: #1f2937;
-  margin: 2px 0;
-}
-
-.archive-stat-sub {
-  font-size: 11px;
-  color: #6b7280;
-}
-
-.archive-stat-trend {
-  font-size: 11px;
-  color: #1B5E4B;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-}
-
-.trend-up {
-  transform: rotate(-90deg);
-}
-
 .archive-grid {
   display: grid;
   grid-template-columns: 0.9fr 1.2fr 0.8fr;
@@ -227,12 +151,6 @@
   padding: 2px 8px;
   border-radius: 999px;
   white-space: nowrap;
-}
-
-.event-arrow {
-  color: #1B5E4B;
-  flex-shrink: 0;
-  margin-left: 4px;
 }
 
 .event-detail-card {
@@ -942,9 +860,6 @@
 }
 
 @media (max-width: 1300px) {
-  .archive-stats-row {
-    grid-template-columns: repeat(3, 1fr);
-  }
   .archive-grid {
     grid-template-columns: 1fr;
   }
@@ -954,9 +869,6 @@
 }
 
 @media (max-width: 900px) {
-  .archive-stats-row {
-    grid-template-columns: repeat(2, 1fr);
-  }
   .media-page-body {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -1077,16 +989,16 @@
 }
 
 /* MVP additions */
-.archive-header {
+.archive-page-header {
+  align-items: center;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.archive-header-actions {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 16px;
-  background: #fff;
-  border: 1px solid #e8ecea;
-  border-radius: 14px;
-  padding: 14px 18px;
-  margin-bottom: 6px;
 }
 
 .archive-current {
@@ -1273,7 +1185,7 @@ select:disabled {
   .new-archive-body {
     grid-template-columns: 1fr;
   }
-  .archive-header {
+  .archive-header-actions {
     flex-direction: column;
     align-items: flex-start;
   }

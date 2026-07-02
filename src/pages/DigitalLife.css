@@ -4,6 +4,12 @@
   gap: 18px;
 }
 
+.digital-header {
+  align-items: center;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
 .digital-stats-row {
   display: grid;
   grid-template-columns: repeat(5, 1fr);

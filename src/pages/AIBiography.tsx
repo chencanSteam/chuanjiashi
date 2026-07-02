@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ChevronRight,
@@ -17,9 +17,13 @@ import {
   Music,
   Video,
   File,
+  DollarSign,
 } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
+import { useAuth } from '../hooks/useAuth';
 import Modal from '../components/ui/Modal';
+import { recordCommission } from '../data/partnerData';
+import { recordUserInviteReward } from '../data/userInviteData';
 import { generateImageDataUrl, generateVideoPoster, generateAudioUrl } from '../utils/mediaPlaceholder';
 import {
   biographyChapterTitles,
@@ -41,6 +45,7 @@ interface Archive {
   birthYear: string;
   origin: string;
   occupation: string;
+  tags?: string[];
 }
 
 function loadCurrentArchive(): Archive | null {
@@ -99,12 +104,25 @@ export default function AIBiography() {
   const [generating, setGenerating] = useState(false);
   const [exporting, setExporting] = useState<Record<string, boolean>>({});
   const archiveMediaItems = useMemo(() => loadArchiveMediaItems(archiveId), [archiveId]);
+  const { user } = useAuth();
   const [showImportModal, setShowImportModal] = useState(false);
   const [importText, setImportText] = useState('');
   const [importingFile, setImportingFile] = useState(false);
   const [preview, setPreview] = useState<{ type: string; title: string } | null>(null);
 
   const activeChapter = chapters[activeIndex];
+  const editorRef = useRef<HTMLDivElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+
+  // 切换章节或 AI 生成内容后，同步编辑器内容，但不破坏光标
+  useEffect(() => {
+    const el = editorRef.current;
+    if (!el) return;
+    if (document.activeElement === el) return;
+    if (el.innerHTML !== activeChapter.content) {
+      el.innerHTML = activeChapter.content;
+    }
+  }, [activeChapter.content, activeIndex]);
 
   useEffect(() => {
     saveJson(`cj_biography_chapters_${archiveId}`, chapters);
@@ -120,6 +138,44 @@ export default function AIBiography() {
 
   const updateChapter = (index: number, patch: Partial<ChapterData>) => {
     setChapters((prev) => prev.map((c, i) => (i === index ? { ...c, ...patch } : c)));
+  };
+
+  const handleEditorInput = () => {
+    const html = editorRef.current?.innerHTML || '';
+    updateChapter(activeIndex, {
+      content: html,
+      status: activeChapter.status === 'notGenerated' ? 'edited' : activeChapter.status,
+    });
+  };
+
+  const handleInsertImage = () => {
+    imageInputRef.current?.click();
+  };
+
+  const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      addToast('请上传图片文件', 'error');
+      e.target.value = '';
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      addToast('图片大小不能超过 2MB', 'error');
+      e.target.value = '';
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const src = reader.result as string;
+      const imgHtml = `<img src="${src}" alt="${file.name}" style="max-width:100%;border-radius:8px;margin:12px 0;display:block;" />`;
+      editorRef.current?.focus();
+      document.execCommand('insertHTML', false, imgHtml);
+      handleEditorInput();
+      addToast('图片已插入', 'success');
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
   };
 
   const handleGenerate = async () => {
@@ -175,22 +231,13 @@ export default function AIBiography() {
   };
 
   const saveToMyWorks = () => {
-    const reviewEvents = loadJson<ReviewEvent[]>(`cj_review_events_${archiveId}`, []);
-    const highlights = loadJson<string[]>(`cj_review_highlights_${archiveId}`, []);
-    const answers = loadInterviewAnswers(archiveId);
-    const assembled = assembleBiography({
-      archiveName: subjectName,
-      events: reviewEvents,
-      highlights,
-      answers,
-    });
     localStorage.setItem(
       `cj_biography_${archiveId}`,
       JSON.stringify({
         title: `${subjectName}传记`,
         author: 'AI 整理',
         createdAt: new Date().toLocaleString('zh-CN'),
-        chapters: assembled,
+        chapters: chapters.map((c) => ({ title: c.title, content: c.content })),
       })
     );
     addToast('传记已保存至「我的传记」', 'success');
@@ -204,6 +251,22 @@ export default function AIBiography() {
       setExporting((prev) => ({ ...prev, [type]: false }));
       addToast(`${type} 导出完成`, 'success');
     }, 1200);
+  };
+
+  const simulatePayment = () => {
+    if (!user?.phone) {
+      addToast('请先登录', 'error');
+      return;
+    }
+    const amount = 99;
+    const records = recordCommission(user.phone, `ORDER_${Date.now()}`, amount, 'biography');
+    const userReward = recordUserInviteReward(user.phone, `ORDER_${Date.now()}`, amount);
+    if (records.length === 0 && !userReward) {
+      addToast('暂无归属合伙人或邀请人，无法产生分润', 'error');
+      return;
+    }
+    const total = records.length + (userReward ? 1 : 0);
+    addToast(`模拟支付成功，已产生 ${total} 笔分润`, 'success');
   };
 
   const selectChapter = (i: number) => {
@@ -293,14 +356,8 @@ export default function AIBiography() {
 
   return (
     <div className="biography-page">
-      <header className="page-header">
-        <div>
-          <h1 className="page-title">AI传记生成</h1>
-          <div className="breadcrumb">
-            <span>首页</span> / <span className="active">AI传记生成</span>
-          </div>
-          <p className="page-subtitle">基于人生档案与采访素材，自动生成传记章节</p>
-        </div>
+      <header className="page-header biography-header">
+        <h1 className="page-title">AI传记生成</h1>
         <div className="page-actions">
           <button className="btn btn-outline" onClick={() => setShowImportModal(true)}>
             <Upload size={14} /> 导入已有传记
@@ -313,6 +370,9 @@ export default function AIBiography() {
           </button>
           <button className="btn btn-primary" onClick={saveToMyWorks}>
             <BookOpen size={14} /> 保存到我的传记
+          </button>
+          <button className="btn btn-accent" onClick={simulatePayment}>
+            <DollarSign size={14} /> 模拟支付 ¥99
           </button>
         </div>
       </header>
@@ -351,7 +411,7 @@ export default function AIBiography() {
             <h3 className="card-title">{activeChapter.title}</h3>
             <div className="editor-meta">
               {activeChapter.updatedAt && <span>最后更新：{activeChapter.updatedAt}</span>}
-              <span>字数：{activeChapter.content.replace(/\s/g, '').length}</span>
+              <span>字数：{activeChapter.content.replace(/<[^>]+>/g, '').replace(/\s/g, '').length}</span>
             </div>
           </div>
           <div className="editor-body">
@@ -362,16 +422,15 @@ export default function AIBiography() {
                 <p>点击「生成本章」，AI 将基于人生档案、采访素材和本章上传的素材生成初稿。</p>
               </div>
             ) : (
-              <textarea
+              <div
+                ref={editorRef}
                 className="chapter-editor"
-                value={activeChapter.content}
-                onChange={(e) =>
-                  updateChapter(activeIndex, {
-                    content: e.target.value,
-                    status: activeChapter.status === 'notGenerated' ? 'edited' : activeChapter.status,
-                  })
-                }
-                placeholder="在此编辑本章内容…"
+                contentEditable
+                suppressContentEditableWarning
+                onInput={handleEditorInput}
+                onBlur={handleEditorInput}
+                dangerouslySetInnerHTML={{ __html: activeChapter.content }}
+                data-placeholder="在此编辑本章内容…"
               />
             )}
           </div>
@@ -382,6 +441,16 @@ export default function AIBiography() {
             <button className="btn btn-outline" onClick={handlePolish} disabled={generating || activeChapter.status === 'notGenerated'}>
               <Wand2 size={14} /> 润色本章
             </button>
+            <button className="btn btn-outline" onClick={handleInsertImage}>
+              <Image size={14} /> 插入图片
+            </button>
+            <input
+              ref={imageInputRef}
+              type="file"
+              accept="image/*"
+              style={{ display: 'none' }}
+              onChange={handleImageFileChange}
+            />
             <button className="btn btn-outline" onClick={saveDraft} disabled={!activeChapter.content.trim()}>
               <Save size={14} /> 保存本章
             </button>
@@ -472,8 +541,8 @@ export default function AIBiography() {
               <button className="export-btn" onClick={() => exportFile('PDF')} disabled={exporting.PDF}>
                 <Download size={18} /> {exporting.PDF ? '导出中…' : '导出 PDF'}
               </button>
-              <button className="export-btn" onClick={() => exportFile('实体书排版')} disabled={exporting['实体书排版']}>
-                <BookOpen size={18} /> {exporting['实体书排版'] ? '生成中…' : '实体书排版'}
+              <button className="export-btn" onClick={() => navigate('/biography/print')}>
+                <BookOpen size={18} /> 实体书排版
               </button>
             </div>
           </div>

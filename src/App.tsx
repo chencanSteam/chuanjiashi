@@ -18,6 +18,7 @@ const Home = lazy(() => import('./pages/Home'));
 const AIInterview = lazy(() => import('./pages/AIInterview'));
 const InterviewReview = lazy(() => import('./pages/InterviewReview'));
 const AIBiography = lazy(() => import('./pages/AIBiography'));
+const BiographyPrint = lazy(() => import('./pages/BiographyPrint'));
 const MyWorks = lazy(() => import('./pages/MyWorks'));
 const LifeArchive = lazy(() => import('./pages/LifeArchive'));
 const FamilySpace = lazy(() => import('./pages/FamilySpace'));
@@ -62,6 +63,16 @@ const FamilyMotto = lazy(() => import('./pages/FamilyMotto'));
 const FamilyInherit = lazy(() => import('./pages/FamilyInherit'));
 const FamilyEvents = lazy(() => import('./pages/FamilyEvents'));
 const GovernmentDashboard = lazy(() => import('./pages/GovernmentDashboard'));
+const Admin = lazy(() => import('./pages/Admin'));
+const BiographerManagement = lazy(() => import('./pages/BiographerManagement'));
+const PartnerManagement = lazy(() => import('./pages/PartnerManagement'));
+const PartnerApplications = lazy(() => import('./pages/PartnerApplications'));
+const PartnerCustomersAdmin = lazy(() => import('./pages/PartnerCustomersAdmin'));
+const CommissionRecords = lazy(() => import('./pages/CommissionRecords'));
+const WithdrawalManagement = lazy(() => import('./pages/WithdrawalManagement'));
+const UserInvites = lazy(() => import('./pages/UserInvites'));
+const PartnerCenter = lazy(() => import('./pages/PartnerCenter'));
+const PartnerApplication = lazy(() => import('./pages/PartnerApplication'));
 
 function PageFallback() {
   return (
@@ -80,12 +91,16 @@ function App() {
           <Suspense fallback={<PageFallback />}>
             <Routes>
               <Route path="/login" element={<Login />} />
+              <Route path="/partner/apply" element={<PartnerApplication />} />
+              <Route path="/partner" element={<Navigate to="/partner-center" replace />} />
+              <Route path="/partner/login" element={<Navigate to="/login" replace />} />
               <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
               <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
                 <Route index element={<Home />} />
                 <Route path="interview" element={<AIInterview />} />
                 <Route path="interview-review" element={<InterviewReview />} />
                 <Route path="biography" element={<AIBiography />} />
+                <Route path="biography/print" element={<BiographyPrint />} />
                 <Route path="my-works" element={<MyWorks />} />
                 <Route path="archive" element={<LifeArchive />} />
                 <Route path="family" element={<MVPRedirect><FamilySpace /></MVPRedirect>} />
@@ -98,6 +113,7 @@ function App() {
                 <Route path="government" element={<MVPRedirect><GovernmentService /></MVPRedirect>} />
                 <Route path="settings" element={<Navigate to="/settings/account" replace />} />
                 <Route path="settings/:section" element={<Settings />} />
+                <Route path="partner-center" element={<PartnerCenter />} />
                 <Route path="family/members" element={<MVPRedirect><FamilyMemberList /></MVPRedirect>} />
                 <Route path="family/members/:name" element={<MVPRedirect><FamilyMemberDetail /></MVPRedirect>} />
                 <Route path="family/album/:title" element={<MVPRedirect><AlbumDetail /></MVPRedirect>} />
@@ -131,6 +147,16 @@ function App() {
                 <Route path="family/inherit/:id" element={<MVPRedirect><FamilyInherit /></MVPRedirect>} />
                 <Route path="family/events" element={<MVPRedirect><FamilyEvents /></MVPRedirect>} />
                 <Route path="government/dashboard" element={<MVPRedirect><GovernmentDashboard /></MVPRedirect>} />
+                <Route path="admin" element={<Admin />}>
+                  <Route index element={<Navigate to="/admin/biographers" replace />} />
+                  <Route path="biographers" element={<BiographerManagement />} />
+                  <Route path="partners" element={<PartnerManagement />} />
+                  <Route path="partner-applications" element={<PartnerApplications />} />
+                  <Route path="partner-customers" element={<PartnerCustomersAdmin />} />
+                  <Route path="commission-records" element={<CommissionRecords />} />
+                  <Route path="withdrawals" element={<WithdrawalManagement />} />
+                  <Route path="user-invites" element={<UserInvites />} />
+                </Route>
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Route>
             </Routes>

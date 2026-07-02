@@ -12,6 +12,7 @@ interface Archive {
   birthYear: string;
   origin: string;
   occupation: string;
+  tags?: string[];
 }
 
 type WorkStatus = '未开始' | '待采访' | '采集中' | '已生成传记' | '已同步档案';

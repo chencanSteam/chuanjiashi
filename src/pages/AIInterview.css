@@ -4,6 +4,12 @@
   gap: 18px;
 }
 
+.interview-header {
+  align-items: center;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
 .interview-top-stats {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -98,7 +104,7 @@
 
 .topic-item {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   padding: 11px 12px;
   border: 1px solid #f0f2f1;
@@ -106,6 +112,7 @@
   background: #fff;
   cursor: pointer;
   transition: 0.2s;
+  text-align: left;
 }
 
 .topic-item:hover {
@@ -115,6 +122,13 @@
 .topic-item.active {
   border-color: #1B5E4B;
   background: rgba(27, 94, 75, 0.06);
+}
+
+.topic-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
 }
 
 .topic-name {
@@ -128,11 +142,21 @@
 
 .topic-name svg {
   color: #1B5E4B;
+  flex-shrink: 0;
+}
+
+.topic-summary {
+  font-size: 11px;
+  color: #9ca3af;
+  line-height: 1.4;
+  padding-left: 24px;
 }
 
 .topic-progress {
   font-size: 11px;
   color: #9ca3af;
+  flex-shrink: 0;
+  margin-top: 2px;
 }
 
 .workspace-card {
@@ -857,4 +881,41 @@
 
 .btn-danger:hover {
   background: #fee2e2;
+}
+
+.custom-topic-section {
+  padding: 12px;
+  border-top: 1px solid #f0f2f1;
+}
+
+.custom-topic-add {
+  width: 100%;
+  justify-content: center;
+}
+
+.custom-topic-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.custom-topic-form input {
+  padding: 10px 12px;
+  border: 1px solid #e8ecea;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #1f2937;
+  outline: none;
+  font-family: inherit;
+}
+
+.custom-topic-form input:focus {
+  border-color: #1B5E4B;
+}
+
+.custom-topic-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
 }

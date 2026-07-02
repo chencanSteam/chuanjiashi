@@ -1,0 +1,243 @@
+.partner-management-page .page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.partner-mgmt-stats {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.partner-mgmt-stat {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+}
+
+.partner-mgmt-stat-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.partner-mgmt-stat-label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.partner-mgmt-header {
+  padding: 16px 20px;
+}
+
+.partner-mgmt-filters {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.partner-mgmt-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+  padding: 0 12px;
+  min-width: 260px;
+}
+
+.partner-mgmt-search input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 8px 0;
+  font-size: 14px;
+  outline: none;
+  color: var(--text);
+}
+
+.partner-mgmt-filters select {
+  padding: 8px 12px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+  background: var(--card-bg);
+  font-size: 14px;
+  color: var(--text);
+  outline: none;
+}
+
+.partner-mgmt-body {
+  padding: 0;
+}
+
+.partner-mgmt-empty {
+  text-align: center;
+  padding: 48px 20px;
+  color: var(--text-muted);
+}
+
+.partner-mgmt-table {
+  display: table;
+  width: 100%;
+  min-width: 900px;
+}
+
+.partner-mgmt-row {
+  display: table-row;
+}
+
+.partner-mgmt-header-row {
+  background: var(--bg-secondary);
+  font-weight: 500;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.partner-mgmt-row:not(.partner-mgmt-header-row) {
+  border-bottom: 1px solid var(--border-light);
+}
+
+.partner-mgmt-cell {
+  display: table-cell;
+  padding: 12px 14px;
+  vertical-align: middle;
+  font-size: 13px;
+}
+
+.partner-mgmt-cell-name {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 160px;
+}
+
+.partner-mgmt-name {
+  font-weight: 500;
+  color: var(--text);
+}
+
+.partner-mgmt-phone {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.partner-mgmt-cell-code {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.partner-mgmt-code {
+  font-family: monospace;
+  color: var(--primary);
+  font-weight: 500;
+}
+
+.partner-mgmt-status {
+  display: inline-block;
+  font-size: 12px;
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+
+.partner-mgmt-status.active {
+  background: rgba(27, 94, 75, 0.08);
+  color: #1B5E4B;
+}
+
+.partner-mgmt-status.pending {
+  background: rgba(217, 119, 6, 0.1);
+  color: #d97706;
+}
+
+.partner-mgmt-status.inactive {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.partner-mgmt-status.rejected {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.partner-mgmt-cell-action {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.partner-mgmt-cell-action .icon-btn,
+.partner-mgmt-cell-code .icon-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid var(--border-light);
+  background: var(--card-bg);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.partner-mgmt-cell-action .icon-btn:hover,
+.partner-mgmt-cell-code .icon-btn:hover {
+  background: var(--bg-secondary);
+  color: var(--primary);
+  border-color: var(--primary-200);
+}
+
+.partner-mgmt-modal {
+  max-width: 520px;
+}
+
+.partner-mgmt-region-selects {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.partner-mgmt-region-selects select {
+  flex: 1;
+  min-width: 120px;
+}
+
+.partner-mgmt-delete-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+@media (max-width: 1100px) {
+  .partner-mgmt-stats {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .partner-mgmt-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .partner-mgmt-table {
+    min-width: unset;
+    display: block;
+  }
+
+  .partner-mgmt-row,
+  .partner-mgmt-cell {
+    display: block;
+  }
+
+  .partner-mgmt-header-row {
+    display: none;
+  }
+}

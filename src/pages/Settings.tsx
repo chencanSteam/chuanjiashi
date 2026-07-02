@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   User,
@@ -7,7 +7,6 @@ import {
   Users,
   Database,
   HelpCircle,
-  ChevronRight,
   Sparkles,
   Mic,
   BookOpen,
@@ -17,14 +16,21 @@ import {
   CheckCircle,
   Trash2,
   X,
+  Share2,
+  Wallet,
+  TrendingUp,
 } from 'lucide-react';
 import Avatar from '../components/ui/Avatar';
+import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/useToast';
 import { loadQuota, type AIQuota } from '../data/aiMock';
+import { openGuide } from '../components/GuideTour';
+import { getUserRewardStats, getUserRewards, getUserWithdrawals, applyUserWithdrawal, type UserReward, type UserWithdrawal } from '../data/userInviteData';
 import './Settings.css';
 
 const sidebarItems = [
   { key: 'account', icon: User, label: '账户信息' },
+  { key: 'invite', icon: Share2, label: '我的邀请' },
   { key: 'quota', icon: Sparkles, label: 'AI额度' },
   { key: 'notification', icon: Bell, label: '通知设置' },
   { key: 'privacy', icon: Shield, label: '隐私与安全' },
@@ -76,6 +82,8 @@ export default function Settings() {
   const [helpArticle, setHelpArticle] = useState<string | null>(null);
   const [visibility, setVisibility] = useState<Record<string, string>>({ 基本信息: '家人可见', 多媒体档案: '家人可见', 人生事件: '部分公开', 成就与作品: '公开展示' });
   const [quota] = useState<AIQuota>(() => loadQuota());
+  const [rewardsRefresh, setRewardsRefresh] = useState(0);
+  const { user } = useAuth();
 
   const toggleNotification = (i: number) => {
     setNotifications((prev) => {
@@ -88,24 +96,7 @@ export default function Settings() {
 
   return (
     <div className="settings-page">
-      <header className="page-header"><h1 className="page-title">系统设置</h1></header>
-
-      <div className="settings-layout">
-        <div className="card settings-sidebar">
-          {sidebarItems.map((item) => (
-            <div
-              key={item.key}
-              className={`settings-nav-item ${active === item.key ? 'active' : ''}`}
-              onClick={() => navigate(`/settings/${item.key}`)}
-            >
-              <item.icon size={18} />
-              <span>{item.label}</span>
-              <ChevronRight size={14} className="settings-chevron" />
-            </div>
-          ))}
-        </div>
-
-        <div className="settings-content">
+      <div className="settings-content">
           {active === 'account' && (
             <div className="card settings-card">
               <div className="card-header"><h3 className="card-title">账户信息</h3></div>
@@ -206,6 +197,8 @@ export default function Settings() {
             </div>
           )}
 
+          {active === 'invite' && user && <MyInvite user={user} refresh={rewardsRefresh} onWithdraw={() => setRewardsRefresh((v) => v + 1)} />}
+
           {active === 'quota' && (
             <div className="card settings-card">
               <div className="card-header"><h3 className="card-title"><Sparkles size={16} /> AI 额度</h3></div>
@@ -262,6 +255,9 @@ export default function Settings() {
                     <CheckCircle size={16} color="#1B5E4B" /> {h.label}
                   </div>
                 ))}
+                <button className="btn btn-outline" style={{ marginTop: 16, width: '100%' }} onClick={openGuide}>
+                  <HelpCircle size={16} /> 重新观看新手指引
+                </button>
                 <div className="about-box">
                   <div>传家世 v1.0.0</div>
                   <div className="about-meta">© 2026 传家世科技</div>
@@ -270,7 +266,6 @@ export default function Settings() {
             </div>
           )}
         </div>
-      </div>
 
       {showPassword && (
         <div className="modal-overlay" onClick={() => setShowPassword(false)}>
@@ -345,6 +340,105 @@ export default function Settings() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+
+function MyInvite({ user, refresh, onWithdraw }: { user: { phone: string; name?: string; inviteCode?: string } | null; refresh: number; onWithdraw: () => void }) {
+  const { addToast } = useToast();
+  const [amount, setAmount] = useState('');
+  const stats = useMemo(() => (user ? getUserRewardStats(user.phone) : { total: 0, balance: 0, withdrawn: 0, inviteCount: 0 }), [user, refresh]);
+  const rewards = useMemo(() => (user ? getUserRewards(user.phone) : []), [user, refresh]);
+  const withdrawals = useMemo(() => (user ? getUserWithdrawals(user.phone) : []), [user, refresh]);
+
+  if (!user) return null;
+
+  const inviteUrl = `${window.location.origin}/login?invite=${user.inviteCode}`;
+
+  const copyCode = () => {
+    navigator.clipboard.writeText(user.inviteCode || '');
+    addToast('邀请码已复制', 'success');
+  };
+
+  const copyLink = () => {
+    navigator.clipboard.writeText(inviteUrl);
+    addToast('邀请链接已复制', 'success');
+  };
+
+  const handleWithdraw = () => {
+    const value = parseFloat(amount);
+    if (!value || value <= 0) {
+      addToast('请输入正确的提现金额', 'error');
+      return;
+    }
+    const result = applyUserWithdrawal(user.phone, user.name || user.phone, value);
+    if (!result) {
+      addToast('提现申请失败，余额不足', 'error');
+      return;
+    }
+    addToast('提现申请已提交', 'success');
+    setAmount('');
+    onWithdraw();
+  };
+
+  return (
+    <div className="card settings-card">
+      <div className="card-header"><h3 className="card-title"><Share2 size={16} /> 我的邀请</h3></div>
+      <div className="card-body settings-body">
+        <div className="invite-stats">
+          <div className="invite-stat"><Wallet size={18} color="#1B5E4B" /><div><div className="invite-stat-value">¥{stats.balance.toFixed(2)}</div><div className="invite-stat-label">可提现</div></div></div>
+          <div className="invite-stat"><TrendingUp size={18} color="#2563eb" /><div><div className="invite-stat-value">¥{stats.total.toFixed(2)}</div><div className="invite-stat-label">累计收益</div></div></div>
+          <div className="invite-stat"><Users size={18} color="#7c3aed" /><div><div className="invite-stat-value">{stats.inviteCount}</div><div className="invite-stat-label">已邀请</div></div></div>
+        </div>
+
+        <div className="invite-code-row">
+          <div>
+            <div className="invite-code-label">我的邀请码</div>
+            <div className="invite-code-value">{user.inviteCode}</div>
+          </div>
+          <div className="invite-code-actions">
+            <button className="btn btn-outline" onClick={copyCode}><Share2 size={14} /> 复制邀请码</button>
+            <button className="btn btn-outline" onClick={copyLink}><Share2 size={14} /> 复制链接</button>
+          </div>
+        </div>
+
+        <div className="invite-withdraw">
+          <label>申请提现</label>
+          <div className="invite-withdraw-input">
+            <input type="number" placeholder="输入提现金额" value={amount} onChange={(e) => setAmount(e.target.value)} />
+            <button className="btn btn-primary" onClick={handleWithdraw}>提现</button>
+          </div>
+        </div>
+
+        <div className="invite-records">
+          <h4>收益记录</h4>
+          {rewards.length === 0 ? (
+            <div className="invite-empty">暂无收益记录</div>
+          ) : (
+            rewards.map((r: UserReward) => (
+              <div className="invite-record" key={r.id}>
+                <span>来自 {r.fromUserId}</span>
+                <span className="invite-record-amount">+¥{r.reward.toFixed(2)}</span>
+              </div>
+            ))
+          )}
+        </div>
+
+        <div className="invite-records">
+          <h4>提现记录</h4>
+          {withdrawals.length === 0 ? (
+            <div className="invite-empty">暂无提现记录</div>
+          ) : (
+            withdrawals.map((w: UserWithdrawal) => (
+              <div className="invite-record" key={w.id}>
+                <span>¥{w.amount.toFixed(2)}</span>
+                <span className={`invite-record-status ${w.status}`}>{w.status === 'pending' ? '审核中' : w.status === 'paid' ? '已打款' : w.status === 'approved' ? '已通过' : '已拒绝'}</span>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
     </div>
   );
 }

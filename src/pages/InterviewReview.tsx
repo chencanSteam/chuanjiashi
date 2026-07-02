@@ -15,7 +15,8 @@ import {
   MessageSquare,
 } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
-import { buildReviewData, loadJson, saveJson, interviewTopics, type ReviewEvent } from '../data/aiMock';
+import { buildReviewData, loadJson, saveJson, type ReviewEvent } from '../data/aiMock';
+import { generateInterviewTopics } from '../utils/interviewTopics';
 import { syncPlaceFromText, syncRelationFromEvent } from '../data/familyData';
 import { syncReviewEventToTimeline } from '../utils/eventSync';
 import './InterviewReview.css';
@@ -23,6 +24,11 @@ import './InterviewReview.css';
 interface Archive {
   id: string;
   name: string;
+  gender?: '男' | '女';
+  birthYear: string;
+  origin: string;
+  occupation: string;
+  tags?: string[];
 }
 
 interface TranscriptLine {
@@ -49,6 +55,7 @@ export default function InterviewReview() {
   const { addToast } = useToast();
   const archive = useMemo(() => loadCurrentArchive(), []);
   const archiveId = archive?.id || 'default';
+  const interviewTopics = useMemo(() => generateInterviewTopics(archive, archiveId), [archive, archiveId]);
 
   const initialAnswers = useMemo<Record<string, string>>(() => {
     const saved = loadJson<Record<string, string>>(`cj_interview_answers_${archiveId}`, {});
@@ -60,7 +67,7 @@ export default function InterviewReview() {
       });
     });
     return fallback;
-  }, [archiveId]);
+  }, [archiveId, interviewTopics]);
   const initialReview = buildReviewData(initialAnswers);
 
   const [events, setEvents] = useState<ReviewEvent[]>(() =>

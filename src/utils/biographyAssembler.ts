@@ -1,5 +1,6 @@
-import { chapterMockContents, interviewTopics } from '../data/aiMock';
+import { chapterMockContents } from '../data/aiMock';
 import type { ReviewEvent } from '../data/aiMock';
+import { generateInterviewTopics } from './interviewTopics';
 
 export interface AssemblerInput {
   archiveName: string;
@@ -110,6 +111,17 @@ export function assembleBiography(input: AssemblerInput): Record<string, string>
   return result;
 }
 
+function loadArchiveById(archiveId: string) {
+  try {
+    const raw = localStorage.getItem('cj_archives');
+    if (!raw) return null;
+    const archives = JSON.parse(raw);
+    return archives.find((a: { id: string; name: string; gender?: '男' | '女'; birthYear: string; origin: string; occupation: string; tags?: string[] }) => a.id === archiveId) || null;
+  } catch {
+    return null;
+  }
+}
+
 export function loadInterviewAnswers(archiveId: string): Record<string, string> {
   try {
     const raw = localStorage.getItem(`cj_interview_answers_${archiveId}`);
@@ -117,8 +129,10 @@ export function loadInterviewAnswers(archiveId: string): Record<string, string> 
   } catch {
     // ignore
   }
+  const archive = loadArchiveById(archiveId);
+  const topics = generateInterviewTopics(archive, archiveId);
   const fallback: Record<string, string> = {};
-  interviewTopics.forEach((topic) => {
+  topics.forEach((topic) => {
     topic.questions.forEach((q) => {
       fallback[q.id] = q.mockAnswer;
     });

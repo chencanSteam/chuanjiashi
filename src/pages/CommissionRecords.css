@@ -1,0 +1,155 @@
+.commission-records-page .page-header {
+  margin-bottom: 20px;
+}
+
+.commission-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.commission-stat {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 20px;
+}
+
+.commission-stat-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.commission-stat-label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.commission-header {
+  padding: 16px 20px;
+}
+
+.commission-filters {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.commission-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+  padding: 0 12px;
+  min-width: 260px;
+}
+
+.commission-search input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 8px 0;
+  font-size: 14px;
+  outline: none;
+  color: var(--text);
+}
+
+.commission-filters select {
+  padding: 8px 12px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+  background: var(--card-bg);
+  font-size: 14px;
+  color: var(--text);
+  outline: none;
+}
+
+.commission-body {
+  padding: 0;
+}
+
+.commission-empty {
+  text-align: center;
+  padding: 48px 20px;
+  color: var(--text-muted);
+}
+
+.commission-table {
+  display: table;
+  width: 100%;
+  min-width: 900px;
+}
+
+.commission-row {
+  display: table-row;
+}
+
+.commission-header-row {
+  background: var(--bg-secondary);
+  font-weight: 500;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.commission-row:not(.commission-header-row) {
+  border-bottom: 1px solid var(--border-light);
+}
+
+.commission-cell {
+  display: table-cell;
+  padding: 12px 14px;
+  vertical-align: middle;
+  font-size: 13px;
+}
+
+.commission-money {
+  color: #1B5E4B;
+  font-weight: 600;
+}
+
+.commission-status {
+  display: inline-block;
+  font-size: 12px;
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+
+.commission-status.settled {
+  background: rgba(27, 94, 75, 0.08);
+  color: #1B5E4B;
+}
+
+.commission-status.withdrawn {
+  background: rgba(124, 58, 237, 0.08);
+  color: #7c3aed;
+}
+
+.commission-status.pending {
+  background: rgba(217, 119, 6, 0.1);
+  color: #d97706;
+}
+
+@media (max-width: 960px) {
+  .commission-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .commission-table {
+    min-width: unset;
+    display: block;
+  }
+
+  .commission-row,
+  .commission-cell {
+    display: block;
+  }
+
+  .commission-header-row {
+    display: none;
+  }
+}

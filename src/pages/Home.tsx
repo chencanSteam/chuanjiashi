@@ -1,33 +1,16 @@
 import {
   Mic,
-  BookOpen,
-  BookMarked,
   Users,
-  UserCircle2,
   ChevronRight,
-  ArrowRight,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useMemo } from 'react';
+import { useMemo, useEffect, useState } from 'react';
 import Avatar from '../components/ui/Avatar';
+import Modal from '../components/ui/Modal';
 import { useVersion } from '../hooks/useVersion';
+import { useToast } from '../hooks/useToast';
+import { openGuide, shouldShowGuide } from '../components/GuideTour';
 import './Home.css';
-
-// 个人/家庭视角的核心数据（后续可接入 localStorage 真实数据）
-const stats = [
-  { label: '家庭成员', value: '5', trend: '新增 1 位', path: '/family' },
-  { label: '我的传记', value: '2', trend: '进行中 1 本', path: '/my-works' },
-  { label: '家庭档案', value: '18', trend: '本月新增 3 份', path: '/archive' },
-  { label: '家庭相册', value: '128', trend: '本月新增 24 张', path: '/archive/media' },
-];
-
-const shortcuts = [
-  { icon: Mic, label: 'AI智能采访', desc: '多模态问答采集', color: '#2D5A4A', path: '/interview' },
-  { icon: BookOpen, label: 'AI传记生成', desc: 'AI生成传记', color: '#3D7A64', path: '/biography' },
-  { icon: BookMarked, label: '我的传记', desc: '传记项目管理', color: '#B8860B', path: '/my-works' },
-  { icon: Users, label: '家庭空间', desc: '家庭空间协作', color: '#6B8E7B', path: '/family' },
-  { icon: UserCircle2, label: '数字人', desc: '数字亲人构建', color: '#C24A3B', path: '/digital-person' },
-];
 
 const todos = [
   { title: '待继续访谈', desc: '《父亲的创业之路》访谈未完成', count: 1, path: '/interview' },
@@ -53,13 +36,135 @@ function hasArchives(): boolean {
   }
 }
 
+interface Archive {
+  id: string;
+  name: string;
+  gender?: '男' | '女';
+  birthYear: string;
+  origin: string;
+  occupation: string;
+  tags?: string[];
+}
+
+const presetLifeTags = [
+  '求学深造',
+  '参军入伍',
+  '出国留学',
+  '下海创业',
+  '调岗转行',
+  '结婚生子',
+  '养育子女',
+  '退休生活',
+  '疾病康复',
+  '书法绘画',
+  '音乐戏曲',
+  '旅游摄影',
+  '钓鱼养花',
+  '体育运动',
+  '宗教信仰',
+  '家乡迁徙',
+];
+
+function loadArchives(): Archive[] {
+  try {
+    const raw = localStorage.getItem('cj_archives');
+    if (raw) return JSON.parse(raw) as Archive[];
+  } catch {
+    // ignore
+  }
+  return [];
+}
+
+function loadCurrentArchive(): Archive | null {
+  const archives = loadArchives();
+  const currentId = localStorage.getItem('cj_current_archive_id');
+  if (!currentId) return null;
+  return archives.find((a) => a.id === currentId) || null;
+}
+
+function saveArchive(archive: Archive) {
+  const existing = loadArchives();
+  const filtered = existing.filter((a) => a.id !== archive.id);
+  localStorage.setItem('cj_archives', JSON.stringify([...filtered, archive]));
+  localStorage.setItem('cj_current_archive_id', archive.id);
+}
+
 export default function Home() {
   const navigate = useNavigate();
   const { isMVP } = useVersion();
   const archiveExists = useMemo(() => hasArchives(), []);
 
-  const visibleShortcuts = isMVP ? shortcuts.filter((s) => s.path !== '/family') : shortcuts;
-  const visibleStats = isMVP ? stats.filter((s) => s.path !== '/family') : stats;
+  useEffect(() => {
+    if (shouldShowGuide()) {
+      const timer = setTimeout(() => openGuide(), 500);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
+  const { addToast } = useToast();
+  const [showBasicModal, setShowBasicModal] = useState(false);
+  const [basicStep, setBasicStep] = useState<1 | 2>(1);
+  const [basicForm, setBasicForm] = useState({
+    name: '',
+    gender: '男' as '男' | '女',
+    birthYear: '',
+    origin: '',
+    occupation: '',
+  });
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [customTag, setCustomTag] = useState('');
+
+  const handleStartInterview = () => {
+    const archive = loadCurrentArchive();
+    setBasicForm({
+      name: archive?.name || '',
+      gender: archive?.gender || '男',
+      birthYear: archive?.birthYear || '',
+      origin: archive?.origin || '',
+      occupation: archive?.occupation || '',
+    });
+    setSelectedTags(archive?.tags || []);
+    setCustomTag('');
+    setBasicStep(1);
+    setShowBasicModal(true);
+  };
+
+  const toggleTag = (tag: string) => {
+    setSelectedTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+    );
+  };
+
+  const addCustomTag = () => {
+    const tag = customTag.trim();
+    if (!tag) return;
+    if (!selectedTags.includes(tag)) {
+      setSelectedTags((prev) => [...prev, tag]);
+    }
+    setCustomTag('');
+  };
+
+  const handleSaveBasicInfo = () => {
+    if (!basicForm.name.trim() || !basicForm.birthYear.trim()) {
+      addToast('请填写姓名和出生年份', 'error');
+      return;
+    }
+    const archiveId = localStorage.getItem('cj_current_archive_id') || `archive_${Date.now()}`;
+    saveArchive({
+      id: archiveId,
+      name: basicForm.name.trim(),
+      gender: basicForm.gender,
+      birthYear: basicForm.birthYear.trim(),
+      origin: basicForm.origin.trim(),
+      occupation: basicForm.occupation.trim(),
+      tags: selectedTags,
+    });
+    setShowBasicModal(false);
+    addToast('基础信息已保存，开始 AI 采访', 'success');
+    navigate('/interview');
+  };
+
+
   return (
     <div className="home-page">
       <header className="page-header">
@@ -87,7 +192,7 @@ export default function Home() {
           <h2>用 AI 记录人生故事，<br />传承家风温度</h2>
           <p>AI数字人生 · 家庭记忆沉淀 · 家风传承 · 数字陪伴</p>
           <div className="hero-actions">
-            <button className="btn btn-primary" onClick={() => navigate('/interview')}><Mic size={16} /> 开始智能采访</button>
+            <button className="btn btn-primary" onClick={handleStartInterview}><Mic size={16} /> 开始智能采访</button>
             {!isMVP && <button className="btn btn-hero-secondary" onClick={() => navigate('/family')}><Users size={16} /> 进入家庭空间</button>}
           </div>
         </div>
@@ -196,16 +301,6 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="stats-strip">
-        {visibleStats.map((s, i) => (
-          <div className="stat-item" key={i} onClick={() => s.path && navigate(s.path)}>
-            <div className="stat-item-value">{s.value}</div>
-            <div className="stat-item-label">{s.label}</div>
-            <div className="stat-item-trend">较上月 <ChevronRight size={10} className="trend-up" /> {s.trend}</div>
-          </div>
-        ))}
-      </section>
-
       <section className="workspace">
         <div className="surface activity-surface">
           <div className="surface-header">
@@ -245,21 +340,128 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="quick-actions">
-        {visibleShortcuts.map((s, i) => (
-          <button className="quick-action" key={i} onClick={() => navigate(s.path)}>
-            <div className="quick-action-icon" style={{ color: s.color, background: `${s.color}12` }}>
-              <s.icon size={22} />
+      <Modal
+        open={showBasicModal}
+        title={basicStep === 1 ? '完善基础信息' : '选择人生标签'}
+        onClose={() => setShowBasicModal(false)}
+        footer={
+          <div className="basic-info-modal-footer">
+            {basicStep === 2 && (
+              <button className="btn btn-outline" onClick={() => setBasicStep(1)}>上一步</button>
+            )}
+            <button className="btn btn-outline" onClick={() => setShowBasicModal(false)}>取消</button>
+            {basicStep === 1 ? (
+              <button
+                className="btn btn-primary"
+                onClick={() => {
+                  if (!basicForm.name.trim() || !basicForm.birthYear.trim()) {
+                    addToast('请填写姓名和出生年份', 'error');
+                    return;
+                  }
+                  setBasicStep(2);
+                }}
+              >
+                下一步
+              </button>
+            ) : (
+              <button className="btn btn-primary" onClick={handleSaveBasicInfo}>保存并开始采访</button>
+            )}
+          </div>
+        }
+      >
+        {basicStep === 1 ? (
+          <div className="basic-info-form">
+            <div className="basic-info-row">
+              <label>姓名 <span className="basic-info-required">*</span></label>
+              <input
+                type="text"
+                value={basicForm.name}
+                onChange={(e) => setBasicForm({ ...basicForm, name: e.target.value })}
+                placeholder="请输入姓名"
+              />
             </div>
-            <div className="quick-action-main">
-              <div className="quick-action-label">{s.label}</div>
-              <div className="quick-action-desc">{s.desc}</div>
+            <div className="basic-info-row">
+              <label>性别</label>
+              <select
+                value={basicForm.gender}
+                onChange={(e) => setBasicForm({ ...basicForm, gender: e.target.value as '男' | '女' })}
+              >
+                <option value="男">男</option>
+                <option value="女">女</option>
+              </select>
             </div>
-            <ArrowRight size={16} className="quick-action-arrow" />
-          </button>
-        ))}
-      </section>
-
+            <div className="basic-info-row">
+              <label>出生年份 <span className="basic-info-required">*</span></label>
+              <input
+                type="text"
+                value={basicForm.birthYear}
+                onChange={(e) => setBasicForm({ ...basicForm, birthYear: e.target.value })}
+                placeholder="如：1958"
+              />
+            </div>
+            <div className="basic-info-row">
+              <label>籍贯</label>
+              <input
+                type="text"
+                value={basicForm.origin}
+                onChange={(e) => setBasicForm({ ...basicForm, origin: e.target.value })}
+                placeholder="如：江苏省苏州市"
+              />
+            </div>
+            <div className="basic-info-row">
+              <label>职业</label>
+              <input
+                type="text"
+                value={basicForm.occupation}
+                onChange={(e) => setBasicForm({ ...basicForm, occupation: e.target.value })}
+                placeholder="如：教师"
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="basic-info-form">
+            <p className="life-tags-hint">勾选符合的人生经历，AI 会根据这些标签生成更贴合的采访问题。</p>
+            <div className="life-tags">
+              {presetLifeTags.map((tag) => (
+                <button
+                  key={tag}
+                  className={`life-tag ${selectedTags.includes(tag) ? 'active' : ''}`}
+                  onClick={() => toggleTag(tag)}
+                  type="button"
+                >
+                  {tag}
+                </button>
+              ))}
+            </div>
+            <div className="custom-tag-row">
+              <input
+                type="text"
+                value={customTag}
+                onChange={(e) => setCustomTag(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addCustomTag();
+                  }
+                }}
+                placeholder="输入自定义标签，按回车添加"
+              />
+              <button className="btn btn-outline" onClick={addCustomTag}>添加</button>
+            </div>
+            {selectedTags.length > 0 && (
+              <div className="selected-tags">
+                <span>已选择：</span>
+                {selectedTags.map((tag) => (
+                  <span className="selected-tag" key={tag}>
+                    {tag}
+                    <button onClick={() => toggleTag(tag)} type="button">×</button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

@@ -1,0 +1,370 @@
+/* 屏幕预览样式 */
+.biography-print-page {
+  min-height: 100vh;
+  background: #f2f1ee;
+  padding-bottom: 60px;
+}
+
+.print-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 24px;
+  background: #fff;
+  border-bottom: 1px solid #e8ecea;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+.print-toolbar-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.print-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.print-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 80px 20px;
+  color: #6b7280;
+  text-align: center;
+}
+
+.print-empty h3 {
+  margin: 0;
+  color: #1f2937;
+  font-size: 18px;
+}
+
+.print-empty p {
+  margin: 0;
+  max-width: 320px;
+}
+
+.book-pages {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  padding: 32px 20px;
+}
+
+.book-page {
+  width: 210mm;
+  min-height: 297mm;
+  padding: 25mm 22mm 20mm;
+  background: #fff;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.1);
+  box-sizing: border-box;
+  position: relative;
+  font-family: var(--font-family, "Noto Serif SC", "Source Han Serif SC", "PingFang SC", "Microsoft YaHei", serif);
+  color: #1f2937;
+  line-height: 1.85;
+  overflow: hidden;
+}
+
+/* 封面 */
+.book-cover {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  background: linear-gradient(180deg, #fdfcf8 0%, #f7f5f0 100%);
+}
+
+.cover-decoration {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 12px;
+  background: linear-gradient(90deg, #1B5E4B, #3D7A64, #1B5E4B);
+}
+
+.cover-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+}
+
+.cover-label {
+  font-size: 14px;
+  letter-spacing: 0.3em;
+  color: #1B5E4B;
+  border: 1px solid #1B5E4B;
+  padding: 6px 16px;
+  border-radius: 999px;
+}
+
+.cover-title {
+  font-size: 42px;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0;
+  letter-spacing: 0.08em;
+  line-height: 1.4;
+}
+
+.cover-origin {
+  font-size: 16px;
+  color: #6b7280;
+  letter-spacing: 0.15em;
+}
+
+.cover-line {
+  width: 80px;
+  height: 2px;
+  background: #1B5E4B;
+  margin: 10px 0;
+}
+
+.cover-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 15px;
+  color: #4b5563;
+}
+
+.cover-footer {
+  position: absolute;
+  bottom: 28mm;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 13px;
+  color: #9ca3af;
+  letter-spacing: 0.1em;
+}
+
+/* 版权页 */
+.book-copyright {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.copyright-content {
+  text-align: center;
+  max-width: 420px;
+  color: #4b5563;
+  font-size: 15px;
+}
+
+.copyright-content h2 {
+  font-size: 24px;
+  color: #1f2937;
+  margin-bottom: 32px;
+}
+
+.copyright-content p {
+  margin: 0 0 12px;
+  line-height: 2;
+}
+
+.copyright-divider {
+  width: 60px;
+  height: 1px;
+  background: #d0d5dd;
+  margin: 32px auto;
+}
+
+/* 目录 */
+.book-toc {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.toc-title {
+  font-size: 28px;
+  text-align: center;
+  margin-bottom: 48px;
+  letter-spacing: 0.3em;
+  color: #1f2937;
+}
+
+.toc-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.toc-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 16px;
+  border-bottom: 1px dashed #e5e7eb;
+  padding-bottom: 10px;
+}
+
+.toc-chapter {
+  color: #1f2937;
+}
+
+/* 章节 */
+.book-chapter {
+  padding-top: 20mm;
+}
+
+.chapter-header {
+  text-align: center;
+  margin-bottom: 40px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid #e8ecea;
+}
+
+.chapter-number {
+  font-size: 13px;
+  letter-spacing: 0.2em;
+  color: #1B5E4B;
+  margin-bottom: 8px;
+}
+
+.chapter-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0;
+  letter-spacing: 0.1em;
+}
+
+.chapter-body {
+  font-size: 15px;
+  color: #374151;
+  text-align: justify;
+}
+
+.chapter-text p {
+  text-indent: 2em;
+  margin: 0 0 0.8em;
+}
+
+.chapter-html p {
+  text-indent: 2em;
+  margin: 0 0 0.8em;
+}
+
+.chapter-html img {
+  max-width: 100%;
+  border-radius: 8px;
+  margin: 16px 0;
+  display: block;
+}
+
+/* 封底 */
+.book-back {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  background: #f9f8f6;
+  color: #6b7280;
+}
+
+.back-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  font-size: 15px;
+}
+
+.back-content svg {
+  color: #1B5E4B;
+}
+
+.back-line {
+  width: 50px;
+  height: 1px;
+  background: #d0d5dd;
+  margin: 12px 0;
+}
+
+.back-brand {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1f2937;
+  letter-spacing: 0.2em;
+}
+
+/* 打印样式 */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  body {
+    background: #fff;
+    margin: 0;
+  }
+
+  .biography-print-page {
+    background: #fff;
+    padding-bottom: 0;
+  }
+
+  .book-pages {
+    gap: 0;
+    padding: 0;
+  }
+
+  .book-page {
+    width: 210mm;
+    min-height: 297mm;
+    box-shadow: none;
+    page-break-after: always;
+    margin: 0;
+    padding: 25mm 22mm 20mm;
+  }
+
+  .book-page:last-child {
+    page-break-after: auto;
+  }
+
+  .book-cover {
+    background: #fdfcf8;
+  }
+
+  .book-back {
+    background: #f9f8f6;
+  }
+}
+
+/* 响应式：小屏幕时缩小预览 */
+@media screen and (max-width: 860px) {
+  .book-page {
+    width: 100%;
+    min-height: auto;
+    padding: 24px 20px;
+  }
+
+  .cover-title {
+    font-size: 28px;
+  }
+
+  .chapter-title {
+    font-size: 22px;
+  }
+}

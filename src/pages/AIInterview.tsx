@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useReducer } from 'react';
 import {
   Mic,
   ChevronRight,
@@ -17,18 +17,21 @@ import {
   Square,
   StopCircle,
   RefreshCw,
+  Plus,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Avatar from '../components/ui/Avatar';
 import { useToast } from '../hooks/useToast';
 import {
-  interviewTopics,
   followUpQuestionsPool,
   loadQuota,
   consumeInterviewQuestion,
   consumeFollowUp,
+  buildReviewData,
   type AIQuota,
 } from '../data/aiMock';
+import { generateInterviewTopics, saveCustomTopic } from '../utils/interviewTopics';
+import { syncReviewEventToTimeline } from '../utils/eventSync';
 import './AIInterview.css';
 
 interface Archive {
@@ -38,6 +41,7 @@ interface Archive {
   birthYear: string;
   origin: string;
   occupation: string;
+  tags?: string[];
 }
 
 interface TranscriptLine {
@@ -97,6 +101,7 @@ export default function AIInterview() {
 
   const archive = useMemo(() => loadCurrentArchive(), []);
   const archiveId = archive?.id || 'default';
+  const interviewTopics = generateInterviewTopics(archive, archiveId);
   const subjectName = archive?.name || '张家声';
 
   const [quota, setQuota] = useState<AIQuota>(() => loadQuota());
@@ -115,7 +120,6 @@ export default function AIInterview() {
       followUps: {},
     })
   );
-
   const firstQuestion = interviewTopics[0]?.questions[0];
   const [currentAnswer, setCurrentAnswer] = useState(
     firstQuestion ? loadJson<Record<string, string>>(`cj_interview_answers_${archiveId}`, {})[firstQuestion.id] || firstQuestion.mockAnswer : ''
@@ -133,6 +137,10 @@ export default function AIInterview() {
   );
   const [activeFollowUpIndex, setActiveFollowUpIndex] = useState<number | null>(null);
   const [followUpAnswer, setFollowUpAnswer] = useState('');
+  const [showCustomTopic, setShowCustomTopic] = useState(false);
+  const [customTopicTitle, setCustomTopicTitle] = useState('');
+  const [customTopicSummary, setCustomTopicSummary] = useState('');
+  const [, forceUpdate] = useReducer((x) => x + 1, 0);
 
   const voiceTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const videoTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -183,7 +191,7 @@ export default function AIInterview() {
 
   const totalQuestions = useMemo(
     () => interviewTopics.reduce((sum, t) => sum + t.questions.length, 0),
-    []
+    [interviewTopics]
   );
   const answeredCount = session.answeredIds.length;
   const progressPercent = Math.round((answeredCount / totalQuestions) * 100);
@@ -343,6 +351,17 @@ export default function AIInterview() {
   };
 
   const endInterview = () => {
+    // 将本次采访提炼的事件自动同步到人生档案时间轴
+    try {
+      const reviewData = buildReviewData(answers);
+      reviewData.events.forEach((event) => {
+        if (event.status !== 'ignored') {
+          syncReviewEventToTimeline(archiveId, { ...event, status: 'confirmed' });
+        }
+      });
+    } catch {
+      // ignore sync errors
+    }
     navigate('/interview-review');
   };
 
@@ -362,6 +381,20 @@ export default function AIInterview() {
     setVideoRecorded(false);
     setActiveFollowUpIndex(null);
     setFollowUpAnswer('');
+  };
+
+  const handleAddCustomTopic = () => {
+    const title = customTopicTitle.trim();
+    if (!title) {
+      addToast('请输入主题名称', 'error');
+      return;
+    }
+    saveCustomTopic(archiveId, { title, summary: customTopicSummary.trim() });
+    setCustomTopicTitle('');
+    setCustomTopicSummary('');
+    setShowCustomTopic(false);
+    addToast(`已添加自定义主题「${title}」`, 'success');
+    forceUpdate();
   };
 
   const currentFollowUps = currentQuestion ? session.followUps[currentQuestion.id] || [] : [];
@@ -395,14 +428,8 @@ export default function AIInterview() {
 
   return (
     <div className="interview-page">
-      <header className="page-header">
-        <div>
-          <h1 className="page-title">AI智能采访</h1>
-          <div className="breadcrumb">
-            <span>首页</span> / <span className="active">AI智能采访</span>
-          </div>
-          <div className="interview-progress-text">任务进度 {answeredCount}/{totalQuestions} · {progressPercent}%</div>
-        </div>
+      <header className="page-header interview-header">
+        <h1 className="page-title">AI智能采访</h1>
         <button className="btn btn-primary end-interview-btn" onClick={endInterview}>
           <FolderOpen size={14} /> 结束采访并整理
         </button>
@@ -449,14 +476,42 @@ export default function AIInterview() {
                   key={topic.id}
                   onClick={() => selectQuestion(ti, 0)}
                 >
-                  <div className="topic-name">
-                    {active ? <CheckCircle2 size={16} /> : <Circle size={16} />}
-                    {topic.title}
+                  <div className="topic-info">
+                    <div className="topic-name">
+                      {active ? <CheckCircle2 size={16} /> : <Circle size={16} />}
+                      {topic.title}
+                    </div>
                   </div>
                   <div className="topic-progress">{done}/{topic.questions.length}</div>
                 </button>
               );
             })}
+          </div>
+          <div className="custom-topic-section">
+            {!showCustomTopic ? (
+              <button className="btn btn-outline btn-sm custom-topic-add" onClick={() => setShowCustomTopic(true)}>
+                <Plus size={14} /> 添加自定义主题
+              </button>
+            ) : (
+              <div className="custom-topic-form">
+                <input
+                  type="text"
+                  placeholder="主题名称，如：军旅生涯"
+                  value={customTopicTitle}
+                  onChange={(e) => setCustomTopicTitle(e.target.value)}
+                />
+                <input
+                  type="text"
+                  placeholder="主题说明（可选）"
+                  value={customTopicSummary}
+                  onChange={(e) => setCustomTopicSummary(e.target.value)}
+                />
+                <div className="custom-topic-actions">
+                  <button className="btn btn-ghost btn-sm" onClick={() => setShowCustomTopic(false)}>取消</button>
+                  <button className="btn btn-primary btn-sm" onClick={handleAddCustomTopic}>添加</button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

@@ -1,0 +1,377 @@
+.partner-center-page .page-header {
+  margin-bottom: 20px;
+}
+
+.partner-center-layout {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.partner-center-sidebar {
+  width: 200px;
+  flex-shrink: 0;
+  padding: 10px;
+}
+
+.partner-center-tab {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+  margin-bottom: 4px;
+}
+
+.partner-center-tab:hover {
+  background: var(--bg-secondary);
+  color: var(--text);
+}
+
+.partner-center-tab.active {
+  background: var(--primary);
+  color: #fff;
+}
+
+.partner-center-tab-arrow {
+  margin-left: auto;
+}
+
+.partner-center-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.partner-center-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.partner-center-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.partner-center-stat {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+}
+
+.partner-center-stat-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.partner-center-stat-label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.partner-center-invite-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.partner-center-invite-row:last-child {
+  border-bottom: none;
+}
+
+.partner-center-invite-label {
+  font-size: 13px;
+  color: var(--text-muted);
+  min-width: 70px;
+}
+
+.partner-center-invite-code {
+  flex: 1;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--primary);
+  letter-spacing: 2px;
+  font-family: monospace;
+}
+
+.partner-center-invite-link {
+  flex: 1;
+  font-size: 12px;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.partner-center-qr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  font-size: 13px;
+  margin-top: 8px;
+}
+
+.partner-center-list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.partner-center-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+  padding: 0 12px;
+  min-width: 200px;
+}
+
+.partner-center-search input {
+  border: none;
+  background: transparent;
+  padding: 8px 0;
+  font-size: 13px;
+  outline: none;
+  color: var(--text);
+  flex: 1;
+}
+
+.partner-center-list-body {
+  padding: 0;
+}
+
+.partner-center-empty {
+  text-align: center;
+  padding: 48px 20px;
+  color: var(--text-muted);
+}
+
+.partner-center-customer-list,
+.partner-center-earnings-list,
+.partner-center-withdrawal-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.partner-center-customer,
+.partner-center-earning,
+.partner-center-withdrawal {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border-light);
+  gap: 12px;
+}
+
+.partner-center-customer:last-child,
+.partner-center-earning:last-child,
+.partner-center-withdrawal:last-child {
+  border-bottom: none;
+}
+
+.partner-center-customer-name,
+.partner-center-earning-title,
+.partner-center-withdrawal-amount {
+  font-weight: 500;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+
+.partner-center-customer-meta,
+.partner-center-earning-meta,
+.partner-center-withdrawal-time {
+  font-size: 12px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.partner-center-customer-status,
+.partner-center-earning-amount {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.partner-center-customer-status span {
+  display: block;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  margin-bottom: 2px;
+}
+
+.partner-center-customer-status .paid {
+  background: rgba(27, 94, 75, 0.08);
+  color: #1B5E4B;
+}
+
+.partner-center-customer-status .free {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.partner-center-customer-status .amount,
+.partner-center-earnings-summary {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.partner-center-earning-amount span {
+  display: block;
+}
+
+.partner-center-earning-amount span:first-child {
+  font-weight: 700;
+  color: #1B5E4B;
+}
+
+.partner-center-earning-status,
+.partner-center-withdrawal-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.partner-center-earning-status.settled,
+.partner-center-withdrawal-status.paid {
+  background: rgba(27, 94, 75, 0.08);
+  color: #1B5E4B;
+}
+
+.partner-center-earning-status.withdrawn,
+.partner-center-withdrawal-status.approved {
+  background: rgba(124, 58, 237, 0.08);
+  color: #7c3aed;
+}
+
+.partner-center-withdrawal-status.pending {
+  background: rgba(217, 119, 6, 0.1);
+  color: #d97706;
+}
+
+.partner-center-withdrawal-status.rejected {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.partner-center-filter {
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.partner-center-filter select {
+  padding: 6px 12px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+  font-size: 13px;
+  color: var(--text);
+  outline: none;
+}
+
+.partner-center-balance-card {
+  margin-bottom: 20px;
+}
+
+.partner-center-balance-row {
+  display: flex;
+  gap: 32px;
+  margin-bottom: 16px;
+}
+
+.partner-center-balance-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+}
+
+.partner-center-balance-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.partner-center-balance-value.sub {
+  font-size: 18px;
+  color: var(--text-secondary);
+}
+
+.partner-center-withdraw-input {
+  display: flex;
+  gap: 10px;
+}
+
+.partner-center-withdraw-input input {
+  flex: 1;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+  padding: 9px 12px;
+  font-size: 14px;
+  outline: none;
+}
+
+@media (max-width: 960px) {
+  .partner-center-layout {
+    flex-direction: column;
+  }
+
+  .partner-center-sidebar {
+    width: 100%;
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+  }
+
+  .partner-center-tab {
+    width: auto;
+    white-space: nowrap;
+  }
+
+  .partner-center-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .partner-center-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .partner-center-withdraw-input {
+    flex-direction: column;
+  }
+
+  .partner-center-customer,
+  .partner-center-earning,
+  .partner-center-withdrawal {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

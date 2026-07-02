@@ -8,6 +8,7 @@ interface Archive {
   birthYear?: string;
   origin?: string;
   occupation?: string;
+  tags?: string[];
 }
 
 function loadCurrentArchive(): Archive | null {
