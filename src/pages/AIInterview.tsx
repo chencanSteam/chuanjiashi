@@ -18,10 +18,25 @@ import {
   StopCircle,
   RefreshCw,
   Plus,
+  X,
+  Users,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Avatar from '../components/ui/Avatar';
 import { useToast } from '../hooks/useToast';
+import {
+  loadCollaborators,
+  saveCollaborators,
+  addCollaborator,
+  removeCollaborator,
+  loadSupplementAnswers,
+  saveSupplementAnswers,
+  addSupplementAnswer,
+  createInvite,
+  getCollaboratorAnswerCounts,
+  type Collaborator,
+  type SupplementAnswer,
+} from '../data/interviewCollaboration';
 import {
   followUpQuestionsPool,
   loadQuota,
@@ -62,6 +77,13 @@ interface InterviewSession {
   answeredIds: string[];
   skippedIds: string[];
   followUps: Record<string, { question: string; userAnswer?: string; answered: boolean }[]>;
+}
+
+interface RespondentInfo {
+  id: 'subject' | string;
+  name: string;
+  relation: string;
+  isSubject: boolean;
 }
 
 function loadCurrentArchive(): Archive | null {
@@ -142,6 +164,22 @@ export default function AIInterview() {
   const [customTopicSummary, setCustomTopicSummary] = useState('');
   const [, forceUpdate] = useReducer((x) => x + 1, 0);
 
+  // 多人协作与补充访谈
+  const [collaborators, setCollaborators] = useState<Collaborator[]>(() => loadCollaborators(archiveId));
+  const [supplementAnswers, setSupplementAnswers] = useState<Record<string, SupplementAnswer[]>>(() =>
+    loadSupplementAnswers(archiveId)
+  );
+  const [currentRespondentId, setCurrentRespondentId] = useState<'subject' | string>('subject');
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteName, setInviteName] = useState('');
+  const [inviteRelation, setInviteRelation] = useState('配偶');
+  const [inviteRemark, setInviteRemark] = useState('');
+  const [inviteCode, setInviteCode] = useState('');
+  const [showCollaborators, setShowCollaborators] = useState(false);
+  const [showSupplementPanel, setShowSupplementPanel] = useState(false);
+  const [supplementDraft, setSupplementDraft] = useState('');
+  const [viewingSupplements, setViewingSupplements] = useState<string | null>(null);
+
   const voiceTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const videoTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -160,6 +198,14 @@ export default function AIInterview() {
   useEffect(() => {
     saveJson(`cj_interview_session_${archiveId}`, session);
   }, [session, archiveId]);
+
+  useEffect(() => {
+    saveCollaborators(archiveId, collaborators);
+  }, [collaborators, archiveId]);
+
+  useEffect(() => {
+    saveSupplementAnswers(archiveId, supplementAnswers);
+  }, [supplementAnswers, archiveId]);
 
   useEffect(() => {
     if (recordingVoice) {
@@ -186,6 +232,26 @@ export default function AIInterview() {
     []
   );
 
+  const respondents: RespondentInfo[] = useMemo(
+    () => [
+      { id: 'subject', name: subjectName, relation: '本人', isSubject: true },
+      ...collaborators.map((c) => ({ id: c.id, name: c.name, relation: c.relation, isSubject: false })),
+    ],
+    [collaborators, subjectName]
+  );
+
+  const currentRespondent = useMemo(
+    () => respondents.find((r) => r.id === currentRespondentId) || respondents[0],
+    [respondents, currentRespondentId]
+  );
+
+  const collaboratorAnswerCounts = useMemo(
+    () => getCollaboratorAnswerCounts(archiveId, collaborators),
+    [archiveId, collaborators, supplementAnswers]
+  );
+
+  const currentQuestionSupplements = currentQuestion ? supplementAnswers[currentQuestion.id] || [] : [];
+
   const nowTime = () =>
     new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
 
@@ -204,28 +270,44 @@ export default function AIInterview() {
       return;
     }
 
-    if (!session.answeredIds.includes(currentQuestion.id)) {
-      const nextQuota = consumeInterviewQuestion(quota);
-      setQuota(nextQuota);
-    }
+    const isSubject = currentRespondent.isSubject;
 
-    setAnswers((prev) => ({ ...prev, [currentQuestion.id]: text }));
-    setSession((prev) => ({
-      ...prev,
-      answeredIds: Array.from(new Set([...prev.answeredIds, currentQuestion.id])),
-      skippedIds: prev.skippedIds.filter((id) => id !== currentQuestion.id),
-    }));
+    if (isSubject) {
+      if (!session.answeredIds.includes(currentQuestion.id)) {
+        const nextQuota = consumeInterviewQuestion(quota);
+        setQuota(nextQuota);
+      }
+      setAnswers((prev) => ({ ...prev, [currentQuestion.id]: text }));
+      setSession((prev) => ({
+        ...prev,
+        answeredIds: Array.from(new Set([...prev.answeredIds, currentQuestion.id])),
+        skippedIds: prev.skippedIds.filter((id) => id !== currentQuestion.id),
+      }));
+    } else {
+      const added = addSupplementAnswer(archiveId, currentQuestion.id, {
+        respondentId: currentRespondent.id,
+        respondentName: currentRespondent.name,
+        relation: currentRespondent.relation,
+        text,
+      });
+      setSupplementAnswers((prev) => ({
+        ...prev,
+        [currentQuestion.id]: [...(prev[currentQuestion.id] || []).filter((a) => a.respondentId !== added.respondentId), added],
+      }));
+    }
 
     setTranscript((prev) => [
       ...prev,
       { speaker: 'AI采访官', time: nowTime(), text: currentQuestion.text },
-      { speaker: subjectName, time: nowTime(), text },
+      { speaker: currentRespondent.name, time: nowTime(), text },
     ]);
 
-    addToast('本段已保存', 'success');
+    addToast(isSubject ? '本段已保存' : `${currentRespondent.name} 的补充回答已保存`, 'success');
 
-    // 根据当前回答自动生成延伸问题
-    generateFollowUps(currentQuestion.id);
+    // 根据当前回答自动生成延伸问题（仅主受访者触发）
+    if (isSubject) {
+      generateFollowUps(currentQuestion.id);
+    }
   };
 
   const generateFollowUps = (questionId: string) => {
@@ -299,7 +381,12 @@ export default function AIInterview() {
   const answerFor = (topicIndex: number, questionIndex: number) => {
     const q = interviewTopics[topicIndex]?.questions[questionIndex];
     if (!q) return '';
-    return answers[q.id] || q.mockAnswer;
+    if (currentRespondent.isSubject) {
+      return answers[q.id] || q.mockAnswer;
+    }
+    const supplements = supplementAnswers[q.id] || [];
+    const found = supplements.find((a) => a.respondentId === currentRespondent.id);
+    return found?.text || '';
   };
 
   const moveToNext = () => {
@@ -404,17 +491,39 @@ export default function AIInterview() {
 
   const saveFollowUpAnswer = () => {
     if (!currentQuestion || activeFollowUpIndex === null || !followUpAnswer.trim()) return;
-    setSession((prev) => {
-      const list = prev.followUps[currentQuestion.id] || [];
-      const updated = list.map((f, i) =>
-        i === activeFollowUpIndex ? { ...f, userAnswer: followUpAnswer.trim(), answered: true } : f
-      );
-      return { ...prev, followUps: { ...prev.followUps, [currentQuestion.id]: updated } };
-    });
+    const text = followUpAnswer.trim();
+    const questionText = currentFollowUps[activeFollowUpIndex].question;
+
+    if (currentRespondent.isSubject) {
+      setSession((prev) => {
+        const list = prev.followUps[currentQuestion.id] || [];
+        const updated = list.map((f, i) =>
+          i === activeFollowUpIndex ? { ...f, userAnswer: text, answered: true } : f
+        );
+        return { ...prev, followUps: { ...prev.followUps, [currentQuestion.id]: updated } };
+      });
+    } else {
+      const added = addSupplementAnswer(archiveId, `${currentQuestion.id}_followup_${activeFollowUpIndex}`, {
+        respondentId: currentRespondent.id,
+        respondentName: currentRespondent.name,
+        relation: currentRespondent.relation,
+        text,
+      });
+      setSupplementAnswers((prev) => ({
+        ...prev,
+        [`${currentQuestion.id}_followup_${activeFollowUpIndex}`]: [
+          ...(prev[`${currentQuestion.id}_followup_${activeFollowUpIndex}`] || []).filter(
+            (a) => a.respondentId !== added.respondentId
+          ),
+          added,
+        ],
+      }));
+    }
+
     setTranscript((prev) => [
       ...prev,
-      { speaker: 'AI采访官·延伸', time: nowTime(), text: currentFollowUps[activeFollowUpIndex].question },
-      { speaker: subjectName, time: nowTime(), text: followUpAnswer.trim() },
+      { speaker: 'AI采访官·延伸', time: nowTime(), text: questionText },
+      { speaker: currentRespondent.name, time: nowTime(), text },
     ]);
     setActiveFollowUpIndex(null);
     setFollowUpAnswer('');
@@ -425,6 +534,66 @@ export default function AIInterview() {
     setActiveFollowUpIndex(index);
     setFollowUpAnswer('');
   };
+
+  const handleCreateInvite = () => {
+    if (!inviteRelation.trim()) {
+      addToast('请选择或填写关系', 'error');
+      return;
+    }
+    const invite = createInvite(archiveId, inviteRelation, inviteRemark);
+    setInviteCode(invite.code);
+    addToast('邀请码已生成', 'success');
+  };
+
+  const handleAddCollaborator = () => {
+    if (!inviteName.trim() || !inviteRelation.trim()) {
+      addToast('请输入姓名和关系', 'error');
+      return;
+    }
+    const collaborator = addCollaborator(archiveId, {
+      name: inviteName.trim(),
+      relation: inviteRelation,
+      remark: inviteRemark,
+    });
+    setCollaborators((prev) => [collaborator, ...prev]);
+    setInviteName('');
+    setInviteRemark('');
+    setShowInviteModal(false);
+    addToast(`${collaborator.name} 已添加为协作者`, 'success');
+  };
+
+  const handleRemoveCollaborator = (id: string) => {
+    removeCollaborator(archiveId, id);
+    setCollaborators((prev) => prev.filter((c) => c.id !== id));
+    setSupplementAnswers((prev) => {
+      const next: Record<string, SupplementAnswer[]> = {};
+      Object.entries(prev).forEach(([qid, list]) => {
+        next[qid] = list.filter((a) => a.respondentId !== id);
+      });
+      return next;
+    });
+    if (currentRespondentId === id) setCurrentRespondentId('subject');
+    addToast('协作者已移除', 'info');
+  };
+
+  const saveSupplementFromPanel = () => {
+    if (!currentQuestion || !supplementDraft.trim()) return;
+    const added = addSupplementAnswer(archiveId, currentQuestion.id, {
+      respondentId: currentRespondent.id,
+      respondentName: currentRespondent.name,
+      relation: currentRespondent.relation,
+      text: supplementDraft.trim(),
+    });
+    setSupplementAnswers((prev) => ({
+      ...prev,
+      [currentQuestion.id]: [...(prev[currentQuestion.id] || []).filter((a) => a.respondentId !== added.respondentId), added],
+    }));
+    setSupplementDraft('');
+    setShowSupplementPanel(false);
+    addToast('补充回答已保存', 'success');
+  };
+
+  const relationOptions = ['配偶', '子女', '兄弟姐妹', '侄子/侄女', '外甥/外甥女', '朋友', '同事', '其他'];
 
   return (
     <div className="interview-page">
@@ -448,6 +617,30 @@ export default function AIInterview() {
                   <span>{archive?.origin || '江苏苏州'}</span>
                 </div>
               </div>
+            </div>
+            <div className="respondent-bar">
+              <div className="respondent-select">
+                <span className="respondent-label">当前回答者</span>
+                <select
+                  value={currentRespondentId}
+                  onChange={(e) => {
+                    setCurrentRespondentId(e.target.value);
+                    setCurrentAnswer(answerFor(session.currentTopicIndex, session.currentQuestionIndex));
+                  }}
+                >
+                  {respondents.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.name} · {r.relation}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <button className="btn btn-outline btn-sm" onClick={() => setShowInviteModal(true)}>
+                邀请补充
+              </button>
+              <button className="btn btn-ghost btn-sm" onClick={() => setShowCollaborators(true)}>
+                协作者
+              </button>
             </div>
           </div>
         </div>
@@ -532,6 +725,34 @@ export default function AIInterview() {
                   <div className="question-text">{currentQuestion.text}</div>
                 </div>
 
+                {currentQuestionSupplements.length > 0 && (
+                  <div className="supplement-hint">
+                    <span className="supplement-dot" />
+                    已有 {currentQuestionSupplements.length} 位家人补充回答
+                    <button
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => setViewingSupplements(viewingSupplements === currentQuestion.id ? null : currentQuestion.id)}
+                    >
+                      {viewingSupplements === currentQuestion.id ? '收起' : '查看'}
+                    </button>
+                  </div>
+                )}
+
+                {viewingSupplements === currentQuestion.id && currentQuestionSupplements.length > 0 && (
+                  <div className="supplement-list">
+                    {currentQuestionSupplements.map((s, i) => (
+                      <div className="supplement-item" key={i}>
+                        <div className="supplement-meta">
+                          <strong>{s.respondentName}</strong>
+                          <span>{s.relation}</span>
+                          <span>{new Date(s.answeredAt).toLocaleString()}</span>
+                        </div>
+                        <div className="supplement-text">{s.text}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 <div className="workspace-actions workspace-actions-top">
                   <button className="btn btn-primary" onClick={saveCurrentAnswer} disabled={generatingFollowUp || !currentAnswer.trim()}>
                     <Save size={14} /> 保存本段
@@ -542,6 +763,11 @@ export default function AIInterview() {
                   <button className="btn btn-ghost" onClick={handleSkip} disabled={generatingFollowUp}>
                     <SkipForward size={14} /> 跳过问题
                   </button>
+                  {!currentRespondent.isSubject && (
+                    <button className="btn btn-accent" onClick={() => setShowSupplementPanel(true)}>
+                      <Users size={14} /> 补充回答
+                    </button>
+                  )}
                 </div>
 
                 <div className="answer-section">
@@ -837,6 +1063,146 @@ export default function AIInterview() {
           )}
         </div>
       </div>
+
+      {showInviteModal && (
+        <div className="modal-overlay" onClick={() => setShowInviteModal(false)}>
+          <div className="modal-content interview-invite-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>邀请家人补充访谈</h3>
+              <button className="modal-close" onClick={() => setShowInviteModal(false)}><X size={18} /></button>
+            </div>
+            <div className="modal-body">
+              <p className="modal-desc">邀请家人、朋友或其他知情人补充回答，丰富档案内容。</p>
+              {inviteCode ? (
+                <div className="invite-code-block">
+                  <label>邀请码</label>
+                  <div className="invite-code">{inviteCode}</div>
+                  <p className="invite-tip">将邀请码发送给亲友，对方在「邀请补充」入口输入即可加入。</p>
+                  <button className="btn btn-outline btn-sm" onClick={() => setInviteCode('')}>重新生成</button>
+                </div>
+              ) : (
+                <>
+                  <div className="form-row">
+                    <label>对方与受访者的关系</label>
+                    <select value={inviteRelation} onChange={(e) => setInviteRelation(e.target.value)}>
+                      {relationOptions.map((r) => <option key={r} value={r}>{r}</option>)}
+                    </select>
+                  </div>
+                  <div className="form-row">
+                    <label>备注（可选）</label>
+                    <input
+                      type="text"
+                      placeholder="如：请补充童年往事"
+                      value={inviteRemark}
+                      onChange={(e) => setInviteRemark(e.target.value)}
+                    />
+                  </div>
+                  <div className="modal-actions">
+                    <button className="btn btn-outline" onClick={() => setShowInviteModal(false)}>取消</button>
+                    <button className="btn btn-primary" onClick={handleCreateInvite}>生成邀请码</button>
+                  </div>
+                </>
+              )}
+              <div className="invite-divider">或直接添加协作者</div>
+              <div className="form-row">
+                <label>姓名</label>
+                <input type="text" value={inviteName} onChange={(e) => setInviteName(e.target.value)} placeholder="如：李秀英" />
+              </div>
+              <div className="form-row">
+                <label>关系</label>
+                <select value={inviteRelation} onChange={(e) => setInviteRelation(e.target.value)}>
+                  {relationOptions.map((r) => <option key={r} value={r}>{r}</option>)}
+                </select>
+              </div>
+              <div className="modal-actions">
+                <button className="btn btn-primary" onClick={handleAddCollaborator} disabled={!inviteName.trim()}>
+                  添加协作者
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showCollaborators && (
+        <div className="modal-overlay" onClick={() => setShowCollaborators(false)}>
+          <div className="modal-content interview-collab-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>协作者管理</h3>
+              <button className="modal-close" onClick={() => setShowCollaborators(false)}><X size={18} /></button>
+            </div>
+            <div className="modal-body">
+              {collaborators.length === 0 ? (
+                <div className="collab-empty">暂无协作者，点击「邀请补充」添加家人或朋友。</div>
+              ) : (
+                <div className="collab-list">
+                  {collaborators.map((c) => (
+                    <div className="collab-item" key={c.id}>
+                      <div className="collab-info">
+                        <strong>{c.name}</strong>
+                        <span>{c.relation}</span>
+                        <span className="collab-count">已补充 {collaboratorAnswerCounts[c.id] || 0} 题</span>
+                      </div>
+                      <div className="collab-actions">
+                        <button
+                          className="btn btn-ghost btn-sm"
+                          onClick={() => {
+                            setCurrentRespondentId(c.id);
+                            setShowCollaborators(false);
+                            setCurrentAnswer(answerFor(session.currentTopicIndex, session.currentQuestionIndex));
+                          }}
+                        >
+                          切换回答
+                        </button>
+                        <button className="btn btn-ghost btn-sm danger" onClick={() => handleRemoveCollaborator(c.id)}>
+                          移除
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showSupplementPanel && currentQuestion && (
+        <div className="modal-overlay" onClick={() => setShowSupplementPanel(false)}>
+          <div className="modal-content interview-supplement-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>补充回答：{currentQuestion.text.slice(0, 20)}…</h3>
+              <button className="modal-close" onClick={() => setShowSupplementPanel(false)}><X size={18} /></button>
+            </div>
+            <div className="modal-body">
+              <div className="form-row">
+                <label>当前补充者</label>
+                <select
+                  value={currentRespondentId}
+                  onChange={(e) => setCurrentRespondentId(e.target.value)}
+                >
+                  {respondents.filter((r) => !r.isSubject).map((r) => (
+                    <option key={r.id} value={r.id}>{r.name} · {r.relation}</option>
+                  ))}
+                </select>
+              </div>
+              <textarea
+                className="answer-textarea"
+                rows={5}
+                value={supplementDraft}
+                onChange={(e) => setSupplementDraft(e.target.value)}
+                placeholder="请输入补充内容…"
+              />
+              <div className="modal-actions">
+                <button className="btn btn-outline" onClick={() => setShowSupplementPanel(false)}>取消</button>
+                <button className="btn btn-primary" onClick={saveSupplementFromPanel} disabled={!supplementDraft.trim()}>
+                  保存补充
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="card transcript-card">
         <div className="card-header">

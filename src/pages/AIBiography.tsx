@@ -36,6 +36,7 @@ import {
   type ReviewEvent,
 } from '../data/aiMock';
 import { assembleBiography, loadInterviewAnswers } from '../utils/biographyAssembler';
+import { loadSupplementAnswers } from '../data/interviewCollaboration';
 import './AIBiography.css';
 
 interface Archive {
@@ -190,11 +191,13 @@ export default function AIBiography() {
       const reviewEvents = loadJson<ReviewEvent[]>(`cj_review_events_${archiveId}`, []);
       const highlights = loadJson<string[]>(`cj_review_highlights_${archiveId}`, []);
       const answers = loadInterviewAnswers(archiveId);
+      const supplementAnswers = loadSupplementAnswers(archiveId);
       const assembled = assembleBiography({
         archiveName: subjectName,
         events: reviewEvents,
         highlights,
         answers,
+        supplementAnswers,
       });
       const content = assembled[activeChapter.title] || `${subjectName}的${activeChapter.title}内容待补充。`;
       updateChapter(activeIndex, {

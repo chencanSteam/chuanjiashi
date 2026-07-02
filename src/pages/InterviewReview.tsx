@@ -13,10 +13,12 @@ import {
   Tag,
   ChevronRight,
   MessageSquare,
+  Users,
 } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 import { buildReviewData, loadJson, saveJson, type ReviewEvent } from '../data/aiMock';
 import { generateInterviewTopics } from '../utils/interviewTopics';
+import { loadCollaborators, loadSupplementAnswers } from '../data/interviewCollaboration';
 import { syncPlaceFromText, syncRelationFromEvent } from '../data/familyData';
 import { syncReviewEventToTimeline } from '../utils/eventSync';
 import './InterviewReview.css';
@@ -29,12 +31,6 @@ interface Archive {
   origin: string;
   occupation: string;
   tags?: string[];
-}
-
-interface TranscriptLine {
-  speaker: string;
-  time: string;
-  text: string;
 }
 
 function loadCurrentArchive(): Archive | null {
@@ -77,24 +73,49 @@ export default function InterviewReview() {
   const [facts] = useState<string[]>(initialReview.factsToConfirm);
   const [sources] = useState<string[]>(initialReview.sources);
   const [summary] = useState<string>(initialReview.summary);
-  const [transcript] = useState<TranscriptLine[]>(() => {
-    const saved = loadJson<TranscriptLine[]>(`cj_interview_transcript_${archiveId}`, []);
-    if (saved.length > 0) return saved;
-    const savedAnswers = loadJson<Record<string, string>>(`cj_interview_answers_${archiveId}`, {});
-    const hasAnswers = Object.keys(savedAnswers).length > 0;
-    const lines: TranscriptLine[] = [];
+  const [summaryTab, setSummaryTab] = useState<'summary' | 'transcript' | 'collaborators'>('summary');
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  const collaborators = useMemo(() => loadCollaborators(archiveId), [archiveId]);
+  const supplementAnswers = useMemo(() => loadSupplementAnswers(archiveId), [archiveId]);
+  const allTranscriptLines = useMemo(() => {
+    const lines: { speaker: string; relation?: string; time: string; text: string; isSupplement?: boolean }[] = [];
     interviewTopics.forEach((topic) => {
       topic.questions.forEach((q) => {
-        const answer = hasAnswers ? savedAnswers[q.id] : q.mockAnswer;
-        if (!answer) return;
-        lines.push({ speaker: 'AI采访官', time: '', text: q.text });
-        lines.push({ speaker: archive?.name || '本人', time: '', text: answer });
+        const mainAnswer = initialAnswers[q.id];
+        if (mainAnswer) {
+          lines.push({ speaker: 'AI采访官', time: '', text: q.text });
+          lines.push({ speaker: archive?.name || '本人', relation: '本人', time: '', text: mainAnswer });
+        }
+        const supplements = supplementAnswers[q.id] || [];
+        supplements.forEach((s) => {
+          lines.push({
+            speaker: s.respondentName,
+            relation: s.relation,
+            time: '',
+            text: s.text,
+            isSupplement: true,
+          });
+        });
       });
     });
     return lines;
-  });
-  const [summaryTab, setSummaryTab] = useState<'summary' | 'transcript'>('summary');
-  const [editingId, setEditingId] = useState<string | null>(null);
+  }, [interviewTopics, initialAnswers, supplementAnswers, archive]);
+
+  const collaboratorStats = useMemo(() => {
+    const stats: Record<string, { name: string; relation: string; count: number }> = {};
+    collaborators.forEach((c) => {
+      stats[c.id] = { name: c.name, relation: c.relation, count: 0 };
+    });
+    Object.values(supplementAnswers).forEach((list) => {
+      list.forEach((a) => {
+        if (stats[a.respondentId]) {
+          stats[a.respondentId].count += 1;
+        }
+      });
+    });
+    return Object.values(stats);
+  }, [collaborators, supplementAnswers]);
 
   const [editForm, setEditForm] = useState<Partial<ReviewEvent>>({});
   const [addedToMaterial, setAddedToMaterial] = useState<Set<string>>(
@@ -195,8 +216,8 @@ export default function InterviewReview() {
           <div className="card summary-card">
             <div className="card-header summary-header">
               <h3 className="card-title">
-                {summaryTab === 'summary' ? <Sparkles size={14} /> : <MessageSquare size={14} />}
-                {summaryTab === 'summary' ? '采访摘要' : '采访详情'}
+                {summaryTab === 'summary' ? <Sparkles size={14} /> : summaryTab === 'transcript' ? <MessageSquare size={14} /> : <Users size={14} />}
+                {summaryTab === 'summary' ? '采访摘要' : summaryTab === 'transcript' ? '采访详情' : '协作者补充'}
               </h3>
               <div className="summary-tabs">
                 <button
@@ -211,29 +232,74 @@ export default function InterviewReview() {
                 >
                   采访详情
                 </button>
+                <button
+                  className={summaryTab === 'collaborators' ? 'active' : ''}
+                  onClick={() => setSummaryTab('collaborators')}
+                >
+                  协作者补充
+                </button>
               </div>
             </div>
             <div className="card-body">
               {summaryTab === 'summary' ? (
                 <p className="summary-text">{summary}</p>
-              ) : (
+              ) : summaryTab === 'transcript' ? (
                 <div className="transcript-list">
-                  {transcript.length === 0 ? (
+                  {allTranscriptLines.length === 0 ? (
                     <div className="transcript-empty">暂无采访详情记录</div>
                   ) : (
-                    transcript.map((line, i) => (
+                    allTranscriptLines.map((line, i) => (
                       <div
-                        className={`transcript-line ${line.speaker.includes('AI') ? 'ai' : 'subject'}`}
+                        className={`transcript-line ${line.speaker.includes('AI') ? 'ai' : line.isSupplement ? 'supplement' : 'subject'}`}
                         key={i}
                       >
                         <div className="transcript-line-header">
-                          <span className="transcript-speaker">{line.speaker}</span>
+                          <span className="transcript-speaker">
+                            {line.speaker}
+                            {line.relation && <span className="transcript-relation">{line.relation}</span>}
+                          </span>
                           <span className="transcript-time">{line.time}</span>
                         </div>
                         <div className="transcript-text">{line.text}</div>
                       </div>
                     ))
                   )}
+                </div>
+              ) : (
+                <div className="collaborators-review">
+                  {collaboratorStats.length === 0 ? (
+                    <div className="transcript-empty">暂无协作者补充访谈</div>
+                  ) : (
+                    <div className="collab-stats-list">
+                      {collaboratorStats.map((c, i) => (
+                        <div className="collab-stat-card" key={i}>
+                          <div className="collab-stat-main">
+                            <strong>{c.name}</strong>
+                            <span>{c.relation}</span>
+                          </div>
+                          <div className="collab-stat-count">{c.count} 条补充</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="supplement-detail-list">
+                    {Object.entries(supplementAnswers).map(([qid, list]) =>
+                      list.map((s, i) => {
+                        const q = interviewTopics.flatMap((t) => t.questions).find((q) => q.id === qid);
+                        return (
+                          <div className="supplement-review-item" key={`${qid}-${i}`}>
+                            <div className="supplement-review-meta">
+                              <strong>{s.respondentName}</strong>
+                              <span>{s.relation}</span>
+                              <span>{new Date(s.answeredAt).toLocaleString()}</span>
+                            </div>
+                            {q && <div className="supplement-review-question">问题：{q.text}</div>}
+                            <div className="supplement-review-text">{s.text}</div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
                 </div>
               )}
             </div>

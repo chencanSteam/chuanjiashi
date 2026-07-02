@@ -1,12 +1,14 @@
 import { chapterMockContents } from '../data/aiMock';
 import type { ReviewEvent } from '../data/aiMock';
 import { generateInterviewTopics } from './interviewTopics';
+import type { SupplementAnswer } from '../data/interviewCollaboration';
 
 export interface AssemblerInput {
   archiveName: string;
   events: ReviewEvent[];
   highlights: string[];
   answers: Record<string, string>;
+  supplementAnswers?: Record<string, SupplementAnswer[]>;
 }
 
 function extractYear(time: string): string {
@@ -72,8 +74,22 @@ function renderAnswers(answers: Record<string, string>): string {
   return values.slice(0, 2).map((v) => v.trim()).join('\n\n');
 }
 
+function renderSupplementHighlights(supplementAnswers: Record<string, SupplementAnswer[]>): string {
+  const all = Object.values(supplementAnswers).flat();
+  if (all.length === 0) return '';
+  const byPerson: Record<string, string[]> = {};
+  all.forEach((a) => {
+    if (!byPerson[a.respondentName]) byPerson[a.respondentName] = [];
+    byPerson[a.respondentName].push(a.text.trim());
+  });
+  return Object.entries(byPerson)
+    .slice(0, 2)
+    .map(([name, texts]) => `${name}也回忆道：「${texts[0].slice(0, 80)}${texts[0].length > 80 ? '……' : ''}」`)
+    .join('\n\n');
+}
+
 export function assembleBiography(input: AssemblerInput): Record<string, string> {
-  const { archiveName, events, highlights, answers } = input;
+  const { archiveName, events, highlights, answers, supplementAnswers = {} } = input;
   const confirmed = events.filter((e) => e.status === 'confirmed');
   const result: Record<string, string> = {};
 
@@ -102,6 +118,13 @@ export function assembleBiography(input: AssemblerInput): Record<string, string>
       const answerText = renderAnswers(answers);
       if (answerText) {
         parts.push(`\n${archiveName}在采访中也这样回忆道：「${answerText.slice(0, 160)}${answerText.length > 160 ? '……' : ''}」`);
+      }
+    }
+
+    if (chapter === '家庭生活' && Object.keys(supplementAnswers).length > 0) {
+      const supplementText = renderSupplementHighlights(supplementAnswers);
+      if (supplementText) {
+        parts.push(`\n\n【家人补充】\n${supplementText}`);
       }
     }
 
