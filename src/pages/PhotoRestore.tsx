@@ -1,9 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+
 import {
-  ArrowLeft,
   Upload,
-  Wand2,
   Download,
   Save,
   Image as ImageIcon,
@@ -252,7 +250,6 @@ function clamp(v: number): number {
 }
 
 export default function PhotoRestore() {
-  const navigate = useNavigate();
   const { addToast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -389,15 +386,7 @@ export default function PhotoRestore() {
   return (
     <div className="detail-page photo-restore-page">
       <header className="page-header">
-        <div>
-          <button className="btn btn-ghost" onClick={() => navigate('/archive')}>
-            <ArrowLeft size={16} /> 返回人生档案
-          </button>
-          <h1 className="page-title">
-            <Wand2 size={22} /> AI 老照片修复
-          </h1>
-          <p className="page-subtitle">上传泛黄、破损或黑白老照片，AI 智能修复并保存到家族档案</p>
-        </div>
+        <h1 className="page-title">老照片修复</h1>
       </header>
 
       <div className="photo-restore-grid">
@@ -522,7 +511,7 @@ export default function PhotoRestore() {
                   disabled={processing || !displayOriginal}
                 >
                   {processing ? (
-                    <><Wand2 size={16} className="spin" /> 修复中…</>
+                    <><Sparkles size={16} className="spin" /> 修复中…</>
                   ) : (
                     <><Sparkles size={16} /> 开始修复</>
                   )}
