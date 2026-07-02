@@ -29,6 +29,7 @@ import {
   Plane,
   Award,
   Settings2,
+  Wand2,
 } from 'lucide-react';
 import Avatar from '../components/ui/Avatar';
 import Modal from '../components/ui/Modal';
@@ -1204,6 +1205,10 @@ export default function LifeArchive() {
                   </button>
                 ))}
               </div>
+              <button className="media-restore-btn" onClick={() => navigate('/photo-restore')}>
+                <Wand2 size={14} />
+                <span>老照片修复</span>
+              </button>
               <button className="media-upload-btn" onClick={openUploadModal}>
                 <Upload size={14} />
                 <span>上传素材</span>
@@ -1239,10 +1244,16 @@ export default function LifeArchive() {
               <div className="media-empty">
                 <div>该分类下暂无素材</div>
                 {canEdit && (
-                  <button className="media-upload-btn media-upload-btn-empty" onClick={openUploadModal}>
-                    <Upload size={14} />
-                    <span>上传素材</span>
-                  </button>
+                  <>
+                    <button className="media-restore-btn media-restore-btn-empty" onClick={() => navigate('/photo-restore')}>
+                      <Wand2 size={14} />
+                      <span>老照片修复</span>
+                    </button>
+                    <button className="media-upload-btn media-upload-btn-empty" onClick={openUploadModal}>
+                      <Upload size={14} />
+                      <span>上传素材</span>
+                    </button>
+                  </>
                 )}
               </div>
             )}

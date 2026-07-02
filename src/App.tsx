@@ -73,6 +73,7 @@ const WithdrawalManagement = lazy(() => import('./pages/WithdrawalManagement'));
 const UserInvites = lazy(() => import('./pages/UserInvites'));
 const PartnerCenter = lazy(() => import('./pages/PartnerCenter'));
 const PartnerApplication = lazy(() => import('./pages/PartnerApplication'));
+const PhotoRestore = lazy(() => import('./pages/PhotoRestore'));
 
 function PageFallback() {
   return (
@@ -102,6 +103,7 @@ function App() {
                 <Route path="biography" element={<AIBiography />} />
                 <Route path="biography/print" element={<BiographyPrint />} />
                 <Route path="my-works" element={<MyWorks />} />
+                <Route path="photo-restore" element={<PhotoRestore />} />
                 <Route path="archive" element={<LifeArchive />} />
                 <Route path="family" element={<MVPRedirect><FamilySpace /></MVPRedirect>} />
                 <Route path="genealogy" element={<MVPRedirect><Genealogy /></MVPRedirect>} />

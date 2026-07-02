@@ -1348,6 +1348,29 @@ select:disabled {
   margin-top: 12px;
 }
 
+.media-restore-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: 0.2s;
+  border: none;
+}
+
+.media-restore-btn:hover {
+  background: #9a7009;
+}
+
+.media-restore-btn-empty {
+  margin-top: 12px;
+}
+
 .media-item {
   position: relative;
 }

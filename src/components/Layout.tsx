@@ -33,6 +33,7 @@ import {
   Shield as ShieldIcon,
   Database,
   Sparkles,
+  Wand2,
 } from 'lucide-react';
 import Avatar from './ui/Avatar';
 import { useAuth } from '../hooks/useAuth';
@@ -57,6 +58,7 @@ interface NavGroup {
 const baseNavItemsFull: NavItem[] = [
   { to: '/', icon: LayoutDashboard, label: '首页' },
   { to: '/archive', icon: FolderOpen, label: '人生档案' },
+  { to: '/photo-restore', icon: Wand2, label: '老照片修复' },
   { to: '/interview', icon: Mic, label: 'AI智能采访' },
   { to: '/biography', icon: BookOpen, label: 'AI传记生成' },
   { to: '/my-works', icon: BookMarked, label: '我的传记' },
@@ -71,6 +73,7 @@ const baseNavItemsFull: NavItem[] = [
 const baseNavItemsMVP: NavItem[] = [
   { to: '/', icon: LayoutDashboard, label: '首页' },
   { to: '/archive', icon: FolderOpen, label: '人生档案' },
+  { to: '/photo-restore', icon: Wand2, label: '老照片修复' },
   { to: '/interview', icon: Mic, label: 'AI智能采访' },
   { to: '/biography', icon: BookOpen, label: 'AI传记生成' },
   { to: '/my-works', icon: BookMarked, label: '我的传记' },
