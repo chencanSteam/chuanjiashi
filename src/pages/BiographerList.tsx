@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Search, MapPin, Star, Award, Phone, Filter, User, ShoppingCart, CheckCircle } from 'lucide-react';
+import { Search, MapPin, Star, Filter, User, CheckCircle } from 'lucide-react';
 import { biographerApi } from '../api/biographer';
 import { paymentApi } from '../api/payment';
 import { useToast } from '../hooks/useToast';
