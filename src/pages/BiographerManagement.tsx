@@ -17,14 +17,11 @@ import {
 } from 'lucide-react';
 import Avatar from '../components/ui/Avatar';
 import { useToast } from '../hooks/useToast';
-import {
-  loadBiographers,
-  addBiographer,
-  updateBiographer,
-  deleteBiographer,
-  getStatusLabel,
-} from '../data/biographerData';
+import { biographerApi } from '../api/biographer';
+import { getStatusLabel } from '../data/biographerData';
+import type { Biographer as MockBiographer } from '../mocks/types';
 import type { Biographer, BiographerFormData, BiographerStatus } from '../types/biographer';
+import BiographerProfile from './BiographerProfile';
 import './BiographerManagement.css';
 
 const emptyForm: BiographerFormData = {
@@ -47,10 +44,14 @@ export default function BiographerManagement() {
   const [form, setForm] = useState<BiographerFormData>(emptyForm);
   const [specialtyInput, setSpecialtyInput] = useState('');
   const [showDelete, setShowDelete] = useState<Biographer | null>(null);
+  const [selectedBiographerId, setSelectedBiographerId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    setBiographers(loadBiographers());
+    biographerApi
+      .adminList()
+      .then((list) => setBiographers(list.map(mapMockBiographer)))
+      .catch(() => setBiographers([]));
   }, []);
 
   const filtered = useMemo(() => {
@@ -59,7 +60,7 @@ export default function BiographerManagement() {
         !keyword ||
         item.name.includes(keyword) ||
         item.phone.includes(keyword) ||
-        item.email.includes(keyword) ||
+        item.email?.includes(keyword) ||
         item.intro.includes(keyword);
       const matchStatus = statusFilter === 'all' || item.status === statusFilter;
       return matchKeyword && matchStatus;
@@ -110,7 +111,7 @@ export default function BiographerManagement() {
     setForm({
       name: item.name,
       phone: item.phone,
-      email: item.email,
+      email: item.email || '',
       intro: item.intro,
       specialties: [...item.specialties],
       experience: item.experience,
@@ -125,29 +126,38 @@ export default function BiographerManagement() {
     setEditing(null);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!form.name.trim() || !form.phone.trim()) {
       addToast('请填写姓名和手机号', 'error');
       return;
     }
-    if (editing) {
-      updateBiographer(editing.id, form);
-      setBiographers(loadBiographers());
-      addToast('传记师信息已更新', 'success');
-    } else {
-      addBiographer(form);
-      setBiographers(loadBiographers());
-      addToast('传记师新增成功', 'success');
+    try {
+      if (editing) {
+        await biographerApi.update(editing.id, toMockBiographerData(form));
+        addToast('传记师信息已更新', 'success');
+      } else {
+        await biographerApi.create(toMockBiographerData(form));
+        addToast('传记师新增成功', 'success');
+      }
+      const list = await biographerApi.adminList();
+      setBiographers(list.map(mapMockBiographer));
+      closeModal();
+    } catch (err: any) {
+      addToast(err.message || '操作失败', 'error');
     }
-    closeModal();
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!showDelete) return;
-    deleteBiographer(showDelete.id);
-    setBiographers(loadBiographers());
-    setShowDelete(null);
-    addToast('传记师已删除', 'success');
+    try {
+      await biographerApi.delete(showDelete.id);
+      const list = await biographerApi.adminList();
+      setBiographers(list.map(mapMockBiographer));
+      setShowDelete(null);
+      addToast('传记师已删除', 'success');
+    } catch (err: any) {
+      addToast(err.message || '删除失败', 'error');
+    }
   };
 
   const addSpecialty = () => {
@@ -240,7 +250,7 @@ export default function BiographerManagement() {
               </div>
               {filtered.map((item) => (
                 <div className="bio-row" key={item.id}>
-                  <div className="bio-cell bio-cell-name">
+                  <div className="bio-cell bio-cell-name bio-cell-clickable" onClick={() => setSelectedBiographerId(item.id)}>
                     {item.avatar ? (
                       <img src={item.avatar} alt={item.name} className="bio-avatar" />
                     ) : (
@@ -396,6 +406,61 @@ export default function BiographerManagement() {
           </div>
         </div>
       )}
+
+      {selectedBiographerId && (
+        <div className="modal-overlay bio-profile-modal-overlay" onClick={() => setSelectedBiographerId(null)}>
+          <div className="modal-content bio-profile-modal" onClick={(e) => e.stopPropagation()}>
+            <BiographerProfile
+              biographerId={selectedBiographerId}
+              embedded
+              onClose={() => setSelectedBiographerId(null)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
+}
+
+function mapMockBiographer(b: MockBiographer): Biographer {
+  const statusMap: Record<MockBiographer['status'], BiographerStatus> = {
+    approved: 'active',
+    suspended: 'inactive',
+    rejected: 'inactive',
+    pending: 'pending',
+  };
+  return {
+    id: b.id,
+    name: b.name,
+    phone: b.phone,
+    email: b.email || '',
+    avatar: b.avatar,
+    intro: b.intro,
+    specialties: b.specialties,
+    experience: b.experience || 0,
+    status: statusMap[b.status],
+    createdAt: b.createdAt,
+  };
+}
+
+function toMockBiographerData(form: BiographerFormData): Partial<MockBiographer> {
+  const statusMap: Record<BiographerStatus, MockBiographer['status']> = {
+    active: 'approved',
+    inactive: 'suspended',
+    pending: 'pending',
+  };
+  return {
+    name: form.name,
+    phone: form.phone,
+    email: form.email,
+    avatar: form.avatar,
+    intro: form.intro,
+    specialties: form.specialties,
+    experience: form.experience,
+    status: statusMap[form.status],
+    city: '未知城市',
+    services: [],
+    cases: [],
+    deposit: 0,
+  };
 }

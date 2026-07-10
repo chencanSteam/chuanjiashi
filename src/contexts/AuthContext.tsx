@@ -1,7 +1,7 @@
 import { createContext, useEffect, useState, type ReactNode } from 'react';
-import { registerUser, loadRegisteredUsers } from '../data/userInviteData';
+import { authApi } from '../api/auth';
 
-export type UserRole = 'user' | 'partner' | 'admin';
+export type UserRole = 'user' | 'partner' | 'admin' | 'biographer';
 
 export interface User {
   phone: string;
@@ -15,8 +15,8 @@ export interface User {
 interface AuthContextValue {
   user: User | null;
   isAuthenticated: boolean;
-  login: (phone: string, code: string, options?: { isRegister?: boolean; name?: string }) => boolean;
-  logout: () => void;
+  login: (phone: string, code: string, options?: { isRegister?: boolean; name?: string; inviteCode?: string }) => Promise<{ success: boolean; error?: string }>;
+  logout: () => Promise<void>;
   setNewUser: (value: boolean) => void;
   addRole: (role: UserRole) => void;
   hasRole: (role: UserRole) => boolean;
@@ -25,75 +25,75 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 const USER_KEY = 'cj_user';
-const TOKEN_KEY = 'cj_token';
 const DEMO_ADMIN_PHONE = '13800138000';
 
-function loadUser(): User | null {
-  try {
-    const raw = localStorage.getItem(USER_KEY);
-    if (!raw) return null;
-    const user = JSON.parse(raw) as User;
-    // 同步 registeredUsers 中的最新角色
-    const registered = loadRegisteredUsers().find((u) => u.phone === user.phone);
-    if (registered?.roles) {
-      user.roles = registered.roles as UserRole[];
-    }
-    // 演示账号默认管理员
-    if (user.phone === DEMO_ADMIN_PHONE && !user.roles?.includes('admin')) {
-      user.roles = [...(user.roles || []), 'admin'];
-    }
-    return user;
-  } catch {
-    // ignore
+function mapMockUserToLocal(mockUser: { id: string; phone: string; nickname: string; inviteCode: string }, token: string, options?: { isRegister?: boolean; name?: string }): User {
+  const roles: UserRole[] = ['user'];
+  if (mockUser.phone === DEMO_ADMIN_PHONE) {
+    roles.push('admin');
   }
-  return null;
+  return {
+    phone: mockUser.phone,
+    name: options?.name || mockUser.nickname || mockUser.phone.slice(-4),
+    token,
+    isNewUser: options?.isRegister ? true : undefined,
+    inviteCode: mockUser.inviteCode,
+    roles,
+  };
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(() => loadUser());
+  const [user, setUser] = useState<User | null>(null);
+  const [ready, setReady] = useState(false);
+
+  // 页面刷新时恢复登录态
+  useEffect(() => {
+    authApi.me()
+      .then((mockUser) => {
+        const token = localStorage.getItem('cj_token') || `demo-token-${mockUser.phone}`;
+        setUser(mapMockUserToLocal(mockUser as any, token));
+      })
+      .catch(() => {
+        // 尝试本地兜底
+        try {
+          const raw = localStorage.getItem(USER_KEY);
+          if (raw) setUser(JSON.parse(raw) as User);
+        } catch {
+          // ignore
+        }
+      })
+      .finally(() => setReady(true));
+  }, []);
 
   useEffect(() => {
     if (user) {
       localStorage.setItem(USER_KEY, JSON.stringify(user));
-      localStorage.setItem(TOKEN_KEY, user.token);
     } else {
       localStorage.removeItem(USER_KEY);
-      localStorage.removeItem(TOKEN_KEY);
     }
   }, [user]);
 
-  const generateUserInviteCode = (): string => {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    let code = '';
-    for (let i = 0; i < 8; i++) {
-      code += chars[Math.floor(Math.random() * chars.length)];
+  const login = async (phone: string, code: string, options?: { isRegister?: boolean; name?: string; inviteCode?: string }) => {
+    if (!phone.trim() || !code.trim()) {
+      return { success: false, error: '请输入手机号和验证码' };
     }
-    return code;
+    try {
+      const { user: mockUser, token } = await authApi.login(phone, code, options?.inviteCode);
+      const localUser = mapMockUserToLocal(mockUser as any, token, options);
+      setUser(localUser);
+      return { success: true };
+    } catch (err: any) {
+      const message = err?.message || '登录失败，请检查网络或稍后重试';
+      return { success: false, error: message };
+    }
   };
 
-  const login = (phone: string, code: string, options?: { isRegister?: boolean; name?: string; inviteCode?: string }) => {
-    if (!phone.trim() || !code.trim()) return false;
-    const token = `demo-token-${phone}-${Date.now()}`;
-    const existing = loadUser();
-    const userInviteCode = existing?.inviteCode || options?.inviteCode || generateUserInviteCode();
-    const roles = existing?.roles || ['user'];
-    // 演示账号默认是管理员，方便测试
-    if (phone === DEMO_ADMIN_PHONE && !roles.includes('admin')) {
-      roles.push('admin');
+  const logout = async () => {
+    try {
+      await authApi.logout();
+    } catch {
+      // ignore
     }
-    setUser({
-      phone,
-      name: options?.name || phone.slice(-4),
-      token,
-      isNewUser: options?.isRegister ? true : undefined,
-      inviteCode: userInviteCode,
-      roles,
-    });
-    registerUser(phone, options?.name || phone.slice(-4), userInviteCode, roles);
-    return true;
-  };
-
-  const logout = () => {
     setUser(null);
   };
 
@@ -113,6 +113,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const setNewUser = (value: boolean) => {
     setUser((prev) => (prev ? { ...prev, isNewUser: value } : prev));
   };
+
+  if (!ready) {
+    return <div className="app-loading">加载中...</div>;
+  }
 
   return (
     <AuthContext.Provider

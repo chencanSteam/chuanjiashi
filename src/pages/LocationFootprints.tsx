@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { MapPin, Plus, Trash2, Map } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 import { useNavigate } from 'react-router-dom';
-import { loadPlaces, savePlaces, addPlace, removePlace, type Place } from '../data/familyData';
+import { familyApi } from '../api/family';
+import type { Place } from '../mocks/types';
 import './LocationFootprints.css';
 
 function getArchiveId() {
@@ -13,44 +14,55 @@ export default function LocationFootprints() {
   const navigate = useNavigate();
   const { addToast } = useToast();
   const archiveId = useMemo(() => getArchiveId(), []);
-  const [places, setPlaces] = useState<Place[]>(() => loadPlaces(archiveId));
+  const [places, setPlaces] = useState<Place[]>([]);
   const [place, setPlace] = useState('');
   const [year, setYear] = useState('');
   const [event, setEvent] = useState('');
 
   useEffect(() => {
-    savePlaces(archiveId, places);
-  }, [places, archiveId]);
+    familyApi
+      .places(archiveId)
+      .then(setPlaces)
+      .catch(() => setPlaces([]));
+  }, [archiveId]);
 
-  const addPlaceLocal = () => {
+  const addPlaceLocal = async () => {
     if (!place.trim() || !year.trim()) {
       addToast('请填写地点与年份', 'error');
       return;
     }
-    const added = addPlace(archiveId, {
-      place: place.trim(),
-      year: year.trim(),
-      event: event.trim() || '事件',
-      left: 40 + Math.round(Math.random() * 40),
-      top: 30 + Math.round(Math.random() * 45),
-    });
-    setPlaces((prev) => {
-      const existing = prev.find((p) => p.place === added.place);
-      if (existing) {
-        return prev.map((p) => (p.id === existing.id ? added : p));
-      }
-      return [added, ...prev];
-    });
-    setPlace('');
-    setYear('');
-    setEvent('');
-    addToast('地点足迹已添加', 'success');
+    try {
+      const added = await familyApi.addPlace(archiveId, {
+        place: place.trim(),
+        year: year.trim(),
+        event: event.trim() || '事件',
+        left: 40 + Math.round(Math.random() * 40),
+        top: 30 + Math.round(Math.random() * 45),
+      });
+      setPlaces((prev) => {
+        const existing = prev.find((p) => p.place === added.place);
+        if (existing) {
+          return prev.map((p) => (p.id === existing.id ? added : p));
+        }
+        return [added, ...prev];
+      });
+      setPlace('');
+      setYear('');
+      setEvent('');
+      addToast('地点足迹已添加', 'success');
+    } catch (err: any) {
+      addToast(err.message || '添加失败', 'error');
+    }
   };
 
-  const removePlaceLocal = (id: string) => {
-    removePlace(archiveId, id);
-    setPlaces((prev) => prev.filter((p) => p.id !== id));
-    addToast('已删除', 'info');
+  const removePlaceLocal = async (id: string) => {
+    try {
+      await familyApi.removePlace(archiveId, id);
+      setPlaces((prev) => prev.filter((p) => p.id !== id));
+      addToast('已删除', 'info');
+    } catch (err: any) {
+      addToast(err.message || '删除失败', 'error');
+    }
   };
 
   return (

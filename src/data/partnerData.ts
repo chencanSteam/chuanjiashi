@@ -455,16 +455,6 @@ export function getSubPartners(partnerId: string): Partner[] {
   return loadPartners().filter((p) => p.parentId === partnerId);
 }
 
-export function getPartnerTypeLabel(type: PartnerType): string {
-  const map: Record<PartnerType, string> = {
-    province: '省级合伙人',
-    city: '市级合伙人',
-    district: '区县合伙人',
-    inviter: '邀请码合伙人',
-  };
-  return map[type];
-}
-
 export function getPartnerStatusLabel(status: PartnerStatus): string {
   const map: Record<PartnerStatus, string> = {
     pending: '待审核',
@@ -501,4 +491,18 @@ export function getWithdrawalStatusLabel(status: WithdrawalStatus): string {
     paid: '已打款',
   };
   return map[status];
+}
+
+export const partnerTypeConfig: Record<
+  PartnerType,
+  { label: string; rate: number; color: string; benefits: string[] }
+> = {
+  province: { label: '省级合伙人', rate: 0.3, color: '#3b82f6', benefits: ['区域最高佣金 30%', '省级运营支持', '年度峰会资格', '优先提现'] },
+  city: { label: '市级合伙人', rate: 0.25, color: '#8b5cf6', benefits: ['区域佣金 25%', '市级运营支持', '专属推广素材'] },
+  district: { label: '县级合伙人', rate: 0.2, color: '#10b981', benefits: ['区域佣金 20%', '县级推广支持', '专属邀请码'] },
+  inviter: { label: '邀请码合伙人', rate: 0.15, color: '#f59e0b', benefits: ['基础佣金 15%', '专属邀请码', '裂变奖励'] },
+};
+
+export function getPartnerTypeLabel(type: PartnerType): string {
+  return partnerTypeConfig[type]?.label || type;
 }

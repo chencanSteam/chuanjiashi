@@ -270,3 +270,74 @@
   cursor: pointer;
   text-decoration: underline;
 }
+
+/* 登录页各端入口 */
+.portal-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin: 24px 0;
+}
+
+.portal-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 18px 16px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  background: #fff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--text);
+}
+
+.portal-card:hover {
+  border-color: var(--primary);
+  background: var(--bg-soft);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(45, 90, 74, 0.1);
+}
+
+.portal-card.partner:hover {
+  border-color: #b8860b;
+  background: #fdf8ee;
+}
+
+.portal-card.admin:hover {
+  border-color: #2e4a6f;
+  background: #f0f4f9;
+}
+
+.portal-card.biographer:hover {
+  border-color: #7c3aed;
+  background: #f5f3ff;
+}
+
+.portal-card svg {
+  color: var(--primary);
+}
+
+.portal-card.partner svg {
+  color: #b8860b;
+}
+
+.portal-card.admin svg {
+  color: #2e4a6f;
+}
+
+.portal-card.biographer svg {
+  color: #7c3aed;
+}
+
+.portal-name {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.portal-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+}

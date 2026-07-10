@@ -451,3 +451,56 @@
   color: var(--text-secondary);
   line-height: 1.7;
 }
+
+
+/* 按问题合并展示 */
+.question-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  max-height: 520px;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+.question-group {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  border: 1px solid var(--border-light);
+}
+
+.question-group-header {
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px dashed var(--border-light);
+}
+
+.question-group-topic {
+  display: inline-block;
+  font-size: 11px;
+  color: var(--primary);
+  background: rgba(27, 94, 75, 0.08);
+  padding: 2px 10px;
+  border-radius: 999px;
+  margin-bottom: 6px;
+}
+
+.question-group-title {
+  font-size: 14px;
+  color: var(--text);
+  font-weight: 600;
+  margin: 0;
+  line-height: 1.5;
+  font-family: var(--font-family);
+}
+
+.question-group-answers {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.question-group-answers .transcript-line {
+  margin-bottom: 0;
+}

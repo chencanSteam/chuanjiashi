@@ -37,8 +37,9 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   useEffect(() => {
     if (isDemo && !isAuthenticated) {
-      login(DEMO_PHONE, '123456', { name: '体验用户' });
-      ensureDemoArchive();
+      login(DEMO_PHONE, '123456', { name: '体验用户' }).then(() => {
+        ensureDemoArchive();
+      });
     }
   }, [isDemo, isAuthenticated, login]);
 

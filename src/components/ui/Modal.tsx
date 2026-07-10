@@ -1,4 +1,5 @@
 import { X } from 'lucide-react';
+import { createPortal } from 'react-dom';
 import './Modal.css';
 
 interface ModalProps {
@@ -11,7 +12,7 @@ interface ModalProps {
 
 export default function Modal({ open, title, onClose, children, footer }: ModalProps) {
   if (!open) return null;
-  return (
+  return createPortal(
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
@@ -21,6 +22,7 @@ export default function Modal({ open, title, onClose, children, footer }: ModalP
         <div className="modal-body">{children}</div>
         {footer && <div className="modal-footer">{footer}</div>}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

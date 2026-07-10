@@ -1,29 +1,65 @@
 import { useEffect, useMemo, useState } from 'react';
+
+function mapCommissionToUserReward(r: MockCommissionRecord): UserReward {
+  return {
+    id: r.id,
+    userId: r.userId,
+    fromUserId: r.fromUserId || '',
+    orderId: r.orderId,
+    amount: r.amount,
+    reward: r.commission,
+    status: r.status as UserReward['status'],
+    type: 'invite_reward',
+    createdAt: r.createdAt,
+    settledAt: r.settledAt,
+  };
+}
+
+function mapWithdrawalToUserWithdrawal(w: MockWithdrawalRecord): UserWithdrawal {
+  return {
+    id: w.id,
+    userId: w.userId,
+    userName: w.partnerName || w.userId,
+    amount: w.amount,
+    status: w.status as UserWithdrawal['status'],
+    createdAt: w.appliedAt,
+    processedAt: w.paidAt,
+  };
+}
 import { Search, Users, TrendingUp, CreditCard, CheckCircle, XCircle, Clock } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
-import {
-  loadUserInvites,
-  loadUserRewards,
-  loadUserWithdrawals,
-  processUserWithdrawal,
-  type UserReward,
-  type UserWithdrawal,
-} from '../data/userInviteData';
+import { commissionApi } from '../api/commission';
+import type { CommissionRecord as MockCommissionRecord, WithdrawalRecord as MockWithdrawalRecord } from '../mocks/types';
+import type { UserReward, UserWithdrawal } from '../data/userInviteData';
 import './UserInvites.css';
 
 export default function UserInvites() {
   const { addToast } = useToast();
   const [rewards, setRewards] = useState<UserReward[]>([]);
   const [withdrawals, setWithdrawals] = useState<UserWithdrawal[]>([]);
-  const [invites, setInvites] = useState(loadUserInvites());
   const [keyword, setKeyword] = useState('');
   const [refresh, setRefresh] = useState(0);
 
   useEffect(() => {
-    setRewards(loadUserRewards());
-    setWithdrawals(loadUserWithdrawals());
-    setInvites(loadUserInvites());
+    commissionApi
+      .adminList()
+      .then((list) => setRewards(list.map(mapCommissionToUserReward)))
+      .catch(() => setRewards([]));
+    commissionApi
+      .adminWithdrawals()
+      .then((list) => setWithdrawals(list.map(mapWithdrawalToUserWithdrawal)))
+      .catch(() => setWithdrawals([]));
   }, [refresh]);
+
+  const invites = useMemo(() => {
+    const fromUserIds = new Set(rewards.map((r) => r.fromUserId).filter(Boolean));
+    return Array.from(fromUserIds).map((userId, idx) => ({
+      id: `invite_${idx}`,
+      inviterUserId: '',
+      inviteeUserId: userId,
+      createdAt: new Date().toISOString(),
+    }));
+  }, [rewards]);
 
   const stats = useMemo(() => {
     return {
@@ -44,10 +80,14 @@ export default function UserInvites() {
     );
   }, [rewards, keyword]);
 
-  const handleWithdraw = (id: string, status: UserWithdrawal['status']) => {
-    processUserWithdrawal(id, status);
-    setRefresh((v) => v + 1);
-    addToast(status === 'paid' ? '已确认打款' : status === 'rejected' ? '已拒绝提现' : '已处理', 'success');
+  const handleWithdraw = async (id: string, status: UserWithdrawal['status']) => {
+    try {
+      await commissionApi.processWithdrawal(id, status as MockWithdrawalRecord['status']);
+      setRefresh((v) => v + 1);
+      addToast(status === 'paid' ? '已确认打款' : status === 'rejected' ? '已拒绝提现' : '已处理', 'success');
+    } catch (err: any) {
+      addToast(err.message || '操作失败', 'error');
+    }
   };
 
   return (

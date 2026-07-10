@@ -3,7 +3,8 @@ import { ArrowLeft, Mail, Phone, MapPin, Calendar, Users, BookOpen, Image as Ima
 import { useNavigate, useParams } from 'react-router-dom';
 import { useToast } from '../hooks/useToast';
 import Avatar from '../components/ui/Avatar';
-import { loadFamilyMembers, saveFamilyMembers, type FamilyMember } from '../data/familyData';
+import { familyApi } from '../api/family';
+import type { FamilyMember } from '../mocks/types';
 import './FamilyMemberDetail.css';
 
 function getArchiveId() {
@@ -30,8 +31,15 @@ export default function FamilyMemberDetail() {
   const { addToast } = useToast();
   const decodedName = decodeURIComponent(name ?? '');
   const archiveId = useMemo(() => getArchiveId(), []);
-  const [members, setMembers] = useState<FamilyMember[]>(() => loadFamilyMembers(archiveId));
+  const [members, setMembers] = useState<FamilyMember[]>([]);
   const [showEdit, setShowEdit] = useState(false);
+
+  useEffect(() => {
+    familyApi
+      .members(archiveId)
+      .then(setMembers)
+      .catch(() => setMembers([]));
+  }, [archiveId]);
 
   const index = members.findIndex((m) => m.name === decodedName);
   const data = index >= 0 ? members[index] : getDefaultMember(decodedName);
@@ -43,10 +51,6 @@ export default function FamilyMemberDetail() {
   const [editBirth, setEditBirth] = useState(data.birth ?? '');
 
   useEffect(() => {
-    saveFamilyMembers(archiveId, members);
-  }, [members, archiveId]);
-
-  useEffect(() => {
     setEditBio(data.bio ?? '');
     setEditPhone(data.phone ?? '');
     setEditLocation(data.location ?? '');
@@ -54,7 +58,7 @@ export default function FamilyMemberDetail() {
     setEditBirth(data.birth ?? '');
   }, [data.bio, data.phone, data.location, data.email, data.birth]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const next: FamilyMember = {
       ...data,
       bio: editBio,
@@ -63,13 +67,18 @@ export default function FamilyMemberDetail() {
       email: editEmail,
       birth: editBirth,
     };
-    if (index >= 0) {
-      setMembers((prev) => prev.map((m, i) => (i === index ? next : m)));
-    } else {
-      setMembers((prev) => [...prev, next]);
+    try {
+      const saved = await familyApi.addOrUpdateMember(archiveId, next);
+      if (index >= 0) {
+        setMembers((prev) => prev.map((m, i) => (i === index ? saved : m)));
+      } else {
+        setMembers((prev) => [...prev, saved]);
+      }
+      setShowEdit(false);
+      addToast('资料已保存', 'success');
+    } catch (err: any) {
+      addToast(err.message || '保存失败', 'error');
     }
-    setShowEdit(false);
-    addToast('资料已保存', 'success');
   };
 
   return (

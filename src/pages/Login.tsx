@@ -1,14 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Phone, Lock, User, ArrowRight, Ticket, Briefcase } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Phone, Lock, ArrowRight, User, Briefcase, Shield, PenLine } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/useToast';
-import { useVersion } from '../hooks/useVersion';
-import { bindCustomerByInviteCode, bindCustomerByRegion } from '../data/partnerData';
-import { bindUserInvite } from '../data/userInviteData';
 import './Login.css';
 
 const DEMO_PHONE = '13800138000';
+const USER_PHONE = '13800138003';
 
 function hasArchives(): boolean {
   try {
@@ -35,87 +33,51 @@ function ensureDemoArchive() {
   localStorage.setItem('cj_current_archive_id', 'default');
 }
 
-function redirectAfterAuth(navigate: ReturnType<typeof useNavigate>, isRegister: boolean) {
-  if (isRegister || !hasArchives()) {
-    navigate('/onboarding', { replace: true });
-  } else {
-    navigate('/', { replace: true });
-  }
-}
-
 export default function Login() {
   const navigate = useNavigate();
   const { addToast } = useToast();
-  const { login, isAuthenticated } = useAuth();
-  const { appVersion, setAppVersion } = useVersion();
+  const { login, addRole, isAuthenticated } = useAuth();
 
-  const [searchParams] = useSearchParams();
-  const [mode, setMode] = useState<'login' | 'register'>('login');
-  const [phone, setPhone] = useState('');
-  const [code, setCode] = useState('');
-  const [name, setName] = useState('');
-  const [inviteCode, setInviteCode] = useState(searchParams.get('invite') || '');
-  const [countdown, setCountdown] = useState(0);
+  const [phone, setPhone] = useState(DEMO_PHONE);
+  const [code, setCode] = useState('123456');
+  const [showManual, setShowManual] = useState(false);
   const hasRedirected = useRef(false);
 
   useEffect(() => {
     if (isAuthenticated && !hasRedirected.current) {
       hasRedirected.current = true;
-      redirectAfterAuth(navigate, false);
+      navigate(hasArchives() ? '/' : '/onboarding', { replace: true });
     }
   }, [isAuthenticated, navigate]);
 
-  useEffect(() => {
-    if (countdown <= 0) return;
-    const t = setTimeout(() => setCountdown((c) => c - 1), 1000);
-    return () => clearTimeout(t);
-  }, [countdown]);
-
-  const sendCode = () => {
-    if (!phone.trim()) {
-      addToast('请输入手机号', 'error');
+  const enterPortal = async (targetPhone: string, targetPath: string, options?: { addPartnerRole?: boolean; addBiographerRole?: boolean }) => {
+    const { success, error } = await login(targetPhone, '123456');
+    if (!success) {
+      addToast(error || '登录失败', 'error');
       return;
     }
-    setCountdown(60);
-    addToast(`验证码已发送至 ${phone}`, 'success');
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (mode === 'register' && !name.trim()) {
-      addToast('请输入称呼', 'error');
-      return;
+    if (options?.addPartnerRole) {
+      addRole('partner');
     }
-    const ok = login(phone, code, { isRegister: mode === 'register', name: name.trim() || undefined });
-    if (!ok) {
-      addToast('手机号或验证码不正确', 'error');
-      return;
+    if (options?.addBiographerRole) {
+      addRole('biographer');
     }
-
-    // 注册时绑定邀请关系
-    if (mode === 'register') {
-      // 优先尝试绑定为合伙人邀请码
-      const partnerBound = inviteCode.trim()
-        ? bindCustomerByInviteCode(inviteCode.trim(), phone, name.trim() || undefined, phone)
-        : null;
-      // 如果不是合伙人邀请码，则绑定为用户邀请关系
-      if (!partnerBound && inviteCode.trim()) {
-        bindUserInvite(inviteCode.trim(), phone);
-      }
-      // 区域自动绑定（简化：固定为浙江杭州西湖区演示）
-      bindCustomerByRegion('330106', phone, name.trim() || undefined, phone);
-    }
-
-    hasRedirected.current = true;
-    addToast(mode === 'register' ? '注册成功' : '登录成功', 'success');
-    redirectAfterAuth(navigate, mode === 'register');
-  };
-
-  const demoLogin = () => {
-    login(DEMO_PHONE, '123456', { name: '体验用户' });
     ensureDemoArchive();
-    addToast('已进入体验模式', 'success');
-    navigate('/onboarding?demo=1', { replace: true });
+    hasRedirected.current = true;
+    addToast('登录成功', 'success');
+    navigate(targetPath, { replace: true });
+  };
+
+  const handleManualSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const { success, error } = await login(phone, code);
+    if (!success) {
+      addToast(error || '手机号或验证码不正确', 'error');
+      return;
+    }
+    hasRedirected.current = true;
+    addToast('登录成功', 'success');
+    navigate(hasArchives() ? '/' : '/onboarding', { replace: true });
   };
 
   return (
@@ -129,102 +91,62 @@ export default function Login() {
           </div>
         </div>
 
-        <div className="version-selector">
-          <p className="version-selector-title">选择体验版本</p>
-          <div className="version-options">
-            <button
-              type="button"
-              className={`version-option ${appVersion === 'mvp' ? 'active' : ''}`}
-              onClick={() => setAppVersion('mvp')}
-            >
-              <span className="version-option-name">MVP 版本</span>
-              <span className="version-option-desc">核心闭环：AI 采访 → 传记生成 → 人生档案</span>
-            </button>
-            <button
-              type="button"
-              className={`version-option ${appVersion === 'full' ? 'active' : ''}`}
-              onClick={() => setAppVersion('full')}
-            >
-              <span className="version-option-name">完整版本</span>
-              <span className="version-option-desc">全量体验：家庭、家族、家风、数字生命</span>
-            </button>
-          </div>
-        </div>
-
-        <div className="login-tabs">
-          <button className={`login-tab ${mode === 'login' ? 'active' : ''}`} onClick={() => setMode('login')}>
-            登录
+        <div className="portal-grid">
+          <button type="button" className="portal-card" onClick={() => enterPortal(USER_PHONE, '/')}>
+            <User size={24} />
+            <span className="portal-name">用户端</span>
+            <span className="portal-desc">体验 AI 采访、传记、人生档案</span>
           </button>
-          <button className={`login-tab ${mode === 'register' ? 'active' : ''}`} onClick={() => setMode('register')}>
-            注册
+          <button type="button" className="portal-card partner" onClick={() => enterPortal(USER_PHONE, '/partner', { addPartnerRole: true })}>
+            <Briefcase size={24} />
+            <span className="portal-name">合伙人中心</span>
+            <span className="portal-desc">客户、收益、提现管理</span>
+          </button>
+          <button type="button" className="portal-card admin" onClick={() => enterPortal(DEMO_PHONE, '/admin')}>
+            <Shield size={24} />
+            <span className="portal-name">管理后台</span>
+            <span className="portal-desc">合伙人、传记师、分润审核</span>
+          </button>
+          <button type="button" className="portal-card biographer" onClick={() => enterPortal(DEMO_PHONE, '/biographer', { addBiographerRole: true })}>
+            <PenLine size={24} />
+            <span className="portal-name">传记师端</span>
+            <span className="portal-desc">订单管理、传记服务</span>
           </button>
         </div>
-
-        <form className="login-form" onSubmit={handleSubmit}>
-          {mode === 'register' && (
-            <div className="login-field">
-              <User size={16} />
-              <input
-                type="text"
-                placeholder="您的称呼"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                maxLength={20}
-              />
-            </div>
-          )}
-          <div className="login-field">
-            <Phone size={16} />
-            <input
-              type="text"
-              placeholder="手机号"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-            />
-          </div>
-          <div className="login-field login-code">
-            <Lock size={16} />
-            <input
-              type="text"
-              placeholder="验证码"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-            />
-            <button type="button" className="btn btn-outline btn-sm code-btn" onClick={sendCode} disabled={countdown > 0}>
-              {countdown > 0 ? `${countdown}s` : '获取验证码'}
-            </button>
-          </div>
-
-          {mode === 'register' && (
-            <div className="login-field">
-              <Ticket size={16} />
-              <input
-                type="text"
-                placeholder="邀请码（选填）"
-                value={inviteCode}
-                onChange={(e) => setInviteCode(e.target.value)}
-              />
-            </div>
-          )}
-
-          <button type="submit" className="btn btn-primary login-submit">
-            {mode === 'register' ? '注册并登录' : '登录'} <ArrowRight size={16} />
-          </button>
-        </form>
 
         <div className="login-divider">或</div>
 
-        <button className="btn btn-outline login-demo" onClick={demoLogin}>
-          一键体验（已有演示数据）
-        </button>
-
-        <div className="login-extra-links">
-          <button className="btn btn-link" onClick={() => navigate('/partner/apply')}>
-            <Briefcase size={14} /> 申请成为合伙人
+        {!showManual ? (
+          <button type="button" className="btn btn-outline login-demo" onClick={() => setShowManual(true)}>
+            手动登录
           </button>
-        </div>
+        ) : (
+          <form className="login-form" onSubmit={handleManualSubmit}>
+            <div className="login-field">
+              <Phone size={16} />
+              <input
+                type="text"
+                placeholder="手机号"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+              />
+            </div>
+            <div className="login-field login-code">
+              <Lock size={16} />
+              <input
+                type="text"
+                placeholder="验证码"
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+              />
+            </div>
+            <button type="submit" className="btn btn-primary login-submit">
+              登录 <ArrowRight size={16} />
+            </button>
+          </form>
+        )}
 
-        <p className="login-hint">原型演示：任意 6 位验证码均可通过</p>
+        <p className="login-hint">点击上方入口即可直接进入对应系统</p>
       </div>
     </div>
   );

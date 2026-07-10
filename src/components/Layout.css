@@ -676,3 +676,82 @@
   color: var(--vermillion);
   background: rgba(194, 74, 59, 0.08);
 }
+
+/* 独立端 Logo */
+.admin-brand-logo,
+.partner-brand-logo {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  filter: drop-shadow(0 2px 8px rgba(45, 90, 74, 0.15));
+}
+
+.admin-brand-logo {
+  background: linear-gradient(135deg, #2D5A4A 0%, #1B3D32 100%);
+}
+
+.partner-brand-logo {
+  background: linear-gradient(135deg, #B8860B 0%, #D4A84B 100%);
+}
+
+/* 用户端角色入口下拉菜单 */
+.user-menu-trigger {
+  position: relative;
+  cursor: pointer;
+  user-select: none;
+}
+
+.user-menu-arrow {
+  margin-left: 4px;
+  color: var(--text-muted);
+  transition: transform 0.2s;
+}
+
+.user-menu-arrow.open {
+  transform: rotate(180deg);
+}
+
+.user-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 160px;
+  background: #fff;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px rgba(44, 40, 36, 0.1);
+  padding: 6px;
+  z-index: 200;
+}
+
+.user-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  color: var(--text);
+  text-decoration: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+}
+
+.user-dropdown-item:hover {
+  background: var(--bg-soft);
+  color: var(--primary);
+}
+
+.user-dropdown-divider {
+  height: 1px;
+  background: var(--border-light);
+  margin: 6px 0;
+}
+

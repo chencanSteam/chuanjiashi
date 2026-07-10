@@ -102,6 +102,16 @@
   gap: 6px;
 }
 
+.work-publish {
+  color: #1B5E4B;
+  border-color: rgba(27, 94, 75, 0.2);
+}
+
+.work-publish:hover {
+  background: rgba(27, 94, 75, 0.06);
+  border-color: rgba(27, 94, 75, 0.4);
+}
+
 .work-delete {
   color: #9ca3af;
   transition: color 0.2s;

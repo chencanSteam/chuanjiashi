@@ -375,3 +375,87 @@
     align-items: flex-start;
   }
 }
+.partner-center-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.partner-center-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid #f0f2f1;
+  font-size: 14px;
+}
+
+.partner-center-detail-row:last-child {
+  border-bottom: none;
+}
+
+.partner-center-detail-row span:first-child {
+  color: #6b7280;
+}
+
+.partner-center-detail-row span:last-child {
+  color: #1f2937;
+  font-weight: 500;
+}
+
+.partner-center-detail-row .highlight {
+  color: #1B5E4B;
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.partner-center-level-card {
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.partner-center-level-main {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.partner-center-level-name {
+  font-size: 20px;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+
+.partner-center-level-rate {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.partner-center-level-progress {
+  flex: 1;
+  height: 8px;
+  background: #f0f2f1;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.partner-center-level-progress-bar {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.partner-center-level-benefits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.partner-center-level-benefit {
+  background: #f5f7f6;
+  color: #1B5E4B;
+  padding: 5px 12px;
+  border-radius: 16px;
+  font-size: 12px;
+}

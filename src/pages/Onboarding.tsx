@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowRight, ArrowLeft, Plus, Trash2, Mic, Sparkles, User } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/useToast';
+import { archiveApi } from '../api/archive';
 import './Onboarding.css';
 
 interface LifeStage {
@@ -142,21 +143,33 @@ export default function Onboarding() {
     if (step > 1) setStep(step - 1);
   };
 
-  const startInterview = () => {
-    const archiveId = Date.now().toString();
-    const archive = {
-      id: archiveId,
-      name: name.trim(),
-      gender,
-      birthYear: birthYear.trim(),
-      origin: origin.trim(),
-      occupation: occupation.trim(),
-    };
-    saveArchive(archive);
-    localStorage.setItem(`cj_interview_outline_${archiveId}`, JSON.stringify(outline));
-    setNewUser(false);
-    addToast('档案已创建，开始 AI 采访', 'success');
-    navigate('/interview', { replace: true });
+  const startInterview = async () => {
+    try {
+      const archive = await archiveApi.create({
+        type: 'self',
+        name: name.trim(),
+        gender: gender === '男' ? 'male' : 'female',
+        birthDate: `${birthYear.trim()}-01-01`,
+        birthPlace: origin.trim(),
+        status: 'living',
+      });
+      // 兼容旧 localStorage 格式，供未迁移页面读取
+      const legacyArchive = {
+        id: archive.id,
+        name: archive.name,
+        gender,
+        birthYear: birthYear.trim(),
+        origin: origin.trim(),
+        occupation: occupation.trim(),
+      };
+      saveArchive(legacyArchive);
+      localStorage.setItem(`cj_interview_outline_${archive.id}`, JSON.stringify(outline));
+      setNewUser(false);
+      addToast('档案已创建，开始 AI 采访', 'success');
+      navigate('/interview', { replace: true });
+    } catch (err: any) {
+      addToast(err.message || '创建档案失败', 'error');
+    }
   };
 
   return (

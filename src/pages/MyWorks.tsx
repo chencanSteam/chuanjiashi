@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Mic, FolderOpen, Trash2, User, Plus, ChevronRight } from 'lucide-react';
+import { BookOpen, Mic, FolderOpen, Trash2, User, Plus, ChevronRight, UploadCloud } from 'lucide-react';
 import Avatar from '../components/ui/Avatar';
 import { useToast } from '../hooks/useToast';
+import { archiveApi } from '../api/archive';
+import PublishBookModal from '../components/PublishBookModal';
 import './MyWorks.css';
 
 interface Archive {
@@ -21,7 +23,7 @@ interface WorkItem extends Archive {
   status: WorkStatus;
 }
 
-function loadArchives(): Archive[] {
+function loadLegacyArchives(): Archive[] {
   try {
     const raw = localStorage.getItem('cj_archives');
     if (raw) return JSON.parse(raw);
@@ -29,6 +31,11 @@ function loadArchives(): Archive[] {
     // ignore
   }
   return [];
+}
+
+function extractYear(date?: string): string {
+  if (!date) return '';
+  return date.split('-')[0] || '';
 }
 
 function hasKey(key: string): boolean {
@@ -68,9 +75,39 @@ function getStatusClass(status: WorkStatus): string {
 export default function MyWorks() {
   const navigate = useNavigate();
   const { addToast } = useToast();
-  const [works, setWorks] = useState<WorkItem[]>(() =>
-    loadArchives().map((a) => ({ ...a, status: getStatus(a.id) }))
-  );
+  const [works, setWorks] = useState<WorkItem[]>([]);
+  const [publishingWork, setPublishingWork] = useState<WorkItem | null>(null);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const mockArchives = await archiveApi.list();
+        const legacyArchives = loadLegacyArchives();
+        const mergedMap = new Map<string, Archive>();
+        mockArchives.forEach((a) => {
+          mergedMap.set(a.id, {
+            id: a.id,
+            name: a.name,
+            gender: a.gender === 'female' ? '女' : '男',
+            birthYear: extractYear(a.birthDate),
+            origin: a.birthPlace || '',
+            occupation: '',
+          });
+        });
+        legacyArchives.forEach((a) => {
+          if (!mergedMap.has(a.id)) mergedMap.set(a.id, a);
+        });
+        const items = Array.from(mergedMap.values()).map((a) => ({ ...a, status: getStatus(a.id) }));
+        setWorks(items);
+      } catch {
+        const legacyArchives = loadLegacyArchives();
+        setWorks(legacyArchives.map((a) => ({ ...a, status: getStatus(a.id) })));
+      } finally {
+        // ignore
+      }
+    };
+    load();
+  }, []);
 
   const deleteWork = (id: string) => {
     if (!window.confirm('确定要删除该作品及关联数据吗？此操作不可恢复。')) return;
@@ -103,6 +140,10 @@ export default function MyWorks() {
     } else {
       navigate('/archive');
     }
+  };
+
+  const canPublish = (work: WorkItem) => {
+    return work.status === '已生成传记' || work.status === '已同步档案';
   };
 
   return (
@@ -154,6 +195,11 @@ export default function MyWorks() {
                     )}
                     <ChevronRight size={14} />
                   </button>
+                  {canPublish(work) && (
+                    <button className="btn btn-outline btn-sm work-publish" onClick={() => setPublishingWork(work)}>
+                      <UploadCloud size={14} /> 上架
+                    </button>
+                  )}
                   <button
                     className="icon-btn work-delete"
                     title="删除"
@@ -166,6 +212,19 @@ export default function MyWorks() {
             </div>
           ))}
         </div>
+      )}
+
+      {publishingWork && (
+        <PublishBookModal
+          archive={{
+            id: publishingWork.id,
+            name: publishingWork.name,
+            birthYear: publishingWork.birthYear,
+            origin: publishingWork.origin,
+            occupation: publishingWork.occupation,
+          }}
+          onClose={() => setPublishingWork(null)}
+        />
       )}
     </div>
   );

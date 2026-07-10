@@ -28,6 +28,35 @@ interface RestoreRecord {
   fileName: string;
 }
 
+interface Archive {
+  id: string;
+  name: string;
+  gender?: '男' | '女';
+  birthYear: string;
+  origin: string;
+  occupation: string;
+  tags?: string[];
+}
+
+interface MediaItem {
+  id: string;
+  title: string;
+  date: string;
+  type: 'image' | 'video' | 'audio' | 'doc';
+  stage?: string;
+}
+
+interface StoredTimelineEvent {
+  year: string;
+  endYear?: string;
+  title: string;
+  desc: string;
+  icon?: string;
+  color?: string;
+  bg?: string;
+  tags?: { label: string; color: string; bg: string }[];
+}
+
 const modes: { id: RestoreMode; label: string; desc: string; icon: typeof Sparkles }[] = [
   { id: 'enhance', label: '智能增强', desc: '提升清晰度、亮度与色彩', icon: Sparkles },
   { id: 'scratch', label: '去划痕', desc: '修复破损、折痕与污渍', icon: Eraser },
@@ -57,6 +86,50 @@ function loadRecords(): RestoreRecord[] {
 function saveRecords(records: RestoreRecord[]) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(records.slice(0, 20)));
+  } catch {
+    // ignore
+  }
+}
+
+function loadArchives(): Archive[] {
+  try {
+    const raw = localStorage.getItem('cj_archives');
+    if (raw) return JSON.parse(raw) as Archive[];
+  } catch {
+    // ignore
+  }
+  return [];
+}
+
+function loadJson<T>(key: string, fallback: T): T {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return fallback;
+    return JSON.parse(raw) as T;
+  } catch {
+    return fallback;
+  }
+}
+
+function loadStages(archiveId: string): string[] {
+  try {
+    const raw = localStorage.getItem(`cj_events_${archiveId}`);
+    if (!raw) return [];
+    const events: StoredTimelineEvent[] = JSON.parse(raw);
+    return events
+      .filter((e) => e.year && e.title)
+      .map((e) => `${e.year}·${e.title}`)
+      .sort();
+  } catch {
+    return [];
+  }
+}
+
+const defaultStages = ['童年', '求学', '工作', '婚姻', '养育子女', '创业', '退休', '其他'];
+
+function saveJson(key: string, value: unknown) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
   } catch {
     // ignore
   }
@@ -262,10 +335,33 @@ export default function PhotoRestore() {
   const [comparePosition, setComparePosition] = useState(50);
   const [records, setRecords] = useState<RestoreRecord[]>(() => loadRecords());
   const [selectedRecord, setSelectedRecord] = useState<RestoreRecord | null>(null);
+  const [archives] = useState<Archive[]>(() => loadArchives());
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [selectedArchiveId, setSelectedArchiveId] = useState<string>(() => {
+    try {
+      return localStorage.getItem('cj_current_archive_id') || (loadArchives()[0]?.id ?? '');
+    } catch {
+      return '';
+    }
+  });
+  const [saveFileName, setSaveFileName] = useState(`修复照片_${new Date().toLocaleDateString()}.jpg`);
+  const [saveStage, setSaveStage] = useState('其他');
+  const [customStage, setCustomStage] = useState('');
+  const [stageOptions, setStageOptions] = useState<string[]>([]);
 
   useEffect(() => {
     saveRecords(records);
   }, [records]);
+
+  useEffect(() => {
+    if (showSaveModal && selectedArchiveId) {
+      const stages = loadStages(selectedArchiveId);
+      const options = stages.length > 0 ? stages : defaultStages;
+      setStageOptions(options);
+      setSaveStage(options[0] || '其他');
+      setCustomStage('');
+    }
+  }, [showSaveModal, selectedArchiveId]);
 
   const handleFiles = async (files: FileList | null) => {
     const file = files?.[0];
@@ -344,12 +440,40 @@ export default function PhotoRestore() {
 
   const saveToArchive = () => {
     if (!restoredUrl) return;
+    if (archives.length === 0) {
+      addToast('暂无可选档案，请先创建人生档案', 'error');
+      return;
+    }
+    setShowSaveModal(true);
+    setSaveFileName(`修复照片_${new Date().toLocaleDateString()}.jpg`);
+    setCustomStage('');
+  };
+
+  const confirmSaveToArchive = () => {
+    if (!restoredUrl || !selectedArchiveId) return;
     try {
-      const saved = localStorage.getItem('cj_restored_photos');
-      const list: string[] = saved ? JSON.parse(saved) : [];
-      list.unshift(restoredUrl);
-      localStorage.setItem('cj_restored_photos', JSON.stringify(list.slice(0, 50)));
-      addToast('已保存到人生档案', 'success');
+      const finalStage = saveStage === '自定义' ? customStage.trim() || '其他' : saveStage;
+
+      // 保存修复后的图片数据
+      const restoredKey = `cj_restored_photos_${selectedArchiveId}`;
+      const restoredList: string[] = loadJson(restoredKey, []);
+      restoredList.unshift(restoredUrl);
+      saveJson(restoredKey, restoredList.slice(0, 50));
+
+      // 在媒体库中添加记录
+      const mediaKey = `cj_media_${selectedArchiveId}`;
+      const mediaList: MediaItem[] = loadJson(mediaKey, []);
+      mediaList.unshift({
+        id: `restored_${Date.now()}`,
+        title: saveFileName || '修复后的老照片.jpg',
+        date: new Date().toISOString().slice(0, 10),
+        type: 'image',
+        stage: finalStage,
+      });
+      saveJson(mediaKey, mediaList);
+
+      setShowSaveModal(false);
+      addToast(`已保存到选定人生档案 · 阶段：${finalStage}`, 'success');
     } catch {
       addToast('保存失败', 'error');
     }
@@ -587,6 +711,82 @@ export default function PhotoRestore() {
           </div>
         </div>
       </div>
+
+      {showSaveModal && (
+        <div className="modal-overlay" onClick={() => setShowSaveModal(false)}>
+          <div className="modal-content photo-save-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>保存到人生档案</h3>
+              <button className="modal-close" onClick={() => setShowSaveModal(false)}>
+                <X size={18} />
+              </button>
+            </div>
+            <div className="modal-body">
+              {archives.length === 0 ? (
+                <div className="save-archive-empty">暂无可选档案，请先创建人生档案。</div>
+              ) : (
+                <>
+                  <div className="form-row">
+                    <label>选择档案</label>
+                    <select
+                      value={selectedArchiveId}
+                      onChange={(e) => setSelectedArchiveId(e.target.value)}
+                    >
+                      {archives.map((a) => (
+                        <option key={a.id} value={a.id}>
+                          {a.name} · {a.origin} · {a.birthYear}年生
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="form-row">
+                    <label>阶段</label>
+                    <select
+                      value={saveStage}
+                      onChange={(e) => setSaveStage(e.target.value)}
+                    >
+                      {stageOptions.map((s) => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                      <option value="自定义">自定义</option>
+                    </select>
+                  </div>
+                  {saveStage === '自定义' && (
+                    <div className="form-row">
+                      <label>自定义阶段</label>
+                      <input
+                        type="text"
+                        value={customStage}
+                        onChange={(e) => setCustomStage(e.target.value)}
+                        placeholder="如：1988年结婚"
+                      />
+                    </div>
+                  )}
+                  <div className="form-row">
+                    <label>文件名</label>
+                    <input
+                      type="text"
+                      value={saveFileName}
+                      onChange={(e) => setSaveFileName(e.target.value)}
+                      placeholder="修复后的老照片.jpg"
+                    />
+                  </div>
+                  <div className="modal-actions">
+                    <button className="btn btn-outline" onClick={() => setShowSaveModal(false)}>取消</button>
+                    <button
+                      className="btn btn-primary"
+                      onClick={confirmSaveToArchive}
+                      disabled={!selectedArchiveId || !saveFileName.trim()}
+                    >
+                      <Save size={14} /> 确认保存
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

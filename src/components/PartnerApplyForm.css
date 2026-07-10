@@ -1,0 +1,71 @@
+.partner-application-form {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.partner-application-form .form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.partner-application-form label {
+  font-size: 13px;
+  color: var(--text-secondary, #4b5563);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.partner-application-form input,
+.partner-application-form select,
+.partner-application-form textarea {
+  border: 1px solid var(--border-light, #e5e7eb);
+  border-radius: 10px;
+  padding: 11px 14px;
+  font-size: 14px;
+  color: var(--text, #1f2937);
+  background: #fff;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.partner-application-form input:focus,
+.partner-application-form select:focus,
+.partner-application-form textarea:focus {
+  border-color: var(--primary-light, #2d7a66);
+  box-shadow: 0 0 0 3px rgba(45, 122, 102, 0.08);
+}
+
+.partner-application-form textarea {
+  resize: vertical;
+  font-family: inherit;
+  min-height: 90px;
+}
+
+.partner-region-selects {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.partner-region-selects select {
+  flex: 1;
+  min-width: 120px;
+}
+
+.partner-application-submit {
+  width: 100%;
+  padding: 12px;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 4px;
+}

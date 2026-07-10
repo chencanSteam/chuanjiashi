@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Search, CheckCircle, XCircle, Clock, Phone, MapPin, FileText } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
+import { partnerApi } from '../api/partner';
 import {
-  loadApplications,
-  processApplication,
   getApplicationStatusLabel,
   getPartnerTypeLabel,
 } from '../data/partnerData';
@@ -18,7 +17,10 @@ export default function PartnerApplications() {
   const [refresh, setRefresh] = useState(0);
 
   useEffect(() => {
-    setApplications(loadApplications());
+    partnerApi
+      .adminApplications()
+      .then(setApplications)
+      .catch(() => setApplications([]));
   }, [refresh]);
 
   const filtered = useMemo(() => {
@@ -33,10 +35,14 @@ export default function PartnerApplications() {
     });
   }, [applications, keyword, statusFilter]);
 
-  const handleProcess = (id: string, status: ApplicationStatus) => {
-    processApplication(id, status);
-    setRefresh((v) => v + 1);
-    addToast(status === 'approved' ? '申请已通过' : '申请已拒绝', status === 'approved' ? 'success' : 'error');
+  const handleProcess = async (id: string, status: ApplicationStatus) => {
+    try {
+      await partnerApi.processApplication(id, status);
+      setRefresh((v) => v + 1);
+      addToast(status === 'approved' ? '申请已通过' : '申请已拒绝', status === 'approved' ? 'success' : 'error');
+    } catch (err: any) {
+      addToast(err.message || '操作失败', 'error');
+    }
   };
 
   return (

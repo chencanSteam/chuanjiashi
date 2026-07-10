@@ -3,12 +3,8 @@ import { ArrowLeft, Search, Users, Clock, BookOpen } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../hooks/useToast';
 import Avatar from '../components/ui/Avatar';
-import {
-  loadFamilyMembers,
-  saveFamilyMembers,
-  addOrUpdateMember,
-  type FamilyMember,
-} from '../data/familyData';
+import { familyApi } from '../api/family';
+import type { FamilyMember } from '../mocks/types';
 import './FamilyMemberList.css';
 
 function getArchiveId() {
@@ -19,29 +15,36 @@ export default function FamilyMemberList() {
   const navigate = useNavigate();
   const { addToast } = useToast();
   const archiveId = useMemo(() => getArchiveId(), []);
-  const [members, setMembers] = useState<FamilyMember[]>(() => loadFamilyMembers(archiveId));
+  const [members, setMembers] = useState<FamilyMember[]>([]);
   const [search, setSearch] = useState('');
   const [showAdd, setShowAdd] = useState(false);
   const [newName, setNewName] = useState('');
 
   useEffect(() => {
-    saveFamilyMembers(archiveId, members);
-  }, [members, archiveId]);
+    familyApi
+      .members(archiveId)
+      .then(setMembers)
+      .catch(() => setMembers([]));
+  }, [archiveId]);
 
   const filteredMembers = members.filter((m) => m.name.includes(search));
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     const name = newName.trim();
     if (!name) return;
     if (members.some((m) => m.name === name)) {
       addToast('该成员已存在', 'error');
       return;
     }
-    const added = addOrUpdateMember(archiveId, { name, role: '成员', gen: '其他' });
-    setMembers((prev) => [...prev, added]);
-    setNewName('');
-    setShowAdd(false);
-    addToast('成员已添加', 'success');
+    try {
+      const added = await familyApi.addOrUpdateMember(archiveId, { name, role: '成员', gen: '其他' });
+      setMembers((prev) => [...prev, added]);
+      setNewName('');
+      setShowAdd(false);
+      addToast('成员已添加', 'success');
+    } catch (err: any) {
+      addToast(err.message || '添加失败', 'error');
+    }
   };
 
   return (

@@ -1,10 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Search, Users, Link2, User } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
+import { partnerApi } from '../api/partner';
 import {
-  loadPartnerCustomers,
-  loadPartners,
-  bindCustomerManually,
   getPartnerTypeLabel,
 } from '../data/partnerData';
 import type { PartnerCustomer, Partner } from '../types/partner';
@@ -21,8 +19,14 @@ export default function PartnerCustomersAdmin() {
   const [refresh, setRefresh] = useState(0);
 
   useEffect(() => {
-    setCustomers(loadPartnerCustomers());
-    setPartners(loadPartners());
+    partnerApi
+      .adminCustomers()
+      .then(setCustomers)
+      .catch(() => setCustomers([]));
+    partnerApi
+      .listPartners()
+      .then(setPartners)
+      .catch(() => setPartners([]));
   }, [refresh]);
 
   const filtered = useMemo(() => {
@@ -39,20 +43,24 @@ export default function PartnerCustomersAdmin() {
 
   const getPartner = (id: string) => partners.find((p) => p.id === id);
 
-  const handleBind = () => {
+  const handleBind = async () => {
     if (!selectedPartner || !newUserId.trim()) {
       addToast('请选择合伙人并填写客户ID', 'error');
       return;
     }
-    const result = bindCustomerManually(selectedPartner, newUserId, newUserName || undefined);
-    if (!result) {
-      addToast('绑定失败，该客户已归属此合伙人', 'error');
-      return;
+    try {
+      await partnerApi.bindCustomer({
+        partnerId: selectedPartner,
+        userId: newUserId.trim(),
+        userName: newUserName.trim() || undefined,
+      });
+      setRefresh((v) => v + 1);
+      setNewUserId('');
+      setNewUserName('');
+      addToast('客户绑定成功', 'success');
+    } catch (err: any) {
+      addToast(err.message || '绑定失败', 'error');
     }
-    setRefresh((v) => v + 1);
-    setNewUserId('');
-    setNewUserName('');
-    addToast('客户绑定成功', 'success');
   };
 
   return (

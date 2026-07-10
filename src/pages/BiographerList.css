@@ -1,0 +1,348 @@
+.biographer-list-page {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.biographer-list-hero {
+  text-align: center;
+  margin-bottom: 28px;
+  padding: 12px 0 8px;
+}
+
+.biographer-list-title {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 10px;
+  letter-spacing: 1px;
+}
+
+.biographer-list-subtitle {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.biographer-list-filters {
+  padding: 18px 20px;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.biographer-list-search {
+  flex: 1;
+  min-width: 260px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-light);
+  border-radius: 999px;
+  padding: 0 16px;
+}
+
+.biographer-list-search input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 10px 0;
+  font-size: 14px;
+  outline: none;
+  color: var(--text);
+}
+
+.biographer-list-filter-groups {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.biographer-list-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-light);
+  border-radius: 999px;
+  padding: 0 12px;
+  color: var(--text-secondary);
+}
+
+.biographer-list-filter-group select {
+  border: none;
+  background: transparent;
+  padding: 10px 0;
+  font-size: 13px;
+  color: var(--text);
+  outline: none;
+  cursor: pointer;
+}
+
+.biographer-list-results {
+  min-height: 300px;
+}
+
+.biographer-list-count {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 14px;
+}
+
+.biographer-list-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.biographer-list-card {
+  background: #fff;
+  border: 1px solid var(--border-light);
+  border-radius: 16px;
+  padding: 20px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.biographer-list-card:hover {
+  border-color: var(--primary-200);
+  box-shadow: 0 12px 36px rgba(27, 94, 75, 0.1);
+  transform: translateY(-3px);
+}
+
+.biographer-list-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.biographer-list-card-header .avatar {
+  flex-shrink: 0;
+}
+
+.biographer-list-card-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.biographer-list-card-name-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.biographer-list-card-name {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.biographer-list-card-rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 12px;
+  color: #b8860b;
+  background: #fff8e1;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.biographer-list-card-title {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.biographer-list-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.biographer-list-card-tag {
+  font-size: 11px;
+  color: var(--primary);
+  background: var(--primary-50);
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+
+.biographer-list-card-intro {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.75;
+  margin: 0 0 16px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.biographer-list-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.biographer-list-card-price {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.biographer-list-card-price strong {
+  font-size: 18px;
+  color: #1B5E4B;
+  font-weight: 800;
+}
+
+.biographer-list-card-btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: none;
+  background: #1B5E4B;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.biographer-list-card-btn:hover {
+  background: #164c3d;
+}
+
+.biographer-list-card-verified {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  color: #1B5E4B;
+  background: rgba(27, 94, 75, 0.08);
+  padding: 3px 7px;
+  border-radius: 999px;
+}
+
+.biographer-list-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+  color: var(--text-muted);
+  gap: 10px;
+}
+
+.biographer-list-empty p {
+  margin: 0;
+  font-size: 15px;
+}
+
+.biographer-list-empty span {
+  font-size: 12px;
+}
+
+.biographer-list-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 24px;
+}
+
+.biographer-list-modal {
+  background: #fff;
+  border-radius: 20px;
+  width: 92vw;
+  max-width: 900px;
+  max-height: 92vh;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 32px 80px rgba(0, 0, 0, 0.35);
+}
+
+.biographer-list-modal .biographer-profile-page {
+  max-width: 100%;
+  padding: 0;
+  overflow-y: auto;
+  max-height: 92vh;
+}
+
+.biographer-list-booking-mask {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(4px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  z-index: 30;
+}
+
+.biographer-list-booking-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border-light);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: biographer-list-spin 0.8s linear infinite;
+}
+
+@keyframes biographer-list-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.biographer-list-booking-mask p {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin: 0;
+}
+
+@media (max-width: 1100px) {
+  .biographer-list-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 720px) {
+  .biographer-list-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .biographer-list-filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .biographer-list-filter-groups {
+    width: 100%;
+  }
+
+  .biographer-list-filter-group {
+    flex: 1;
+  }
+
+  .biographer-list-filter-group select {
+    width: 100%;
+  }
+}

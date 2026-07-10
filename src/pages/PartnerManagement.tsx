@@ -14,11 +14,8 @@ import {
   Percent,
 } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
+import { partnerApi } from '../api/partner';
 import {
-  loadPartners,
-  createPartner,
-  updatePartner,
-  deletePartner,
   getPartnerTypeLabel,
   getPartnerStatusLabel,
 } from '../data/partnerData';
@@ -60,7 +57,10 @@ export default function PartnerManagement() {
   const [refresh, setRefresh] = useState(0);
 
   useEffect(() => {
-    setPartners(loadPartners());
+    partnerApi
+      .listPartners()
+      .then(setPartners)
+      .catch(() => setPartners([]));
   }, [refresh]);
 
   const filtered = useMemo(() => {
@@ -113,7 +113,7 @@ export default function PartnerManagement() {
     setEditing(null);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!form.name.trim() || !form.phone.trim()) {
       addToast('请填写姓名和手机号', 'error');
       return;
@@ -129,23 +129,31 @@ export default function PartnerManagement() {
 
     const data = { ...form, regionCode, regionName };
 
-    if (editing) {
-      updatePartner(editing.id, data);
-      addToast('合伙人信息已更新', 'success');
-    } else {
-      createPartner(data);
-      addToast('合伙人新增成功', 'success');
+    try {
+      if (editing) {
+        await partnerApi.updatePartner(editing.id, data);
+        addToast('合伙人信息已更新', 'success');
+      } else {
+        await partnerApi.createPartner(data);
+        addToast('合伙人新增成功', 'success');
+      }
+      setRefresh((v) => v + 1);
+      closeModal();
+    } catch (err: any) {
+      addToast(err.message || '操作失败', 'error');
     }
-    setRefresh((v) => v + 1);
-    closeModal();
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!showDelete) return;
-    deletePartner(showDelete.id);
-    setRefresh((v) => v + 1);
-    setShowDelete(null);
-    addToast('合伙人已删除', 'success');
+    try {
+      await partnerApi.deletePartner(showDelete.id);
+      setRefresh((v) => v + 1);
+      setShowDelete(null);
+      addToast('合伙人已删除', 'success');
+    } catch (err: any) {
+      addToast(err.message || '删除失败', 'error');
+    }
   };
 
   const copyInviteCode = (code: string) => {

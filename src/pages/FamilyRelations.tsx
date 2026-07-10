@@ -3,42 +3,45 @@ import { ArrowLeft, Users, Plus, X, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Avatar from '../components/ui/Avatar';
 import { useToast } from '../hooks/useToast';
-import {
-  loadFamilyMembers,
-  loadFamilyRelations,
-  saveFamilyRelations,
-  addRelation,
-  removeRelation,
-  type FamilyRelation,
-  type FamilyMember,
-} from '../data/familyData';
+import { relationTypeOptions } from '../utils/familyRelations';
+import { familyApi } from '../api/family';
+import type { FamilyRelation, FamilyMember } from '../mocks/types';
 import './FamilyRelations.css';
 
 function getArchiveId() {
   return localStorage.getItem('cj_current_archive_id') ?? 'default';
 }
 
-const relationOptions = ['配偶', '父子', '父女', '母子', '母女', '祖孙', '兄弟姐妹', '其他'];
+
 
 export default function FamilyRelations() {
   const navigate = useNavigate();
   const { addToast } = useToast();
   const archiveId = useMemo(() => getArchiveId(), []);
-  const [relations, setRelations] = useState<FamilyRelation[]>(() => loadFamilyRelations(archiveId));
-  const [members] = useState<FamilyMember[]>(() => loadFamilyMembers(archiveId));
+  const [relations, setRelations] = useState<FamilyRelation[]>([]);
+  const [members, setMembers] = useState<FamilyMember[]>([]);
   const [showAdd, setShowAdd] = useState(false);
-  const [from, setFrom] = useState('');
-  const [to, setTo] = useState('');
-  const [relation, setRelation] = useState(relationOptions[0]);
 
   useEffect(() => {
-    saveFamilyRelations(archiveId, relations);
-  }, [relations, archiveId]);
+    familyApi
+      .relations(archiveId)
+      .then(setRelations)
+      .catch(() => setRelations([]));
+    familyApi
+      .members(archiveId)
+      .then(setMembers)
+      .catch(() => setMembers([]));
+  }, [archiveId]);
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
+  const [relation, setRelation] = useState(relationTypeOptions[0]);
+
+
 
   const memberNames = members.map((m) => m.name);
   const allNames = Array.from(new Set([...memberNames, ...relations.flatMap((r) => [r.from, r.to])]));
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!from.trim() || !to.trim()) {
       addToast('请填写双方姓名', 'error');
       return;
@@ -56,19 +59,27 @@ export default function FamilyRelations() {
       addToast('该关系已存在', 'error');
       return;
     }
-    const added = addRelation(archiveId, { from: from.trim(), to: to.trim(), relation });
-    setRelations((prev) => [...prev, added]);
-    setFrom('');
-    setTo('');
-    setRelation(relationOptions[0]);
-    setShowAdd(false);
-    addToast('关系已添加', 'success');
+    try {
+      const added = await familyApi.addRelation(archiveId, { from: from.trim(), to: to.trim(), relation });
+      setRelations((prev) => [...prev, added]);
+      setFrom('');
+      setTo('');
+      setRelation(relationTypeOptions[0]);
+      setShowAdd(false);
+      addToast('关系已添加', 'success');
+    } catch (err: any) {
+      addToast(err.message || '添加失败', 'error');
+    }
   };
 
-  const handleRemove = (id: string) => {
-    removeRelation(archiveId, id);
-    setRelations((prev) => prev.filter((r) => r.id !== id));
-    addToast('关系已删除', 'info');
+  const handleRemove = async (id: string) => {
+    try {
+      await familyApi.removeRelation(archiveId, id);
+      setRelations((prev) => prev.filter((r) => r.id !== id));
+      addToast('关系已删除', 'info');
+    } catch (err: any) {
+      addToast(err.message || '删除失败', 'error');
+    }
   };
 
   return (
@@ -90,7 +101,7 @@ export default function FamilyRelations() {
             <div className="relation-add-form">
               <input list="member-names" type="text" placeholder="甲方姓名" value={from} onChange={(e) => setFrom(e.target.value)} />
               <select value={relation} onChange={(e) => setRelation(e.target.value)}>
-                {relationOptions.map((r) => <option key={r} value={r}>{r}</option>)}
+                {relationTypeOptions.map((r) => <option key={r} value={r}>{r}</option>)}
               </select>
               <input list="member-names" type="text" placeholder="乙方姓名" value={to} onChange={(e) => setTo(e.target.value)} />
               <datalist id="member-names">

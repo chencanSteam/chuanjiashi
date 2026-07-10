@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Search, CreditCard, CheckCircle, XCircle, Clock, DollarSign } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
-import { loadWithdrawals, processWithdrawal, getWithdrawalStatusLabel } from '../data/partnerData';
+import { commissionApi } from '../api/commission';
+import { getWithdrawalStatusLabel } from '../data/partnerData';
+import type { WithdrawalRecord as MockWithdrawalRecord } from '../mocks/types';
 import type { Withdrawal, WithdrawalStatus } from '../types/partner';
 import './WithdrawalManagement.css';
 
@@ -13,7 +15,10 @@ export default function WithdrawalManagement() {
   const [refresh, setRefresh] = useState(0);
 
   useEffect(() => {
-    setWithdrawals(loadWithdrawals());
+    commissionApi
+      .adminWithdrawals()
+      .then((list) => setWithdrawals(list.map(mapMockWithdrawalRecord)))
+      .catch(() => setWithdrawals([]));
   }, [refresh]);
 
   const filtered = useMemo(() => {
@@ -35,10 +40,14 @@ export default function WithdrawalManagement() {
     };
   }, [withdrawals]);
 
-  const handleProcess = (id: string, status: WithdrawalStatus) => {
-    processWithdrawal(id, status);
-    setRefresh((v) => v + 1);
-    addToast(status === 'paid' ? '已标记为打款' : status === 'approved' ? '已通过提现申请' : '已拒绝提现申请', 'success');
+  const handleProcess = async (id: string, status: WithdrawalStatus) => {
+    try {
+      await commissionApi.processWithdrawal(id, status as MockWithdrawalRecord['status']);
+      setRefresh((v) => v + 1);
+      addToast(status === 'paid' ? '已标记为打款' : status === 'approved' ? '已通过提现申请' : '已拒绝提现申请', 'success');
+    } catch (err: any) {
+      addToast(err.message || '操作失败', 'error');
+    }
   };
 
   return (
@@ -120,4 +129,16 @@ export default function WithdrawalManagement() {
       </div>
     </div>
   );
+}
+
+function mapMockWithdrawalRecord(w: MockWithdrawalRecord): Withdrawal {
+  return {
+    id: w.id,
+    partnerId: w.userId,
+    partnerName: w.partnerName || w.userId,
+    amount: w.amount,
+    status: w.status as Withdrawal['status'],
+    createdAt: w.appliedAt,
+    processedAt: w.paidAt,
+  };
 }

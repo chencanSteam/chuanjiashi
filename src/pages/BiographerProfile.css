@@ -1,0 +1,443 @@
+.biographer-profile-page {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+/* 顶部封面 */
+.biographer-profile-cover {
+  height: 180px;
+  border-radius: 20px 20px 0 0;
+  background: linear-gradient(135deg, #1B5E4B 0%, #2D7A66 50%, #4a9b82 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.biographer-profile-cover::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.06'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* 头部信息卡 */
+.biographer-profile-header-card {
+  background: #fff;
+  border-radius: 0 0 20px 20px;
+  padding: 0 28px 28px;
+  margin-bottom: 20px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.06);
+  position: relative;
+}
+
+.biographer-profile-avatar-wrap {
+  position: relative;
+  width: 130px;
+  height: 130px;
+  margin-top: -65px;
+  margin-bottom: 16px;
+}
+
+.biographer-profile-avatar {
+  width: 130px;
+  height: 130px;
+  border-radius: 50%;
+  border: 5px solid #fff;
+  background: #f0f2f1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 52px;
+  color: #1B5E4B;
+  overflow: hidden;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+}
+
+.biographer-profile-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.biographer-profile-verified {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #1B5E4B;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid #fff;
+}
+
+.biographer-profile-name-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.biographer-profile-name {
+  font-size: 28px;
+  font-weight: 800;
+  color: #1f2937;
+}
+
+.biographer-profile-title {
+  font-size: 15px;
+  color: #6b7280;
+  margin-top: 4px;
+}
+
+.biographer-profile-rating {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #fff8e1;
+  color: #b8860b;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.biographer-profile-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.biographer-profile-tag {
+  background: #f5f7f6;
+  color: #1B5E4B;
+  padding: 5px 12px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.biographer-profile-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.biographer-profile-actions .btn {
+  flex: 1;
+  justify-content: center;
+  padding: 12px;
+}
+
+/* 数据条 */
+.biographer-profile-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.biographer-profile-stat-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 18px 12px;
+  text-align: center;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+}
+
+.biographer-profile-stat-value {
+  font-size: 22px;
+  font-weight: 800;
+  color: #1B5E4B;
+}
+
+.biographer-profile-stat-label {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 4px;
+}
+
+/* 内容区 */
+.biographer-profile-section {
+  background: #fff;
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+}
+
+.biographer-profile-section-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.biographer-profile-intro {
+  font-size: 14px;
+  line-height: 1.9;
+  color: #4b5563;
+}
+
+.biographer-profile-areas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.biographer-profile-area {
+  background: #f5f7f6;
+  color: #1B5E4B;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+}
+
+/* 服务套餐 */
+.biographer-profile-services {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.biographer-profile-service {
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 20px;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.biographer-profile-service:hover {
+  border-color: #1B5E4B;
+  box-shadow: 0 8px 24px rgba(27, 94, 75, 0.08);
+}
+
+.biographer-profile-service-badge {
+  position: absolute;
+  top: -1px;
+  right: 20px;
+  background: #1B5E4B;
+  color: #fff;
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 0 0 8px 8px;
+}
+
+.biographer-profile-service-name {
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 8px;
+  font-size: 15px;
+}
+
+.biographer-profile-service-desc {
+  font-size: 13px;
+  color: #6b7280;
+  margin-bottom: 14px;
+  line-height: 1.6;
+}
+
+.biographer-profile-service-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.biographer-profile-service-price {
+  font-size: 20px;
+  font-weight: 800;
+  color: #1B5E4B;
+}
+
+.biographer-profile-service-price span {
+  font-size: 12px;
+  color: #9ca3af;
+  font-weight: 400;
+}
+
+.biographer-profile-service-btn {
+  background: #1B5E4B;
+  color: #fff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+/* 案例 */
+.biographer-profile-cases {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.biographer-profile-case {
+  border-radius: 14px;
+  overflow: hidden;
+  background: #f9fafb;
+  border: 1px solid #f0f2f1;
+}
+
+.biographer-profile-case-cover {
+  height: 150px;
+  background: linear-gradient(135deg, #e8f0ec 0%, #d4e3dc 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #7a9e8e;
+}
+
+.biographer-profile-case-body {
+  padding: 16px;
+}
+
+.biographer-profile-case-title {
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 6px;
+}
+
+.biographer-profile-case-summary {
+  font-size: 13px;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+/* 资质 */
+.biographer-profile-certificates {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.biographer-profile-certificate {
+  aspect-ratio: 4/3;
+  border-radius: 10px;
+  background: #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+}
+
+.biographer-profile-certificate img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 评价 */
+.biographer-profile-reviews {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.biographer-profile-review {
+  background: #f9fafb;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.biographer-profile-review-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.biographer-profile-review-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #1B5E4B;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+.biographer-profile-review-name {
+  font-weight: 600;
+  color: #1f2937;
+  font-size: 14px;
+}
+
+.biographer-profile-review-stars {
+  color: #f59e0b;
+  font-size: 12px;
+}
+
+.biographer-profile-review-text {
+  font-size: 13px;
+  color: #4b5563;
+  line-height: 1.6;
+}
+
+/* 底部 CTA */
+.biographer-profile-cta {
+  background: linear-gradient(135deg, #1B5E4B 0%, #2D7A66 100%);
+  border-radius: 16px;
+  padding: 28px;
+  color: #fff;
+  text-align: center;
+  margin-top: 8px;
+}
+
+.biographer-profile-cta h3 {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.biographer-profile-cta p {
+  font-size: 14px;
+  opacity: 0.9;
+  margin-bottom: 18px;
+}
+
+.biographer-profile-cta-btn {
+  background: #fff;
+  color: #1B5E4B;
+  border: none;
+  padding: 12px 32px;
+  border-radius: 24px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* 信息行 */
+.biographer-profile-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+  font-size: 14px;
+  color: #4b5563;
+}
+
+.biographer-profile-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.biographer-profile-meta-item svg {
+  color: #1B5E4B;
+}

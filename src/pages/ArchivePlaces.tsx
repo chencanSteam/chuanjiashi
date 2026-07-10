@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, MapPin } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { loadPlaces, type Place } from '../data/familyData';
+import { familyApi } from '../api/family';
+import type { Place } from '../mocks/types';
 import './ArchivePlaces.css';
 
 function getArchiveId() {
@@ -11,7 +12,14 @@ function getArchiveId() {
 export default function ArchivePlaces() {
   const navigate = useNavigate();
   const archiveId = useMemo(() => getArchiveId(), []);
-  const [places] = useState<Place[]>(() => loadPlaces(archiveId));
+  const [places, setPlaces] = useState<Place[]>([]);
+
+  useEffect(() => {
+    familyApi
+      .places(archiveId)
+      .then(setPlaces)
+      .catch(() => setPlaces([]));
+  }, [archiveId]);
 
   return (
     <div className="detail-page archive-places-page">

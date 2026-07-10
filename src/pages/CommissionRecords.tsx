@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Search, TrendingUp, Calendar, User } from 'lucide-react';
-import { loadCommissionRecords, loadPartners, getCommissionStatusLabel } from '../data/partnerData';
+import { commissionApi } from '../api/commission';
+import { partnerApi } from '../api/partner';
+import { getCommissionStatusLabel } from '../data/partnerData';
+import type { CommissionRecord as MockCommissionRecord } from '../mocks/types';
 import type { CommissionRecord, Partner } from '../types/partner';
 import './CommissionRecords.css';
 
@@ -11,8 +14,14 @@ export default function CommissionRecords() {
   const [selectedPartner, setSelectedPartner] = useState('');
 
   useEffect(() => {
-    setRecords(loadCommissionRecords());
-    setPartners(loadPartners());
+    commissionApi
+      .adminList()
+      .then((list) => setRecords(list.map(mapMockCommissionRecord)))
+      .catch(() => setRecords([]));
+    partnerApi
+      .listPartners()
+      .then(setPartners)
+      .catch(() => setPartners([]));
   }, []);
 
   const filtered = useMemo(() => {
@@ -126,4 +135,28 @@ function getTypeLabel(type: CommissionRecord['type']): string {
     other: '其他',
   };
   return map[type];
+}
+
+function mapMockCommissionRecord(r: MockCommissionRecord): CommissionRecord {
+  const typeMap: Record<string, CommissionRecord['type']> = {
+    biography: 'biography',
+    digital_person: 'digital_person',
+    video: 'other',
+    qrcode: 'other',
+    book: 'print',
+    biographer_service: 'other',
+    group_buy: 'biography',
+  };
+  return {
+    id: r.id,
+    partnerId: r.userId,
+    userId: r.fromUserId || '',
+    orderId: r.orderId,
+    amount: r.amount,
+    commission: r.commission,
+    type: typeMap[r.orderType] || 'other',
+    status: r.status as CommissionRecord['status'],
+    createdAt: r.createdAt,
+    settledAt: r.settledAt,
+  };
 }

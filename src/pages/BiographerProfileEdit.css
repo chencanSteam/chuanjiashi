@@ -1,0 +1,268 @@
+.biographer-edit-page {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.biographer-edit-avatar {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.biographer-edit-avatar-preview {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: #f0f2f1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40px;
+  color: #1B5E4B;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.biographer-edit-avatar-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.biographer-edit-avatar-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.biographer-edit-section {
+  background: #fff;
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+}
+
+.biographer-edit-section-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 20px;
+}
+
+.biographer-edit-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.biographer-edit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.biographer-edit-field label {
+  font-size: 13px;
+  color: #4b5563;
+  font-weight: 500;
+}
+
+.biographer-edit-field input,
+.biographer-edit-field textarea,
+.biographer-edit-field select {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.biographer-edit-field input:focus,
+.biographer-edit-field textarea:focus,
+.biographer-edit-field select:focus {
+  border-color: #2D7A66;
+  box-shadow: 0 0 0 3px rgba(45, 122, 102, 0.08);
+}
+
+.biographer-edit-field textarea {
+  resize: vertical;
+  min-height: 100px;
+  font-family: inherit;
+}
+
+.biographer-edit-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.biographer-edit-tag {
+  background: #f5f7f6;
+  color: #1B5E4B;
+  padding: 4px 10px;
+  border-radius: 16px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.biographer-edit-tag button {
+  background: none;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+}
+
+.biographer-edit-tag-input {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.biographer-edit-tag-input input {
+  flex: 1;
+}
+
+.biographer-edit-certificates {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.biographer-edit-certificate {
+  aspect-ratio: 4/3;
+  border-radius: 10px;
+  background: #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.biographer-edit-certificate img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.biographer-edit-certificate-remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0,0,0,0.5);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.biographer-edit-certificate-add {
+  aspect-ratio: 4/3;
+  border-radius: 10px;
+  border: 2px dashed #d1d5db;
+  background: #f9fafb;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+  cursor: pointer;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.biographer-edit-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 8px;
+}
+
+/* 服务套餐 & 案例 */
+.biographer-edit-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.biographer-edit-list-item {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 16px;
+  position: relative;
+}
+
+.biographer-edit-list-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.biographer-edit-list-item-title {
+  font-weight: 700;
+  color: #1f2937;
+  font-size: 14px;
+}
+
+.biographer-edit-list-item-remove {
+  background: none;
+  border: none;
+  color: #ef4444;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 4px;
+}
+
+.biographer-edit-case-cover {
+  width: 100%;
+  height: 120px;
+  border-radius: 10px;
+  background: #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
+  margin-bottom: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  position: relative;
+}
+
+.biographer-edit-case-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.biographer-edit-add-btn {
+  width: 100%;
+  padding: 12px;
+  border: 2px dashed #d1d5db;
+  border-radius: 12px;
+  background: #f9fafb;
+  color: #6b7280;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 14px;
+}

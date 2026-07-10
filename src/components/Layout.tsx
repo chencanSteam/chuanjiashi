@@ -12,21 +12,14 @@ import {
   Landmark,
   UserCircle2,
   MessageCircleHeart,
-  Building2,
   Settings,
   Search,
   Bell,
   HelpCircle,
   LogOut,
-  Shield,
-  Briefcase,
   ChevronRight,
   ChevronDown,
-  UserCheck,
-  Wallet,
-  TrendingUp,
-  Link2,
-  ClipboardList,
+  Briefcase,
   Share2,
   User,
   Bell as BellIcon,
@@ -34,6 +27,9 @@ import {
   Database,
   Sparkles,
   Wand2,
+  FileText,
+  PenLine,
+  UserCheck,
 } from 'lucide-react';
 import Avatar from './ui/Avatar';
 import { useAuth } from '../hooks/useAuth';
@@ -62,12 +58,12 @@ const baseNavItemsFull: NavItem[] = [
   { to: '/interview', icon: Mic, label: 'AI智能采访' },
   { to: '/biography', icon: BookOpen, label: 'AI传记生成' },
   { to: '/my-works', icon: BookMarked, label: '我的传记' },
+  { to: '/biographers', icon: UserCheck, label: '找传记师' },
   { to: '/family', icon: Users, label: '家庭空间' },
   { to: '/genealogy', icon: GitFork, label: '数字家谱' },
   { to: '/family-hall', icon: Landmark, label: 'AI家风馆' },
   { to: '/digital-person', icon: UserCircle2, label: '数字人' },
   { to: '/digital-companion', icon: MessageCircleHeart, label: '数字陪伴' },
-  { to: '/government', icon: Building2, label: '政务客户服务' },
 ];
 
 const baseNavItemsMVP: NavItem[] = [
@@ -77,17 +73,8 @@ const baseNavItemsMVP: NavItem[] = [
   { to: '/interview', icon: Mic, label: 'AI智能采访' },
   { to: '/biography', icon: BookOpen, label: 'AI传记生成' },
   { to: '/my-works', icon: BookMarked, label: '我的传记' },
+  { to: '/biographers', icon: UserCheck, label: '找传记师' },
   { to: '/digital-person', icon: UserCircle2, label: '数字人' },
-];
-
-const adminGroupItems: NavItem[] = [
-  { to: '/admin/biographers', icon: Users, label: '传记师管理' },
-  { to: '/admin/partners', icon: UserCheck, label: '合伙人管理' },
-  { to: '/admin/partner-applications', icon: ClipboardList, label: '合伙人申请' },
-  { to: '/admin/partner-customers', icon: Link2, label: '客户归属' },
-  { to: '/admin/commission-records', icon: TrendingUp, label: '分润流水' },
-  { to: '/admin/withdrawals', icon: Wallet, label: '提现审核' },
-  { to: '/admin/user-invites', icon: Share2, label: '用户邀请奖励' },
 ];
 
 const settingsGroupItems: NavItem[] = [
@@ -112,31 +99,18 @@ export default function Layout() {
   const location = useLocation();
   const pathname = location.pathname;
 
-  const roleNavItems: NavItem[] = [];
-  if (user?.roles?.includes('partner')) {
-    roleNavItems.push({ to: '/partner-center', icon: Briefcase, label: '合伙人中心' });
-  }
-
-  const isAdminUser = user?.roles?.includes('admin') ?? false;
-
-  const adminGroup: NavGroup | null = isAdminUser
-    ? { key: 'admin', icon: Shield, label: '管理后台', items: adminGroupItems }
-    : null;
-
   const settingsGroup: NavGroup = { key: 'settings', icon: Settings, label: '系统设置', items: settingsGroupItems };
 
   const [expanded, setExpanded] = useState<Record<string, boolean>>(() => ({
-    admin: isAdminUser ? adminGroupItems.some((item) => pathname.startsWith(item.to)) : false,
     settings: settingsGroupItems.some((item) => pathname.startsWith(item.to)),
   }));
 
   useEffect(() => {
     setExpanded((prev) => ({
       ...prev,
-      admin: isAdminUser ? adminGroupItems.some((item) => pathname.startsWith(item.to)) : prev.admin,
       settings: settingsGroupItems.some((item) => pathname.startsWith(item.to)),
     }));
-  }, [pathname, isAdminUser]);
+  }, [pathname]);
 
   const toggleGroup = (key: string) => {
     setExpanded((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -144,10 +118,19 @@ export default function Layout() {
 
   const navigate = useNavigate();
   const displayName = user?.name || user?.phone || '用户';
-  const handleLogout = () => {
-    logout();
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const isAdmin = user?.roles?.includes('admin') ?? false;
+  const isPartner = user?.roles?.includes('partner') ?? false;
+  const isBiographer = user?.roles?.includes('biographer') ?? false;
+
+  const handleLogout = async () => {
+    await logout();
     navigate('/login', { replace: true });
   };
+
+  useEffect(() => {
+    setShowUserMenu(false);
+  }, [pathname]);
 
   return (
     <div className="layout">
@@ -202,45 +185,7 @@ export default function Layout() {
                 </NavLink>
               </li>
             ))}
-            {roleNavItems.map((item) => (
-              <li className="nav-item" key={item.to}>
-                <NavLink
-                  to={item.to}
-                  className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-                >
-                  <item.icon className="nav-icon" size={18} />
-                  <span>{item.label}</span>
-                </NavLink>
-              </li>
-            ))}
-            {adminGroup && (
-              <li className={`nav-item nav-group ${isGroupActive(adminGroup, pathname) ? 'active' : ''}`} key="admin-group">
-                <button
-                  className="nav-group-header"
-                  onClick={() => toggleGroup('admin')}
-                  type="button"
-                >
-                  <adminGroup.icon className="nav-icon" size={18} />
-                  <span>{adminGroup.label}</span>
-                  {expanded.admin ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                </button>
-                {expanded.admin && (
-                  <ul className="nav-sub-list">
-                    {adminGroup.items.map((item) => (
-                      <li className="nav-sub-item" key={item.to}>
-                        <NavLink
-                          to={item.to}
-                          className={({ isActive }) => `nav-sub-link ${isActive ? 'active' : ''}`}
-                        >
-                          <item.icon className="nav-icon" size={16} />
-                          <span>{item.label}</span>
-                        </NavLink>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </li>
-            )}
+
             <li className={`nav-item nav-group ${isGroupActive(settingsGroup, pathname) ? 'active' : ''}`} key="settings-group">
               <button
                 className="nav-group-header"
@@ -287,15 +232,40 @@ export default function Layout() {
             <button className="icon-btn" title="帮助中心" onClick={openGuide}>
               <HelpCircle size={18} />
             </button>
-            <div className="user-card">
+            <div className="user-card user-menu-trigger" onClick={() => setShowUserMenu((v) => !v)}>
               <Avatar name={displayName} size={32} />
               <div className="user-info">
                 <span className="user-name">{displayName}</span>
                 <span className="user-role">{user?.phone || ''}</span>
               </div>
-              <button className="icon-btn logout-btn" title="退出登录" onClick={handleLogout}>
-                <LogOut size={16} />
-              </button>
+              <ChevronDown size={14} className={`user-menu-arrow ${showUserMenu ? 'open' : ''}`} />
+              {showUserMenu && (
+                <div className="user-dropdown">
+                  {isPartner ? (
+                    <NavLink to="/partner" className="user-dropdown-item">
+                      <Briefcase size={14} /> 合伙人中心
+                    </NavLink>
+                  ) : (
+                    <NavLink to="/partner/apply" className="user-dropdown-item">
+                      <FileText size={14} /> 申请成为合伙人
+                    </NavLink>
+                  )}
+                  {isAdmin && (
+                    <NavLink to="/admin" className="user-dropdown-item">
+                      <ShieldIcon size={14} /> 管理后台
+                    </NavLink>
+                  )}
+                  {isBiographer && (
+                    <NavLink to="/biographer" className="user-dropdown-item">
+                      <PenLine size={14} /> 传记师工作台
+                    </NavLink>
+                  )}
+                  <div className="user-dropdown-divider" />
+                  <button className="user-dropdown-item" onClick={handleLogout}>
+                    <LogOut size={14} /> 退出登录
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </header>

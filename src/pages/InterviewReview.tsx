@@ -19,7 +19,7 @@ import { useToast } from '../hooks/useToast';
 import { buildReviewData, loadJson, saveJson, type ReviewEvent } from '../data/aiMock';
 import { generateInterviewTopics } from '../utils/interviewTopics';
 import { loadCollaborators, loadSupplementAnswers } from '../data/interviewCollaboration';
-import { syncPlaceFromText, syncRelationFromEvent } from '../data/familyData';
+import { familyApi } from '../api/family';
 import { syncReviewEventToTimeline } from '../utils/eventSync';
 import './InterviewReview.css';
 
@@ -78,30 +78,6 @@ export default function InterviewReview() {
 
   const collaborators = useMemo(() => loadCollaborators(archiveId), [archiveId]);
   const supplementAnswers = useMemo(() => loadSupplementAnswers(archiveId), [archiveId]);
-  const allTranscriptLines = useMemo(() => {
-    const lines: { speaker: string; relation?: string; time: string; text: string; isSupplement?: boolean }[] = [];
-    interviewTopics.forEach((topic) => {
-      topic.questions.forEach((q) => {
-        const mainAnswer = initialAnswers[q.id];
-        if (mainAnswer) {
-          lines.push({ speaker: 'AI采访官', time: '', text: q.text });
-          lines.push({ speaker: archive?.name || '本人', relation: '本人', time: '', text: mainAnswer });
-        }
-        const supplements = supplementAnswers[q.id] || [];
-        supplements.forEach((s) => {
-          lines.push({
-            speaker: s.respondentName,
-            relation: s.relation,
-            time: '',
-            text: s.text,
-            isSupplement: true,
-          });
-        });
-      });
-    });
-    return lines;
-  }, [interviewTopics, initialAnswers, supplementAnswers, archive]);
-
   const collaboratorStats = useMemo(() => {
     const stats: Record<string, { name: string; relation: string; count: number }> = {};
     collaborators.forEach((c) => {
@@ -117,6 +93,31 @@ export default function InterviewReview() {
     return Object.values(stats);
   }, [collaborators, supplementAnswers]);
 
+  const questionGroups = useMemo(() => {
+    const groups: {
+      topicTitle: string;
+      questionText: string;
+      questionId: string;
+      answers: { speaker: string; relation: string; text: string; isSupplement: boolean }[];
+    }[] = [];
+    interviewTopics.forEach((topic) => {
+      topic.questions.forEach((q) => {
+        const answers: { speaker: string; relation: string; text: string; isSupplement: boolean }[] = [];
+        const mainAnswer = initialAnswers[q.id];
+        if (mainAnswer) {
+          answers.push({ speaker: archive?.name || '本人', relation: '本人', text: mainAnswer, isSupplement: false });
+        }
+        (supplementAnswers[q.id] || []).forEach((s) => {
+          answers.push({ speaker: s.respondentName, relation: s.relation, text: s.text, isSupplement: true });
+        });
+        if (answers.length > 0) {
+          groups.push({ topicTitle: topic.title, questionText: q.text, questionId: q.id, answers });
+        }
+      });
+    });
+    return groups;
+  }, [interviewTopics, initialAnswers, supplementAnswers, archive]);
+
   const [editForm, setEditForm] = useState<Partial<ReviewEvent>>({});
   const [addedToMaterial, setAddedToMaterial] = useState<Set<string>>(
     () => new Set(loadJson<string[]>(`cj_review_added_${archiveId}`, []))
@@ -130,17 +131,17 @@ export default function InterviewReview() {
     saveJson(`cj_review_highlights_${archiveId}`, highlights);
   }, [highlights, archiveId]);
 
-  const confirmEvent = (id: string) => {
-    setEvents((prev) => {
-      const event = prev.find((e) => e.id === id);
-      if (event) {
-        syncPlaceFromText(archiveId, event.location, event.time, event.title);
+  const confirmEvent = async (id: string) => {
+    const event = events.find((e) => e.id === id);
+    if (event) {
+      try {
+        await familyApi.syncPlace(archiveId, event.location, event.time, event.title);
         const subjectName = archive?.name || '本人';
-        syncRelationFromEvent(archiveId, subjectName, event.title, event.summary);
+        await familyApi.syncRelation(archiveId, subjectName, event.title, event.summary);
         syncReviewEventToTimeline(archiveId, { ...event, status: 'confirmed' });
-      }
-      return prev.map((e) => (e.id === id ? { ...e, status: 'confirmed' as const } : e));
-    });
+      } catch {}
+    }
+    setEvents((prev) => prev.map((e) => (e.id === id ? { ...e, status: 'confirmed' as const } : e)));
     addToast('事件已确认，地点与人物关系已同步', 'success');
   };
 
@@ -154,23 +155,23 @@ export default function InterviewReview() {
     setEditForm({ ...event });
   };
 
-  const saveEdit = () => {
+  const saveEdit = async () => {
     if (!editingId) return;
-    setEvents((prev) => {
-      const next = prev.map((e) =>
-        e.id === editingId
-          ? ({ ...e, ...editForm, status: 'confirmed' as const } as ReviewEvent)
-          : e
-      );
-      const event = next.find((e) => e.id === editingId);
-      if (event) {
-        syncPlaceFromText(archiveId, event.location, event.time, event.title);
+    const next = events.map((e) =>
+      e.id === editingId
+        ? ({ ...e, ...editForm, status: 'confirmed' as const } as ReviewEvent)
+        : e
+    );
+    const event = next.find((e) => e.id === editingId);
+    if (event) {
+      try {
+        await familyApi.syncPlace(archiveId, event.location, event.time, event.title);
         const subjectName = archive?.name || '本人';
-        syncRelationFromEvent(archiveId, subjectName, event.title, event.summary);
+        await familyApi.syncRelation(archiveId, subjectName, event.title, event.summary);
         syncReviewEventToTimeline(archiveId, event);
-      }
-      return next;
-    });
+      } catch {}
+    }
+    setEvents(next);
     setEditingId(null);
     setEditForm({});
     addToast('事件已更新并确认，地点与人物关系已同步', 'success');
@@ -244,23 +245,32 @@ export default function InterviewReview() {
               {summaryTab === 'summary' ? (
                 <p className="summary-text">{summary}</p>
               ) : summaryTab === 'transcript' ? (
-                <div className="transcript-list">
-                  {allTranscriptLines.length === 0 ? (
+                <div className="question-groups">
+                  {questionGroups.length === 0 ? (
                     <div className="transcript-empty">暂无采访详情记录</div>
                   ) : (
-                    allTranscriptLines.map((line, i) => (
-                      <div
-                        className={`transcript-line ${line.speaker.includes('AI') ? 'ai' : line.isSupplement ? 'supplement' : 'subject'}`}
-                        key={i}
-                      >
-                        <div className="transcript-line-header">
-                          <span className="transcript-speaker">
-                            {line.speaker}
-                            {line.relation && <span className="transcript-relation">{line.relation}</span>}
-                          </span>
-                          <span className="transcript-time">{line.time}</span>
+                    questionGroups.map((group) => (
+                      <div className="question-group" key={group.questionId}>
+                        <div className="question-group-header">
+                          <span className="question-group-topic">{group.topicTitle}</span>
+                          <h4 className="question-group-title">{group.questionText}</h4>
                         </div>
-                        <div className="transcript-text">{line.text}</div>
+                        <div className="question-group-answers">
+                          {group.answers.map((answer, idx) => (
+                            <div
+                              className={`transcript-line ${answer.isSupplement ? 'supplement' : 'subject'}`}
+                              key={idx}
+                            >
+                              <div className="transcript-line-header">
+                                <span className="transcript-speaker">
+                                  {answer.speaker}
+                                  <span className="transcript-relation">{answer.relation}</span>
+                                </span>
+                              </div>
+                              <div className="transcript-text">{answer.text}</div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     ))
                   )}

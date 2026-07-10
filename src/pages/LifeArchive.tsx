@@ -35,19 +35,13 @@ import Avatar from '../components/ui/Avatar';
 import Modal from '../components/ui/Modal';
 import { useToast } from '../hooks/useToast';
 import { useVersion } from '../hooks/useVersion';
+import { archiveApi } from '../api/archive';
 import { generateImageDataUrl, generateVideoPoster, generateAudioUrl } from '../utils/mediaPlaceholder';
 import LocationFootprints from './LocationFootprints';
 import Achievements from './Achievements';
-import {
-  loadFamilyRelations,
-  buildRelationNodes,
-  loadPlaces,
-  addRelation,
-  removeRelation,
-  ensureMemberExists,
-  type RelationNode,
-  type FamilyRelation,
-} from '../data/familyData';
+import { buildRelationNodes, relationTypeOptions, type RelationNode } from '../utils/familyRelations';
+import { familyApi } from '../api/family';
+import type { FamilyRelation, Place } from '../mocks/types';
 import './LifeArchive.css';
 
 const tabs = [
@@ -408,6 +402,42 @@ export default function LifeArchive() {
   const [archives, setArchives] = useState<Archive[]>(initialArchives);
   const [currentArchiveId, setCurrentArchiveId] = useState<string>(initialArchiveId);
   const [events, setEvents] = useState<TimelineEvent[]>(initialEvents);
+
+  useEffect(() => {
+    archiveApi
+      .list()
+      .then((mockArchives) => {
+        const mapped: Archive[] = mockArchives.map((a) => ({
+          id: a.id,
+          name: a.name,
+          gender: a.gender === 'female' ? '女' : '男',
+          birthYear: a.birthDate ? a.birthDate.split('-')[0] : '',
+          origin: a.birthPlace || '',
+          occupation: '',
+        }));
+        setArchives((prev) => {
+          const map = new Map<string, Archive>();
+          prev.forEach((a) => map.set(a.id, a));
+          mapped.forEach((a) => {
+            if (!map.has(a.id)) map.set(a.id, a);
+          });
+          return Array.from(map.values());
+        });
+        if (mapped.length > 0 && !initialArchives.some((a) => a.id === currentArchiveId)) {
+          const first = mapped[0];
+          setCurrentArchiveId(first.id);
+          localStorage.setItem('cj_current_archive_id', first.id);
+          setEvents(loadEventsForArchive(first.id));
+          setEventTags(loadTagsForArchive(first.id));
+          setMembers(loadMembers(first.id));
+          setMediaItems(loadMediaItems(first.id));
+        }
+      })
+      .catch(() => {
+        // 保持本地档案
+      })
+      .finally(() => {});
+  }, []);
   const [eventTags, setEventTags] = useState<Record<string, string[]>>(initialTags);
   const [role, setRole] = useState<Role>(loadRole);
   const [privacyValues, setPrivacyValues] = useState<Record<string, string>>(loadPrivacyValues);
@@ -450,18 +480,29 @@ export default function LifeArchive() {
   const [inviteName, setInviteName] = useState('');
   const [inviteRole, setInviteRole] = useState<Role>('观察者');
 
-  const [relations, setRelations] = useState<FamilyRelation[]>(() => loadFamilyRelations(currentArchiveId));
+  const [relations, setRelations] = useState<FamilyRelation[]>([]);
+  const [placeList, setPlaceList] = useState<Place[]>([]);
   const [showRelationModal, setShowRelationModal] = useState(false);
   const [relationFrom, setRelationFrom] = useState('');
   const [relationTo, setRelationTo] = useState('');
   const [relationType, setRelationType] = useState('配偶');
+
+  useEffect(() => {
+    familyApi
+      .relations(currentArchiveId)
+      .then(setRelations)
+      .catch(() => setRelations([]));
+    familyApi
+      .places(currentArchiveId)
+      .then(setPlaceList)
+      .catch(() => setPlaceList([]));
+  }, [currentArchiveId]);
 
   const currentArchive = archives.find((a) => a.id === currentArchiveId) ?? DEFAULT_ARCHIVE;
   const relationNodes: RelationNode[] = useMemo(
     () => buildRelationNodes(currentArchive.name, relations),
     [currentArchive.name, relations]
   );
-  const placeList = useMemo(() => loadPlaces(currentArchiveId), [currentArchiveId]);
   const canEdit = role !== '观察者';
   const canManageArchives = role === '档案所有者' || role === '管理员';
   const isOwner = role === '档案所有者';
@@ -710,7 +751,7 @@ export default function LifeArchive() {
     addToast('成员已移除', 'info');
   };
 
-  const handleAddRelation = () => {
+  const handleAddRelation = async () => {
     const from = relationFrom.trim();
     const to = relationTo.trim();
     if (!from || !to) {
@@ -730,20 +771,28 @@ export default function LifeArchive() {
       addToast('该关系已存在', 'error');
       return;
     }
-    ensureMemberExists(currentArchiveId, from, '家庭成员');
-    ensureMemberExists(currentArchiveId, to, '家庭成员');
-    const added = addRelation(currentArchiveId, { from, to, relation: relationType });
-    setRelations((prev) => [...prev, added]);
-    setRelationFrom('');
-    setRelationTo('');
-    setRelationType('配偶');
-    addToast('关系已添加', 'success');
+    try {
+      await familyApi.addOrUpdateMember(currentArchiveId, { name: from, role: '家庭成员', gen: '其他' });
+      await familyApi.addOrUpdateMember(currentArchiveId, { name: to, role: '家庭成员', gen: '其他' });
+      const added = await familyApi.addRelation(currentArchiveId, { from, to, relation: relationType });
+      setRelations((prev) => [...prev, added]);
+      setRelationFrom('');
+      setRelationTo('');
+      setRelationType('配偶');
+      addToast('关系已添加', 'success');
+    } catch (err: any) {
+      addToast(err.message || '添加失败', 'error');
+    }
   };
 
-  const handleRemoveRelation = (id: string) => {
-    removeRelation(currentArchiveId, id);
-    setRelations((prev) => prev.filter((r) => r.id !== id));
-    addToast('关系已删除', 'info');
+  const handleRemoveRelation = async (id: string) => {
+    try {
+      await familyApi.removeRelation(currentArchiveId, id);
+      setRelations((prev) => prev.filter((r) => r.id !== id));
+      addToast('关系已删除', 'info');
+    } catch (err: any) {
+      addToast(err.message || '删除失败', 'error');
+    }
   };
 
   const selectedEvent = events.find((e) => e.year === selectedYear) ?? null;
@@ -1387,7 +1436,7 @@ export default function LifeArchive() {
                   onChange={(e) => setRelationFrom(e.target.value)}
                 />
                 <select value={relationType} onChange={(e) => setRelationType(e.target.value)}>
-                  {['配偶', '父子', '父女', '母子', '母女', '祖孙', '兄弟姐妹', '其他'].map((r) => (
+                  {relationTypeOptions.map((r) => (
                     <option key={r} value={r}>{r}</option>
                   ))}
                 </select>

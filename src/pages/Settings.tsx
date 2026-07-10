@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   User,
@@ -23,10 +23,22 @@ import {
 import Avatar from '../components/ui/Avatar';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/useToast';
-import { loadQuota, type AIQuota } from '../data/aiMock';
+import { quotaApi } from '../api/quota';
+import type { AIQuota } from '../mocks/types';
 import { openGuide } from '../components/GuideTour';
-import { getUserRewardStats, getUserRewards, getUserWithdrawals, applyUserWithdrawal, type UserReward, type UserWithdrawal } from '../data/userInviteData';
+import { commissionApi } from '../api/commission';
+import type { CommissionRecord as MockCommissionRecord, WithdrawalRecord as MockWithdrawalRecord } from '../mocks/types';
+import type { UserReward, UserWithdrawal } from '../data/userInviteData';
 import './Settings.css';
+
+const defaultQuota: AIQuota = {
+  plan: '标准传记包',
+  interviewQuestion: { used: 18, total: 30 },
+  followUp: { used: 6, total: 10 },
+  biographyGenerate: { used: 1, total: 3 },
+  digitalDialog: { used: 12, total: 50 },
+  storage: { usedMB: 268, totalMB: 1024 },
+};
 
 const sidebarItems = [
   { key: 'account', icon: User, label: '账户信息' },
@@ -81,7 +93,12 @@ export default function Settings() {
   const [managingMember, setManagingMember] = useState<typeof familyMembers[0] | null>(null);
   const [helpArticle, setHelpArticle] = useState<string | null>(null);
   const [visibility, setVisibility] = useState<Record<string, string>>({ 基本信息: '家人可见', 多媒体档案: '家人可见', 人生事件: '部分公开', 成就与作品: '公开展示' });
-  const [quota] = useState<AIQuota>(() => loadQuota());
+  const [quota, setQuota] = useState<AIQuota>(defaultQuota);
+
+  useEffect(() => {
+    quotaApi.get().then(setQuota).catch(() => setQuota(defaultQuota));
+  }, []);
+
   const [rewardsRefresh, setRewardsRefresh] = useState(0);
   const { user } = useAuth();
 
@@ -345,12 +362,62 @@ export default function Settings() {
 }
 
 
+function mapCommissionToUserReward(r: MockCommissionRecord): UserReward {
+  return {
+    id: r.id,
+    userId: r.userId,
+    fromUserId: r.fromUserId || '',
+    orderId: r.orderId,
+    amount: r.amount,
+    reward: r.commission,
+    status: r.status as UserReward['status'],
+    type: 'invite_reward',
+    createdAt: r.createdAt,
+    settledAt: r.settledAt,
+  };
+}
+
+function mapWithdrawalToUserWithdrawal(w: MockWithdrawalRecord): UserWithdrawal {
+  return {
+    id: w.id,
+    userId: w.userId,
+    userName: w.partnerName || w.userId,
+    amount: w.amount,
+    status: w.status as UserWithdrawal['status'],
+    createdAt: w.appliedAt,
+    processedAt: w.paidAt,
+  };
+}
+
 function MyInvite({ user, refresh, onWithdraw }: { user: { phone: string; name?: string; inviteCode?: string } | null; refresh: number; onWithdraw: () => void }) {
   const { addToast } = useToast();
   const [amount, setAmount] = useState('');
-  const stats = useMemo(() => (user ? getUserRewardStats(user.phone) : { total: 0, balance: 0, withdrawn: 0, inviteCount: 0 }), [user, refresh]);
-  const rewards = useMemo(() => (user ? getUserRewards(user.phone) : []), [user, refresh]);
-  const withdrawals = useMemo(() => (user ? getUserWithdrawals(user.phone) : []), [user, refresh]);
+  const [summary, setSummary] = useState({ total: 0, settled: 0, pending: 0, frozen: 0, inviteCount: 0 });
+  const [rewards, setRewards] = useState<UserReward[]>([]);
+  const [withdrawals, setWithdrawals] = useState<UserWithdrawal[]>([]);
+
+  useEffect(() => {
+    if (!user) return;
+    commissionApi.summary().then(setSummary).catch(() => {});
+    commissionApi
+      .list()
+      .then((list) => setRewards(list.map(mapCommissionToUserReward)))
+      .catch(() => setRewards([]));
+    commissionApi
+      .withdrawals()
+      .then((list) => setWithdrawals(list.map(mapWithdrawalToUserWithdrawal)))
+      .catch(() => setWithdrawals([]));
+  }, [user, refresh]);
+
+  const stats = useMemo(() => {
+    const withdrawn = withdrawals.filter((w) => w.status === 'paid').reduce((s, w) => s + w.amount, 0);
+    return {
+      total: summary.total,
+      balance: summary.settled,
+      withdrawn,
+      inviteCount: summary.inviteCount,
+    };
+  }, [summary, withdrawals]);
 
   if (!user) return null;
 
@@ -366,20 +433,20 @@ function MyInvite({ user, refresh, onWithdraw }: { user: { phone: string; name?:
     addToast('邀请链接已复制', 'success');
   };
 
-  const handleWithdraw = () => {
+  const handleWithdraw = async () => {
     const value = parseFloat(amount);
     if (!value || value <= 0) {
       addToast('请输入正确的提现金额', 'error');
       return;
     }
-    const result = applyUserWithdrawal(user.phone, user.name || user.phone, value);
-    if (!result) {
-      addToast('提现申请失败，余额不足', 'error');
-      return;
+    try {
+      await commissionApi.withdraw(value);
+      addToast('提现申请已提交', 'success');
+      setAmount('');
+      onWithdraw();
+    } catch (err: any) {
+      addToast(err.message || '提现申请失败，余额不足', 'error');
     }
-    addToast('提现申请已提交', 'success');
-    setAmount('');
-    onWithdraw();
   };
 
   return (

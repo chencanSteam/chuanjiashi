@@ -2,7 +2,7 @@ import { ArrowLeft, Calendar, MapPin, Tag, Image as ImageIcon, FileText, Save, X
 import { useNavigate, useParams } from 'react-router-dom';
 import { useState } from 'react';
 import { useToast } from '../hooks/useToast';
-import { syncPlaceFromText } from '../data/familyData';
+import { familyApi } from '../api/family';
 import { generateImageDataUrl } from '../utils/mediaPlaceholder';
 import './EventEdit.css';
 
@@ -67,14 +67,16 @@ export default function EventEdit() {
   const [newTag, setNewTag] = useState('');
   const [preview, setPreview] = useState<{ title: string; type: string } | null>(null);
 
-  const saveEvent = () => {
+  const saveEvent = async () => {
     localStorage.setItem(`event-${archiveId}-${safeYear}`, JSON.stringify({ title, subtitle, content, tags }));
     const nextEvents = archiveEvents.map((e) =>
       e.year === safeYear ? { ...e, endYear: endYear.trim() || undefined } : e
     );
     localStorage.setItem(`cj_events_${archiveId}`, JSON.stringify(nextEvents));
     setArchiveEvents(nextEvents);
-    syncPlaceFromText(archiveId, subtitle, safeYear, title);
+    try {
+      await familyApi.syncPlace(archiveId, subtitle, safeYear, title);
+    } catch {}
     addToast('事件已保存', 'success');
     navigate(-1);
   };

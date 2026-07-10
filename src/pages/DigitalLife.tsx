@@ -2,6 +2,8 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../hooks/useToast';
 import { useVersion } from '../hooks/useVersion';
+import { digitalPersonApi } from '../api/digitalPerson';
+import { quotaApi } from '../api/quota';
 import {
   ChevronRight,
   Plus,
@@ -29,9 +31,6 @@ import {
   memoryScopeOptions,
   languageStyleOptions,
   recommendedQuestions,
-  loadQuota,
-  consumeDigitalDialog,
-  type AIQuota,
 } from '../data/aiMock';
 import { getArchiveBasedDigitalAnswer } from '../utils/digitalAnswer';
 import './DigitalLife.css';
@@ -171,7 +170,42 @@ export default function DigitalLife() {
     return saved.length > 0 ? saved : defaultChatMessages;
   });
   const [chatInput, setChatInput] = useState('');
-  const [quota, setQuota] = useState<AIQuota>(() => loadQuota());
+  const [currentArchiveId, setCurrentArchiveId] = useState<string | null>(null);
+  const [digitalPersonReady, setDigitalPersonReady] = useState(false);
+
+  useEffect(() => {
+    const id = localStorage.getItem('cj_current_archive_id');
+    if (!id) return;
+    setCurrentArchiveId(id);
+    (async () => {
+      try {
+        const { person, dialogue } = await digitalPersonApi.get(id);
+        if (!person.knowledgeBaseReady) {
+          try {
+            await digitalPersonApi.build(id);
+          } catch {
+            // ignore
+          }
+        }
+        setDigitalPersonReady(true);
+        if (dialogue.length > 0) {
+          const speakerName = relativesList[activeRel]?.name || '数字亲人';
+          setChatMessages(
+            dialogue.map((d) => ({
+              name: d.role === 'user' ? '我' : speakerName,
+              question: d.role === 'user' ? d.content : '',
+              answer: d.role === 'ai' ? d.content : '',
+              time: new Date(d.time).toLocaleString('zh-CN'),
+              source: d.source,
+              hasMemory: d.source ? true : undefined,
+            }))
+          );
+        }
+      } catch {
+        // 保持默认
+      }
+    })();
+  }, []);
   const [answerLength, setAnswerLength] = useState(80);
   const [safeBoundary, setSafeBoundary] = useState(true);
   const [trainingValues, setTrainingValues] = useState<TrainingParam[]>(() => loadJson(LS_KEYS.trainingValues, defaultTrainingParams));
@@ -256,15 +290,42 @@ export default function DigitalLife() {
     setTrainingValues((prev) => prev.map((p) => ({ ...p, value: Math.min(100, p.value + 5) })));
   };
 
-  const sendChat = (inputQuestion?: string) => {
+  const sendChat = async (inputQuestion?: string) => {
     const question = (inputQuestion || chatInput).trim();
     if (!question) return;
     const currentName = relativesList[activeRel]?.name || '数字亲人';
-    const nextQuota = consumeDigitalDialog(quota);
-    setQuota(nextQuota);
+    try {
+      await quotaApi.consume('digitalDialog');
+    } catch (err: any) {
+      addToast(err.message || '数字人对话额度不足', 'error');
+      return;
+    }
     if (!inputQuestion) setChatInput('');
     setChatMessages((prev) => [...prev, { name: '我', question, answer: '', time: '刚刚', source: undefined, hasMemory: undefined }]);
     addToast('数字亲人正在回忆…', 'info');
+
+    if (digitalPersonReady && currentArchiveId) {
+      try {
+        const { answer, source } = await digitalPersonApi.chat(currentArchiveId, question);
+        setChatMessages((prev) => {
+          const next = [...prev];
+          if (next.length > 0) {
+            next[next.length - 1] = {
+              ...next[next.length - 1],
+              answer,
+              source,
+              hasMemory: source ? true : undefined,
+              time: '刚刚',
+            };
+          }
+          return next;
+        });
+        return;
+      } catch (err: any) {
+        addToast(err.message || '数字人对话失败', 'error');
+      }
+    }
+
     setTimeout(() => {
       const { answer, source, hasMemory } = getArchiveBasedDigitalAnswer(question, currentName);
       setChatMessages((prev) => {

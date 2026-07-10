@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, FileText, Search, ExternalLink, X } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { FileText, Search, ExternalLink, X } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 import './PolicyList.css';
 
@@ -14,7 +13,6 @@ const policies = [
 ];
 
 export default function PolicyList() {
-  const navigate = useNavigate();
   const { addToast } = useToast();
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<typeof policies[number] | null>(null);
@@ -24,9 +22,6 @@ export default function PolicyList() {
   return (
     <div className="detail-page policy-list-page">
       <header className="page-header">
-        <button className="btn btn-ghost" onClick={() => navigate(-1)}>
-          <ArrowLeft size={16} /> 返回
-        </button>
         <h1 className="page-title">政策指引</h1>
       </header>
 

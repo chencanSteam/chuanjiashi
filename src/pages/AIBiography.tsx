@@ -21,22 +21,14 @@ import {
 } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 import { useAuth } from '../hooks/useAuth';
+import { biographyApi } from '../api/biography';
 import Modal from '../components/ui/Modal';
-import { recordCommission } from '../data/partnerData';
-import { recordUserInviteReward } from '../data/userInviteData';
+import { orderApi } from '../api/order';
+import { paymentApi } from '../api/payment';
+import { quotaApi } from '../api/quota';
+
 import { generateImageDataUrl, generateVideoPoster, generateAudioUrl } from '../utils/mediaPlaceholder';
-import {
-  biographyChapterTitles,
-  loadQuota,
-  consumeBiographyGenerate,
-  loadJson,
-  saveJson,
-  type AIQuota,
-  type ChapterData,
-  type ReviewEvent,
-} from '../data/aiMock';
-import { assembleBiography, loadInterviewAnswers } from '../utils/biographyAssembler';
-import { loadSupplementAnswers } from '../data/interviewCollaboration';
+import { biographyChapterTitles, loadJson, saveJson, type ChapterData } from '../data/aiMock';
 import './AIBiography.css';
 
 interface Archive {
@@ -97,7 +89,6 @@ export default function AIBiography() {
   const archiveId = archive?.id || 'default';
   const subjectName = archive?.name || '张明远';
 
-  const [quota, setQuota] = useState<AIQuota>(() => loadQuota());
   const [chapters, setChapters] = useState<ChapterData[]>(() =>
     loadJson<ChapterData[]>(`cj_biography_chapters_${archiveId}`, initChapters())
   );
@@ -179,35 +170,49 @@ export default function AIBiography() {
     e.target.value = '';
   };
 
+  const [biographyStyle, setBiographyStyle] = useState<'plain' | 'warm' | 'family'>('warm');
+  const [wordCountLevel, setWordCountLevel] = useState<'short' | 'standard' | 'long'>('standard');
+
   const handleGenerate = async () => {
-    if (activeChapter.status !== 'notGenerated') {
-      // re-generate path: still consume quota
+    try {
+      await quotaApi.consume('biographyGenerate');
+    } catch (err: any) {
+      addToast(err.message || '额度不足', 'error');
+      return;
     }
-    const nextQuota = consumeBiographyGenerate(quota);
-    setQuota(nextQuota);
     setGenerating(true);
 
-    setTimeout(() => {
-      const reviewEvents = loadJson<ReviewEvent[]>(`cj_review_events_${archiveId}`, []);
-      const highlights = loadJson<string[]>(`cj_review_highlights_${archiveId}`, []);
-      const answers = loadInterviewAnswers(archiveId);
-      const supplementAnswers = loadSupplementAnswers(archiveId);
-      const assembled = assembleBiography({
-        archiveName: subjectName,
-        events: reviewEvents,
-        highlights,
-        answers,
-        supplementAnswers,
-      });
-      const content = assembled[activeChapter.title] || `${subjectName}的${activeChapter.title}内容待补充。`;
-      updateChapter(activeIndex, {
-        status: 'generated',
-        content,
-        updatedAt: new Date().toLocaleString('zh-CN'),
-      });
+    try {
+      const isFirstGenerate = chapters.every((c) => c.status === 'notGenerated');
+      if (isFirstGenerate) {
+        const biography = await biographyApi.generate(archiveId, biographyStyle, wordCountLevel);
+        setChapters(
+          biography.chapters.map((ch) => ({
+            title: ch.title,
+            content: ch.content,
+            status: 'generated' as const,
+            materials: ch.images.length || (ch.title === '前言' || ch.title === '后记' ? 2 : 5),
+            updatedAt: new Date().toLocaleString('zh-CN'),
+          }))
+        );
+        addToast('传记全部章节已生成', 'success');
+      } else {
+        const biography = await biographyApi.regenerateChapter(archiveId, activeChapter.title);
+        const regenerated = biography.chapters.find((c) => c.title === activeChapter.title);
+        if (regenerated) {
+          updateChapter(activeIndex, {
+            status: 'generated',
+            content: regenerated.content,
+            updatedAt: new Date().toLocaleString('zh-CN'),
+          });
+          addToast(`「${activeChapter.title}」重新生成完成`, 'success');
+        }
+      }
+    } catch (err: any) {
+      addToast(err.message || '生成失败', 'error');
+    } finally {
       setGenerating(false);
-      addToast(`「${activeChapter.title}」生成完成`, 'success');
-    }, 1000);
+    }
   };
 
   const handlePolish = () => {
@@ -256,20 +261,25 @@ export default function AIBiography() {
     }, 1200);
   };
 
-  const simulatePayment = () => {
+  const simulatePayment = async () => {
     if (!user?.phone) {
       addToast('请先登录', 'error');
       return;
     }
-    const amount = 99;
-    const records = recordCommission(user.phone, `ORDER_${Date.now()}`, amount, 'biography');
-    const userReward = recordUserInviteReward(user.phone, `ORDER_${Date.now()}`, amount);
-    if (records.length === 0 && !userReward) {
-      addToast('暂无归属合伙人或邀请人，无法产生分润', 'error');
-      return;
+    try {
+      const archiveId = localStorage.getItem('cj_current_archive_id') || undefined;
+      const order = await orderApi.create({
+        type: 'biography',
+        productId: 'prod_biography_99',
+        productName: 'AI 传记标准版',
+        amount: 99,
+        archiveId,
+      });
+      const { payment } = await paymentApi.pay(order.id, 'wechat');
+      addToast(`模拟支付成功，订单号 ${payment.transactionId.slice(-8)}`, 'success');
+    } catch (err: any) {
+      addToast(err.message || '支付失败', 'error');
     }
-    const total = records.length + (userReward ? 1 : 0);
-    addToast(`模拟支付成功，已产生 ${total} 笔分润`, 'success');
   };
 
   const selectChapter = (i: number) => {
@@ -516,15 +526,37 @@ export default function AIBiography() {
               )}
               <div className="setting-row">
                 <label>叙事风格</label>
-                <select className="setting-select">
+                <select
+                  className="setting-select"
+                  value={biographyStyle === 'plain' ? '纪实简洁风' : biographyStyle === 'family' ? '家族传承风' : '温馨叙事风'}
+                  onChange={(e) => {
+                    const map: Record<string, 'plain' | 'warm' | 'family'> = {
+                      '纪实简洁风': 'plain',
+                      '温馨叙事风': 'warm',
+                      '家族传承风': 'family',
+                    };
+                    setBiographyStyle(map[e.target.value] || 'warm');
+                  }}
+                >
                   <option>温馨叙事风</option>
                   <option>纪实简洁风</option>
-                  <option>文学散文风</option>
+                  <option>家族传承风</option>
                 </select>
               </div>
               <div className="setting-row">
                 <label>章节长度</label>
-                <select className="setting-select">
+                <select
+                  className="setting-select"
+                  value={wordCountLevel === 'short' ? '精简' : wordCountLevel === 'long' ? '详细' : '适中'}
+                  onChange={(e) => {
+                    const map: Record<string, 'short' | 'standard' | 'long'> = {
+                      '精简': 'short',
+                      '适中': 'standard',
+                      '详细': 'long',
+                    };
+                    setWordCountLevel(map[e.target.value] || 'standard');
+                  }}
+                >
                   <option>适中</option>
                   <option>精简</option>
                   <option>详细</option>
