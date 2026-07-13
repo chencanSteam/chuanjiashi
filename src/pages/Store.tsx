@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { ShoppingBag, Check, Package, QrCode, BookOpen, Video, UserCircle2, Gift, MapPin, Phone, User, FileText, CreditCard, X } from 'lucide-react';
+import { ShoppingBag, Check, Package, QrCode, BookOpen, Video, UserCircle2, Gift, MapPin, Phone, User, FileText, CreditCard, X, Search } from 'lucide-react';
 import { productApi } from '../api/product';
 import { orderApi } from '../api/order';
 import { paymentApi } from '../api/payment';
@@ -41,6 +41,8 @@ export default function Store() {
   const [address, setAddress] = useState<OrderAddress>(emptyAddress);
   const [remark, setRemark] = useState('');
   const [paying, setPaying] = useState(false);
+  const [keyword, setKeyword] = useState('');
+  const [sort, setSort] = useState<'default' | 'price_asc' | 'price_desc'>('default');
 
   const activeCategory = searchParams.get('category') || 'all';
   const archiveId = searchParams.get('archiveId') || undefined;
@@ -60,11 +62,33 @@ export default function Store() {
     }
   }, [user?.phone]);
 
+  useEffect(() => {
+    const saved = localStorage.getItem('cj_last_address');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved) as OrderAddress;
+        setAddress((prev) => ({ ...parsed, phone: prev.phone || parsed.phone }));
+      } catch {
+        // ignore
+      }
+    }
+  }, []);
+
   const filtered = useMemo(() => {
-    if (activeCategory === 'all') return products;
-    if (activeCategory === 'physical') return products.filter((p) => needsAddress(p.type));
-    return products.filter((p) => p.type === activeCategory);
-  }, [products, activeCategory]);
+    let list = products;
+    if (activeCategory === 'physical') {
+      list = products.filter((p) => needsAddress(p.type));
+    } else if (activeCategory !== 'all') {
+      list = products.filter((p) => p.type === activeCategory);
+    }
+    if (keyword.trim()) {
+      const q = keyword.trim().toLowerCase();
+      list = list.filter((p) => p.name.toLowerCase().includes(q) || p.description.toLowerCase().includes(q));
+    }
+    if (sort === 'price_asc') list = [...list].sort((a, b) => a.price - b.price);
+    if (sort === 'price_desc') list = [...list].sort((a, b) => b.price - a.price);
+    return list;
+  }, [products, activeCategory, keyword, sort]);
 
   const handleBuy = async () => {
     if (!selected) return;
@@ -75,6 +99,9 @@ export default function Store() {
       }
     }
     try {
+      if (needsAddress(selected.type)) {
+        localStorage.setItem('cj_last_address', JSON.stringify(address));
+      }
       setPaying(true);
       const order = await orderApi.create({
         type: selected.type,
@@ -132,6 +159,24 @@ export default function Store() {
         >
           <Package size={16} /> 实物商品
         </button>
+      </div>
+
+      <div className="store-toolbar">
+        <div className="store-search">
+          <Search size={14} />
+          <input
+            type="text"
+            placeholder="搜索商品名称…"
+            value={keyword}
+            onChange={(e) => setKeyword(e.target.value)}
+          />
+          {keyword && <button className="store-search-clear" onClick={() => setKeyword('')}><X size={12} /></button>}
+        </div>
+        <select className="store-sort" value={sort} onChange={(e) => setSort(e.target.value as typeof sort)}>
+          <option value="default">默认排序</option>
+          <option value="price_asc">价格从低到高</option>
+          <option value="price_desc">价格从高到低</option>
+        </select>
       </div>
 
       <div className="store-products">

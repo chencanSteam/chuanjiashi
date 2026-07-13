@@ -83,6 +83,7 @@ const BiographerProfileEdit = lazy(() => import('./pages/BiographerProfileEdit')
 const PhotoRestore = lazy(() => import('./pages/PhotoRestore'));
 const BiographerList = lazy(() => import('./pages/BiographerList'));
 const MyBiographerOrders = lazy(() => import('./pages/MyBiographerOrders'));
+const MyOrders = lazy(() => import('./pages/MyOrders'));
 const Store = lazy(() => import('./pages/Store'));
 const OrderSuccess = lazy(() => import('./pages/OrderSuccess'));
 
@@ -142,6 +143,7 @@ function App() {
                 <Route path="my-works" element={<MyWorks />} />
                 <Route path="biographers" element={<BiographerList />} />
                 <Route path="my-biographer-orders" element={<MyBiographerOrders />} />
+                <Route path="my-orders" element={<MyOrders />} />
                 <Route path="store" element={<Store />} />
                 <Route path="order-success" element={<OrderSuccess />} />
                 <Route path="photo-restore" element={<PhotoRestore />} />

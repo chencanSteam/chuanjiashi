@@ -124,6 +124,38 @@
   max-width: 180px;
 }
 
+.order-product-name {
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.order-product-tags {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.order-product-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.order-product-tag.address-tag {
+  background: rgba(37, 99, 235, 0.08);
+  color: #2563eb;
+}
+
+.order-product-tag.deliverable-tag {
+  background: rgba(27, 94, 75, 0.08);
+  color: #1B5E4B;
+}
+
 .order-cell-amount {
   color: #1B5E4B;
   font-weight: 600;

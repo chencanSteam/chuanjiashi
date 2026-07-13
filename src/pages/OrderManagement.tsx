@@ -6,6 +6,18 @@ import { useToast } from '../hooks/useToast';
 import type { BiographerOrder, Deliverable, OrderLogistics } from '../mocks/types';
 import './OrderManagement.css';
 
+const typeOptions: Array<{ value: AdminOrder['type'] | 'all'; label: string }> = [
+  { value: 'all', label: '全部类型' },
+  { value: 'book', label: '实体书' },
+  { value: 'derivative', label: '衍生品' },
+  { value: 'qrcode', label: '二维码' },
+  { value: 'video', label: '纪念视频' },
+  { value: 'digital_person', label: '数字人' },
+  { value: 'biography', label: '传记服务' },
+  { value: 'biographer_service', label: '传记师服务' },
+  { value: 'group_buy', label: '团购' },
+];
+
 const statusOptions: Array<{ value: AdminOrder['status'] | 'all'; label: string }> = [
   { value: 'all', label: '全部状态' },
   { value: 'pending_pay', label: '待支付' },
@@ -59,6 +71,7 @@ export default function OrderManagement() {
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [keyword, setKeyword] = useState('');
   const [statusFilter, setStatusFilter] = useState<AdminOrder['status'] | 'all'>('all');
+  const [typeFilter, setTypeFilter] = useState<AdminOrder['type'] | 'all'>('all');
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(null);
   const [selectedBiographerOrder, setSelectedBiographerOrder] = useState<BiographerOrder | null>(null);
@@ -93,7 +106,8 @@ export default function OrderManagement() {
         o.userName?.includes(keyword) ||
         o.userPhone?.includes(keyword);
       const matchStatus = statusFilter === 'all' || o.status === statusFilter;
-      return matchKeyword && matchStatus;
+      const matchType = typeFilter === 'all' || o.type === typeFilter;
+      return matchKeyword && matchStatus && matchType;
     });
   }, [orders, keyword, statusFilter]);
 
@@ -351,6 +365,11 @@ export default function OrderManagement() {
                 <option value={s.value} key={s.value}>{s.label}</option>
               ))}
             </select>
+            <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as AdminOrder['type'] | 'all')}>
+              {typeOptions.map((t) => (
+                <option value={t.value} key={t.value}>{t.label}</option>
+              ))}
+            </select>
           </div>
         </div>
         <div className="card-body order-list-body">
@@ -380,7 +399,17 @@ export default function OrderManagement() {
                       <div className="order-user-name">{item.userName || '未知用户'}</div>
                       <div className="order-user-phone">{item.userPhone || item.userId}</div>
                     </div>
-                    <div className="order-cell order-cell-product">{item.productName}</div>
+                    <div className="order-cell order-cell-product">
+                      <div className="order-product-name">{item.productName}</div>
+                      <div className="order-product-tags">
+                        {item.address && (
+                          <span className="order-product-tag address-tag" title="已填写收货地址"><MapPin size={10} /> 地址</span>
+                        )}
+                        {item.deliverables && item.deliverables.length > 0 && (
+                          <span className="order-product-tag deliverable-tag" title={`已上传 ${item.deliverables.length} 个交付物`}><FileText size={10} /> 交付物 {item.deliverables.length}</span>
+                        )}
+                      </div>
+                    </div>
                     <div className="order-cell">{typeLabelMap[item.type]}</div>
                     <div className="order-cell order-cell-amount">¥{item.amount.toLocaleString()}</div>
                     <div className="order-cell">

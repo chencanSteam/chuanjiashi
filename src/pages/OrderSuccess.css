@@ -81,6 +81,30 @@
   color: #2563eb;
 }
 
+.order-success-order-id {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: monospace;
+}
+
+.order-success-copy {
+  padding: 4px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.order-success-copy:hover {
+  background: var(--bg-secondary);
+  color: var(--primary);
+}
+
 .order-success-tips {
   display: inline-flex;
   align-items: center;

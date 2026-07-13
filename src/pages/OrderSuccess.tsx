@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { CheckCircle, Package, FileText, ArrowRight, ShoppingBag } from 'lucide-react';
+import { CheckCircle, Package, FileText, ArrowRight, ShoppingBag, Copy } from 'lucide-react';
 import { orderApi } from '../api/order';
+import { useToast } from '../hooks/useToast';
 import type { Order } from '../mocks/types';
 import './OrderSuccess.css';
 
 export default function OrderSuccess() {
   const navigate = useNavigate();
+  const { addToast } = useToast();
   const [searchParams] = useSearchParams();
   const orderId = searchParams.get('orderId') || '';
   const [order, setOrder] = useState<Order | null>(null);
@@ -41,7 +43,12 @@ export default function OrderSuccess() {
           <div className="order-success-info">
             <div className="order-success-row">
               <span>订单号</span>
-              <span>{order.id}</span>
+              <span className="order-success-order-id">
+                {order.id}
+                <button className="order-success-copy" onClick={() => { navigator.clipboard.writeText(order.id); addToast('订单号已复制', 'success'); }}>
+                  <Copy size={12} />
+                </button>
+              </span>
             </div>
             <div className="order-success-row">
               <span>商品</span>
@@ -80,7 +87,7 @@ export default function OrderSuccess() {
         </div>
 
         <div className="order-success-actions">
-          <button className="btn btn-primary" onClick={() => navigate('/my-biographer-orders')}>
+          <button className="btn btn-primary" onClick={() => navigate('/my-orders')}>
             查看我的订单 <ArrowRight size={14} />
           </button>
           <button className="btn btn-outline" onClick={() => navigate('/store')}>
