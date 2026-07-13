@@ -279,6 +279,30 @@
   color: #1B5E4B;
 }
 
+.store-order-archive {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: rgba(184, 134, 11, 0.08);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+}
+
+.store-order-archive strong {
+  color: var(--text);
+}
+
+.store-order-archive-type {
+  font-size: 11px;
+  padding: 2px 6px;
+  background: #fff;
+  border-radius: 4px;
+  color: var(--text-muted);
+}
+
 .store-order-address {
   margin-bottom: 16px;
 }

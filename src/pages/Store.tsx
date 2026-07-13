@@ -4,9 +4,10 @@ import { ShoppingBag, Check, Package, QrCode, BookOpen, Video, UserCircle2, Gift
 import { productApi } from '../api/product';
 import { orderApi } from '../api/order';
 import { paymentApi } from '../api/payment';
+import { archiveApi } from '../api/archive';
 import { useToast } from '../hooks/useToast';
 import { useAuth } from '../hooks/useAuth';
-import type { ProductPackage, OrderAddress } from '../mocks/types';
+import type { ProductPackage, OrderAddress, Archive } from '../mocks/types';
 import './Store.css';
 
 const categoryMap: Record<string, { label: string; icon: typeof Package }> = {
@@ -43,6 +44,7 @@ export default function Store() {
   const [paying, setPaying] = useState(false);
   const [keyword, setKeyword] = useState('');
   const [sort, setSort] = useState<'default' | 'price_asc' | 'price_desc'>('default');
+  const [linkedArchive, setLinkedArchive] = useState<Archive | null>(null);
 
   const activeCategory = searchParams.get('category') || 'all';
   const archiveId = searchParams.get('archiveId') || undefined;
@@ -73,6 +75,17 @@ export default function Store() {
       }
     }
   }, []);
+
+  useEffect(() => {
+    if (!archiveId) {
+      setLinkedArchive(null);
+      return;
+    }
+    archiveApi
+      .get(archiveId)
+      .then(setLinkedArchive)
+      .catch(() => setLinkedArchive(null));
+  }, [archiveId]);
 
   const filtered = useMemo(() => {
     let list = products;
@@ -241,6 +254,13 @@ export default function Store() {
                   <div className="store-order-price">¥{selected.price.toLocaleString()}</div>
                 </div>
               </div>
+
+              {linkedArchive && (
+                <div className="store-order-archive">
+                  <strong>关联档案：</strong>{linkedArchive.name}
+                  <span className="store-order-archive-type">{linkedArchive.type === 'self' ? '本人' : linkedArchive.relation || '亲友'}</span>
+                </div>
+              )}
 
               {needsAddress(selected.type) && (
                 <div className="store-order-address">
