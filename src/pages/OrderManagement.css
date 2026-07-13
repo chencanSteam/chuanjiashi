@@ -267,6 +267,7 @@
 .order-detail-label {
   font-size: 13px;
   color: var(--text-muted);
+  flex-shrink: 0;
 }
 
 .order-detail-value {
@@ -371,4 +372,90 @@
 
 .admin-bio-progress-node.done .admin-bio-progress-dot {
   background: #1B5E4B;
+}
+
+/* 追加：履约表单与交付物 */
+
+.order-form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.order-form-row label {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.order-form-required {
+  color: #ef4444;
+}
+
+.order-form-row input,
+.order-form-row select {
+  padding: 9px 12px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+  font-size: 14px;
+  color: var(--text);
+  background: var(--card-bg);
+  outline: none;
+}
+
+.order-form-row input:focus,
+.order-form-row select:focus {
+  border-color: var(--primary);
+}
+
+.order-deliverable-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.order-deliverable-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius);
+}
+
+.order-deliverable-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.order-deliverable-name {
+  font-size: 13px;
+  color: var(--text);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.order-deliverable-type {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.order-deliverable-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #2563eb;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+.order-deliverable-link:hover {
+  text-decoration: underline;
 }

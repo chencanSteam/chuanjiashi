@@ -71,6 +71,7 @@ const contentCards = [
   { title: '家风故事库', desc: '管理家风故事，支持AI扩写与润色', btn: '故事管理', path: '/family-hall/story-library' },
   { title: '家风测评', desc: '构建家风测评问卷，评估家风传承', btn: '创建测评', path: '/family-hall/assessment' },
   { title: '最美家庭评选', desc: '发起评选活动，展示榜样力量', btn: '发起评选', path: '/family-hall/activity' },
+  { title: '家风衍生品', desc: '把家风馆内容定制成纪念册、礼盒、二维码等实物', btn: '去定制', path: '/store?category=derivative' },
 ];
 
 const oralStats = [

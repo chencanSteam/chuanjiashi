@@ -31,6 +31,7 @@ import {
   PenLine,
   UserCheck,
   ClipboardList,
+  ShoppingBag,
 } from 'lucide-react';
 import Avatar from './ui/Avatar';
 import { useAuth } from '../hooks/useAuth';
@@ -61,6 +62,7 @@ const baseNavItemsFull: NavItem[] = [
   { to: '/my-works', icon: BookMarked, label: '我的传记' },
   { to: '/biographers', icon: UserCheck, label: '找传记师' },
   { to: '/my-biographer-orders', icon: ClipboardList, label: '我的订单' },
+  { to: '/store', icon: ShoppingBag, label: '传家商城' },
   { to: '/family', icon: Users, label: '家庭空间' },
   { to: '/genealogy', icon: GitFork, label: '数字家谱' },
   { to: '/family-hall', icon: Landmark, label: 'AI家风馆' },
@@ -77,6 +79,7 @@ const baseNavItemsMVP: NavItem[] = [
   { to: '/my-works', icon: BookMarked, label: '我的传记' },
   { to: '/biographers', icon: UserCheck, label: '找传记师' },
   { to: '/my-biographer-orders', icon: ClipboardList, label: '我的订单' },
+  { to: '/store', icon: ShoppingBag, label: '传家商城' },
   { to: '/digital-person', icon: UserCircle2, label: '数字人' },
 ];
 

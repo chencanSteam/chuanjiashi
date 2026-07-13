@@ -1,0 +1,93 @@
+import { useEffect, useState } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { CheckCircle, Package, FileText, ArrowRight, ShoppingBag } from 'lucide-react';
+import { orderApi } from '../api/order';
+import type { Order } from '../mocks/types';
+import './OrderSuccess.css';
+
+export default function OrderSuccess() {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const orderId = searchParams.get('orderId') || '';
+  const [order, setOrder] = useState<Order | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!orderId) {
+      setLoading(false);
+      return;
+    }
+    orderApi
+      .get(orderId)
+      .then(setOrder)
+      .catch(() => setOrder(null))
+      .finally(() => setLoading(false));
+  }, [orderId]);
+
+  const needsAddress = order?.type === 'book' || order?.type === 'derivative';
+
+  return (
+    <div className="order-success-page">
+      <div className="order-success-card">
+        <div className="order-success-icon">
+          <CheckCircle size={48} />
+        </div>
+        <h1 className="order-success-title">支付成功</h1>
+        <p className="order-success-subtitle">感谢您对传家世的信任，我们已收到您的订单</p>
+
+        {loading ? (
+          <div className="order-success-loading">加载订单信息…</div>
+        ) : order ? (
+          <div className="order-success-info">
+            <div className="order-success-row">
+              <span>订单号</span>
+              <span>{order.id}</span>
+            </div>
+            <div className="order-success-row">
+              <span>商品</span>
+              <span>{order.productName}</span>
+            </div>
+            <div className="order-success-row">
+              <span>实付金额</span>
+              <span className="order-success-amount">¥{order.amount.toLocaleString()}</span>
+            </div>
+            <div className="order-success-row">
+              <span>当前状态</span>
+              <span className="order-success-status">已支付，等待商家履约</span>
+            </div>
+          </div>
+        ) : (
+          <div className="order-success-info">
+            <div className="order-success-row">
+              <span>当前状态</span>
+              <span className="order-success-status">已支付，等待商家履约</span>
+            </div>
+          </div>
+        )}
+
+        <div className="order-success-tips">
+          {needsAddress ? (
+            <>
+              <Package size={16} />
+              <span>实体商品将在 1-3 个工作日内发货，您可在「我的订单」中查看物流进度。</span>
+            </>
+          ) : (
+            <>
+              <FileText size={16} />
+              <span>数字服务将在确认后生成，您可在「我的订单」中查看交付物。</span>
+            </>
+          )}
+        </div>
+
+        <div className="order-success-actions">
+          <button className="btn btn-primary" onClick={() => navigate('/my-biographer-orders')}>
+            查看我的订单 <ArrowRight size={14} />
+          </button>
+          <button className="btn btn-outline" onClick={() => navigate('/store')}>
+            <ShoppingBag size={14} /> 继续逛逛
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -112,6 +112,16 @@
   border-color: rgba(27, 94, 75, 0.4);
 }
 
+.work-store {
+  color: #b8860b;
+  border-color: rgba(184, 134, 11, 0.25);
+}
+
+.work-store:hover {
+  background: rgba(184, 134, 11, 0.08);
+  border-color: rgba(184, 134, 11, 0.5);
+}
+
 .work-delete {
   color: #9ca3af;
   transition: color 0.2s;

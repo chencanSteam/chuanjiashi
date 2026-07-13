@@ -126,7 +126,7 @@ export interface DigitalPerson {
 
 // ========== 商业化类型 ==========
 
-export type ProductType = 'biography' | 'digital_person' | 'video' | 'qrcode' | 'book' | 'biographer_service'
+export type ProductType = 'biography' | 'digital_person' | 'video' | 'qrcode' | 'book' | 'biographer_service' | 'derivative'
 
 export interface ProductPackage {
   id: string
@@ -140,7 +140,29 @@ export interface ProductPackage {
 }
 
 export type OrderStatus = 'pending_pay' | 'paid' | 'delivering' | 'completed' | 'refunded' | 'closed'
-export type OrderType = 'biography' | 'digital_person' | 'video' | 'qrcode' | 'book' | 'biographer_service' | 'group_buy'
+export type OrderType = 'biography' | 'digital_person' | 'video' | 'qrcode' | 'book' | 'biographer_service' | 'group_buy' | 'derivative'
+
+export interface OrderAddress {
+  name: string
+  phone: string
+  province: string
+  city: string
+  district: string
+  detail: string
+}
+
+export interface OrderLogistics {
+  company: string
+  trackingNo: string
+  shippedAt: string
+}
+
+export interface Deliverable {
+  type: 'pdf' | 'video' | 'qrcode' | 'link' | 'image'
+  url: string
+  name: string
+  createdAt: string
+}
 
 export interface Order {
   id: string
@@ -151,6 +173,11 @@ export interface Order {
   productName: string
   amount: number
   status: OrderStatus
+  sku?: string
+  remark?: string
+  address?: OrderAddress
+  logistics?: OrderLogistics
+  deliverables?: Deliverable[]
   payTime?: string
   createdAt: string
   updatedAt: string

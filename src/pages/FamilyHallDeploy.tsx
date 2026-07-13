@@ -1,4 +1,4 @@
-import { ArrowLeft, Link, QrCode, Share2, Code } from 'lucide-react';
+import { ArrowLeft, Link, QrCode, Share2, Code, ShoppingBag, Crown } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../hooks/useToast';
@@ -53,6 +53,13 @@ export default function FamilyHallDeploy() {
             <div className="deploy-qrcode">
               <QrCode size={120} />
               <div className="deploy-qrcode-tip">微信扫码访问家风馆</div>
+              <div className="deploy-qrcode-upgrade">
+                <Crown size={14} />
+                <span>需要高清永久二维码、访问统计、铭牌授权？</span>
+                <button className="btn btn-outline btn-sm" onClick={() => navigate('/store?category=qrcode')}>
+                  <ShoppingBag size={12} /> 购买永久二维码
+                </button>
+              </div>
             </div>
           )}
           {active === 'poster' && (

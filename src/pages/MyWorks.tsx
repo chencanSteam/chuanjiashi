@@ -196,9 +196,17 @@ export default function MyWorks() {
                     <ChevronRight size={14} />
                   </button>
                   {canPublish(work) && (
-                    <button className="btn btn-outline btn-sm work-publish" onClick={() => setPublishingWork(work)}>
-                      <UploadCloud size={14} /> 上架
-                    </button>
+                    <>
+                      <button className="btn btn-outline btn-sm work-publish" onClick={() => setPublishingWork(work)}>
+                        <UploadCloud size={14} /> 上架
+                      </button>
+                      <button
+                        className="btn btn-outline btn-sm work-store"
+                        onClick={() => navigate(`/store?category=book&archiveId=${work.id}`)}
+                      >
+                        <BookOpen size={14} /> 制作实体书
+                      </button>
+                    </>
                   )}
                   <button
                     className="icon-btn work-delete"

@@ -2,6 +2,10 @@ import {
   Mic,
   Users,
   ChevronRight,
+  ShoppingBag,
+  TreePine,
+  Cpu,
+  ArrowRight,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useMemo, useEffect, useState } from 'react';
@@ -298,6 +302,45 @@ export default function Home() {
               <path d="M400,305 Q450,300 500,305" />
             </g>
           </svg>
+        </div>
+      </section>
+
+      <section className="home-services">
+        <div className="service-card" onClick={() => navigate('/store')}>
+          <div className="service-icon" style={{ background: 'rgba(184,134,11,0.1)', color: '#b8860b' }}><ShoppingBag size={22} /></div>
+          <div className="service-info">
+            <h4>传承商城</h4>
+            <p>实体书 · 纪念册 · 家风礼盒 · 永久二维码</p>
+          </div>
+          <ArrowRight size={16} className="service-arrow" />
+        </div>
+        {!isMVP && (
+          <>
+            <div className="service-card" onClick={() => navigate('/family-hall')}>
+              <div className="service-icon" style={{ background: 'rgba(45,90,74,0.1)', color: '#2d5a4a' }}><TreePine size={22} /></div>
+              <div className="service-info">
+                <h4>AI 家风馆</h4>
+                <p>家训族规 · 家风故事 · 纪念册</p>
+              </div>
+              <ArrowRight size={16} className="service-arrow" />
+            </div>
+            <div className="service-card" onClick={() => navigate('/digital-life')}>
+              <div className="service-icon" style={{ background: 'rgba(59,130,246,0.1)', color: '#3b82f6' }}><Cpu size={22} /></div>
+              <div className="service-info">
+                <h4>数字人生</h4>
+                <p>数字陪伴 · 语音互动 · 家族记忆</p>
+              </div>
+              <ArrowRight size={16} className="service-arrow" />
+            </div>
+          </>
+        )}
+        <div className="service-card" onClick={() => navigate('/family')}>
+          <div className="service-icon" style={{ background: 'rgba(217,119,6,0.1)', color: '#d97706' }}><Users size={22} /></div>
+          <div className="service-info">
+            <h4>家庭空间</h4>
+            <p>成员档案 · 相册 · 时间轴</p>
+          </div>
+          <ArrowRight size={16} className="service-arrow" />
         </div>
       </section>
 

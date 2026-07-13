@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Search, ShoppingCart, CreditCard, Package, CheckCircle, AlertCircle, Clock, XCircle, Eye, X, UserCheck, Calendar, MapPin } from 'lucide-react';
+import { Search, ShoppingCart, CreditCard, Package, CheckCircle, AlertCircle, Clock, XCircle, Eye, X, UserCheck, Calendar, MapPin, Truck, Upload, FileText, ExternalLink } from 'lucide-react';
 import { orderApi, type AdminOrder } from '../api/order';
 import { biographerApi } from '../api/biographer';
 import { useToast } from '../hooks/useToast';
-import type { BiographerOrder } from '../mocks/types';
+import type { BiographerOrder, Deliverable, OrderLogistics } from '../mocks/types';
 import './OrderManagement.css';
 
 const statusOptions: Array<{ value: AdminOrder['status'] | 'all'; label: string }> = [
@@ -33,6 +33,7 @@ const typeLabelMap: Record<AdminOrder['type'], string> = {
   book: '实体书',
   biographer_service: '传记师服务',
   group_buy: '团购',
+  derivative: '衍生品',
 };
 
 interface OrderAction {
@@ -41,19 +42,16 @@ interface OrderAction {
   variant: 'primary' | 'danger' | 'outline';
 }
 
-const allowedActions: Record<AdminOrder['status'], OrderAction[]> = {
-  pending_pay: [{ status: 'closed', label: '关闭订单', variant: 'danger' }],
-  paid: [
-    { status: 'delivering', label: '开始服务', variant: 'primary' },
-    { status: 'refunded', label: '退款', variant: 'danger' },
-  ],
-  delivering: [
-    { status: 'completed', label: '完成服务', variant: 'primary' },
-    { status: 'refunded', label: '退款', variant: 'danger' },
-  ],
-  completed: [{ status: 'refunded', label: '退款', variant: 'danger' }],
-  refunded: [],
-  closed: [],
+const isPhysicalProduct = (type: AdminOrder['type']) => type === 'book' || type === 'derivative';
+const isDigitalProduct = (type: AdminOrder['type']) => ['qrcode', 'video', 'digital_person', 'biography'].includes(type);
+
+const deliverableTypeOptions: Deliverable['type'][] = ['pdf', 'video', 'qrcode', 'link', 'image'];
+const deliverableTypeLabels: Record<Deliverable['type'], string> = {
+  pdf: 'PDF 文件',
+  video: '视频文件',
+  qrcode: '二维码',
+  link: '链接',
+  image: '图片',
 };
 
 export default function OrderManagement() {
@@ -66,6 +64,12 @@ export default function OrderManagement() {
   const [selectedBiographerOrder, setSelectedBiographerOrder] = useState<BiographerOrder | null>(null);
   const [loadingBioOrder, setLoadingBioOrder] = useState(false);
   const [confirmAction, setConfirmAction] = useState<{ order: AdminOrder; action: OrderAction } | null>(null);
+
+  const [deliverModalOrder, setDeliverModalOrder] = useState<AdminOrder | null>(null);
+  const [logistics, setLogistics] = useState<OrderLogistics>({ company: '', trackingNo: '', shippedAt: new Date().toISOString().slice(0, 16) });
+
+  const [deliverableModalOrder, setDeliverableModalOrder] = useState<AdminOrder | null>(null);
+  const [deliverable, setDeliverable] = useState<Deliverable>({ type: 'link', url: '', name: '', createdAt: new Date().toISOString() });
 
   useEffect(() => {
     loadOrders();
@@ -135,14 +139,80 @@ export default function OrderManagement() {
     }
   };
 
+  const handleDeliver = async () => {
+    if (!deliverModalOrder) return;
+    if (!logistics.company.trim() || !logistics.trackingNo.trim()) {
+      addToast('请填写物流公司和运单号', 'error');
+      return;
+    }
+    try {
+      await orderApi.adminDeliver(deliverModalOrder.id, { ...logistics, shippedAt: new Date().toISOString() });
+      addToast('物流信息已保存，订单进入服务中', 'success');
+      setDeliverModalOrder(null);
+      setLogistics({ company: '', trackingNo: '', shippedAt: new Date().toISOString().slice(0, 16) });
+      loadOrders();
+    } catch (err: any) {
+      addToast(err.message || '发货失败', 'error');
+    }
+  };
+
+  const handleAddDeliverable = async () => {
+    if (!deliverableModalOrder) return;
+    if (!deliverable.url.trim() || !deliverable.name.trim()) {
+      addToast('请填写交付物名称和链接/地址', 'error');
+      return;
+    }
+    try {
+      await orderApi.adminAddDeliverable(deliverableModalOrder.id, { ...deliverable, createdAt: new Date().toISOString() });
+      addToast('交付物已上传', 'success');
+      setDeliverableModalOrder(null);
+      setDeliverable({ type: 'link', url: '', name: '', createdAt: new Date().toISOString() });
+      loadOrders();
+    } catch (err: any) {
+      addToast(err.message || '上传失败', 'error');
+    }
+  };
+
   const renderActionButtons = (item: AdminOrder) => {
-    const actions = allowedActions[item.status];
+    const statusActions: OrderAction[] = [];
+
+    if (item.status === 'paid') {
+      statusActions.push({ status: 'refunded', label: '退款', variant: 'danger' });
+    } else if (item.status === 'delivering') {
+      statusActions.push(
+        { status: 'completed', label: '完成服务', variant: 'primary' },
+        { status: 'refunded', label: '退款', variant: 'danger' }
+      );
+    } else if (item.status === 'completed') {
+      statusActions.push({ status: 'refunded', label: '退款', variant: 'danger' });
+    } else if (item.status === 'pending_pay') {
+      statusActions.push({ status: 'closed', label: '关闭订单', variant: 'danger' });
+    }
+
     return (
       <div className="order-actions">
         <button className="order-action-btn order-action-view" onClick={() => handleViewDetail(item)}>
           <Eye size={12} /> 详情
         </button>
-        {actions.map((action) => (
+        {item.status === 'paid' && isPhysicalProduct(item.type) && (
+          <button className="order-action-btn order-action-primary" onClick={() => setDeliverModalOrder(item)}>
+            <Truck size={12} /> 发货
+          </button>
+        )}
+        {item.status === 'paid' && isDigitalProduct(item.type) && (
+          <button className="order-action-btn order-action-primary" onClick={() => setDeliverableModalOrder(item)}>
+            <Upload size={12} /> 上传交付物
+          </button>
+        )}
+        {item.status === 'paid' && !isPhysicalProduct(item.type) && !isDigitalProduct(item.type) && (
+          <button
+            className="order-action-btn order-action-primary"
+            onClick={() => setConfirmAction({ order: item, action: { status: 'delivering', label: '开始服务', variant: 'primary' } })}
+          >
+            开始服务
+          </button>
+        )}
+        {statusActions.map((action) => (
           <button
             key={action.status}
             className={`order-action-btn order-action-${action.variant}`}
@@ -152,6 +222,78 @@ export default function OrderManagement() {
           </button>
         ))}
       </div>
+    );
+  };
+
+  const renderAddress = (order: AdminOrder) => {
+    if (!order.address) return null;
+    const { name, phone, province, city, district, detail } = order.address;
+    return (
+      <>
+        <div className="order-detail-divider" />
+        <div className="order-detail-section">
+          <h5><MapPin size={14} /> 收货地址</h5>
+          <div className="order-detail-row">
+            <span className="order-detail-label">收件人</span>
+            <span className="order-detail-value">{name} {phone}</span>
+          </div>
+          <div className="order-detail-row">
+            <span className="order-detail-label">地址</span>
+            <span className="order-detail-value" style={{ maxWidth: 260, lineHeight: 1.5 }}>
+              {province}{city}{district}{detail}
+            </span>
+          </div>
+        </div>
+      </>
+    );
+  };
+
+  const renderLogistics = (order: AdminOrder) => {
+    if (!order.logistics) return null;
+    return (
+      <>
+        <div className="order-detail-divider" />
+        <div className="order-detail-section">
+          <h5><Truck size={14} /> 物流信息</h5>
+          <div className="order-detail-row">
+            <span className="order-detail-label">物流公司</span>
+            <span className="order-detail-value">{order.logistics.company}</span>
+          </div>
+          <div className="order-detail-row">
+            <span className="order-detail-label">运单号</span>
+            <span className="order-detail-value">{order.logistics.trackingNo}</span>
+          </div>
+          <div className="order-detail-row">
+            <span className="order-detail-label">发货时间</span>
+            <span className="order-detail-value">{new Date(order.logistics.shippedAt).toLocaleString()}</span>
+          </div>
+        </div>
+      </>
+    );
+  };
+
+  const renderDeliverables = (order: AdminOrder) => {
+    if (!order.deliverables || order.deliverables.length === 0) return null;
+    return (
+      <>
+        <div className="order-detail-divider" />
+        <div className="order-detail-section">
+          <h5><FileText size={14} /> 交付物</h5>
+          <div className="order-deliverable-list">
+            {order.deliverables.map((d, idx) => (
+              <div className="order-deliverable-item" key={idx}>
+                <div className="order-deliverable-info">
+                  <span className="order-deliverable-name">{d.name}</span>
+                  <span className="order-deliverable-type">{deliverableTypeLabels[d.type]}</span>
+                </div>
+                <a className="order-deliverable-link" href={d.url} target="_blank" rel="noreferrer">
+                  <ExternalLink size={12} /> 查看
+                </a>
+              </div>
+            ))}
+          </div>
+        </div>
+      </>
     );
   };
 
@@ -278,6 +420,12 @@ export default function OrderManagement() {
                 <span className="order-detail-label">商品/服务</span>
                 <span className="order-detail-value">{selectedOrder.productName}</span>
               </div>
+              {selectedOrder.sku && (
+                <div className="order-detail-row">
+                  <span className="order-detail-label">SKU</span>
+                  <span className="order-detail-value">{selectedOrder.sku}</span>
+                </div>
+              )}
               <div className="order-detail-row">
                 <span className="order-detail-label">类型</span>
                 <span className="order-detail-value">{typeLabelMap[selectedOrder.type]}</span>
@@ -304,6 +452,16 @@ export default function OrderManagement() {
                   <span className="order-detail-value">{new Date(selectedOrder.payTime).toLocaleString()}</span>
                 </div>
               )}
+              {selectedOrder.remark && (
+                <div className="order-detail-row">
+                  <span className="order-detail-label">备注</span>
+                  <span className="order-detail-value" style={{ maxWidth: 260, lineHeight: 1.5 }}>{selectedOrder.remark}</span>
+                </div>
+              )}
+
+              {renderAddress(selectedOrder)}
+              {renderLogistics(selectedOrder)}
+              {renderDeliverables(selectedOrder)}
 
               {selectedOrder.type === 'biographer_service' && (
                 <>
@@ -348,6 +506,87 @@ export default function OrderManagement() {
                   </div>
                 </>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deliverModalOrder && (
+        <div className="modal-overlay" onClick={() => setDeliverModalOrder(null)}>
+          <div className="modal-content order-detail-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h4>发货 - {deliverModalOrder.id}</h4>
+              <button className="modal-close" onClick={() => setDeliverModalOrder(null)}><X size={16} /></button>
+            </div>
+            <div className="modal-body">
+              <div className="order-form-row">
+                <label>物流公司 <span className="order-form-required">*</span></label>
+                <input
+                  type="text"
+                  value={logistics.company}
+                  onChange={(e) => setLogistics({ ...logistics, company: e.target.value })}
+                  placeholder="如：顺丰速运"
+                />
+              </div>
+              <div className="order-form-row">
+                <label>运单号 <span className="order-form-required">*</span></label>
+                <input
+                  type="text"
+                  value={logistics.trackingNo}
+                  onChange={(e) => setLogistics({ ...logistics, trackingNo: e.target.value })}
+                  placeholder="请输入快递单号"
+                />
+              </div>
+              <div className="order-detail-actions">
+                <button className="btn btn-outline" onClick={() => setDeliverModalOrder(null)}>取消</button>
+                <button className="btn btn-primary" onClick={handleDeliver}><Truck size={14} /> 确认发货</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deliverableModalOrder && (
+        <div className="modal-overlay" onClick={() => setDeliverableModalOrder(null)}>
+          <div className="modal-content order-detail-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h4>上传交付物 - {deliverableModalOrder.id}</h4>
+              <button className="modal-close" onClick={() => setDeliverableModalOrder(null)}><X size={16} /></button>
+            </div>
+            <div className="modal-body">
+              <div className="order-form-row">
+                <label>交付物类型</label>
+                <select
+                  value={deliverable.type}
+                  onChange={(e) => setDeliverable({ ...deliverable, type: e.target.value as Deliverable['type'] })}
+                >
+                  {deliverableTypeOptions.map((t) => (
+                    <option value={t} key={t}>{deliverableTypeLabels[t]}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="order-form-row">
+                <label>名称 <span className="order-form-required">*</span></label>
+                <input
+                  type="text"
+                  value={deliverable.name}
+                  onChange={(e) => setDeliverable({ ...deliverable, name: e.target.value })}
+                  placeholder="如：纪念视频成片"
+                />
+              </div>
+              <div className="order-form-row">
+                <label>链接 / 地址 <span className="order-form-required">*</span></label>
+                <input
+                  type="text"
+                  value={deliverable.url}
+                  onChange={(e) => setDeliverable({ ...deliverable, url: e.target.value })}
+                  placeholder="https://..."
+                />
+              </div>
+              <div className="order-detail-actions">
+                <button className="btn btn-outline" onClick={() => setDeliverableModalOrder(null)}>取消</button>
+                <button className="btn btn-primary" onClick={handleAddDeliverable}><Upload size={14} /> 确认上传</button>
+              </div>
             </div>
           </div>
         </div>

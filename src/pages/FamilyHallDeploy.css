@@ -67,6 +67,23 @@
   color: #6b7280;
 }
 
+.deploy-qrcode-upgrade {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 20px;
+  padding: 12px 16px;
+  background: #fffdf5;
+  border: 1px solid #ffecb3;
+  border-radius: 12px;
+  color: #92400e;
+  font-size: 13px;
+}
+
+.deploy-qrcode-upgrade svg {
+  color: #b8860b;
+}
+
 .deploy-poster {
   text-align: center;
 }

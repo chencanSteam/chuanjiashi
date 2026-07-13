@@ -1,7 +1,7 @@
 import { http, type HttpHandler } from 'msw'
 import { success, unauthorized, notFound } from '../utils/response'
 import { getItem, setItem, generateId, storeKeys } from '../utils/store'
-import type { Order, OrderStatus, User } from '../types'
+import type { Order, OrderStatus, User, Deliverable, OrderLogistics } from '../types'
 
 function getCurrentUserId(): string | null {
   const user = getItem<{ id: string } | null>(storeKeys.currentUser, null)
@@ -30,6 +30,9 @@ export function createOrder(userId: string, data: Partial<Order>): Order {
     productId: data.productId || '',
     productName: data.productName || '未知商品',
     amount: data.amount || 0,
+    sku: data.sku,
+    remark: data.remark,
+    address: data.address,
     status: 'pending_pay',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -165,5 +168,34 @@ export const orderHandlers: HttpHandler[] = [
     if (status === 'paid' && !order.payTime) order.payTime = new Date().toISOString()
     saveOrder(order)
     return success({ ...order, ...getOrderUserInfo(order) })
+  }),
+
+  http.put('/api/admin/orders/:id/deliver', async ({ request, params }) => {
+    const userId = getCurrentUserId()
+    if (!userId) return unauthorized()
+    const order = findOrder(params.id as string)
+    if (!order) return notFound('订单不存在')
+    if (!['book', 'derivative'].includes(order.type)) {
+      return success(order, '当前订单类型不支持物流发货')
+    }
+    const { logistics } = (await request.json()) as { logistics: OrderLogistics }
+    order.logistics = logistics
+    order.status = 'delivering'
+    order.updatedAt = new Date().toISOString()
+    saveOrder(order)
+    return success({ ...order, ...getOrderUserInfo(order) }, '物流信息已保存')
+  }),
+
+  http.put('/api/admin/orders/:id/deliverable', async ({ request, params }) => {
+    const userId = getCurrentUserId()
+    if (!userId) return unauthorized()
+    const order = findOrder(params.id as string)
+    if (!order) return notFound('订单不存在')
+    const { deliverable } = (await request.json()) as { deliverable: Deliverable }
+    order.deliverables = [...(order.deliverables || []), deliverable]
+    if (order.status === 'paid') order.status = 'delivering'
+    order.updatedAt = new Date().toISOString()
+    saveOrder(order)
+    return success({ ...order, ...getOrderUserInfo(order) }, '交付物已上传')
   }),
 ]

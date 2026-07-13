@@ -23,6 +23,7 @@ import {
   ArrowLeft,
   ArrowRight,
   Check,
+  Crown,
 } from 'lucide-react';
 import Avatar from '../components/ui/Avatar';
 import Modal from '../components/ui/Modal';
@@ -622,6 +623,9 @@ export default function DigitalLife() {
       <header className="page-header digital-header">
         <h1 className="page-title">数字人</h1>
         <div className="page-actions">
+          <button className="btn btn-outline" style={{ color: '#b8860b', borderColor: 'rgba(184,134,11,0.3)' }} onClick={() => navigate('/store?category=digital_person')}>
+            <Crown size={14} /> 升级陪伴版
+          </button>
           <button className="btn btn-primary" onClick={openWizard}><Plus size={14} /> 创建数字亲人</button>
           <button className="btn btn-outline" onClick={() => navigate('/settings/help')}>使用指南</button>
         </div>
