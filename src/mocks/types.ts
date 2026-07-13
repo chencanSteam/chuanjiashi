@@ -269,6 +269,9 @@ export interface Biographer {
   services: BiographerService[]
   cases: BiographerCase[]
   status: 'pending' | 'approved' | 'rejected' | 'suspended'
+  certificationLevel: BiographerCertificationLevel
+  rating: number
+  reviewCount: number
   deposit: number
   createdAt: string
   updatedAt?: string
@@ -288,9 +291,34 @@ export interface BiographerCase {
   summary: string
 }
 
+export type BiographerCertificationLevel = 'gold' | 'silver' | 'standard'
+
+export interface BiographerReview {
+  id: string
+  biographerId: string
+  userId: string
+  userName: string
+  userAvatar?: string
+  orderId: string
+  rating: number
+  content: string
+  tags?: string[]
+  createdAt: string
+}
+
+export interface BiographerBookingForm {
+  interviewee: string
+  relation: string
+  preferredTime: string
+  location: string
+  contactPhone: string
+  remark: string
+}
+
 export interface BiographerOrder {
   id: string
   userId: string
+  orderId?: string
   biographerId: string
   serviceId: string
   serviceName: string

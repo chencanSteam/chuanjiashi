@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Search, ShoppingCart, CreditCard, Package, CheckCircle, AlertCircle, Clock, XCircle, Eye, X } from 'lucide-react';
+import { Search, ShoppingCart, CreditCard, Package, CheckCircle, AlertCircle, Clock, XCircle, Eye, X, UserCheck, Calendar, MapPin } from 'lucide-react';
 import { orderApi, type AdminOrder } from '../api/order';
+import { biographerApi } from '../api/biographer';
 import { useToast } from '../hooks/useToast';
+import type { BiographerOrder } from '../mocks/types';
 import './OrderManagement.css';
 
 const statusOptions: Array<{ value: AdminOrder['status'] | 'all'; label: string }> = [
@@ -61,6 +63,8 @@ export default function OrderManagement() {
   const [statusFilter, setStatusFilter] = useState<AdminOrder['status'] | 'all'>('all');
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(null);
+  const [selectedBiographerOrder, setSelectedBiographerOrder] = useState<BiographerOrder | null>(null);
+  const [loadingBioOrder, setLoadingBioOrder] = useState(false);
   const [confirmAction, setConfirmAction] = useState<{ order: AdminOrder; action: OrderAction } | null>(null);
 
   useEffect(() => {
@@ -114,11 +118,28 @@ export default function OrderManagement() {
     }
   };
 
+  const handleViewDetail = async (item: AdminOrder) => {
+    setSelectedOrder(item);
+    if (item.type === 'biographer_service') {
+      setLoadingBioOrder(true);
+      try {
+        const bioOrder = await biographerApi.adminGetBiographerOrderByOrderId(item.id);
+        setSelectedBiographerOrder(bioOrder);
+      } catch {
+        setSelectedBiographerOrder(null);
+      } finally {
+        setLoadingBioOrder(false);
+      }
+    } else {
+      setSelectedBiographerOrder(null);
+    }
+  };
+
   const renderActionButtons = (item: AdminOrder) => {
     const actions = allowedActions[item.status];
     return (
       <div className="order-actions">
-        <button className="order-action-btn order-action-view" onClick={() => setSelectedOrder(item)}>
+        <button className="order-action-btn order-action-view" onClick={() => handleViewDetail(item)}>
           <Eye size={12} /> 详情
         </button>
         {actions.map((action) => (
@@ -236,11 +257,11 @@ export default function OrderManagement() {
       </div>
 
       {selectedOrder && (
-        <div className="modal-overlay" onClick={() => setSelectedOrder(null)}>
+        <div className="modal-overlay" onClick={() => { setSelectedOrder(null); setSelectedBiographerOrder(null); }}>
           <div className="modal-content order-detail-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h4>订单详情</h4>
-              <button className="modal-close" onClick={() => setSelectedOrder(null)}><X size={16} /></button>
+              <button className="modal-close" onClick={() => { setSelectedOrder(null); setSelectedBiographerOrder(null); }}><X size={16} /></button>
             </div>
             <div className="modal-body order-detail-body">
               <div className="order-detail-row">
@@ -282,6 +303,50 @@ export default function OrderManagement() {
                   <span className="order-detail-label">支付时间</span>
                   <span className="order-detail-value">{new Date(selectedOrder.payTime).toLocaleString()}</span>
                 </div>
+              )}
+
+              {selectedOrder.type === 'biographer_service' && (
+                <>
+                  <div className="order-detail-divider" />
+                  <div className="order-detail-section">
+                    <h5><UserCheck size={14} /> 传记师服务信息</h5>
+                    {loadingBioOrder ? (
+                      <div className="order-detail-loading">加载中…</div>
+                    ) : selectedBiographerOrder ? (
+                      <>
+                        <div className="order-detail-row">
+                          <span className="order-detail-label">定金金额</span>
+                          <span className="order-detail-value">¥{selectedBiographerOrder.deposit.toLocaleString()}</span>
+                        </div>
+                        {selectedBiographerOrder.schedule?.time && (
+                          <div className="order-detail-row">
+                            <span className="order-detail-label">采访安排</span>
+                            <span className="order-detail-value">
+                              <Calendar size={12} /> {selectedBiographerOrder.schedule.time}
+                              <br />
+                              <MapPin size={12} /> {selectedBiographerOrder.schedule.address}
+                            </span>
+                          </div>
+                        )}
+                        <div className="order-detail-row">
+                          <span className="order-detail-label">服务进度</span>
+                          <span className="order-detail-value">
+                            <div className="admin-bio-progress">
+                              {selectedBiographerOrder.progress.map((p) => (
+                                <div key={p.node} className={`admin-bio-progress-node ${p.status}`}>
+                                  <div className="admin-bio-progress-dot" />
+                                  <span>{p.node}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </span>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="order-detail-empty">未找到关联的传记师订单</div>
+                    )}
+                  </div>
+                </>
               )}
             </div>
           </div>

@@ -1,41 +1,62 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { MapPin, Star, Award, Phone, Mail, BookOpen, Image, CheckCircle, MessageCircle, Calendar, Briefcase, Edit2, ArrowLeft, X, ShoppingCart } from 'lucide-react';
+import { MapPin, Star, Award, Phone, Mail, BookOpen, Image, CheckCircle, MessageCircle, Calendar, Briefcase, Edit2, ArrowLeft, X, ShoppingCart, ThumbsUp, Users, User, Clock, FileText, Home } from 'lucide-react';
 import { biographerApi } from '../api/biographer';
+import { paymentApi } from '../api/payment';
+import { useToast } from '../hooks/useToast';
 import { useAuth } from '../hooks/useAuth';
-import type { Biographer as MockBiographer } from '../mocks/types';
+import type { Biographer as MockBiographer, BiographerReview, BiographerService, BiographerBookingForm } from '../mocks/types';
 import './BiographerProfile.css';
-
-const demoReviews = [
-  { name: '张先生', rating: 5, text: '李老师非常专业，帮父亲整理了七十多年的人生经历，家人都非常感动。' },
-  { name: '王女士', rating: 5, text: '从采访到成书整个过程很顺畅，传记质量超出预期，已经推荐给朋友。' },
-  { name: '陈先生', rating: 5, text: '为我们家族三代人做了系统梳理，把零散的故事串成了完整的家族记忆。' },
-];
 
 interface BiographerProfileProps {
   biographerId?: string;
   embedded?: boolean;
   onClose?: () => void;
-  onBookService?: (service: MockBiographer['services'][number]) => void;
+  onBookService?: (service: BiographerService, formData: BiographerBookingForm) => Promise<void>;
 }
+
+const emptyBookingForm: BiographerBookingForm = {
+  interviewee: '',
+  relation: '',
+  preferredTime: '',
+  location: '',
+  contactPhone: '',
+  remark: '',
+};
 
 export default function BiographerProfile({ biographerId, embedded, onClose, onBookService }: BiographerProfileProps) {
   const navigate = useNavigate();
+  const { addToast } = useToast();
   const { id: paramId } = useParams<{ id?: string }>();
   const id = biographerId ?? paramId;
   const { user } = useAuth();
   const [biographer, setBiographer] = useState<MockBiographer | null>(null);
+  const [reviews, setReviews] = useState<BiographerReview[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const [bookingService, setBookingService] = useState<BiographerService | null>(null);
+  const [bookingForm, setBookingForm] = useState<BiographerBookingForm>(emptyBookingForm);
+  const [bookingSubmitting, setBookingSubmitting] = useState(false);
 
   const isOwnProfile = !id || (biographer && user?.phone === biographer.phone);
 
   useEffect(() => {
-    const fetch = id ? biographerApi.get(id) : biographerApi.me();
-    fetch
-      .then(setBiographer)
-      .catch(() => setBiographer(null))
+    const fetchBio = id ? biographerApi.get(id) : biographerApi.me();
+    const fetchReviews = id ? biographerApi.getReviews(id) : Promise.resolve([]);
+    Promise.all([fetchBio, fetchReviews])
+      .then(([bio, revs]) => {
+        setBiographer(bio);
+        setReviews(revs as BiographerReview[]);
+        if (user?.phone && !bookingForm.contactPhone) {
+          setBookingForm((prev) => ({ ...prev, contactPhone: user.phone || '' }));
+        }
+      })
+      .catch(() => {
+        setBiographer(null);
+        setReviews([]);
+      })
       .finally(() => setLoading(false));
-  }, [id]);
+  }, [id, user?.phone]);
 
   if (loading) {
     return <div className="partner-center-page"><div className="card"><div className="card-body">加载中...</div></div></div>;
@@ -53,10 +74,50 @@ export default function BiographerProfile({ biographerId, embedded, onClose, onB
 
   const statCards = [
     { value: `${biographer.experience || 0}`, label: '从业年限' },
-    { value: '200+', label: '服务家庭' },
-    { value: '98%', label: '好评率' },
-    { value: '150+', label: '完稿作品' },
+    { value: `${biographer.reviewCount || 0}`, label: '累计评价' },
+    { value: `${(biographer.rating || 5).toFixed(1)}`, label: '用户评分' },
+    { value: `${Math.round((biographer.rating || 5) / 5 * 100)}%`, label: '好评率' },
   ];
+
+  const recommendedIndex = useMemo(() => {
+    if (!biographer.services || biographer.services.length === 0) return -1;
+    const sorted = [...biographer.services].sort((a, b) => a.price - b.price);
+    return biographer.services.findIndex((s) => s.id === sorted[Math.floor(sorted.length / 2)]?.id);
+  }, [biographer.services]);
+
+  const handleBookClick = (service: BiographerService) => {
+    setBookingService(service);
+    setBookingForm((prev) => ({
+      ...emptyBookingForm,
+      contactPhone: prev.contactPhone || user?.phone || '',
+    }));
+  };
+
+  const handleBookingSubmit = async () => {
+    if (!bookingService || !biographer) return;
+    if (!bookingForm.interviewee || !bookingForm.relation || !bookingForm.preferredTime || !bookingForm.location || !bookingForm.contactPhone) {
+      addToast('请填写完整的预约信息', 'error');
+      return;
+    }
+    try {
+      setBookingSubmitting(true);
+      if (onBookService) {
+        await onBookService(bookingService, bookingForm);
+      } else {
+        const { order } = await biographerApi.createOrder(biographer.id, bookingService.id, bookingForm);
+        await paymentApi.pay((order as any).id, 'wechat');
+        addToast(`预约成功，请支付定金 ¥${biographer.deposit || Math.round(bookingService.price * 0.3)}`, 'success');
+      }
+      setBookingService(null);
+      if (embedded && onClose) onClose();
+    } catch (err: any) {
+      addToast(err.message || '预约失败', 'error');
+    } finally {
+      setBookingSubmitting(false);
+    }
+  };
+
+  const comparisonRights = ['采访次数', '传记字数', '交付周期', '实体书', '影像资料', '修改次数'];
 
   return (
     <div className="biographer-profile-page">
@@ -92,7 +153,11 @@ export default function BiographerProfile({ biographerId, embedded, onClose, onB
         )}
         <div className="biographer-profile-avatar-wrap">
           <div className="biographer-profile-avatar">{avatarContent}</div>
-          <div className="biographer-profile-verified"><CheckCircle size={18} /></div>
+          <div className={`biographer-profile-verified ${biographer.certificationLevel || 'standard'}`}>
+            {biographer.certificationLevel === 'gold' && <Award size={18} />}
+            {biographer.certificationLevel === 'silver' && <Star size={18} />}
+            {biographer.certificationLevel === 'standard' && <CheckCircle size={18} />}
+          </div>
         </div>
 
         <div className="biographer-profile-name-row">
@@ -100,8 +165,9 @@ export default function BiographerProfile({ biographerId, embedded, onClose, onB
             <div className="biographer-profile-name">{biographer.name}</div>
             <div className="biographer-profile-title">{biographer.title || '专业传记师'} · {biographer.city || '全国'}服务</div>
           </div>
-          <div className="biographer-profile-rating">
-            <Star size={14} fill="currentColor" /> 5.0 · 金牌认证
+          <div className={`biographer-profile-rating ${biographer.certificationLevel || 'standard'}`}>
+            <Star size={14} fill="currentColor" /> {(biographer.rating || 5).toFixed(1)} ·
+            {biographer.certificationLevel === 'gold' ? ' 金牌认证' : biographer.certificationLevel === 'silver' ? ' 银牌认证' : ' 平台认证'}
           </div>
         </div>
 
@@ -118,7 +184,7 @@ export default function BiographerProfile({ biographerId, embedded, onClose, onB
           {onBookService && biographer.services && biographer.services.length > 0 && (
             <button
               className="btn btn-primary"
-              onClick={() => onBookService(biographer.services![0])}
+              onClick={() => handleBookClick(biographer.services![recommendedIndex >= 0 ? recommendedIndex : 0])}
             >
               <ShoppingCart size={16} /> 立即预约
             </button>
@@ -160,22 +226,57 @@ export default function BiographerProfile({ biographerId, embedded, onClose, onB
           <h3 className="biographer-profile-section-title"><BookOpen size={18} /> 服务套餐</h3>
           <div className="biographer-profile-services">
             {biographer.services.map((s, idx) => (
-              <div key={s.id} className="biographer-profile-service">
-                {idx === 0 && <span className="biographer-profile-service-badge">热销</span>}
+              <div key={s.id} className={`biographer-profile-service ${idx === recommendedIndex ? 'recommended' : ''}`}>
+                {idx === recommendedIndex && <span className="biographer-profile-service-badge">推荐</span>}
                 <div className="biographer-profile-service-name">{s.name}</div>
                 <div className="biographer-profile-service-desc">{s.description}</div>
                 <div className="biographer-profile-service-footer">
                   <div className="biographer-profile-service-price">¥{s.price.toLocaleString()}<span> 起</span></div>
-                  {onBookService ? (
-                    <button className="biographer-profile-service-btn" onClick={() => onBookService(s)}>
-                      预约此套餐
-                    </button>
-                  ) : (
-                    <button className="biographer-profile-service-btn">了解详情</button>
-                  )}
+                  <button className="biographer-profile-service-btn" onClick={() => handleBookClick(s)}>
+                    预约此套餐
+                  </button>
                 </div>
               </div>
             ))}
+          </div>
+
+          <div className="biographer-profile-comparison">
+            <h4 className="biographer-profile-comparison-title">套餐对比</h4>
+            <div className="biographer-profile-comparison-table">
+              <div
+                className="biographer-profile-comparison-row header"
+                style={{ gridTemplateColumns: `120px repeat(${biographer.services.length}, 1fr)` }}
+              >
+                <div className="biographer-profile-comparison-cell">对比项</div>
+                {biographer.services.map((s) => (
+                  <div key={s.id} className={`biographer-profile-comparison-cell ${s.id === biographer.services[recommendedIndex]?.id ? 'recommended' : ''}`}>
+                    {s.name}
+                  </div>
+                ))}
+              </div>
+              {comparisonRights.map((right) => (
+                <div key={right} className="biographer-profile-comparison-row" style={{ gridTemplateColumns: `120px repeat(${biographer.services.length}, 1fr)` }}>
+                  <div className="biographer-profile-comparison-cell label">{right}</div>
+                  {biographer.services.map((s) => (
+                    <div key={s.id} className={`biographer-profile-comparison-cell ${s.id === biographer.services[recommendedIndex]?.id ? 'recommended' : ''}`}>
+                      {s.description.includes(right.replace('采访', '').replace('次数', '')) ? (
+                        <CheckCircle size={14} className="biographer-profile-comparison-check" />
+                      ) : (
+                        <span className="biographer-profile-comparison-dash">—</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ))}
+              <div className="biographer-profile-comparison-row" style={{ gridTemplateColumns: `120px repeat(${biographer.services.length}, 1fr)` }}>
+                <div className="biographer-profile-comparison-cell label">价格</div>
+                {biographer.services.map((s) => (
+                  <div key={s.id} className={`biographer-profile-comparison-cell ${s.id === biographer.services[recommendedIndex]?.id ? 'recommended' : ''}`}>
+                    ¥{s.price.toLocaleString()}
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -201,19 +302,51 @@ export default function BiographerProfile({ biographerId, embedded, onClose, onB
 
       <div className="biographer-profile-section">
         <h3 className="biographer-profile-section-title"><Star size={18} /> 客户评价</h3>
+        <div className="biographer-profile-rating-summary">
+          <div className="biographer-profile-rating-score">
+            <div className="biographer-profile-rating-big">{(biographer.rating || 5).toFixed(1)}</div>
+            <div className="biographer-profile-rating-stars">{'★'.repeat(Math.round(biographer.rating || 5))}</div>
+            <div className="biographer-profile-rating-count">{biographer.reviewCount || 0} 条评价</div>
+          </div>
+          <div className="biographer-profile-rating-bars">
+            {[5, 4, 3, 2, 1].map((star) => {
+              const count = reviews.filter((r) => r.rating === star).length;
+              const pct = reviews.length ? Math.round((count / reviews.length) * 100) : 0;
+              return (
+                <div key={star} className="biographer-profile-rating-bar">
+                  <span>{star} 星</span>
+                  <div className="biographer-profile-rating-track">
+                    <div className="biographer-profile-rating-fill" style={{ width: `${pct}%` }} />
+                  </div>
+                  <span>{count}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
         <div className="biographer-profile-reviews">
-          {demoReviews.map((r, idx) => (
-            <div key={idx} className="biographer-profile-review">
+          {reviews.slice(0, 6).map((r) => (
+            <div key={r.id} className="biographer-profile-review">
               <div className="biographer-profile-review-header">
-                <div className="biographer-profile-review-avatar">{r.name.charAt(0)}</div>
+                <div className="biographer-profile-review-avatar">{r.userName.charAt(0)}</div>
                 <div>
-                  <div className="biographer-profile-review-name">{r.name}</div>
+                  <div className="biographer-profile-review-name">{r.userName}</div>
                   <div className="biographer-profile-review-stars">{'★'.repeat(r.rating)}</div>
                 </div>
               </div>
-              <div className="biographer-profile-review-text">{r.text}</div>
+              <div className="biographer-profile-review-text">{r.content}</div>
+              {r.tags && r.tags.length > 0 && (
+                <div className="biographer-profile-review-tags">
+                  {r.tags.map((tag) => (
+                    <span key={tag} className="biographer-profile-review-tag"><ThumbsUp size={10} /> {tag}</span>
+                  ))}
+                </div>
+              )}
             </div>
           ))}
+          {reviews.length === 0 && (
+            <div className="biographer-profile-review-empty">暂无评价</div>
+          )}
         </div>
       </div>
 
@@ -246,13 +379,109 @@ export default function BiographerProfile({ biographerId, embedded, onClose, onB
         <h3>为家人留下一份珍贵的记忆</h3>
         <p>立即预约 {biographer.name}，开启专属传记服务</p>
         {onBookService && biographer.services && biographer.services.length > 0 ? (
-          <button className="biographer-profile-cta-btn" onClick={() => onBookService(biographer.services![0])}>
+          <button
+            className="biographer-profile-cta-btn"
+            onClick={() => handleBookClick(biographer.services![recommendedIndex >= 0 ? recommendedIndex : 0])}
+          >
             立即预约
           </button>
         ) : (
           <button className="biographer-profile-cta-btn">免费咨询</button>
         )}
       </div>
+
+      {bookingService && (
+        <div className="modal-overlay" onClick={() => setBookingService(null)}>
+          <div className="modal-content biographer-booking-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h4>预约 {biographer.name} 的「{bookingService.name}」</h4>
+              <button className="modal-close" onClick={() => setBookingService(null)}><X size={16} /></button>
+            </div>
+            <div className="modal-body">
+              <div className="biographer-booking-summary">
+                <div className="biographer-booking-price">
+                  <span>服务价格</span>
+                  <strong>¥{bookingService.price.toLocaleString()}</strong>
+                </div>
+                <div className="biographer-booking-deposit">
+                  <span>需先支付定金</span>
+                  <strong>¥{biographer.deposit || Math.round(bookingService.price * 0.3)}</strong>
+                </div>
+              </div>
+
+              <div className="form-row">
+                <label><Users size={12} /> 采访对象姓名</label>
+                <input
+                  type="text"
+                  value={bookingForm.interviewee}
+                  onChange={(e) => setBookingForm((prev) => ({ ...prev, interviewee: e.target.value }))}
+                  placeholder="例如：张建国"
+                />
+              </div>
+              <div className="form-row">
+                <label><User size={12} /> 与采访对象关系</label>
+                <select
+                  value={bookingForm.relation}
+                  onChange={(e) => setBookingForm((prev) => ({ ...prev, relation: e.target.value }))}
+                >
+                  <option value="">请选择关系</option>
+                  <option value="本人">本人</option>
+                  <option value="父亲">父亲</option>
+                  <option value="母亲">母亲</option>
+                  <option value="祖父">祖父</option>
+                  <option value="祖母">祖母</option>
+                  <option value="配偶">配偶</option>
+                  <option value="其他长辈">其他长辈</option>
+                </select>
+              </div>
+              <div className="form-row">
+                <label><Clock size={12} /> 期望采访时间</label>
+                <input
+                  type="text"
+                  value={bookingForm.preferredTime}
+                  onChange={(e) => setBookingForm((prev) => ({ ...prev, preferredTime: e.target.value }))}
+                  placeholder="例如：2024-07-20 14:00"
+                />
+              </div>
+              <div className="form-row">
+                <label><Home size={12} /> 采访地点 / 线上方式</label>
+                <input
+                  type="text"
+                  value={bookingForm.location}
+                  onChange={(e) => setBookingForm((prev) => ({ ...prev, location: e.target.value }))}
+                  placeholder="例如：杭州市西湖区某某小区 / 腾讯会议"
+                />
+              </div>
+              <div className="form-row">
+                <label><Phone size={12} /> 联系电话</label>
+                <input
+                  type="text"
+                  value={bookingForm.contactPhone}
+                  onChange={(e) => setBookingForm((prev) => ({ ...prev, contactPhone: e.target.value }))}
+                  placeholder="用于传记师与您联系"
+                />
+              </div>
+              <div className="form-row">
+                <label><FileText size={12} /> 特殊需求</label>
+                <textarea
+                  rows={3}
+                  value={bookingForm.remark}
+                  onChange={(e) => setBookingForm((prev) => ({ ...prev, remark: e.target.value }))}
+                  placeholder="例如：老人听力不好，请放慢语速；希望重点记录抗战经历等"
+                />
+              </div>
+              <button
+                className="btn btn-primary"
+                style={{ width: '100%', marginTop: 8 }}
+                disabled={bookingSubmitting}
+                onClick={handleBookingSubmit}
+              >
+                {bookingSubmitting ? '提交中…' : `确认预约并支付定金 ¥${biographer.deposit || Math.round(bookingService.price * 0.3)}`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

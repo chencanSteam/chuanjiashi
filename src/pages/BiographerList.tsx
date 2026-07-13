@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Search, MapPin, Star, Filter, User, CheckCircle } from 'lucide-react';
+import { Search, MapPin, Star, Filter, User, CheckCircle, Award, Medal } from 'lucide-react';
 import { biographerApi } from '../api/biographer';
 import { paymentApi } from '../api/payment';
 import { useToast } from '../hooks/useToast';
 import Avatar from '../components/ui/Avatar';
 import BiographerProfile from './BiographerProfile';
-import type { Biographer, BiographerService } from '../mocks/types';
+import type { Biographer, BiographerService, BiographerBookingForm } from '../mocks/types';
 import './BiographerList.css';
 
 const SPECIALTIES = ['全部', '家族传记', '企业家传记', '口述历史', '个人回忆录', '家风传承', '实体书制作'];
@@ -58,13 +58,13 @@ export default function BiographerList() {
     return list;
   }, [biographers, city, specialty, keyword]);
 
-  const handleBook = async (service: BiographerService) => {
+  const handleBook = async (service: BiographerService, formData: BiographerBookingForm) => {
     if (!selected) return;
     try {
       setBooking(true);
-      const { order } = await biographerApi.createOrder(selected.id, service.id);
+      const { order } = await biographerApi.createOrder(selected.id, service.id, formData);
       await paymentApi.pay((order as any).id, 'wechat');
-      addToast(`已成功预约 ${selected.name} 的「${service.name}」`, 'success');
+      addToast(`预约成功，请支付定金 ¥${selected.deposit || Math.round(service.price * 0.3)}`, 'success');
       setSelected(null);
     } catch (err: any) {
       addToast(err.message || '预约失败', 'error');
@@ -136,12 +136,15 @@ export default function BiographerList() {
                       <div className="biographer-list-card-meta">
                         <div className="biographer-list-card-name-row">
                           <span className="biographer-list-card-name">{b.name}</span>
-                          <span className="biographer-list-card-rating">
-                            <Star size={12} fill="currentColor" /> 5.0
+                          <span className={`biographer-list-card-badge ${b.certificationLevel || 'standard'}`}>
+                            {b.certificationLevel === 'gold' && <Award size={12} />}
+                            {b.certificationLevel === 'silver' && <Medal size={12} />}
+                            {b.certificationLevel === 'standard' && <CheckCircle size={12} />}
+                            {b.certificationLevel === 'gold' ? '金牌认证' : b.certificationLevel === 'silver' ? '银牌认证' : '平台认证'}
                           </span>
                         </div>
                         <div className="biographer-list-card-title">
-                          {b.title || '专业传记师'} · {b.city || '全国'}
+                          {b.title || '专业传记师'} · {b.city || '全国'} · {(b.rating || 5).toFixed(1)} 分
                         </div>
                         <div className="biographer-list-card-tags">
                           {b.tags?.slice(0, 3).map((tag) => (
@@ -154,6 +157,13 @@ export default function BiographerList() {
                       </div>
                     </div>
                     <p className="biographer-list-card-intro">{b.intro}</p>
+                    <div className="biographer-list-card-rating-row">
+                      <span className="biographer-list-card-stars">
+                        <Star size={12} fill="currentColor" /> {(b.rating || 5).toFixed(1)}
+                      </span>
+                      <span className="biographer-list-card-reviews">{b.reviewCount || 0} 条评价</span>
+                      <span className="biographer-list-card-satisfaction">好评率 {Math.round((b.rating || 5) / 5 * 100)}%</span>
+                    </div>
                     <div className="biographer-list-card-footer">
                       <div className="biographer-list-card-price">
                         {minPrice > 0 ? (
@@ -176,8 +186,8 @@ export default function BiographerList() {
                       </button>
                     </div>
                     {b.status === 'approved' && (
-                      <div className="biographer-list-card-verified">
-                        <CheckCircle size={12} /> 平台认证
+                      <div className={`biographer-list-card-verified ${b.certificationLevel || 'standard'}`}>
+                        <CheckCircle size={12} /> {b.certificationLevel === 'gold' ? '金牌认证' : b.certificationLevel === 'silver' ? '银牌认证' : '平台认证'}
                       </div>
                     )}
                   </div>

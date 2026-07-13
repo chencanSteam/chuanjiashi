@@ -23,6 +23,7 @@ export const storeKeys = {
   publicBooks: `${PREFIX}public_books`,
   biographers: `${PREFIX}biographers`,
   biographerOrders: `${PREFIX}biographer_orders`,
+  biographerReviews: `${PREFIX}biographer_reviews`,
   partners: `${PREFIX}partners`,
   partnerApplications: `${PREFIX}partner_applications`,
   partnerCustomers: `${PREFIX}partner_customers`,

@@ -82,6 +82,7 @@ const BiographerProfile = lazy(() => import('./pages/BiographerProfile'));
 const BiographerProfileEdit = lazy(() => import('./pages/BiographerProfileEdit'));
 const PhotoRestore = lazy(() => import('./pages/PhotoRestore'));
 const BiographerList = lazy(() => import('./pages/BiographerList'));
+const MyBiographerOrders = lazy(() => import('./pages/MyBiographerOrders'));
 
 function PageFallback() {
   return (
@@ -138,6 +139,7 @@ function App() {
                 <Route path="biography/print" element={<BiographyPrint />} />
                 <Route path="my-works" element={<MyWorks />} />
                 <Route path="biographers" element={<BiographerList />} />
+                <Route path="my-biographer-orders" element={<MyBiographerOrders />} />
                 <Route path="photo-restore" element={<PhotoRestore />} />
                 <Route path="archive" element={<LifeArchive />} />
                 <Route path="family" element={<MVPRedirect><FamilySpace /></MVPRedirect>} />

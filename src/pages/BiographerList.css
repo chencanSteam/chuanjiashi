@@ -157,6 +157,32 @@
   flex-shrink: 0;
 }
 
+.biographer-list-card-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.biographer-list-card-badge.gold {
+  color: #b8860b;
+  background: linear-gradient(135deg, #fff8e1 0%, #ffecb3 100%);
+}
+
+.biographer-list-card-badge.silver {
+  color: #6b7280;
+  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+}
+
+.biographer-list-card-badge.standard {
+  color: #1B5E4B;
+  background: rgba(27, 94, 75, 0.08);
+}
+
 .biographer-list-card-title {
   font-size: 12px;
   color: var(--text-muted);
@@ -181,11 +207,36 @@
   font-size: 13px;
   color: var(--text-secondary);
   line-height: 1.75;
-  margin: 0 0 16px;
+  margin: 0 0 12px;
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+.biographer-list-card-rating-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+  font-size: 12px;
+}
+
+.biographer-list-card-stars {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: #f59e0b;
+  font-weight: 600;
+}
+
+.biographer-list-card-reviews {
+  color: var(--text-muted);
+}
+
+.biographer-list-card-satisfaction {
+  color: #1B5E4B;
+  font-weight: 500;
 }
 
 .biographer-list-card-footer {
@@ -230,10 +281,23 @@
   align-items: center;
   gap: 3px;
   font-size: 10px;
-  color: #1B5E4B;
-  background: rgba(27, 94, 75, 0.08);
   padding: 3px 7px;
   border-radius: 999px;
+}
+
+.biographer-list-card-verified.gold {
+  color: #b8860b;
+  background: linear-gradient(135deg, #fff8e1 0%, #ffecb3 100%);
+}
+
+.biographer-list-card-verified.silver {
+  color: #6b7280;
+  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+}
+
+.biographer-list-card-verified.standard {
+  color: #1B5E4B;
+  background: rgba(27, 94, 75, 0.08);
 }
 
 .biographer-list-empty {

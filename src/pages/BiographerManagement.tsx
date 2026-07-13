@@ -14,6 +14,9 @@ import {
   AlertCircle,
   Users,
   Camera,
+  Star,
+  Award,
+  Medal,
 } from 'lucide-react';
 import Avatar from '../components/ui/Avatar';
 import { useToast } from '../hooks/useToast';
@@ -32,6 +35,7 @@ const emptyForm: BiographerFormData = {
   specialties: [],
   experience: 0,
   status: 'pending',
+  certificationLevel: 'standard',
 };
 
 export default function BiographerManagement() {
@@ -116,6 +120,7 @@ export default function BiographerManagement() {
       specialties: [...item.specialties],
       experience: item.experience,
       status: item.status,
+      certificationLevel: item.certificationLevel || 'standard',
     });
     setSpecialtyInput('');
     setShowModal(true);
@@ -257,8 +262,19 @@ export default function BiographerManagement() {
                       <Avatar name={item.name} size={40} />
                     )}
                     <div className="bio-name-info">
-                      <div className="bio-name">{item.name}</div>
+                      <div className="bio-name">
+                        {item.name}
+                        <span className={`bio-cert-badge ${item.certificationLevel || 'standard'}`}>
+                          {item.certificationLevel === 'gold' && <Award size={12} />}
+                          {item.certificationLevel === 'silver' && <Medal size={12} />}
+                          {item.certificationLevel === 'standard' && <CheckCircle size={12} />}
+                          {item.certificationLevel === 'gold' ? '金牌' : item.certificationLevel === 'silver' ? '银牌' : '标准'}
+                        </span>
+                      </div>
                       <div className="bio-intro" title={item.intro}>{item.intro}</div>
+                      <div className="bio-rating-row">
+                        <Star size={12} fill="currentColor" /> {item.rating?.toFixed(1) || '5.0'} · {item.reviewCount || 0} 条评价
+                      </div>
                     </div>
                   </div>
                   <div className="bio-cell bio-cell-contact">
@@ -352,6 +368,14 @@ export default function BiographerManagement() {
                 </select>
               </div>
               <div className="form-row">
+                <label>认证等级</label>
+                <select value={form.certificationLevel} onChange={(e) => setForm((prev) => ({ ...prev, certificationLevel: e.target.value as Biographer['certificationLevel'] }))}>
+                  <option value="gold">金牌认证</option>
+                  <option value="silver">银牌认证</option>
+                  <option value="standard">标准认证</option>
+                </select>
+              </div>
+              <div className="form-row">
                 <label>专长标签</label>
                 <div className="bio-specialty-input">
                   <input
@@ -439,6 +463,9 @@ function mapMockBiographer(b: MockBiographer): Biographer {
     specialties: b.specialties,
     experience: b.experience || 0,
     status: statusMap[b.status],
+    certificationLevel: b.certificationLevel || 'standard',
+    rating: b.rating ?? 5.0,
+    reviewCount: b.reviewCount ?? 0,
     createdAt: b.createdAt,
   };
 }
@@ -458,6 +485,7 @@ function toMockBiographerData(form: BiographerFormData): Partial<MockBiographer>
     specialties: form.specialties,
     experience: form.experience,
     status: statusMap[form.status],
+    certificationLevel: form.certificationLevel || 'standard',
     city: '未知城市',
     services: [],
     cases: [],

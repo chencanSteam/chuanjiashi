@@ -1,0 +1,210 @@
+.my-bio-orders-page {
+  max-width: 1000px;
+}
+
+.my-bio-order-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.my-bio-order-stat-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 20px;
+}
+
+.my-bio-order-stat-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.my-bio-order-stat-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.my-bio-order-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.my-bio-order-item {
+  border: 1px solid var(--border-light);
+  border-radius: 14px;
+  padding: 18px;
+  background: #fff;
+}
+
+.my-bio-order-main {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.my-bio-order-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.my-bio-order-service {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.my-bio-order-bio {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.my-bio-order-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.my-bio-order-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.my-bio-order-schedule {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  color: #7c3aed;
+  background: rgba(124, 58, 237, 0.06);
+  padding: 6px 10px;
+  border-radius: 8px;
+  width: fit-content;
+}
+
+.my-bio-order-status {
+  flex-shrink: 0;
+  font-size: 13px;
+}
+
+.my-bio-order-progress {
+  margin-top: 12px;
+}
+
+.my-bio-order-progress-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.my-bio-order-progress-track {
+  height: 6px;
+  background: var(--bg-secondary);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.my-bio-order-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #1B5E4B 0%, #2D7A66 100%);
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+.my-bio-order-progress-nodes {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.my-bio-order-progress-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  color: var(--text-muted);
+  flex: 1;
+  text-align: center;
+}
+
+.my-bio-order-progress-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: transparent;
+}
+
+.my-bio-order-progress-node.done .my-bio-order-progress-dot {
+  background: #1B5E4B;
+  border-color: #1B5E4B;
+  color: #fff;
+}
+
+.my-bio-order-progress-node.done {
+  color: #1B5E4B;
+  font-weight: 500;
+}
+
+.partner-center-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: var(--text-muted);
+  gap: 10px;
+}
+
+.partner-center-empty p {
+  margin: 0;
+  font-size: 15px;
+}
+
+.partner-center-empty span {
+  font-size: 12px;
+}
+
+@media (max-width: 720px) {
+  .my-bio-order-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .my-bio-order-main {
+    flex-direction: column;
+  }
+
+  .my-bio-order-progress-nodes {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .my-bio-order-progress-node {
+    flex: 0 0 calc(33.33% - 8px);
+  }
+}

@@ -224,6 +224,11 @@
   box-shadow: 0 8px 24px rgba(27, 94, 75, 0.08);
 }
 
+.biographer-profile-service.recommended {
+  border-color: #b8860b;
+  background: linear-gradient(135deg, #fffdf5 0%, #fff8e1 100%);
+}
+
 .biographer-profile-service-badge {
   position: absolute;
   top: -1px;
@@ -342,6 +347,78 @@
 }
 
 /* 评价 */
+.biographer-profile-rating-summary {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  margin-bottom: 20px;
+  padding: 20px;
+  background: #f9fafb;
+  border-radius: 14px;
+}
+
+.biographer-profile-rating-score {
+  text-align: center;
+  min-width: 120px;
+}
+
+.biographer-profile-rating-big {
+  font-size: 42px;
+  font-weight: 800;
+  color: #1f2937;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+
+.biographer-profile-rating-stars {
+  color: #f59e0b;
+  font-size: 16px;
+  margin-bottom: 6px;
+}
+
+.biographer-profile-rating-count {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.biographer-profile-rating-bars {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.biographer-profile-rating-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.biographer-profile-rating-bar span:first-child {
+  width: 32px;
+}
+
+.biographer-profile-rating-bar span:last-child {
+  width: 24px;
+  text-align: right;
+}
+
+.biographer-profile-rating-track {
+  flex: 1;
+  height: 6px;
+  background: #e5e7eb;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.biographer-profile-rating-fill {
+  height: 100%;
+  background: #f59e0b;
+  border-radius: 999px;
+}
+
 .biographer-profile-reviews {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -388,6 +465,155 @@
   font-size: 13px;
   color: #4b5563;
   line-height: 1.6;
+}
+
+.biographer-profile-review-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.biographer-profile-review-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  color: #1B5E4B;
+  background: rgba(27, 94, 75, 0.08);
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+
+.biographer-profile-review-empty {
+  color: #9ca3af;
+  font-size: 13px;
+  padding: 20px;
+  text-align: center;
+}
+
+.biographer-profile-rating.gold {
+  color: #b8860b;
+  background: linear-gradient(135deg, #fff8e1 0%, #ffecb3 100%);
+}
+
+.biographer-profile-rating.silver {
+  color: #6b7280;
+  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+}
+
+.biographer-profile-rating.standard {
+  color: #1B5E4B;
+  background: rgba(27, 94, 75, 0.08);
+}
+
+/* 套餐对比 */
+.biographer-profile-comparison {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px dashed #e5e7eb;
+}
+
+.biographer-profile-comparison-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 14px;
+}
+
+.biographer-profile-comparison-table {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.biographer-profile-comparison-row {
+  display: grid;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.biographer-profile-comparison-row:last-child {
+  border-bottom: none;
+}
+
+.biographer-profile-comparison-row.header {
+  background: #f9fafb;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.biographer-profile-comparison-cell {
+  padding: 12px 14px;
+  font-size: 13px;
+  color: #4b5563;
+  text-align: center;
+  border-right: 1px solid #f3f4f6;
+}
+
+.biographer-profile-comparison-cell:first-child {
+  text-align: left;
+  color: #6b7280;
+}
+
+.biographer-profile-comparison-cell:last-child {
+  border-right: none;
+}
+
+.biographer-profile-comparison-cell.recommended {
+  background: #fffdf5;
+  color: #1f2937;
+  font-weight: 500;
+}
+
+.biographer-profile-comparison-cell.label {
+  font-weight: 500;
+}
+
+.biographer-profile-comparison-check {
+  color: #1B5E4B;
+}
+
+.biographer-profile-comparison-dash {
+  color: #d1d5db;
+}
+
+/* 预约弹窗 */
+.biographer-booking-modal {
+  max-width: 520px;
+  width: 92vw;
+}
+
+.biographer-booking-summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.biographer-booking-price,
+.biographer-booking-deposit {
+  background: #f9fafb;
+  border-radius: 10px;
+  padding: 14px;
+  text-align: center;
+}
+
+.biographer-booking-price span,
+.biographer-booking-deposit span {
+  display: block;
+  font-size: 12px;
+  color: #6b7280;
+  margin-bottom: 4px;
+}
+
+.biographer-booking-price strong {
+  font-size: 20px;
+  color: #1f2937;
+}
+
+.biographer-booking-deposit strong {
+  font-size: 20px;
+  color: #b8860b;
 }
 
 /* 底部 CTA */

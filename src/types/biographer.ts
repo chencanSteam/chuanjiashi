@@ -1,4 +1,5 @@
 export type BiographerStatus = 'pending' | 'active' | 'inactive';
+export type BiographerCertificationLevel = 'gold' | 'silver' | 'standard';
 
 export interface BiographerService {
   id: string;
@@ -33,6 +34,9 @@ export interface Biographer {
   services?: BiographerService[];
   cases?: BiographerCase[];
   status: BiographerStatus;
+  certificationLevel?: BiographerCertificationLevel;
+  rating?: number;
+  reviewCount?: number;
   createdAt: string;
   updatedAt?: string;
 }
@@ -54,4 +58,7 @@ export interface BiographerFormData {
   services?: BiographerService[];
   cases?: BiographerCase[];
   status: BiographerStatus;
+  certificationLevel?: BiographerCertificationLevel;
+  rating?: number;
+  reviewCount?: number;
 }

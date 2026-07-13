@@ -1,16 +1,24 @@
 import { api } from './client'
-import type { Biographer, BiographerOrder } from '../mocks/types'
+import type { Biographer, BiographerOrder, BiographerReview } from '../mocks/types'
 
 export const biographerApi = {
   list: (city?: string) =>
     api.get<Biographer[]>(`/api/biographers${city ? `?city=${encodeURIComponent(city)}` : ''}`),
   get: (id: string) => api.get<Biographer>(`/api/biographers/${id}`),
-  createOrder: (biographerId: string, serviceId: string) =>
+  createOrder: (biographerId: string, serviceId: string, payload?: { interviewee?: string; relation?: string; preferredTime?: string; location?: string; remark?: string; contactPhone?: string }) =>
     api.post<{ order: unknown; biographerOrder: BiographerOrder }>('/api/biographer-orders', {
       biographerId,
       serviceId,
+      ...payload,
     }),
   orders: () => api.get<BiographerOrder[]>('/api/biographer-orders'),
+  getReviews: (biographerId: string) => api.get<BiographerReview[]>(`/api/biographers/${biographerId}/reviews`),
+  submitReview: (biographerOrderId: string, data: { rating: number; content: string; tags?: string[] }) =>
+    api.post<BiographerReview>(`/api/biographer-orders/${biographerOrderId}/review`, data),
+  scheduleInterview: (biographerOrderId: string, schedule: { time: string; address: string }) =>
+    api.put<BiographerOrder>(`/api/biographer-orders/${biographerOrderId}/schedule`, schedule),
+  updateProgress: (biographerOrderId: string, node: string) =>
+    api.put<BiographerOrder>(`/api/biographer-orders/${biographerOrderId}/progress`, { node }),
 
   // 传记师端
   me: () => api.get<Biographer>('/api/biographer/me'),
@@ -19,6 +27,8 @@ export const biographerApi = {
 
   // 管理后台
   adminList: () => api.get<Biographer[]>('/api/biographers/all'),
+  adminGetBiographerOrderByOrderId: (orderId: string) =>
+    api.get<BiographerOrder>(`/api/admin/biographer-orders?orderId=${encodeURIComponent(orderId)}`),
   create: (data: Partial<Biographer>) => api.post<Biographer>('/api/biographers', data),
   update: (id: string, data: Partial<Biographer>) => api.put<Biographer>(`/api/biographers/${id}`, data),
   delete: (id: string) => api.delete<null>(`/api/biographers/${id}`),
