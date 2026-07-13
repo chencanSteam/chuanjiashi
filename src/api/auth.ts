@@ -6,6 +6,13 @@ export interface LoginResult {
   token: string
 }
 
+export interface UpdateProfileData {
+  nickname?: string
+  avatar?: string
+  community?: string
+  neighborhood?: string
+}
+
 export const authApi = {
   sendCode: (phone: string) => api.post<{ phone: string; code: string; expire: number }>('/api/auth/send-code', { phone }),
   login: (phone: string, code: string, inviteCode?: string) =>
@@ -13,4 +20,5 @@ export const authApi = {
   logout: () => api.post<null>('/api/auth/logout'),
   me: () => api.get<User>('/api/auth/me'),
   acceptAgreement: (type: 'agreement' | 'privacy') => api.post<User>('/api/auth/agreement', { type }),
+  updateProfile: (data: UpdateProfileData) => api.put<User>('/api/auth/profile', data),
 }

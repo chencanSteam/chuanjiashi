@@ -5,6 +5,8 @@ export interface User {
   avatar?: string
   inviteCode: string
   invitedBy?: string
+  community?: string
+  neighborhood?: string
   agreementAccepted: boolean
   privacyAccepted: boolean
   createdAt: string

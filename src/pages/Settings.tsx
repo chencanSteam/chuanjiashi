@@ -23,6 +23,7 @@ import {
 import Avatar from '../components/ui/Avatar';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/useToast';
+import { authApi } from '../api/auth';
 import { quotaApi } from '../api/quota';
 import type { AIQuota } from '../mocks/types';
 import { openGuide } from '../components/GuideTour';
@@ -77,6 +78,7 @@ export default function Settings() {
   const { addToast } = useToast();
   const navigate = useNavigate();
   const { section } = useParams<{ section: string }>();
+  const { user, updateUser } = useAuth();
   const active = sidebarItems.some((item) => item.key === section) ? (section ?? 'account') : 'account';
 
   const [notifications, setNotifications] = useState(initialNotifications);
@@ -84,7 +86,19 @@ export default function Settings() {
   const [twoFactor, setTwoFactor] = useState(false);
   const [autoBackup, setAutoBackup] = useState(true);
   const [backupFreq, setBackupFreq] = useState('每天');
-  const [account, setAccount] = useState({ nickname: '张一帆', realName: '张一帆', phone: '138****1234', email: 'zhang@example.com' });
+  const [account, setAccount] = useState({ nickname: '', realName: '', phone: '', email: '', community: '', neighborhood: '', avatar: '' });
+
+  useEffect(() => {
+    if (user) {
+      setAccount((prev) => ({
+        ...prev,
+        nickname: user.name || prev.nickname,
+        phone: user.phone || prev.phone,
+        community: user.community || '',
+        neighborhood: user.neighborhood || '',
+      }));
+    }
+  }, [user]);
   const [showPassword, setShowPassword] = useState(false);
   const [members, setMembers] = useState(familyMembers);
   const [showVisibility, setShowVisibility] = useState(false);
@@ -100,7 +114,7 @@ export default function Settings() {
   }, []);
 
   const [rewardsRefresh, setRewardsRefresh] = useState(0);
-  const { user } = useAuth();
+  const [savingAccount, setSavingAccount] = useState(false);
 
   const toggleNotification = (i: number) => {
     setNotifications((prev) => {
@@ -119,10 +133,24 @@ export default function Settings() {
               <div className="card-header"><h3 className="card-title">账户信息</h3></div>
               <div className="card-body settings-body">
                 <div className="profile-edit">
-                  <Avatar name={account.nickname} size={64} />
+                  <Avatar name={account.nickname} size={64} src={account.avatar || undefined} />
                   <label className="btn btn-outline">
                     更换头像
-                    <input type="file" accept="image/*" hidden onChange={() => addToast('头像已更新', 'success')} />
+                    <input
+                      type="file"
+                      accept="image/*"
+                      hidden
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        const reader = new FileReader();
+                        reader.onload = () => {
+                          setAccount((a) => ({ ...a, avatar: reader.result as string }));
+                          addToast('头像已选择，保存后生效', 'success');
+                        };
+                        reader.readAsDataURL(file);
+                      }}
+                    />
                   </label>
                 </div>
                 <div className="form-row">
@@ -142,10 +170,44 @@ export default function Settings() {
                   <input type="text" value={account.email} onChange={(e) => setAccount((a) => ({ ...a, email: e.target.value }))} />
                 </div>
                 <div className="form-row">
+                  <label>所在社区</label>
+                  <input type="text" value={account.community} onChange={(e) => setAccount((a) => ({ ...a, community: e.target.value }))} placeholder="例如：余杭区" />
+                </div>
+                <div className="form-row">
+                  <label>所在小区</label>
+                  <input type="text" value={account.neighborhood} onChange={(e) => setAccount((a) => ({ ...a, neighborhood: e.target.value }))} placeholder="例如：未来科技城社区" />
+                </div>
+                <div className="form-row">
                   <label>绑定微信</label>
                   <div className="bind-tag">已绑定</div>
                 </div>
-                <button className="btn btn-primary save-btn" onClick={() => addToast('账户信息已保存', 'success')}>保存修改</button>
+                <button
+                  className="btn btn-primary save-btn"
+                  disabled={savingAccount}
+                  onClick={async () => {
+                    try {
+                      setSavingAccount(true);
+                      await authApi.updateProfile({
+                        nickname: account.nickname,
+                        avatar: account.avatar || undefined,
+                        community: account.community,
+                        neighborhood: account.neighborhood,
+                      });
+                      updateUser({
+                        name: account.nickname,
+                        community: account.community,
+                        neighborhood: account.neighborhood,
+                      });
+                      addToast('账户信息已保存', 'success');
+                    } catch (err: any) {
+                      addToast(err.message || '保存失败', 'error');
+                    } finally {
+                      setSavingAccount(false);
+                    }
+                  }}
+                >
+                  {savingAccount ? '保存中…' : '保存修改'}
+                </button>
               </div>
             </div>
           )}

@@ -5,6 +5,8 @@ export const demoUser: User = {
   phone: '13800138000',
   nickname: '体验用户',
   inviteCode: 'DEMO2024',
+  community: '余杭区',
+  neighborhood: '未来科技城社区',
   agreementAccepted: true,
   privacyAccepted: true,
   createdAt: new Date().toISOString(),

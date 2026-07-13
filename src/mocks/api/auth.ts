@@ -125,4 +125,17 @@ export const authHandlers: HttpHandler[] = [
     setItem(storeKeys.currentUser, user)
     return success(user)
   }),
+
+  http.put('/api/auth/profile', async ({ request }) => {
+    const user = getCurrentUser()
+    if (!user) return unauthorized()
+    const body = (await request.json()) as { nickname?: string; avatar?: string; community?: string; neighborhood?: string }
+    if (body.nickname !== undefined) user.nickname = body.nickname
+    if (body.avatar !== undefined) user.avatar = body.avatar
+    if (body.community !== undefined) user.community = body.community
+    if (body.neighborhood !== undefined) user.neighborhood = body.neighborhood
+    saveUser(user)
+    setItem(storeKeys.currentUser, user)
+    return success(user, '资料已保存')
+  }),
 ]

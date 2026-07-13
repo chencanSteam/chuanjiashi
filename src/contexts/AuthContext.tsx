@@ -9,6 +9,8 @@ export interface User {
   token: string;
   isNewUser?: boolean;
   inviteCode?: string;
+  community?: string;
+  neighborhood?: string;
   roles?: UserRole[];
 }
 
@@ -20,6 +22,7 @@ interface AuthContextValue {
   setNewUser: (value: boolean) => void;
   addRole: (role: UserRole) => void;
   hasRole: (role: UserRole) => boolean;
+  updateUser: (data: Partial<User>) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -27,7 +30,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 const USER_KEY = 'cj_user';
 const DEMO_ADMIN_PHONE = '13800138000';
 
-function mapMockUserToLocal(mockUser: { id: string; phone: string; nickname: string; inviteCode: string }, token: string, options?: { isRegister?: boolean; name?: string }): User {
+function mapMockUserToLocal(mockUser: { id: string; phone: string; nickname: string; inviteCode: string; community?: string; neighborhood?: string }, token: string, options?: { isRegister?: boolean; name?: string }): User {
   const roles: UserRole[] = ['user'];
   if (mockUser.phone === DEMO_ADMIN_PHONE) {
     roles.push('admin');
@@ -38,6 +41,8 @@ function mapMockUserToLocal(mockUser: { id: string; phone: string; nickname: str
     token,
     isNewUser: options?.isRegister ? true : undefined,
     inviteCode: mockUser.inviteCode,
+    community: mockUser.community,
+    neighborhood: mockUser.neighborhood,
     roles,
   };
 }
@@ -106,6 +111,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  const updateUser = (data: Partial<User>) => {
+    setUser((prev) => (prev ? { ...prev, ...data } : prev));
+  };
+
   const hasRole = (role: UserRole) => {
     return user?.roles?.includes(role) ?? false;
   };
@@ -128,6 +137,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setNewUser,
         addRole,
         hasRole,
+        updateUser,
       }}
     >
       {children}

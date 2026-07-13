@@ -86,6 +86,7 @@ const MyBiographerOrders = lazy(() => import('./pages/MyBiographerOrders'));
 const MyOrders = lazy(() => import('./pages/MyOrders'));
 const Store = lazy(() => import('./pages/Store'));
 const ProductDetail = lazy(() => import('./pages/ProductDetail'));
+const BiographyShelf = lazy(() => import('./pages/BiographyShelf'));
 const OrderSuccess = lazy(() => import('./pages/OrderSuccess'));
 
 function PageFallback() {
@@ -147,6 +148,8 @@ function App() {
                 <Route path="my-orders" element={<MyOrders />} />
                 <Route path="store" element={<Store />} />
                 <Route path="store/:id" element={<ProductDetail />} />
+                <Route path="biography-shelf" element={<BiographyShelf />} />
+                <Route path="biography-shelf/:id" element={<BiographyShelf />} />
                 <Route path="order-success" element={<OrderSuccess />} />
                 <Route path="photo-restore" element={<PhotoRestore />} />
                 <Route path="archive" element={<LifeArchive />} />
