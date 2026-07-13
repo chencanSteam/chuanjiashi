@@ -3,7 +3,7 @@ import { Search, RefreshCw, ShoppingCart, CreditCard, Package, CheckCircle, Aler
 import { orderApi, type AdminOrder } from '../api/order';
 import { biographerApi } from '../api/biographer';
 import { useToast } from '../hooks/useToast';
-import type { BiographerOrder, Deliverable, OrderLogistics } from '../mocks/types';
+import type { BiographerOrder, Deliverable, OrderLogistics, ReviewStatus } from '../mocks/types';
 import './OrderManagement.css';
 
 const typeOptions: Array<{ value: AdminOrder['type'] | 'all'; label: string }> = [
@@ -415,19 +415,46 @@ export default function OrderManagement() {
     );
   };
 
+  const handleAuditReview = async (order: AdminOrder, status: ReviewStatus) => {
+    try {
+      await orderApi.adminAuditReview(order.id, status);
+      addToast(status === 'approved' ? '评价已通过' : '评价已驳回', 'success');
+      loadOrders();
+    } catch (err: any) {
+      addToast(err.message || '审核失败', 'error');
+    }
+  };
+
+  const reviewStatusLabel: Record<ReviewStatus, { label: string; className: string }> = {
+    pending: { label: '待审核', className: 'review-status-pending' },
+    approved: { label: '已通过', className: 'review-status-approved' },
+    rejected: { label: '已驳回', className: 'review-status-rejected' },
+  };
+
   const renderReview = (order: AdminOrder) => {
     if (!order.review) return null;
+    const status = reviewStatusLabel[order.review.status || 'pending'];
     return (
       <>
         <div className="order-detail-divider" />
         <div className="order-detail-section">
-          <h5><Star size={14} /> 用户评价</h5>
+          <h5><Star size={14} /> 用户评价 <span className={`review-status-badge ${status.className}`}>{status.label}</span></h5>
           <div className="order-review-stars">
             {Array.from({ length: 5 }).map((_, i) => (
               <Star key={i} size={14} className={i < order.review!.rating ? 'filled' : ''} />
             ))}
           </div>
           <p className="order-review-content">{order.review.content}</p>
+          {order.review.status === 'pending' && (
+            <div className="order-review-actions">
+              <button className="btn btn-primary btn-sm" onClick={() => handleAuditReview(order, 'approved')}>
+                <CheckCircle size={12} /> 通过
+              </button>
+              <button className="btn btn-danger btn-sm" onClick={() => handleAuditReview(order, 'rejected')}>
+                <XCircle size={12} /> 驳回
+              </button>
+            </div>
+          )}
         </div>
       </>
     );

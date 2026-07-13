@@ -201,7 +201,7 @@ export default function Store() {
           filtered.map((p) => {
             const Icon = iconFor(p.type);
             return (
-              <div className="store-product-card" key={p.id}>
+              <div className="store-product-card" key={p.id} onClick={() => navigate(`/store/${p.id}`)}>
                 <div className="store-product-header">
                   <div className={`store-product-icon ${p.type}`}>
                     <Icon size={28} />
@@ -230,7 +230,7 @@ export default function Store() {
                     <strong>¥{p.price}</strong>
                     {p.originalPrice && <del>¥{p.originalPrice}</del>}
                   </div>
-                  <button className="store-product-btn" onClick={() => setSelected(p)}>
+                  <button className="store-product-btn" onClick={(e) => { e.stopPropagation(); setSelected(p); }}>
                     立即购买
                   </button>
                 </div>

@@ -159,10 +159,13 @@ export interface OrderLogistics {
   shippedAt: string
 }
 
+export type ReviewStatus = 'pending' | 'approved' | 'rejected'
+
 export interface OrderReview {
   rating: number
   content: string
   tags?: string[]
+  status: ReviewStatus
   createdAt: string
 }
 

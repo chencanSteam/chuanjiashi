@@ -1,7 +1,7 @@
 import { http, type HttpHandler } from 'msw'
 import { success, fail, unauthorized, notFound } from '../utils/response'
 import { getItem, setItem, generateId, storeKeys } from '../utils/store'
-import type { Order, OrderStatus, User, Deliverable, OrderLogistics, OrderReview, RefundRequest } from '../types'
+import type { Order, OrderStatus, User, Deliverable, OrderLogistics, OrderReview, RefundRequest, ReviewStatus } from '../types'
 
 function getCurrentUserId(): string | null {
   const user = getItem<{ id: string } | null>(storeKeys.currentUser, null)
@@ -225,10 +225,10 @@ export const orderHandlers: HttpHandler[] = [
     if (!order || order.userId !== userId) return notFound('订单不存在')
     if (order.status !== 'completed') return fail('订单未完成，无法评价')
     const review = (await request.json()) as OrderReview
-    order.review = { ...review, createdAt: new Date().toISOString() }
+    order.review = { ...review, status: review.status || 'pending', createdAt: new Date().toISOString() }
     order.updatedAt = new Date().toISOString()
     saveOrder(order)
-    return success(order, '评价已提交')
+    return success(order, '评价已提交，等待审核')
   }),
 
   http.post('/api/orders/:id/refund', async ({ request, params }) => {
@@ -243,5 +243,36 @@ export const orderHandlers: HttpHandler[] = [
     order.updatedAt = new Date().toISOString()
     saveOrder(order)
     return success(order, '退款申请已处理')
+  }),
+
+  http.put('/api/admin/orders/:id/review', async ({ request, params }) => {
+    const userId = getCurrentUserId()
+    if (!userId) return unauthorized()
+    const order = findOrder(params.id as string)
+    if (!order) return notFound('订单不存在')
+    if (!order.review) return fail('订单暂无评价')
+    const { status } = (await request.json()) as { status: ReviewStatus }
+    order.review.status = status
+    order.updatedAt = new Date().toISOString()
+    saveOrder(order)
+    return success({ ...order, ...getOrderUserInfo(order) }, status === 'approved' ? '评价已通过' : '评价已驳回')
+  }),
+
+  http.get('/api/products/:id/reviews', async ({ params }) => {
+    const productId = params.id as string
+    const orders = getItem<Order[]>(storeKeys.orders, [])
+    const reviews = orders
+      .filter((o) => o.productId === productId && o.review && o.review.status === 'approved')
+      .map((o) => ({
+        id: `${o.id}_review`,
+        orderId: o.id,
+        userName: getOrderUserInfo(o).userName || '匿名用户',
+        productId: o.productId,
+        productName: o.productName,
+        rating: o.review!.rating,
+        content: o.review!.content,
+        createdAt: o.review!.createdAt,
+      }))
+    return success(reviews)
   }),
 ]

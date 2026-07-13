@@ -164,7 +164,7 @@ export default function MyOrders() {
     }
     try {
       setSubmitting(true);
-      await orderApi.review(reviewOrder.id, { rating, content: reviewContent.trim(), createdAt: new Date().toISOString() });
+      await orderApi.review(reviewOrder.id, { rating, content: reviewContent.trim(), status: 'pending', createdAt: new Date().toISOString() });
       addToast('评价已提交', 'success');
       setReviewOrder(null);
       setRating(5);

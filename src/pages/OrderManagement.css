@@ -573,3 +573,33 @@
   background: var(--bg-secondary);
   border-radius: var(--radius);
 }
+.review-status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+  margin-left: 8px;
+}
+
+.review-status-pending {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.review-status-approved {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.review-status-rejected {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.order-review-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
