@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ClipboardList,
+  RefreshCw,
   Clock,
   CreditCard,
   Package,
@@ -137,6 +138,9 @@ export default function MyOrders() {
           <h1 className="page-title">我的订单</h1>
           <p className="page-subtitle">查看全部商品与服务订单</p>
         </div>
+        <button className="btn btn-outline" onClick={loadOrders} disabled={loading}>
+          <RefreshCw size={14} className={loading ? 'spin' : ''} /> 刷新
+        </button>
       </header>
 
       <div className="my-order-stats">

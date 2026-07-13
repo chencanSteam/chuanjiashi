@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Search, ShoppingCart, CreditCard, Package, CheckCircle, AlertCircle, Clock, XCircle, Eye, X, UserCheck, Calendar, MapPin, Truck, Upload, FileText, ExternalLink } from 'lucide-react';
+import { Search, RefreshCw, ShoppingCart, CreditCard, Package, CheckCircle, AlertCircle, Clock, XCircle, Eye, X, UserCheck, Calendar, MapPin, Truck, Upload, FileText, ExternalLink } from 'lucide-react';
 import { orderApi, type AdminOrder } from '../api/order';
 import { biographerApi } from '../api/biographer';
 import { useToast } from '../hooks/useToast';
@@ -315,6 +315,9 @@ export default function OrderManagement() {
     <div className="order-management-page">
       <header className="page-header">
         <h1 className="page-title">订单管理</h1>
+        <button className="btn btn-outline" onClick={loadOrders} disabled={loading}>
+          <RefreshCw size={14} className={loading ? 'spin' : ''} /> 刷新
+        </button>
       </header>
 
       <div className="order-stats">
