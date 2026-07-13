@@ -16,6 +16,7 @@ import {
   ShoppingBag,
   X,
   Copy,
+  Star,
   CreditCard as PayIcon,
 } from 'lucide-react';
 import { orderApi } from '../api/order';
@@ -73,6 +74,23 @@ const deliverableTypeLabels: Record<string, string> = {
   image: '图片',
 };
 
+function formatCountdown(target: string): string {
+  const diff = new Date(target).getTime() - Date.now();
+  if (diff <= 0) return '已过期';
+  const minutes = Math.floor(diff / 60000);
+  const seconds = Math.floor((diff % 60000) / 1000);
+  return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+}
+
+function useCountdown() {
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+  return now;
+}
+
 export default function MyOrders() {
   const navigate = useNavigate();
   const { addToast } = useToast();
@@ -82,6 +100,13 @@ export default function MyOrders() {
   const [typeFilter, setTypeFilter] = useState<Order['type'] | 'all'>('all');
   const [selected, setSelected] = useState<Order | null>(null);
   const [payingId, setPayingId] = useState<string | null>(null);
+  const [reviewOrder, setReviewOrder] = useState<Order | null>(null);
+  const [refundOrder, setRefundOrder] = useState<Order | null>(null);
+  const [rating, setRating] = useState(5);
+  const [reviewContent, setReviewContent] = useState('');
+  const [refundReason, setRefundReason] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  useCountdown();
 
   useEffect(() => {
     loadOrders();
@@ -130,6 +155,51 @@ export default function MyOrders() {
   const copyOrderId = (id: string) => {
     navigator.clipboard.writeText(id).then(() => addToast('订单号已复制', 'success'));
   };
+
+  const handleReview = async () => {
+    if (!reviewOrder) return;
+    if (!reviewContent.trim()) {
+      addToast('请填写评价内容', 'error');
+      return;
+    }
+    try {
+      setSubmitting(true);
+      await orderApi.review(reviewOrder.id, { rating, content: reviewContent.trim(), createdAt: new Date().toISOString() });
+      addToast('评价已提交', 'success');
+      setReviewOrder(null);
+      setRating(5);
+      setReviewContent('');
+      loadOrders();
+    } catch (err: any) {
+      addToast(err.message || '评价失败', 'error');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleRefund = async () => {
+    if (!refundOrder) return;
+    if (!refundReason.trim()) {
+      addToast('请填写退款原因', 'error');
+      return;
+    }
+    try {
+      setSubmitting(true);
+      await orderApi.refund(refundOrder.id, { reason: refundReason.trim(), createdAt: new Date().toISOString() });
+      addToast('退款申请已处理', 'success');
+      setRefundOrder(null);
+      setRefundReason('');
+      setSelected(null);
+      loadOrders();
+    } catch (err: any) {
+      addToast(err.message || '退款失败', 'error');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const canRefund = (order: Order) => ['paid', 'delivering'].includes(order.status);
+  const canReview = (order: Order) => order.status === 'completed' && !order.review;
 
   return (
     <div className="my-orders-page">
@@ -203,7 +273,8 @@ export default function MyOrders() {
               {filtered.map((order) => {
                 const status = statusMap[order.status];
                 const StatusIcon = status.icon;
-                const canPay = order.status === 'pending_pay';
+                const isExpired = order.status === 'pending_pay' && order.expireAt ? new Date(order.expireAt) < new Date() : false;
+                const canPay = order.status === 'pending_pay' && !isExpired;
                 return (
                   <div className="my-order-item" key={order.id}>
                     <div className="my-order-item-header">
@@ -211,6 +282,11 @@ export default function MyOrders() {
                         <span className="my-order-item-id">{order.id}</span>
                         <span className="my-order-item-time">{new Date(order.createdAt).toLocaleString()}</span>
                         <span className="my-order-item-type">{typeLabelMap[order.type]}</span>
+                        {order.status === 'pending_pay' && order.expireAt && (
+                          <span className={`my-order-countdown ${isExpired ? 'expired' : ''}`}>
+                            <Clock size={10} /> {isExpired ? '已过期' : `剩 ${formatCountdown(order.expireAt)}`}
+                          </span>
+                        )}
                       </div>
                       <span className={`my-order-status ${status.className}`}>
                         <StatusIcon size={12} /> {status.label}
@@ -225,6 +301,16 @@ export default function MyOrders() {
                     </div>
                     <div className="my-order-item-footer">
                       <button className="btn btn-ghost btn-sm" onClick={() => setSelected(order)}>查看详情</button>
+                      {canReview(order) && (
+                        <button className="btn btn-outline btn-sm" onClick={() => { setReviewOrder(order); setRating(5); setReviewContent(''); }}>
+                          <Star size={12} /> 评价
+                        </button>
+                      )}
+                      {canRefund(order) && (
+                        <button className="btn btn-outline btn-sm" onClick={() => { setRefundOrder(order); setRefundReason(''); }}>
+                          申请退款
+                        </button>
+                      )}
                       {canPay && (
                         <button className="btn btn-primary btn-sm" disabled={payingId === order.id} onClick={() => handlePay(order)}>
                           <PayIcon size={12} /> {payingId === order.id ? '支付中…' : '去支付'}
@@ -338,11 +424,108 @@ export default function MyOrders() {
                 </div>
               )}
 
-              {selected.status === 'pending_pay' && (
-                <button className="btn btn-primary" style={{ width: '100%', marginTop: 12 }} disabled={payingId === selected.id} onClick={() => handlePay(selected)}>
-                  <PayIcon size={14} /> {payingId === selected.id ? '支付中…' : '立即支付'}
-                </button>
+              {selected.review && (
+                <div className="my-order-detail-section">
+                  <h5><Star size={14} /> 我的评价</h5>
+                  <div className="my-order-review-stars">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Star key={i} size={14} className={i < selected.review!.rating ? 'filled' : ''} />
+                    ))}
+                  </div>
+                  <p className="my-order-review-content">{selected.review.content}</p>
+                </div>
               )}
+
+              {selected.refundRequest && (
+                <div className="my-order-detail-section">
+                  <h5>售后记录</h5>
+                  <div className="my-order-detail-row">
+                    <span>退款原因</span>
+                    <span>{selected.refundRequest.reason}</span>
+                  </div>
+                  <div className="my-order-detail-row">
+                    <span>申请时间</span>
+                    <span>{new Date(selected.refundRequest.createdAt).toLocaleString()}</span>
+                  </div>
+                </div>
+              )}
+
+              <div className="my-order-detail-actions">
+                {selected.status === 'pending_pay' && (!selected.expireAt || new Date(selected.expireAt) > new Date()) ? (
+                  <button className="btn btn-primary" style={{ flex: 1 }} disabled={payingId === selected.id} onClick={() => handlePay(selected)}>
+                    <PayIcon size={14} /> {payingId === selected.id ? '支付中…' : '立即支付'}
+                  </button>
+                ) : null}
+                {canReview(selected) && (
+                  <button className="btn btn-outline" onClick={() => { setReviewOrder(selected); setRating(5); setReviewContent(''); }}>
+                    <Star size={14} /> 评价
+                  </button>
+                )}
+                {canRefund(selected) && (
+                  <button className="btn btn-outline" onClick={() => { setRefundOrder(selected); setRefundReason(''); }}>
+                    申请退款
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {reviewOrder && (
+        <div className="modal-overlay" onClick={() => setReviewOrder(null)}>
+          <div className="modal-content my-order-detail-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h4>评价订单</h4>
+              <button className="modal-close" onClick={() => setReviewOrder(null)}><X size={16} /></button>
+            </div>
+            <div className="modal-body">
+              <div className="my-order-review-product">{reviewOrder.productName}</div>
+              <div className="my-order-review-stars interactive">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <button key={i} className="my-order-star-btn" onClick={() => setRating(i + 1)}>
+                    <Star size={24} className={i < rating ? 'filled' : ''} />
+                  </button>
+                ))}
+              </div>
+              <div className="form-row">
+                <label>评价内容</label>
+                <textarea
+                  rows={4}
+                  value={reviewContent}
+                  onChange={(e) => setReviewContent(e.target.value)}
+                  placeholder="分享您的使用体验，帮助其他用户了解这项服务"
+                />
+              </div>
+              <button className="btn btn-primary" style={{ width: '100%', marginTop: 8 }} disabled={submitting} onClick={handleReview}>
+                {submitting ? '提交中…' : '提交评价'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {refundOrder && (
+        <div className="modal-overlay" onClick={() => setRefundOrder(null)}>
+          <div className="modal-content my-order-detail-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h4>申请退款</h4>
+              <button className="modal-close" onClick={() => setRefundOrder(null)}><X size={16} /></button>
+            </div>
+            <div className="modal-body">
+              <div className="my-order-review-product">{refundOrder.productName}</div>
+              <div className="form-row">
+                <label>退款原因</label>
+                <textarea
+                  rows={4}
+                  value={refundReason}
+                  onChange={(e) => setRefundReason(e.target.value)}
+                  placeholder="请简要说明退款原因"
+                />
+              </div>
+              <button className="btn btn-danger" style={{ width: '100%', marginTop: 8 }} disabled={submitting} onClick={handleRefund}>
+                {submitting ? '处理中…' : '确认退款'}
+              </button>
             </div>
           </div>
         </div>

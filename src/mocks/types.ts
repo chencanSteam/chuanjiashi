@@ -136,6 +136,8 @@ export interface ProductPackage {
   originalPrice?: number
   description: string
   rights: string[]
+  sales?: number
+  hot?: boolean
   createdAt: string
 }
 
@@ -155,6 +157,18 @@ export interface OrderLogistics {
   company: string
   trackingNo: string
   shippedAt: string
+}
+
+export interface OrderReview {
+  rating: number
+  content: string
+  tags?: string[]
+  createdAt: string
+}
+
+export interface RefundRequest {
+  reason: string
+  createdAt: string
 }
 
 export interface Deliverable {
@@ -178,6 +192,9 @@ export interface Order {
   address?: OrderAddress
   logistics?: OrderLogistics
   deliverables?: Deliverable[]
+  review?: OrderReview
+  refundRequest?: RefundRequest
+  expireAt?: string
   payTime?: string
   createdAt: string
   updatedAt: string

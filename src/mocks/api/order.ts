@@ -1,7 +1,7 @@
 import { http, type HttpHandler } from 'msw'
-import { success, unauthorized, notFound } from '../utils/response'
+import { success, fail, unauthorized, notFound } from '../utils/response'
 import { getItem, setItem, generateId, storeKeys } from '../utils/store'
-import type { Order, OrderStatus, User, Deliverable, OrderLogistics } from '../types'
+import type { Order, OrderStatus, User, Deliverable, OrderLogistics, OrderReview, RefundRequest } from '../types'
 
 function getCurrentUserId(): string | null {
   const user = getItem<{ id: string } | null>(storeKeys.currentUser, null)
@@ -22,6 +22,8 @@ export function saveOrder(order: Order): void {
 }
 
 export function createOrder(userId: string, data: Partial<Order>): Order {
+  const now = new Date()
+  const expireAt = new Date(now.getTime() + 30 * 60 * 1000).toISOString()
   const order: Order = {
     id: generateId(),
     userId,
@@ -34,11 +36,27 @@ export function createOrder(userId: string, data: Partial<Order>): Order {
     remark: data.remark,
     address: data.address,
     status: 'pending_pay',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
+    expireAt,
+    createdAt: now.toISOString(),
+    updatedAt: now.toISOString(),
   }
   saveOrder(order)
   return order
+}
+
+export function closeExpiredOrders(): Order[] {
+  const orders = getItem<Order[]>(storeKeys.orders, [])
+  const now = new Date().toISOString()
+  let changed = false
+  orders.forEach((o) => {
+    if (o.status === 'pending_pay' && o.expireAt && o.expireAt < now) {
+      o.status = 'closed'
+      o.updatedAt = now
+      changed = true
+    }
+  })
+  if (changed) setItem(storeKeys.orders, orders)
+  return orders
 }
 
 function ensureDemoUsers(): User[] {
@@ -117,7 +135,7 @@ export const orderHandlers: HttpHandler[] = [
   http.get('/api/orders', async () => {
     const userId = getCurrentUserId()
     if (!userId) return unauthorized()
-    const orders = getItem<Order[]>(storeKeys.orders, []).filter((o) => o.userId === userId)
+    const orders = closeExpiredOrders().filter((o) => o.userId === userId)
     return success(orders)
   }),
 
@@ -153,7 +171,8 @@ export const orderHandlers: HttpHandler[] = [
   http.get('/api/admin/orders', async () => {
     const userId = getCurrentUserId()
     if (!userId) return unauthorized()
-    const orders = initDemoOrders()
+    const orders = closeExpiredOrders()
+    initDemoOrders()
     return success(orders.map((o) => ({ ...o, ...getOrderUserInfo(o) })))
   }),
 
@@ -197,5 +216,32 @@ export const orderHandlers: HttpHandler[] = [
     order.updatedAt = new Date().toISOString()
     saveOrder(order)
     return success({ ...order, ...getOrderUserInfo(order) }, '交付物已上传')
+  }),
+
+  http.post('/api/orders/:id/review', async ({ request, params }) => {
+    const userId = getCurrentUserId()
+    if (!userId) return unauthorized()
+    const order = findOrder(params.id as string)
+    if (!order || order.userId !== userId) return notFound('订单不存在')
+    if (order.status !== 'completed') return fail('订单未完成，无法评价')
+    const review = (await request.json()) as OrderReview
+    order.review = { ...review, createdAt: new Date().toISOString() }
+    order.updatedAt = new Date().toISOString()
+    saveOrder(order)
+    return success(order, '评价已提交')
+  }),
+
+  http.post('/api/orders/:id/refund', async ({ request, params }) => {
+    const userId = getCurrentUserId()
+    if (!userId) return unauthorized()
+    const order = findOrder(params.id as string)
+    if (!order || order.userId !== userId) return notFound('订单不存在')
+    if (['pending_pay', 'refunded', 'closed'].includes(order.status)) return fail('当前订单状态不支持退款')
+    const data = (await request.json()) as RefundRequest
+    order.refundRequest = { ...data, createdAt: new Date().toISOString() }
+    order.status = 'refunded'
+    order.updatedAt = new Date().toISOString()
+    saveOrder(order)
+    return success(order, '退款申请已处理')
   }),
 ]

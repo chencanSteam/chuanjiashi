@@ -206,11 +206,14 @@ export default function Store() {
                   <div className={`store-product-icon ${p.type}`}>
                     <Icon size={28} />
                   </div>
-                  {p.originalPrice && p.originalPrice > p.price && (
-                    <span className="store-product-discount">
-                      {Math.round((1 - p.price / p.originalPrice) * 100)}% OFF
-                    </span>
-                  )}
+                  <div className="store-product-badges">
+                    {(p.hot || (p.sales || 0) >= 50) && <span className="store-product-hot">HOT</span>}
+                    {p.originalPrice && p.originalPrice > p.price && (
+                      <span className="store-product-discount">
+                        {Math.round((1 - p.price / p.originalPrice) * 100)}% OFF
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <h3 className="store-product-name">{p.name}</h3>
                 <p className="store-product-desc">{p.description}</p>
@@ -218,6 +221,9 @@ export default function Store() {
                   {p.rights.slice(0, 4).map((r) => (
                     <span key={r} className="store-product-right"><Check size={12} /> {r}</span>
                   ))}
+                </div>
+                <div className="store-product-sales">
+                  {p.sales ? `已售 ${p.sales}` : '新品上线'}
                 </div>
                 <div className="store-product-footer">
                   <div className="store-product-price">

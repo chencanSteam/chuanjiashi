@@ -143,6 +143,13 @@
   margin-bottom: 14px;
 }
 
+.store-product-badges {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+}
+
 .store-product-icon {
   width: 52px;
   height: 52px;
@@ -165,6 +172,15 @@
   font-weight: 700;
   color: #fff;
   background: #ef4444;
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+
+.store-product-hot {
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, #b8860b 0%, #d4a84b 100%);
   padding: 3px 8px;
   border-radius: 999px;
 }
@@ -202,6 +218,12 @@
 .store-product-right svg {
   color: #1B5E4B;
   flex-shrink: 0;
+}
+
+.store-product-sales {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 14px;
 }
 
 .store-product-footer {

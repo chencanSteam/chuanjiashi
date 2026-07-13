@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Search, RefreshCw, ShoppingCart, CreditCard, Package, CheckCircle, AlertCircle, Clock, XCircle, Eye, X, UserCheck, Calendar, MapPin, Truck, Upload, FileText, ExternalLink } from 'lucide-react';
+import { Search, RefreshCw, ShoppingCart, CreditCard, Package, CheckCircle, AlertCircle, Clock, XCircle, Eye, X, UserCheck, Calendar, MapPin, Truck, Upload, FileText, ExternalLink, Star } from 'lucide-react';
 import { orderApi, type AdminOrder } from '../api/order';
 import { biographerApi } from '../api/biographer';
 import { useToast } from '../hooks/useToast';
@@ -84,6 +84,15 @@ export default function OrderManagement() {
   const [deliverableModalOrder, setDeliverableModalOrder] = useState<AdminOrder | null>(null);
   const [deliverable, setDeliverable] = useState<Deliverable>({ type: 'link', url: '', name: '', createdAt: new Date().toISOString() });
 
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [batchDeliverModal, setBatchDeliverModal] = useState(false);
+  const [batchDeliverableModal, setBatchDeliverableModal] = useState(false);
+  const [batchCompany, setBatchCompany] = useState('');
+  const [batchDeliverableType, setBatchDeliverableType] = useState<Deliverable['type']>('link');
+  const [batchDeliverableName, setBatchDeliverableName] = useState('');
+  const [batchDeliverableUrl, setBatchDeliverableUrl] = useState('');
+  const [batchSubmitting, setBatchSubmitting] = useState(false);
+
   useEffect(() => {
     loadOrders();
   }, []);
@@ -92,9 +101,84 @@ export default function OrderManagement() {
     setLoading(true);
     orderApi
       .adminList()
-      .then(setOrders)
+      .then((list) => {
+        setOrders(list);
+        setSelectedIds((prev) => {
+          const next = new Set<string>();
+          prev.forEach((id) => {
+            if (list.some((o) => o.id === id)) next.add(id);
+          });
+          return next;
+        });
+      })
       .catch(() => setOrders([]))
       .finally(() => setLoading(false));
+  };
+
+  const handleBatchDeliver = async () => {
+    if (!batchCompany.trim()) {
+      addToast('请填写物流公司', 'error');
+      return;
+    }
+    if (physicalSelected.length === 0) {
+      addToast('没有可发货的实体订单', 'error');
+      return;
+    }
+    try {
+      setBatchSubmitting(true);
+      await Promise.all(
+        physicalSelected.map((order, idx) =>
+          orderApi.adminDeliver(order.id, {
+            company: batchCompany,
+            trackingNo: `SF${Date.now().toString().slice(-6)}${idx.toString().padStart(2, '0')}`,
+            shippedAt: new Date().toISOString(),
+          })
+        )
+      );
+      addToast(`已批量发货 ${physicalSelected.length} 单`, 'success');
+      setBatchDeliverModal(false);
+      setBatchCompany('');
+      setSelectedIds(new Set());
+      loadOrders();
+    } catch (err: any) {
+      addToast(err.message || '批量发货失败', 'error');
+    } finally {
+      setBatchSubmitting(false);
+    }
+  };
+
+  const handleBatchDeliverable = async () => {
+    if (!batchDeliverableName.trim() || !batchDeliverableUrl.trim()) {
+      addToast('请填写交付物名称和链接', 'error');
+      return;
+    }
+    if (digitalSelected.length === 0) {
+      addToast('没有可上传交付物的数字订单', 'error');
+      return;
+    }
+    try {
+      setBatchSubmitting(true);
+      await Promise.all(
+        digitalSelected.map((order) =>
+          orderApi.adminAddDeliverable(order.id, {
+            type: batchDeliverableType,
+            name: batchDeliverableName,
+            url: batchDeliverableUrl,
+            createdAt: new Date().toISOString(),
+          })
+        )
+      );
+      addToast(`已批量上传交付物 ${digitalSelected.length} 单`, 'success');
+      setBatchDeliverableModal(false);
+      setBatchDeliverableName('');
+      setBatchDeliverableUrl('');
+      setSelectedIds(new Set());
+      loadOrders();
+    } catch (err: any) {
+      addToast(err.message || '批量上传失败', 'error');
+    } finally {
+      setBatchSubmitting(false);
+    }
   };
 
   const filtered = useMemo(() => {
@@ -109,7 +193,27 @@ export default function OrderManagement() {
       const matchType = typeFilter === 'all' || o.type === typeFilter;
       return matchKeyword && matchStatus && matchType;
     });
-  }, [orders, keyword, statusFilter]);
+  }, [orders, keyword, statusFilter, typeFilter]);
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filtered.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filtered.map((o) => o.id)));
+    }
+  };
+
+  const physicalSelected = useMemo(() => filtered.filter((o) => selectedIds.has(o.id) && isPhysicalProduct(o.type) && o.status === 'paid'), [filtered, selectedIds]);
+  const digitalSelected = useMemo(() => filtered.filter((o) => selectedIds.has(o.id) && isDigitalProduct(o.type) && o.status === 'paid'), [filtered, selectedIds]);
 
   const stats = useMemo(() => {
     const totalAmount = orders.reduce((sum, o) => sum + o.amount, 0);
@@ -311,6 +415,24 @@ export default function OrderManagement() {
     );
   };
 
+  const renderReview = (order: AdminOrder) => {
+    if (!order.review) return null;
+    return (
+      <>
+        <div className="order-detail-divider" />
+        <div className="order-detail-section">
+          <h5><Star size={14} /> 用户评价</h5>
+          <div className="order-review-stars">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Star key={i} size={14} className={i < order.review!.rating ? 'filled' : ''} />
+            ))}
+          </div>
+          <p className="order-review-content">{order.review.content}</p>
+        </div>
+      </>
+    );
+  };
+
   return (
     <div className="order-management-page">
       <header className="page-header">
@@ -375,6 +497,24 @@ export default function OrderManagement() {
             </select>
           </div>
         </div>
+        {selectedIds.size > 0 && (
+          <div className="order-batch-bar">
+            <span className="order-batch-count">已选 {selectedIds.size} 单</span>
+            <div className="order-batch-actions">
+              {physicalSelected.length > 0 && (
+                <button className="btn btn-primary btn-sm" onClick={() => setBatchDeliverModal(true)}>
+                  <Truck size={14} /> 批量发货 ({physicalSelected.length})
+                </button>
+              )}
+              {digitalSelected.length > 0 && (
+                <button className="btn btn-primary btn-sm" onClick={() => setBatchDeliverableModal(true)}>
+                  <Upload size={14} /> 批量上传交付物 ({digitalSelected.length})
+                </button>
+              )}
+              <button className="btn btn-ghost btn-sm" onClick={() => setSelectedIds(new Set())}>取消选择</button>
+            </div>
+          </div>
+        )}
         <div className="card-body order-list-body">
           {loading ? (
             <div className="order-empty">加载中…</div>
@@ -383,6 +523,13 @@ export default function OrderManagement() {
           ) : (
             <div className="order-table">
               <div className="order-row order-header-row">
+                <div className="order-cell order-cell-check">
+                  <input
+                    type="checkbox"
+                    checked={filtered.length > 0 && selectedIds.size === filtered.length}
+                    onChange={toggleSelectAll}
+                  />
+                </div>
                 <div className="order-cell">订单号</div>
                 <div className="order-cell">客户</div>
                 <div className="order-cell">商品/服务</div>
@@ -395,8 +542,12 @@ export default function OrderManagement() {
               {filtered.map((item) => {
                 const status = statusMap[item.status];
                 const StatusIcon = status.icon;
+                const selected = selectedIds.has(item.id);
                 return (
-                  <div className="order-row" key={item.id}>
+                  <div className={`order-row ${selected ? 'selected' : ''}`} key={item.id}>
+                    <div className="order-cell order-cell-check">
+                      <input type="checkbox" checked={selected} onChange={() => toggleSelect(item.id)} />
+                    </div>
                     <div className="order-cell order-cell-id">{item.id}</div>
                     <div className="order-cell">
                       <div className="order-user-name">{item.userName || '未知用户'}</div>
@@ -494,6 +645,7 @@ export default function OrderManagement() {
               {renderAddress(selectedOrder)}
               {renderLogistics(selectedOrder)}
               {renderDeliverables(selectedOrder)}
+              {renderReview(selectedOrder)}
 
               {selectedOrder.type === 'biographer_service' && (
                 <>
@@ -618,6 +770,81 @@ export default function OrderManagement() {
               <div className="order-detail-actions">
                 <button className="btn btn-outline" onClick={() => setDeliverableModalOrder(null)}>取消</button>
                 <button className="btn btn-primary" onClick={handleAddDeliverable}><Upload size={14} /> 确认上传</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {batchDeliverModal && (
+        <div className="modal-overlay" onClick={() => setBatchDeliverModal(false)}>
+          <div className="modal-content order-detail-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h4>批量发货（{physicalSelected.length} 单）</h4>
+              <button className="modal-close" onClick={() => setBatchDeliverModal(false)}><X size={16} /></button>
+            </div>
+            <div className="modal-body">
+              <p className="order-batch-hint">将为选中的实体书/衍生品订单统一发货，运单号由系统自动生成。</p>
+              <div className="order-form-row">
+                <label>物流公司 <span className="order-form-required">*</span></label>
+                <input
+                  type="text"
+                  value={batchCompany}
+                  onChange={(e) => setBatchCompany(e.target.value)}
+                  placeholder="如：顺丰速运"
+                />
+              </div>
+              <div className="order-detail-actions">
+                <button className="btn btn-outline" onClick={() => setBatchDeliverModal(false)}>取消</button>
+                <button className="btn btn-primary" disabled={batchSubmitting} onClick={handleBatchDeliver}>
+                  <Truck size={14} /> {batchSubmitting ? '发货中…' : '确认批量发货'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {batchDeliverableModal && (
+        <div className="modal-overlay" onClick={() => setBatchDeliverableModal(false)}>
+          <div className="modal-content order-detail-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h4>批量上传交付物（{digitalSelected.length} 单）</h4>
+              <button className="modal-close" onClick={() => setBatchDeliverableModal(false)}><X size={16} /></button>
+            </div>
+            <div className="modal-body">
+              <p className="order-batch-hint">将为选中的数字服务订单上传相同的交付物。</p>
+              <div className="order-form-row">
+                <label>交付物类型</label>
+                <select value={batchDeliverableType} onChange={(e) => setBatchDeliverableType(e.target.value as Deliverable['type'])}>
+                  {deliverableTypeOptions.map((t) => (
+                    <option value={t} key={t}>{deliverableTypeLabels[t]}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="order-form-row">
+                <label>名称 <span className="order-form-required">*</span></label>
+                <input
+                  type="text"
+                  value={batchDeliverableName}
+                  onChange={(e) => setBatchDeliverableName(e.target.value)}
+                  placeholder="如：纪念视频成片"
+                />
+              </div>
+              <div className="order-form-row">
+                <label>链接 / 地址 <span className="order-form-required">*</span></label>
+                <input
+                  type="text"
+                  value={batchDeliverableUrl}
+                  onChange={(e) => setBatchDeliverableUrl(e.target.value)}
+                  placeholder="https://..."
+                />
+              </div>
+              <div className="order-detail-actions">
+                <button className="btn btn-outline" onClick={() => setBatchDeliverableModal(false)}>取消</button>
+                <button className="btn btn-primary" disabled={batchSubmitting} onClick={handleBatchDeliverable}>
+                  <Upload size={14} /> {batchSubmitting ? '上传中…' : '确认批量上传'}
+                </button>
               </div>
             </div>
           </div>

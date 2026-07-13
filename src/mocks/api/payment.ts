@@ -2,6 +2,7 @@ import { http, type HttpHandler } from 'msw'
 import { success, fail, unauthorized, notFound } from '../utils/response'
 import { getItem, setItem, generateId, storeKeys } from '../utils/store'
 import { findOrder, saveOrder } from './order'
+import { increaseProductSales } from './product'
 import { generateCommission } from './commission'
 import type { Payment } from '../types'
 
@@ -25,6 +26,13 @@ export const paymentHandlers: HttpHandler[] = [
 
     const order = findOrder(orderId)
     if (!order || order.userId !== userId) return notFound('订单不存在')
+    if (order.status !== 'pending_pay') return fail('订单状态不正确')
+    if (order.expireAt && new Date(order.expireAt) < new Date()) {
+      order.status = 'closed'
+      order.updatedAt = new Date().toISOString()
+      saveOrder(order)
+      return fail('订单已超时关闭，请重新下单')
+    }
 
     // 模拟支付成功
     const payment: Payment = {
@@ -44,6 +52,8 @@ export const paymentHandlers: HttpHandler[] = [
     order.payTime = payment.paidAt || new Date().toISOString()
     order.updatedAt = payment.paidAt || new Date().toISOString()
     saveOrder(order)
+
+    increaseProductSales(order.productId)
 
     // 生成一级推广佣金
     const users = getItem<{ id: string; invitedBy?: string }[]>(storeKeys.users, [])

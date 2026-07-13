@@ -1,5 +1,5 @@
 import { api } from './client'
-import type { Order, OrderStatus, Deliverable, OrderLogistics } from '../mocks/types'
+import type { Order, OrderStatus, Deliverable, OrderLogistics, OrderReview, RefundRequest } from '../mocks/types'
 
 export type AdminOrder = Order & { userName?: string; userPhone?: string }
 
@@ -14,4 +14,6 @@ export const orderApi = {
   adminUpdateStatus: (id: string, status: OrderStatus) => api.put<AdminOrder>(`/api/admin/orders/${id}/status`, { status }),
   adminDeliver: (id: string, logistics: OrderLogistics) => api.put<AdminOrder>(`/api/admin/orders/${id}/deliver`, { logistics }),
   adminAddDeliverable: (id: string, deliverable: Deliverable) => api.put<AdminOrder>(`/api/admin/orders/${id}/deliverable`, { deliverable }),
+  review: (id: string, review: OrderReview) => api.post<Order>(`/api/orders/${id}/review`, review),
+  refund: (id: string, data: RefundRequest) => api.post<Order>(`/api/orders/${id}/refund`, data),
 }

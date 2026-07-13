@@ -60,6 +60,8 @@ export const defaultProducts: ProductPackage[] = [
     originalPrice: 199,
     description: 'AI 智能采访 + 8 章传记生成 + PDF 导出',
     rights: ['AI 智能采访', '8 章传记生成', '在线编辑', 'PDF 导出', '30 天有效期'],
+    sales: 1280,
+    hot: true,
     createdAt: new Date().toISOString(),
   },
   {
@@ -110,6 +112,8 @@ export const defaultProducts: ProductPackage[] = [
     originalPrice: 468,
     description: '硬壳精装，锁线装订，适合收藏馈赠长辈',
     rights: ['PDF 智能排版', '精装封面设计', '锁线装订工艺', '烫金书脊', '礼盒包装'],
+    sales: 356,
+    hot: true,
     createdAt: new Date().toISOString(),
   },
   {
@@ -150,6 +154,7 @@ export const defaultProducts: ProductPackage[] = [
     originalPrice: 199,
     description: '为数字馆/家风馆生成专属永久二维码，支持高清下载与访问统计',
     rights: ['专属永久二维码', '4K 高清下载', '访问统计分析', '长期云端保存', '铭牌授权'],
+    sales: 89,
     createdAt: new Date().toISOString(),
   },
 ]

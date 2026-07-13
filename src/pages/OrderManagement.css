@@ -165,6 +165,53 @@
   color: #1B5E4B;
 }
 
+.order-cell-check {
+  width: 40px;
+  text-align: center;
+}
+
+.order-cell-check input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #1B5E4B;
+}
+
+.order-row.selected {
+  background: rgba(27, 94, 75, 0.04);
+}
+
+.order-batch-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 20px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-light);
+  flex-wrap: wrap;
+}
+
+.order-batch-count {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.order-batch-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.order-batch-hint {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0 0 14px;
+  line-height: 1.5;
+}
+
 .order-cell-amount {
   color: #1B5E4B;
   font-weight: 600;
@@ -499,4 +546,30 @@
 
 .order-deliverable-link:hover {
   text-decoration: underline;
+}
+
+.order-review-stars {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.order-review-stars svg {
+  color: #d1d5db;
+}
+
+.order-review-stars svg.filled {
+  color: #f59e0b;
+  fill: #f59e0b;
+}
+
+.order-review-content {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0;
+  padding: 10px 12px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius);
 }

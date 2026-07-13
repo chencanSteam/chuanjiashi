@@ -120,6 +120,22 @@
   color: var(--text-secondary);
 }
 
+.my-order-countdown {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 8px;
+  background: rgba(217, 119, 6, 0.1);
+  border-radius: 4px;
+  color: #d97706;
+  font-size: 11px;
+}
+
+.my-order-countdown.expired {
+  background: rgba(107, 114, 128, 0.1);
+  color: #6b7280;
+}
+
 .my-order-item-body {
   display: flex;
   align-items: center;
@@ -312,6 +328,68 @@
 
 .my-order-deliverable-link:hover {
   text-decoration: underline;
+}
+
+.my-order-detail-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+.my-order-detail-actions .btn {
+  flex: 1;
+  justify-content: center;
+}
+
+.my-order-review-product {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 14px;
+  text-align: center;
+}
+
+.my-order-review-stars {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.my-order-review-stars svg {
+  color: #d1d5db;
+}
+
+.my-order-review-stars svg.filled {
+  color: #f59e0b;
+  fill: #f59e0b;
+}
+
+.my-order-review-stars.interactive {
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.my-order-star-btn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.my-order-review-content {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0;
+  padding: 10px 12px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius);
 }
 
 @keyframes spin {

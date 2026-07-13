@@ -13,6 +13,15 @@ function ensureProducts(): ProductPackage[] {
   return products
 }
 
+export function increaseProductSales(productId: string, amount: number = 1): void {
+  const products = ensureProducts()
+  const idx = products.findIndex((p) => p.id === productId)
+  if (idx >= 0) {
+    products[idx].sales = (products[idx].sales || 0) + amount
+    setItem(storeKeys.products, products)
+  }
+}
+
 export const productHandlers: HttpHandler[] = [
   http.get('/api/products', async () => {
     return success(ensureProducts())
