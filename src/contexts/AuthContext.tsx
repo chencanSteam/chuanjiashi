@@ -1,5 +1,4 @@
 import { createContext, useEffect, useState, type ReactNode } from 'react';
-import { authApi } from '../api/auth';
 
 export type UserRole = 'user' | 'partner' | 'admin' | 'biographer';
 
@@ -28,46 +27,66 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 const USER_KEY = 'cj_user';
+const TOKEN_KEY = 'cj_token';
+const MOCK_CURRENT_USER_KEY = 'cj_mock_current_user';
 const DEMO_ADMIN_PHONE = '13800138000';
 
-function mapMockUserToLocal(mockUser: { id: string; phone: string; nickname: string; inviteCode: string; community?: string; neighborhood?: string }, token: string, options?: { isRegister?: boolean; name?: string }): User {
+function generateId(): string {
+  return `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function createLocalUser(phone: string, options?: { isRegister?: boolean; name?: string; inviteCode?: string }): User {
   const roles: UserRole[] = ['user'];
-  if (mockUser.phone === DEMO_ADMIN_PHONE) {
-    roles.push('admin');
-  }
+  if (phone === DEMO_ADMIN_PHONE) roles.push('admin');
   return {
-    phone: mockUser.phone,
-    name: options?.name || mockUser.nickname || mockUser.phone.slice(-4),
-    token,
+    phone,
+    name: options?.name || `用户${phone.slice(-4)}`,
+    token: `local_token_${generateId()}`,
     isNewUser: options?.isRegister ? true : undefined,
-    inviteCode: mockUser.inviteCode,
-    community: mockUser.community,
-    neighborhood: mockUser.neighborhood,
+    inviteCode: options?.inviteCode || Math.random().toString(36).slice(2, 8).toUpperCase(),
     roles,
   };
+}
+
+function syncMockAuth(user: User | null): void {
+  if (!user) {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(MOCK_CURRENT_USER_KEY);
+    return;
+  }
+  localStorage.setItem(TOKEN_KEY, user.token);
+  localStorage.setItem(
+    MOCK_CURRENT_USER_KEY,
+    JSON.stringify({
+      id: `u_${user.phone}`,
+      phone: user.phone,
+      nickname: user.name || `用户${user.phone.slice(-4)}`,
+      inviteCode: user.inviteCode || '',
+    })
+  );
+}
+
+function loadStoredUser(): User | null {
+  try {
+    const raw = localStorage.getItem(USER_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as User;
+    if (!parsed?.phone || !parsed?.token) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [ready, setReady] = useState(false);
 
-  // 页面刷新时恢复登录态
+  // 页面刷新时恢复登录态（纯本地，不走接口）
   useEffect(() => {
-    authApi.me()
-      .then((mockUser) => {
-        const token = localStorage.getItem('cj_token') || `demo-token-${mockUser.phone}`;
-        setUser(mapMockUserToLocal(mockUser as any, token));
-      })
-      .catch(() => {
-        // 尝试本地兜底
-        try {
-          const raw = localStorage.getItem(USER_KEY);
-          if (raw) setUser(JSON.parse(raw) as User);
-        } catch {
-          // ignore
-        }
-      })
-      .finally(() => setReady(true));
+    const stored = loadStoredUser();
+    setUser(stored);
+    setReady(true);
   }, []);
 
   useEffect(() => {
@@ -76,29 +95,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } else {
       localStorage.removeItem(USER_KEY);
     }
+    syncMockAuth(user);
   }, [user]);
 
   const login = async (phone: string, code: string, options?: { isRegister?: boolean; name?: string; inviteCode?: string }) => {
     if (!phone.trim() || !code.trim()) {
       return { success: false, error: '请输入手机号和验证码' };
     }
-    try {
-      const { user: mockUser, token } = await authApi.login(phone, code, options?.inviteCode);
-      const localUser = mapMockUserToLocal(mockUser as any, token, options);
-      setUser(localUser);
-      return { success: true };
-    } catch (err: any) {
-      const message = err?.message || '登录失败，请检查网络或稍后重试';
-      return { success: false, error: message };
+    if (!/^1\d{10}$/.test(phone.trim())) {
+      return { success: false, error: '请输入正确的手机号' };
     }
+    // 原型阶段验证码固定为 123456
+    if (code.trim() !== '123456') {
+      return { success: false, error: '验证码错误' };
+    }
+    const localUser = createLocalUser(phone.trim(), options);
+    setUser(localUser);
+    return { success: true };
   };
 
   const logout = async () => {
-    try {
-      await authApi.logout();
-    } catch {
-      // ignore
-    }
     setUser(null);
   };
 

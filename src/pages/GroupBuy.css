@@ -1,0 +1,339 @@
+.group-buy-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px 16px 64px;
+  color: #1f2937;
+}
+
+.group-buy-banner {
+  position: relative;
+  padding: 40px 32px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #1b5e4b, #2e8b72);
+  color: #fff;
+  text-align: center;
+  box-shadow: 0 12px 36px rgba(27, 94, 75, 0.18);
+  margin-bottom: 28px;
+}
+
+.group-buy-banner-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.18);
+  font-size: 12px;
+  font-weight: 500;
+  margin-bottom: 12px;
+}
+
+.group-buy-banner h1 {
+  margin: 0 0 12px;
+  font-size: 30px;
+  font-weight: 700;
+}
+
+.group-buy-banner-price {
+  margin: 0 0 20px;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 12px;
+}
+
+.group-buy-banner-price strong {
+  font-size: 36px;
+  font-weight: 800;
+  color: #fde68a;
+}
+
+.group-buy-banner-price span {
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+.group-buy-rules {
+  margin: 0 auto 24px;
+  padding: 16px 20px;
+  max-width: 520px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.12);
+  list-style: none;
+  text-align: left;
+  font-size: 13px;
+  line-height: 1.9;
+}
+
+.group-buy-rules li::before {
+  content: '·';
+  margin-right: 6px;
+  font-weight: 700;
+}
+
+.group-buy-launch-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 36px;
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: 24px;
+}
+
+.group-buy-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.group-buy-tab {
+  padding: 8px 22px;
+  border: 1px solid #e5e7eb;
+  border-radius: 20px;
+  background: #fff;
+  color: #4b5563;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.group-buy-tab:hover,
+.group-buy-tab.active {
+  border-color: #1b5e4b;
+  background: #1b5e4b;
+  color: #fff;
+}
+
+.group-buy-loading,
+.group-buy-empty {
+  text-align: center;
+  padding: 80px 16px;
+  color: #6b7280;
+}
+
+.group-buy-empty p {
+  margin: 16px 0;
+}
+
+.group-buy-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.group-buy-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 20px;
+  transition: all 0.25s ease;
+}
+
+.group-buy-card:hover {
+  border-color: #1b5e4b;
+  box-shadow: 0 12px 36px rgba(27, 94, 75, 0.1);
+}
+
+.group-buy-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.group-buy-launcher {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.group-buy-avatar {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #ecfdf5;
+  color: #1b5e4b;
+  flex-shrink: 0;
+}
+
+.group-buy-launcher-name {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.group-buy-launcher-sub {
+  font-weight: 400;
+  color: #9ca3af;
+  font-size: 12px;
+}
+
+.group-buy-card-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #9ca3af;
+  margin-top: 2px;
+}
+
+.group-buy-card-count {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.group-buy-card-count strong {
+  color: #dc2626;
+  font-size: 16px;
+}
+
+.group-buy-progress-track {
+  height: 8px;
+  border-radius: 4px;
+  background: #f3f4f6;
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+
+.group-buy-progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #1b5e4b, #2e8b72);
+  transition: width 0.3s ease;
+}
+
+.group-buy-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.group-buy-card-hint {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.group-buy-card-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.group-buy-card-actions .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.group-buy-status {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.group-buy-status.pending {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.group-buy-status.success {
+  background: #ecfdf5;
+  color: #1b5e4b;
+}
+
+.group-buy-status.refunded {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.group-buy-free-result {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #ecfdf5;
+  color: #1b5e4b;
+  font-size: 13px;
+}
+
+.group-buy-refund-result {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #f3f4f6;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.group-buy-anti-fraud {
+  max-width: 720px;
+  margin: 32px auto 0;
+  padding: 16px 20px;
+  border: 1px dashed #e5e7eb;
+  border-radius: 12px;
+  background: #fafafa;
+}
+
+.group-buy-anti-fraud h4 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: #b45309;
+}
+
+.group-buy-anti-fraud p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.8;
+  color: #9ca3af;
+}
+
+.group-buy-share-desc {
+  margin: 0 0 12px;
+  font-size: 14px;
+  color: #374151;
+  line-height: 1.6;
+}
+
+.group-buy-share-link {
+  padding: 10px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #f9fafb;
+  font-size: 12px;
+  color: #6b7280;
+  word-break: break-all;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 640px) {
+  .group-buy-banner {
+    padding: 28px 16px;
+  }
+
+  .group-buy-banner h1 {
+    font-size: 24px;
+  }
+
+  .group-buy-card-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .group-buy-card-actions {
+    justify-content: flex-end;
+  }
+}

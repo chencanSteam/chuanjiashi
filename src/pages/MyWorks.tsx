@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Mic, FolderOpen, Trash2, User, Plus, ChevronRight, UploadCloud } from 'lucide-react';
+import { BookOpen, Mic, FolderOpen, Trash2, User, Plus, ChevronRight, UploadCloud, Globe } from 'lucide-react';
 import Avatar from '../components/ui/Avatar';
 import { useToast } from '../hooks/useToast';
 import { archiveApi } from '../api/archive';
+import { bookshelfApi } from '../api/bookshelf';
 import PublishBookModal from '../components/PublishBookModal';
+import PublishLicenseModal, { type LicenseSettings } from '../components/PublishLicenseModal';
+import type { PublicBook } from '../mocks/types';
 import './MyWorks.css';
 
 interface Archive {
@@ -72,11 +75,45 @@ function getStatusClass(status: WorkStatus): string {
   }
 }
 
+/** mock 创作者收益（按作品 id 生成稳定伪随机数据） */
+function mockEarnings(id: string) {
+  let hash = 0;
+  for (const ch of id) hash = (hash * 31 + ch.charCodeAt(0)) % 9973;
+  const sold = (hash % 180) + 6;
+  const price = [9.9, 19.9, 29.9][hash % 3];
+  return { sold, price, total: sold * price };
+}
+
+function loadLicenses(items: WorkItem[]): Record<string, boolean> {
+  const map: Record<string, boolean> = {};
+  items.forEach((w) => {
+    map[w.id] = localStorage.getItem(`cj_work_license_${w.id}`) === 'public';
+  });
+  return map;
+}
+
+function loadLicenseSettings(items: WorkItem[]): Record<string, LicenseSettings> {
+  const map: Record<string, LicenseSettings> = {};
+  items.forEach((w) => {
+    try {
+      const raw = localStorage.getItem(`cj_work_license_settings_${w.id}`);
+      if (raw) map[w.id] = JSON.parse(raw);
+    } catch {
+      // ignore
+    }
+  });
+  return map;
+}
+
 export default function MyWorks() {
   const navigate = useNavigate();
   const { addToast } = useToast();
   const [works, setWorks] = useState<WorkItem[]>([]);
   const [publishingWork, setPublishingWork] = useState<WorkItem | null>(null);
+  const [licenses, setLicenses] = useState<Record<string, boolean>>({});
+  const [licenseSettings, setLicenseSettings] = useState<Record<string, LicenseSettings>>({});
+  const [licenseWork, setLicenseWork] = useState<WorkItem | null>(null);
+  const [licenseSubmitting, setLicenseSubmitting] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -99,15 +136,72 @@ export default function MyWorks() {
         });
         const items = Array.from(mergedMap.values()).map((a) => ({ ...a, status: getStatus(a.id) }));
         setWorks(items);
+        setLicenses(loadLicenses(items));
+        setLicenseSettings(loadLicenseSettings(items));
       } catch {
         const legacyArchives = loadLegacyArchives();
-        setWorks(legacyArchives.map((a) => ({ ...a, status: getStatus(a.id) })));
+        const items = legacyArchives.map((a) => ({ ...a, status: getStatus(a.id) }));
+        setWorks(items);
+        setLicenses(loadLicenses(items));
+        setLicenseSettings(loadLicenseSettings(items));
       } finally {
         // ignore
       }
     };
     load();
   }, []);
+
+  const toggleLicense = (work: WorkItem) => {
+    if (licenses[work.id]) {
+      // 关闭授权：维持现有下架申请逻辑
+      setLicenses((prev) => ({ ...prev, [work.id]: false }));
+      localStorage.setItem(`cj_work_license_${work.id}`, 'off');
+      addToast('下架申请已提交，审核通过后将从书架移除', 'success');
+      return;
+    }
+    // 打开授权：先弹出「公开到书架」设置弹窗
+    setLicenseWork(work);
+  };
+
+  const handleLicenseConfirm = async (settings: LicenseSettings) => {
+    const work = licenseWork;
+    if (!work) return;
+    setLicenseSubmitting(true);
+    try {
+      let existing: PublicBook | undefined;
+      try {
+        const mine = await bookshelfApi.myList();
+        existing = mine.find((b) => b.archiveId === work.id);
+      } catch {
+        existing = undefined;
+      }
+      await bookshelfApi.publish(existing?.id || `book_${work.id}`, {
+        archiveId: work.id,
+        title: existing?.title || `${work.name}的传记`,
+        author: existing?.author || '本人/家属整理',
+        intro: existing?.intro || `记录${work.name}的人生故事与家风传承。`,
+        category: existing?.category || '其他',
+        isFree: settings.isFree,
+        price: settings.isFree ? 0 : settings.price,
+        trialWords: settings.trialWords,
+      });
+      setLicenses((prev) => ({ ...prev, [work.id]: true }));
+      localStorage.setItem(`cj_work_license_${work.id}`, 'public');
+      setLicenseSettings((prev) => ({ ...prev, [work.id]: settings }));
+      localStorage.setItem(`cj_work_license_settings_${work.id}`, JSON.stringify(settings));
+      addToast(
+        licenses[work.id]
+          ? '授权设置已更新，重新提交审核'
+          : `《${work.name}的传记》已提交公开申请，审核通过后将展示到传记书架`,
+        'success'
+      );
+      setLicenseWork(null);
+    } catch (err) {
+      addToast(err instanceof Error ? err.message : '提交失败，请稍后再试', 'error');
+    } finally {
+      setLicenseSubmitting(false);
+    }
+  };
 
   const deleteWork = (id: string) => {
     if (!window.confirm('确定要删除该作品及关联数据吗？此操作不可恢复。')) return;
@@ -165,7 +259,13 @@ export default function MyWorks() {
         </div>
       ) : (
         <div className="works-grid">
-          {works.map((work) => (
+          {works.map((work) => {
+            const earnings = mockEarnings(work.id);
+            const setting = licenseSettings[work.id];
+            // 单价优先使用创作者实际设置的售价，取不到再退回 mock 伪随机
+            const unitPrice = setting ? setting.price : earnings.price;
+            const totalEarnings = earnings.sold * unitPrice;
+            return (
             <div className="card work-card" key={work.id}>
               <div className="card-body work-body">
                 <div className="work-main">
@@ -177,6 +277,55 @@ export default function MyWorks() {
                     </div>
                     <span className={`work-status ${getStatusClass(work.status)}`}>{work.status}</span>
                   </div>
+                </div>
+                <div className="work-extra">
+                  <div className="work-earnings">
+                    <div className="work-earnings-item">
+                      <span className="work-earnings-value">{earnings.sold}</span>
+                      <span className="work-earnings-label">售出份数</span>
+                    </div>
+                    <div className="work-earnings-item">
+                      <span className="work-earnings-value">
+                        {setting?.isFree ? '免费' : `¥${unitPrice.toFixed(2)}`}
+                      </span>
+                      <span className="work-earnings-label">单价</span>
+                    </div>
+                    <div className="work-earnings-item">
+                      <span className="work-earnings-value work-earnings-total">
+                        ¥{totalEarnings.toFixed(2)}
+                      </span>
+                      <span className="work-earnings-label">累计收益</span>
+                    </div>
+                  </div>
+                  <div className="work-license">
+                    <span className="work-license-label"><Globe size={13} /> 公开授权</span>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={!!licenses[work.id]}
+                      className={`work-switch ${licenses[work.id] ? 'on' : ''}`}
+                      onClick={() => toggleLicense(work)}
+                    >
+                      <span className="work-switch-dot" />
+                    </button>
+                    <span className={`work-license-status ${licenses[work.id] ? 'on' : ''}`}>
+                      {licenses[work.id] ? '已公开到书架' : '未公开'}
+                    </span>
+                  </div>
+                  {licenses[work.id] && (
+                    <div className="work-license-detail">
+                      <span>
+                        {setting?.isFree ? '免费公开' : `售价 ¥${(setting?.price ?? 0).toFixed(2)}`}
+                        {' · '}试看 {setting?.trialWords ?? 1000} 字
+                      </span>
+                      <button
+                        className="btn btn-outline btn-sm"
+                        onClick={() => setLicenseWork(work)}
+                      >
+                        授权设置
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <div className="work-actions">
                   <button className="btn btn-outline btn-sm" onClick={() => openWork(work)}>
@@ -218,8 +367,21 @@ export default function MyWorks() {
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
+      )}
+
+      {licenseWork && (
+        <PublishLicenseModal
+          key={licenseWork.id}
+          open
+          workName={licenseWork.name}
+          initial={licenseSettings[licenseWork.id]}
+          submitting={licenseSubmitting}
+          onClose={() => setLicenseWork(null)}
+          onConfirm={handleLicenseConfirm}
+        />
       )}
 
       {publishingWork && (

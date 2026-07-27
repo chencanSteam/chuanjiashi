@@ -4,6 +4,15 @@ import type {
   PartnerApplication,
   PartnerCustomer,
   PartnerType,
+  PartnerChannel,
+  PartnerAssessment,
+  PartnerLocalOrder,
+  GmvLineStat,
+  AdminUser,
+  PartnerFeeRecord,
+  PartnerShareConfig,
+  PartnerRewardConfig,
+  PartnerAssessmentRecord,
 } from '../mocks/types'
 
 export interface PartnerApplyData {
@@ -47,4 +56,27 @@ export const partnerApi = {
   adminCustomers: () => api.get<PartnerCustomer[]>('/api/partner/customers/all'),
   bindCustomer: (data: Partial<PartnerCustomer>) =>
     api.post<PartnerCustomer>('/api/partner/customers/admin/bind', data),
+
+  // 渠道管理
+  channels: (params?: { type?: PartnerChannel['type'] | 'all'; status?: PartnerChannel['status'] | 'all' }) =>
+    api.get<PartnerChannel[]>(`/api/partner/channels?${new URLSearchParams(params || {}).toString()}`),
+  createChannel: (data: Partial<PartnerChannel>) =>
+    api.post<PartnerChannel>('/api/partner/channels', data),
+  // 年度考核结算
+  assessment: () => api.get<PartnerAssessment>('/api/partner/assessment'),
+  // GMV 分业务线统计
+  gmvStats: () => api.get<GmvLineStat[]>('/api/partner/gmv-stats'),
+  // 本地用户/本地订单
+  localUsers: () => api.get<AdminUser[]>('/api/partner/local/users'),
+  localOrders: () => api.get<PartnerLocalOrder[]>('/api/partner/local/orders'),
+
+  // 管理后台：服务商费用/分成/奖励/考核
+  adminFees: () => api.get<PartnerFeeRecord[]>('/api/admin/partner/fees'),
+  shareConfigs: () => api.get<PartnerShareConfig[]>('/api/admin/partner/share-configs'),
+  updateShareConfig: (id: string, data: Partial<PartnerShareConfig>) =>
+    api.put<PartnerShareConfig>(`/api/admin/partner/share-configs/${id}`, data),
+  rewardConfigs: () => api.get<PartnerRewardConfig[]>('/api/admin/partner/reward-configs'),
+  updateRewardConfig: (id: string, data: Partial<PartnerRewardConfig>) =>
+    api.put<PartnerRewardConfig>(`/api/admin/partner/reward-configs/${id}`, data),
+  adminAssessments: () => api.get<PartnerAssessmentRecord[]>('/api/admin/partner/assessments'),
 }

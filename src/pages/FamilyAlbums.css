@@ -29,6 +29,13 @@
   align-items: center;
   justify-content: center;
   color: #9ca3af;
+  overflow: hidden;
+}
+
+.albums-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .albums-info {

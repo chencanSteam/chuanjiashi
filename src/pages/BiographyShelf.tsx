@@ -11,11 +11,16 @@ import {
   User,
   Tag,
   Clock,
+  Lock,
+  Unlock,
+  MessageSquare,
+  Flame,
+  Send,
 } from 'lucide-react';
 import { bookshelfApi } from '../api/bookshelf';
 import { useToast } from '../hooks/useToast';
 import { useAuth } from '../hooks/useAuth';
-import type { PublicBook } from '../mocks/types';
+import type { PublicBook, BookComment } from '../mocks/types';
 import './BiographyShelf.css';
 
 export default function BiographyShelf() {
@@ -28,6 +33,10 @@ export default function BiographyShelf() {
   const [loading, setLoading] = useState(true);
   const [keyword, setKeyword] = useState('');
   const [activeCategory, setActiveCategory] = useState('全部');
+  const [comments, setComments] = useState<BookComment[]>([]);
+  const [commentInput, setCommentInput] = useState('');
+  const [unlocking, setUnlocking] = useState(false);
+  const [commentSubmitting, setCommentSubmitting] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -50,6 +59,14 @@ export default function BiographyShelf() {
       setBook(null);
     }
   }, [id, addToast]);
+
+  useEffect(() => {
+    if (!id) return;
+    bookshelfApi
+      .comments(id)
+      .then(setComments)
+      .catch(() => setComments([]));
+  }, [id]);
 
   const categories = useMemo(() => {
     const set = new Set(books.map((b) => b.category).filter(Boolean));
@@ -109,8 +126,63 @@ export default function BiographyShelf() {
     }
   };
 
-  const handleShare = () => {
-    addToast('链接已复制到剪贴板', 'success');
+  const handleShare = async () => {
+    if (!book) return;
+    const url = `${window.location.origin}${window.location.pathname}#/biography-shelf/${book.id}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      addToast('链接已复制到剪贴板', 'success');
+    } catch {
+      addToast(`复制失败，请手动复制：${url}`, 'error');
+    }
+  };
+
+  const hotBooks = useMemo(() => {
+    return [...books]
+      .sort((a, b) => b.views + b.likes - (a.views + a.likes))
+      .slice(0, 5);
+  }, [books]);
+
+  const handleUnlock = async () => {
+    if (!user) {
+      addToast('请先登录', 'error');
+      return;
+    }
+    if (!book) return;
+    setUnlocking(true);
+    try {
+      const updated = await bookshelfApi.unlock(book.id);
+      setBook(updated);
+      addToast('支付成功，已解锁全本', 'success');
+    } catch (err: unknown) {
+      addToast(err instanceof Error && err.message ? err.message : '解锁失败', 'error');
+    } finally {
+      setUnlocking(false);
+    }
+  };
+
+  const handlePostComment = async () => {
+    if (!user) {
+      addToast('请先登录', 'error');
+      return;
+    }
+    if (!id) return;
+    const content = commentInput.trim();
+    if (!content) {
+      addToast('请输入评论内容', 'error');
+      return;
+    }
+    setCommentSubmitting(true);
+    try {
+      const comment = await bookshelfApi.postComment(id, content);
+      setComments((prev) => [comment, ...prev]);
+      setCommentInput('');
+      addToast('评论发表成功', 'success');
+    } catch (err: unknown) {
+      addToast(err instanceof Error && err.message ? err.message : '评论失败', 'error');
+    } finally {
+      setCommentSubmitting(false);
+    }
   };
 
   if (id) {
@@ -134,6 +206,9 @@ export default function BiographyShelf() {
         </div>
       );
     }
+
+    const canReadFull = book.isFree || book.price === 0 || !!book.unlocked;
+    const readerText = (canReadFull ? book.fullContent || book.trialContent : book.trialContent) || book.intro;
 
     return (
       <div className="biography-shelf-page">
@@ -175,6 +250,64 @@ export default function BiographyShelf() {
             </div>
           </div>
         </div>
+
+        <div className="biography-shelf-content">
+          <h2 className="biography-shelf-section-title">
+            {canReadFull ? <Unlock size={16} /> : <Lock size={16} />}
+            {canReadFull ? '全本阅读' : book.trialWords ? `前 ${book.trialWords} 字 · 免费试读` : '第一章 · 免费试读'}
+          </h2>
+          <div className="biography-shelf-reader">
+            {readerText.split(/\n+/).map((p, i) => (
+              <p key={i}>{p}</p>
+            ))}
+          </div>
+          {!canReadFull && (
+            <div className="biography-shelf-unlock-bar">
+              <span>试读结束，解锁后可阅读全本</span>
+              <button className="btn btn-primary" onClick={handleUnlock} disabled={unlocking}>
+                <Lock size={14} /> {unlocking ? '支付中…' : `付费解锁全本 ¥${book.price.toFixed(2)}`}
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div className="biography-shelf-comments">
+          <h2 className="biography-shelf-section-title">
+            <MessageSquare size={16} /> 读者评论（{comments.length}）
+          </h2>
+          <div className="biography-shelf-comment-form">
+            <textarea
+              rows={3}
+              placeholder="写下您的读后感…"
+              value={commentInput}
+              onChange={(e) => setCommentInput(e.target.value)}
+            />
+            <button
+              className="btn btn-primary"
+              onClick={handlePostComment}
+              disabled={commentSubmitting || !commentInput.trim()}
+            >
+              <Send size={14} /> {commentSubmitting ? '发表中…' : '发表评论'}
+            </button>
+          </div>
+          {comments.length === 0 ? (
+            <div className="biography-shelf-comment-empty">暂无评论，来发表第一条评论吧</div>
+          ) : (
+            <div className="biography-shelf-comment-list">
+              {comments.map((c) => (
+                <div className="biography-shelf-comment" key={c.id}>
+                  <div className="biography-shelf-comment-head">
+                    <span className="biography-shelf-comment-user">{c.userNickname}</span>
+                    <span className="biography-shelf-comment-time">
+                      {new Date(c.createdAt).toLocaleString()}
+                    </span>
+                  </div>
+                  <p className="biography-shelf-comment-text">{c.content}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     );
   }
@@ -209,6 +342,28 @@ export default function BiographyShelf() {
           </button>
         ))}
       </div>
+
+      {!loading && hotBooks.length > 0 && (
+        <section className="biography-shelf-rank">
+          <h2 className="biography-shelf-rank-title"><Flame size={16} /> 热度榜单</h2>
+          <div className="biography-shelf-rank-list">
+            {hotBooks.map((b, i) => (
+              <div
+                className="biography-shelf-rank-item"
+                key={b.id}
+                onClick={() => navigate(`/biography-shelf/${b.id}`)}
+              >
+                <span className={`biography-shelf-rank-no rank-${i + 1}`}>{i + 1}</span>
+                <span className="biography-shelf-rank-book">{b.title}</span>
+                <span className="biography-shelf-rank-meta">
+                  <Eye size={12} /> {b.views}
+                  <Heart size={12} /> {b.likes}
+                </span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {loading ? (
         <div className="biography-shelf-loading">加载中…</div>

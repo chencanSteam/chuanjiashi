@@ -1,0 +1,127 @@
+.admin-settings-page .page-header {
+  margin-bottom: 20px;
+}
+
+.admin-settings-section {
+  margin-bottom: 20px;
+}
+
+.admin-settings-form {
+  max-width: 480px;
+}
+
+.admin-settings-body {
+  padding: 0;
+}
+
+.admin-settings-table {
+  display: table;
+  width: 100%;
+  min-width: 720px;
+}
+
+.admin-settings-row {
+  display: table-row;
+}
+
+.admin-settings-header-row {
+  background: var(--bg-secondary);
+  font-weight: 500;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.admin-settings-row:not(.admin-settings-header-row) {
+  border-bottom: 1px solid var(--border-light);
+}
+
+.admin-settings-row:last-child {
+  border-bottom: none;
+}
+
+.admin-settings-cell {
+  display: table-cell;
+  padding: 14px;
+  vertical-align: middle;
+  font-size: 13px;
+  text-align: center;
+}
+
+.admin-settings-cell:first-child {
+  text-align: left;
+}
+
+.admin-settings-role {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.admin-notify-group {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.admin-notify-group:last-child {
+  border-bottom: none;
+}
+
+.admin-notify-group-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+}
+
+.admin-notify-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 0;
+}
+
+.admin-notify-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.admin-notify-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.admin-notify-switch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.admin-notify-switch input {
+  width: 16px;
+  height: 16px;
+  accent-color: #1B5E4B;
+  cursor: pointer;
+}
+
+@media (max-width: 960px) {
+  .admin-settings-table {
+    min-width: unset;
+    display: block;
+  }
+
+  .admin-settings-row,
+  .admin-settings-cell {
+    display: block;
+    text-align: left;
+  }
+
+  .admin-settings-header-row {
+    display: none;
+  }
+}

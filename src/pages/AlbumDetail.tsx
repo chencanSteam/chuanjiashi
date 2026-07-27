@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ArrowLeft, Image, Download, Share2, Plus, X } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useToast } from '../hooks/useToast';
+import { downloadDataUrl, loadAlbumPhotos, readFilesAsDataUrls, saveAlbumPhotos, type AlbumPhoto } from '../utils/albumStorage';
 import './AlbumDetail.css';
 
 const albumMeta: Record<string, { count: string; date: string; desc: string }> = {
@@ -22,6 +23,39 @@ export default function AlbumDetail() {
   const [showShare, setShowShare] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
+  const [previewPhoto, setPreviewPhoto] = useState<AlbumPhoto | null>(null);
+  const [photos, setPhotos] = useState<AlbumPhoto[]>(() => loadAlbumPhotos(decodedTitle));
+  const [pendingFiles, setPendingFiles] = useState<FileList | null>(null);
+
+  const photoCount = photos.length > 0 ? `${photos.length}张（已上传）` : meta.count;
+
+  const handleUpload = () => {
+    if (!pendingFiles || pendingFiles.length === 0) {
+      addToast('请先选择照片', 'error');
+      return;
+    }
+    readFilesAsDataUrls(
+      pendingFiles,
+      (photo) => {
+        setPhotos((prev) => {
+          const next = [...prev, photo];
+          saveAlbumPhotos(decodedTitle, next);
+          return next;
+        });
+      },
+      (file) => addToast(`「${file.name}」超过 2MB，已跳过`, 'error'),
+      () => {
+        setShowUpload(false);
+        setPendingFiles(null);
+        addToast('照片上传成功', 'success');
+      },
+    );
+  };
+
+  const downloadPhoto = (photo: AlbumPhoto) => {
+    downloadDataUrl(photo.dataUrl, photo.name);
+    addToast('开始下载照片', 'success');
+  };
 
   return (
     <div className="detail-page album-detail-page">
@@ -36,7 +70,7 @@ export default function AlbumDetail() {
         <div className="card-header">
           <div>
             <h3 className="card-title">{decodedTitle}</h3>
-            <div className="album-meta">{meta.count} · {meta.date}</div>
+            <div className="album-meta">{photoCount} · {meta.date}</div>
           </div>
           <div className="album-actions">
             <button className="btn btn-outline" onClick={() => setShowShare(true)}><Share2 size={14} /> 分享</button>
@@ -46,12 +80,19 @@ export default function AlbumDetail() {
         <div className="card-body">
           <p className="album-desc">{meta.desc}</p>
           <div className="album-photo-grid">
-            {Array.from({ length: 12 }).map((_, i) => (
+            {photos.map((p) => (
+              <div className="album-photo-card" key={p.id} onClick={() => setPreviewPhoto(p)}>
+                <div className="album-photo-thumb"><img src={p.dataUrl} alt={p.name} /></div>
+                <div className="album-photo-title">{p.name}</div>
+                <div className="album-photo-date">{p.date}</div>
+                <button className="album-download" onClick={(e) => { e.stopPropagation(); downloadPhoto(p); }}><Download size={14} /></button>
+              </div>
+            ))}
+            {Array.from({ length: photos.length > 0 ? 0 : 12 }).map((_, i) => (
               <div className="album-photo-card" key={i} onClick={() => setPreviewIndex(i)}>
                 <div className="album-photo-thumb"><Image size={24} /></div>
                 <div className="album-photo-title">{decodedTitle} {i + 1}</div>
                 <div className="album-photo-date">2024-0{(i % 6) + 1}-{(i % 28) + 1}</div>
-                <button className="album-download" onClick={(e) => { e.stopPropagation(); addToast('开始下载照片', 'success'); }}><Download size={14} /></button>
               </div>
             ))}
           </div>
@@ -75,8 +116,8 @@ export default function AlbumDetail() {
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header"><h4>上传照片</h4><button className="modal-close" onClick={() => setShowUpload(false)}><X size={16} /></button></div>
             <div className="modal-body">
-              <input type="file" className="modal-file" accept="image/*" onChange={() => addToast('已选择文件', 'info')} />
-              <button className="btn btn-primary" onClick={() => { setShowUpload(false); addToast('照片上传成功', 'success'); }}>开始上传</button>
+              <input type="file" className="modal-file" accept="image/*" multiple onChange={(e) => { setPendingFiles(e.target.files); addToast(`已选择 ${e.target.files?.length ?? 0} 个文件（单张不超过 2MB）`, 'info'); }} />
+              <button className="btn btn-primary" onClick={handleUpload}>开始上传</button>
             </div>
           </div>
         </div>
@@ -88,6 +129,17 @@ export default function AlbumDetail() {
             <button className="modal-close preview-close" onClick={() => setPreviewIndex(null)}><X size={20} /></button>
             <div className="preview-image"><Image size={64} /></div>
             <div className="preview-title">{decodedTitle} {previewIndex + 1}</div>
+          </div>
+        </div>
+      )}
+
+      {previewPhoto && (
+        <div className="modal-overlay preview-overlay" onClick={() => setPreviewPhoto(null)}>
+          <div className="preview-content" onClick={(e) => e.stopPropagation()}>
+            <button className="modal-close preview-close" onClick={() => setPreviewPhoto(null)}><X size={20} /></button>
+            <div className="preview-image"><img src={previewPhoto.dataUrl} alt={previewPhoto.name} style={{ maxWidth: '100%', maxHeight: '70vh' }} /></div>
+            <div className="preview-title">{previewPhoto.name}</div>
+            <button className="btn btn-outline" onClick={() => downloadPhoto(previewPhoto)}><Download size={14} /> 下载</button>
           </div>
         </div>
       )}

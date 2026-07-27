@@ -2,8 +2,11 @@ import { http, type HttpHandler } from 'msw'
 import { success, fail, unauthorized, notFound } from '../utils/response'
 import { getItem, setItem, generateId, storeKeys } from '../utils/store'
 import { defaultBiographers, defaultReviews } from '../data/seed'
-import { createOrder } from './order'
-import type { Biographer, BiographerOrder, BiographerReview } from '../types'
+import { createOrder, saveOrder } from './order'
+import type { Biographer, BiographerOrder, BiographerReview, Order } from '../types'
+
+const DEPOSIT_PRODUCT_ID = 'biographer_deposit'
+const DEPOSIT_AMOUNT = 500
 
 function getCurrentUserId(): string | null {
   const user = getItem<{ id: string } | null>(storeKeys.currentUser, null)
@@ -60,6 +63,13 @@ function getCurrentBiographer(): Biographer | null {
   if (!biographer) biographer = biographers.find((b) => b.status === 'approved')
   if (!biographer) biographer = biographers[0]
   return biographer || null
+}
+
+function hasPaidDeposit(userId: string): boolean {
+  const orders = getItem<Order[]>(storeKeys.orders, [])
+  return orders.some(
+    (o) => o.userId === userId && o.productId === DEPOSIT_PRODUCT_ID && (o.status === 'paid' || o.status === 'completed')
+  )
 }
 
 const nextProgressMap: Record<string, string> = {
@@ -253,6 +263,118 @@ export const biographerHandlers: HttpHandler[] = [
 
   // ===== 传记师端接口 =====
 
+  // 缴纳入驻押金（生成真实订单记录，可在订单管理中查到）
+  http.post('/api/biographer/deposit', async () => {
+    const userId = getCurrentUserId()
+    if (!userId) return unauthorized()
+    if (hasPaidDeposit(userId)) return fail('您已缴纳过入驻押金')
+
+    const order = createOrder(userId, {
+      type: 'biographer_service',
+      productId: DEPOSIT_PRODUCT_ID,
+      productName: '传记师入驻押金',
+      amount: DEPOSIT_AMOUNT,
+    })
+    order.status = 'paid'
+    order.payTime = new Date().toISOString()
+    saveOrder(order)
+    return success(order, '押金缴纳成功')
+  }),
+
+  // 提交入驻申请（写入传记师库，状态 pending，等待管理端审核）
+  http.post('/api/biographer/apply', async ({ request }) => {
+    const userId = getCurrentUserId()
+    if (!userId) return unauthorized()
+    const body = (await request.json()) as {
+      name?: string
+      idCard?: string
+      phone?: string
+      city?: string
+      specialties?: string[]
+    }
+    const name = (body.name || '').trim()
+    const idCard = (body.idCard || '').trim()
+    const phone = (body.phone || '').trim()
+    const city = (body.city || '').trim()
+    if (!name) return fail('请填写真实姓名')
+    if (!/^\d{15}(\d{2}[0-9Xx])?$/.test(idCard)) return fail('请填写正确的身份证号')
+    if (!/^1\d{10}$/.test(phone)) return fail('请填写正确的手机号')
+    if (!city) return fail('请填写服务城市')
+    if (!body.specialties || body.specialties.length === 0) return fail('请选择至少一个擅长领域')
+    if (!hasPaidDeposit(userId)) return fail('请先缴纳入驻押金')
+
+    const biographers = ensureBiographers()
+    const idx = biographers.findIndex((b) => b.userId === userId)
+    if (idx >= 0 && biographers[idx].status === 'pending') return fail('您已提交过申请，请耐心等待审核')
+    if (idx >= 0 && biographers[idx].status === 'approved') return fail('您已是认证传记师，无需重复申请')
+
+    if (idx >= 0) {
+      // 被驳回后重新提交：更新原记录并回到待审核
+      biographers[idx] = {
+        ...biographers[idx],
+        name,
+        phone,
+        idCard,
+        city,
+        specialties: body.specialties,
+        status: 'pending',
+        rejectReason: undefined,
+        deposit: DEPOSIT_AMOUNT,
+        updatedAt: new Date().toISOString(),
+      }
+      saveBiographers(biographers)
+      return success(biographers[idx], '入驻申请已重新提交')
+    }
+
+    const biographer: Biographer = {
+      id: generateId(),
+      userId,
+      phone,
+      name,
+      idCard,
+      city,
+      intro: '',
+      specialties: body.specialties,
+      experience: 0,
+      serviceAreas: [city],
+      certificates: [],
+      tags: [],
+      services: [],
+      cases: [],
+      status: 'pending',
+      certificationLevel: 'standard',
+      rating: 5.0,
+      reviewCount: 0,
+      deposit: DEPOSIT_AMOUNT,
+      createdAt: new Date().toISOString(),
+    }
+    biographers.push(biographer)
+    saveBiographers(biographers)
+    return success(biographer, '入驻申请已提交')
+  }),
+
+  // 查询当前用户入驻申请状态与押金缴纳情况
+  http.get('/api/biographer/apply/status', async () => {
+    const userId = getCurrentUserId()
+    if (!userId) return unauthorized()
+    const biographers = ensureBiographers()
+    const biographer = biographers.find((b) => b.userId === userId)
+    return success({
+      depositPaid: hasPaidDeposit(userId),
+      application: biographer
+        ? {
+            status: biographer.status,
+            submittedAt: (biographer.updatedAt || biographer.createdAt),
+            name: biographer.name,
+            phone: biographer.phone,
+            city: biographer.city,
+            specialties: biographer.specialties,
+            reason: biographer.rejectReason,
+          }
+        : null,
+    })
+  }),
+
   // 当前传记师信息
   http.get('/api/biographer/me', async () => {
     const userId = getCurrentUserId()
@@ -420,6 +542,27 @@ export const biographerHandlers: HttpHandler[] = [
     biographers[idx] = { ...biographers[idx], ...body, id: biographers[idx].id, updatedAt: new Date().toISOString() }
     saveBiographers(biographers)
     return success(biographers[idx])
+  }),
+
+  // 审核入驻申请（通过 → approved / 驳回 → rejected 并记录原因）
+  http.patch('/api/biographers/:id/review', async ({ params, request }) => {
+    const userId = getCurrentUserId()
+    if (!userId) return unauthorized()
+    const { action, reason } = (await request.json()) as { action?: 'approve' | 'reject'; reason?: string }
+    if (action !== 'approve' && action !== 'reject') return fail('参数错误')
+    const biographers = ensureBiographers()
+    const idx = biographers.findIndex((b) => b.id === params.id)
+    if (idx < 0) return notFound('传记师不存在')
+    if (biographers[idx].status !== 'pending') return fail('该传记师不在待审核状态')
+
+    biographers[idx] = {
+      ...biographers[idx],
+      status: action === 'approve' ? 'approved' : 'rejected',
+      rejectReason: action === 'reject' ? reason?.trim() || '资质材料不符合要求，请修改后重新提交。' : undefined,
+      updatedAt: new Date().toISOString(),
+    }
+    saveBiographers(biographers)
+    return success(biographers[idx], action === 'approve' ? '已通过审核' : '已驳回申请')
   }),
 
   // 删除传记师

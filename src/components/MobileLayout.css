@@ -1,0 +1,75 @@
+.mobile-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: #f6f7f9;
+}
+
+.mobile-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: #fff;
+  border-bottom: 1px solid #eee;
+  flex-shrink: 0;
+}
+
+.mobile-header-back {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  font-size: 20px;
+  color: #333;
+}
+
+.mobile-header-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: #111;
+  margin: 0;
+}
+
+.mobile-header-placeholder {
+  width: 32px;
+}
+
+.mobile-layout-content {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.mobile-tab-bar {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 6px 0 calc(6px + env(safe-area-inset-bottom));
+  background: #fff;
+  border-top: 1px solid #eee;
+  flex-shrink: 0;
+}
+
+.mobile-tab-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 12px;
+  color: #999;
+  text-decoration: none;
+  font-size: 11px;
+  transition: color 0.2s;
+}
+
+.mobile-tab-item.active {
+  color: #1b5e4b;
+}
+
+.mobile-tab-item svg {
+  stroke-width: 1.8;
+}

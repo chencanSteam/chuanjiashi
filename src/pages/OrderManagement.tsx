@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Search, RefreshCw, ShoppingCart, CreditCard, Package, CheckCircle, AlertCircle, Clock, XCircle, Eye, X, UserCheck, Calendar, MapPin, Truck, Upload, FileText, ExternalLink, Star } from 'lucide-react';
+import { Search, RefreshCw, ShoppingCart, CreditCard, Package, CheckCircle, AlertCircle, Clock, XCircle, Eye, X, UserCheck, Calendar, MapPin, Truck, Upload, FileText, ExternalLink, Star, Plus } from 'lucide-react';
 import { orderApi, type AdminOrder } from '../api/order';
 import { biographerApi } from '../api/biographer';
 import { useToast } from '../hooks/useToast';
@@ -92,6 +92,16 @@ export default function OrderManagement() {
   const [batchDeliverableName, setBatchDeliverableName] = useState('');
   const [batchDeliverableUrl, setBatchDeliverableUrl] = useState('');
   const [batchSubmitting, setBatchSubmitting] = useState(false);
+
+  const [supplementModal, setSupplementModal] = useState(false);
+  const [supplementForm, setSupplementForm] = useState<{ userId: string; type: AdminOrder['type']; productName: string; amount: string; remark: string }>({
+    userId: '',
+    type: 'biography',
+    productName: '',
+    amount: '',
+    remark: '',
+  });
+  const [supplementSubmitting, setSupplementSubmitting] = useState(false);
 
   useEffect(() => {
     loadOrders();
@@ -194,6 +204,47 @@ export default function OrderManagement() {
       return matchKeyword && matchStatus && matchType;
     });
   }, [orders, keyword, statusFilter, typeFilter]);
+
+  // 手动补单的用户选项：取自订单中已出现的客户（与 mock 用户库一致）
+  const userOptions = useMemo(() => {
+    const map = new Map<string, { userId: string; label: string }>();
+    orders.forEach((o) => {
+      if (!map.has(o.userId)) {
+        map.set(o.userId, { userId: o.userId, label: `${o.userName || '未知用户'}（${o.userPhone || o.userId}）` });
+      }
+    });
+    return Array.from(map.values());
+  }, [orders]);
+
+  const handleSupplementSubmit = async () => {
+    if (!supplementForm.userId) {
+      addToast('请选择用户', 'error');
+      return;
+    }
+    const amount = Number(supplementForm.amount);
+    if (!amount || amount <= 0) {
+      addToast('请填写有效金额', 'error');
+      return;
+    }
+    try {
+      setSupplementSubmitting(true);
+      await orderApi.adminCreate({
+        userId: supplementForm.userId,
+        type: supplementForm.type,
+        productName: supplementForm.productName.trim() || undefined,
+        amount,
+        remark: supplementForm.remark.trim() || undefined,
+      });
+      addToast('补单成功，订单已创建为已支付状态', 'success');
+      setSupplementModal(false);
+      setSupplementForm({ userId: '', type: 'biography', productName: '', amount: '', remark: '' });
+      loadOrders();
+    } catch (err) {
+      addToast(err instanceof Error ? err.message : '补单失败', 'error');
+    } finally {
+      setSupplementSubmitting(false);
+    }
+  };
 
   const toggleSelect = (id: string) => {
     setSelectedIds((prev) => {
@@ -464,9 +515,14 @@ export default function OrderManagement() {
     <div className="order-management-page">
       <header className="page-header">
         <h1 className="page-title">订单管理</h1>
-        <button className="btn btn-outline" onClick={loadOrders} disabled={loading}>
-          <RefreshCw size={14} className={loading ? 'spin' : ''} /> 刷新
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn btn-primary" onClick={() => setSupplementModal(true)}>
+            <Plus size={14} /> 手动补单
+          </button>
+          <button className="btn btn-outline" onClick={loadOrders} disabled={loading}>
+            <RefreshCw size={14} className={loading ? 'spin' : ''} /> 刷新
+          </button>
+        </div>
       </header>
 
       <div className="order-stats">
@@ -871,6 +927,77 @@ export default function OrderManagement() {
                 <button className="btn btn-outline" onClick={() => setBatchDeliverableModal(false)}>取消</button>
                 <button className="btn btn-primary" disabled={batchSubmitting} onClick={handleBatchDeliverable}>
                   <Upload size={14} /> {batchSubmitting ? '上传中…' : '确认批量上传'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {supplementModal && (
+        <div className="modal-overlay" onClick={() => setSupplementModal(false)}>
+          <div className="modal-content order-detail-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h4>手动补单</h4>
+              <button className="modal-close" onClick={() => setSupplementModal(false)}><X size={16} /></button>
+            </div>
+            <div className="modal-body">
+              <p className="order-batch-hint">用于线下收款等场景补录订单，创建后直接为「已支付」状态。</p>
+              <div className="order-form-row">
+                <label>用户 <span className="order-form-required">*</span></label>
+                <select
+                  value={supplementForm.userId}
+                  onChange={(e) => setSupplementForm({ ...supplementForm, userId: e.target.value })}
+                >
+                  <option value="">请选择用户</option>
+                  {userOptions.map((u) => (
+                    <option value={u.userId} key={u.userId}>{u.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="order-form-row">
+                <label>产品类型 <span className="order-form-required">*</span></label>
+                <select
+                  value={supplementForm.type}
+                  onChange={(e) => setSupplementForm({ ...supplementForm, type: e.target.value as AdminOrder['type'] })}
+                >
+                  {typeOptions.filter((t) => t.value !== 'all').map((t) => (
+                    <option value={t.value} key={t.value}>{t.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="order-form-row">
+                <label>商品/服务名称</label>
+                <input
+                  type="text"
+                  value={supplementForm.productName}
+                  onChange={(e) => setSupplementForm({ ...supplementForm, productName: e.target.value })}
+                  placeholder="不填则默认为「手动补单」"
+                />
+              </div>
+              <div className="order-form-row">
+                <label>金额（元） <span className="order-form-required">*</span></label>
+                <input
+                  type="number"
+                  min={0}
+                  value={supplementForm.amount}
+                  onChange={(e) => setSupplementForm({ ...supplementForm, amount: e.target.value })}
+                  placeholder="请输入金额"
+                />
+              </div>
+              <div className="order-form-row">
+                <label>备注</label>
+                <input
+                  type="text"
+                  value={supplementForm.remark}
+                  onChange={(e) => setSupplementForm({ ...supplementForm, remark: e.target.value })}
+                  placeholder="如：线下微信收款补录"
+                />
+              </div>
+              <div className="order-detail-actions">
+                <button className="btn btn-outline" onClick={() => setSupplementModal(false)}>取消</button>
+                <button className="btn btn-primary" disabled={supplementSubmitting} onClick={handleSupplementSubmit}>
+                  <Plus size={14} /> {supplementSubmitting ? '提交中…' : '确认补单'}
                 </button>
               </div>
             </div>

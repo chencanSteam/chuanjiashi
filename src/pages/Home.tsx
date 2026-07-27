@@ -6,6 +6,14 @@ import {
   TreePine,
   Cpu,
   ArrowRight,
+  Landmark,
+  LibraryBig,
+  BadgePercent,
+  UserSearch,
+  Handshake,
+  BookOpen,
+  Eye,
+  Flame,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useMemo, useEffect, useState } from 'react';
@@ -14,20 +22,42 @@ import Modal from '../components/ui/Modal';
 import { useVersion } from '../hooks/useVersion';
 import { useToast } from '../hooks/useToast';
 import { openGuide, shouldShowGuide } from '../components/GuideTour';
+import { bookshelfApi } from '../api/bookshelf';
+import { orderApi } from '../api/order';
+import { groupBuyApi } from '../api/groupBuy';
+import { loadJson, type ChapterData } from '../data/aiMock';
+import { generateInterviewTopics } from '../utils/interviewTopics';
+import type { PublicBook } from '../mocks/types';
 import './Home.css';
 
-const todos = [
-  { title: '待继续访谈', desc: '《父亲的创业之路》访谈未完成', count: 1, path: '/interview' },
-  { title: '待生成传记', desc: '有 1 份访谈素材可生成传记', count: 1, path: '/biography' },
-  { title: '待完善档案', desc: '有 2 份家庭成员档案待补充', count: 2, path: '/archive' },
-];
+interface TodoItem {
+  title: string;
+  desc: string;
+  count: number;
+  path: string;
+}
 
-const activities = [
-  { user: '我', action: '完成了《父亲的创业之路》访谈', time: '2 小时前', type: '访谈时长 45 分钟' },
-  { user: '妻子', action: '上传了 12 张家庭照片到相册', time: '5 小时前', type: '家庭相册' },
-  { user: '系统', action: '为照片《1980年全家福》进行了AI修复', time: '1 天前', type: '图像修复完成' },
-  { user: '父亲', action: '的故事《难忘的知青岁月》已生成传记', time: '2 天前', type: '传记生成完成' },
-];
+interface ActivityItem {
+  user: string;
+  action: string;
+  time: string;
+  type: string;
+  ts: number;
+}
+
+function formatRelativeTime(ts: number): string {
+  const diff = Date.now() - ts;
+  if (diff < 60 * 1000) return '刚刚';
+  if (diff < 60 * 60 * 1000) return `${Math.floor(diff / 60000)} 分钟前`;
+  if (diff < 24 * 60 * 60 * 1000) return `${Math.floor(diff / 3600000)} 小时前`;
+  return `${Math.floor(diff / 86400000)} 天前`;
+}
+
+function parseChapterTime(updatedAt: string | null): number {
+  if (!updatedAt) return 0;
+  const ts = new Date(updatedAt).getTime();
+  return Number.isNaN(ts) ? 0 : ts;
+}
 
 function hasArchives(): boolean {
   try {
@@ -48,6 +78,7 @@ interface Archive {
   origin: string;
   occupation: string;
   tags?: string[];
+  createdAt?: string;
 }
 
 const presetLifeTags = [
@@ -106,6 +137,150 @@ export default function Home() {
   }, []);
 
   const { addToast } = useToast();
+  const [hotBooks, setHotBooks] = useState<PublicBook[]>([]);
+  const [todos, setTodos] = useState<TodoItem[]>([]);
+  const [activities, setActivities] = useState<ActivityItem[]>([]);
+
+  // 待办事项与最近动态：从真实数据源（档案/采访进度/订单/拼团/传记草稿）生成
+  useEffect(() => {
+    const archives = loadArchives();
+
+    // 采访未完成：已回答题目数少于应答题数即视为档案完整度不足
+    const incompleteArchives = archives.filter((a) => {
+      const topics = generateInterviewTopics(a, a.id);
+      const total = topics.reduce((sum, t) => sum + t.questions.length, 0);
+      const answered = Object.keys(loadJson<Record<string, string>>(`cj_interview_answers_${a.id}`, {})).length;
+      return total === 0 || answered < total;
+    });
+
+    // 传记草稿未完成：已有章节生成但尚未全部完成
+    const draftArchives = archives.filter((a) => {
+      const chapters = loadJson<ChapterData[]>(`cj_biography_chapters_${a.id}`, []);
+      const generated = chapters.filter((c) => c.status !== 'notGenerated').length;
+      return generated > 0 && generated < chapters.length;
+    });
+
+    Promise.all([
+      orderApi.list().catch(() => []),
+      groupBuyApi.records().catch(() => []),
+    ]).then(([orders, groupRecords]) => {
+      const pendingOrders = orders.filter((o) => o.status === 'pending_pay');
+      const pendingGroups = groupRecords.filter((r) => r.status === 'pending');
+
+      const nextTodos: TodoItem[] = [];
+      if (incompleteArchives.length > 0) {
+        nextTodos.push({
+          title: '待继续采访',
+          desc: `「${incompleteArchives[0].name}」等 ${incompleteArchives.length} 份档案采访未完成`,
+          count: incompleteArchives.length,
+          path: '/interview',
+        });
+      }
+      if (pendingOrders.length > 0) {
+        nextTodos.push({
+          title: '待支付订单',
+          desc: `「${pendingOrders[0].productName}」等 ${pendingOrders.length} 笔订单待支付`,
+          count: pendingOrders.length,
+          path: '/my-orders',
+        });
+      }
+      if (pendingGroups.length > 0) {
+        nextTodos.push({
+          title: '拼团进行中',
+          desc: `有 ${pendingGroups.length} 个拼团等待成团，快邀请好友参团`,
+          count: pendingGroups.length,
+          path: '/group-buy',
+        });
+      }
+      if (draftArchives.length > 0) {
+        nextTodos.push({
+          title: '传记草稿待完成',
+          desc: `《${draftArchives[0].name}传记》等 ${draftArchives.length} 份草稿还有章节未生成`,
+          count: draftArchives.length,
+          path: '/biography',
+        });
+      }
+      setTodos(nextTodos);
+
+      const nextActivities: ActivityItem[] = [];
+      archives.forEach((a) => {
+        const ts = a.createdAt ? new Date(a.createdAt).getTime() : NaN;
+        if (!Number.isNaN(ts)) {
+          nextActivities.push({ user: '我', action: `创建了「${a.name}」的人生档案`, time: formatRelativeTime(ts), type: '档案创建', ts });
+        }
+        const chapters = loadJson<ChapterData[]>(`cj_biography_chapters_${a.id}`, []);
+        const generated = chapters.filter((c) => c.status !== 'notGenerated' && c.updatedAt);
+        if (generated.length > 0) {
+          const latest = generated.reduce((m, c) => Math.max(m, parseChapterTime(c.updatedAt)), 0);
+          if (latest > 0) {
+            nextActivities.push({
+              user: '系统',
+              action: `已为「${a.name}」生成 ${generated.length} 个传记章节`,
+              time: formatRelativeTime(latest),
+              type: '传记生成完成',
+              ts: latest,
+            });
+          }
+        }
+      });
+      orders.forEach((o) => {
+        const ts = new Date(o.createdAt).getTime();
+        if (!Number.isNaN(ts)) {
+          nextActivities.push({
+            user: '我',
+            action: `提交了订单「${o.productName}」（¥${o.amount.toFixed(2)}）`,
+            time: formatRelativeTime(ts),
+            type: o.status === 'pending_pay' ? '订单待支付' : '订单已支付',
+            ts,
+          });
+        }
+      });
+      nextActivities.sort((a, b) => b.ts - a.ts);
+      setActivities(nextActivities.slice(0, 6));
+    });
+  }, []);
+
+  // 热门传记推荐：从公开书架拉取，按浏览量 + 点赞数排序取前 4 本
+  useEffect(() => {
+    bookshelfApi
+      .list()
+      .then((list) => {
+        const sorted = [...list]
+          .filter((b) => b.status === 'approved')
+          .sort((a, b) => b.views + b.likes - (a.views + a.likes))
+          .slice(0, 4);
+        setHotBooks(sorted);
+      })
+      .catch(() => setHotBooks([]));
+  }, []);
+
+  const platformCases = [
+    {
+      icon: BookOpen,
+      color: '#b8860b',
+      bg: 'rgba(184,134,11,0.1)',
+      title: '样例传记',
+      desc: '《父亲的创业之路》—— AI 采访生成的完整人物传记',
+      path: '/biography-shelf',
+    },
+    {
+      icon: Landmark,
+      color: '#7c3aed',
+      bg: 'rgba(124,58,237,0.1)',
+      title: '示例数字馆',
+      desc: '时间轴、相册、荣誉一站式呈现的人生数字博物馆',
+      path: '/museum',
+    },
+    {
+      icon: Cpu,
+      color: '#3b82f6',
+      bg: 'rgba(59,130,246,0.1)',
+      title: '数字人示例',
+      desc: '基于生平资料训练的数字人格，随时对话陪伴',
+      path: '/digital-person',
+    },
+  ];
+
   const [showBasicModal, setShowBasicModal] = useState(false);
   const [basicStep, setBasicStep] = useState<1 | 2>(1);
   const [basicForm, setBasicForm] = useState({
@@ -324,7 +499,7 @@ export default function Home() {
               </div>
               <ArrowRight size={16} className="service-arrow" />
             </div>
-            <div className="service-card" onClick={() => navigate('/digital-life')}>
+            <div className="service-card" onClick={() => navigate('/digital-person')}>
               <div className="service-icon" style={{ background: 'rgba(59,130,246,0.1)', color: '#3b82f6' }}><Cpu size={22} /></div>
               <div className="service-info">
                 <h4>数字人生</h4>
@@ -342,6 +517,92 @@ export default function Home() {
           </div>
           <ArrowRight size={16} className="service-arrow" />
         </div>
+        <div className="service-card" onClick={() => navigate('/museum')}>
+          <div className="service-icon" style={{ background: 'rgba(124,58,237,0.1)', color: '#7c3aed' }}><Landmark size={22} /></div>
+          <div className="service-info">
+            <h4>数字博物馆</h4>
+            <p>家风文物 · 家族展品 · 线上展馆</p>
+          </div>
+          <ArrowRight size={16} className="service-arrow" />
+        </div>
+        <div className="service-card" onClick={() => navigate('/biography-shelf')}>
+          <div className="service-icon" style={{ background: 'rgba(2,132,199,0.1)', color: '#0284c7' }}><LibraryBig size={22} /></div>
+          <div className="service-info">
+            <h4>公开传记书架</h4>
+            <p>名人传记 · 试读 · 付费解锁全本</p>
+          </div>
+          <ArrowRight size={16} className="service-arrow" />
+        </div>
+        <div className="service-card" onClick={() => navigate('/group-buy')}>
+          <div className="service-icon" style={{ background: 'rgba(220,38,38,0.1)', color: '#dc2626' }}><BadgePercent size={22} /></div>
+          <div className="service-info">
+            <h4>99元拼团</h4>
+            <p>好友拼团 · 立享优惠</p>
+          </div>
+          <ArrowRight size={16} className="service-arrow" />
+        </div>
+        <div className="service-card" onClick={() => navigate('/biographers')}>
+          <div className="service-icon" style={{ background: 'rgba(13,148,136,0.1)', color: '#0d9488' }}><UserSearch size={22} /></div>
+          <div className="service-info">
+            <h4>找传记师</h4>
+            <p>认证传记师 · 一对一传记服务</p>
+          </div>
+          <ArrowRight size={16} className="service-arrow" />
+        </div>
+        <div className="service-card" onClick={() => navigate('/partner/apply')}>
+          <div className="service-icon" style={{ background: 'rgba(79,70,229,0.1)', color: '#4f46e5' }}><Handshake size={22} /></div>
+          <div className="service-info">
+            <h4>传记师/服务商入驻</h4>
+            <p>入驻认证 · 接单结算 · 合作共赢</p>
+          </div>
+          <ArrowRight size={16} className="service-arrow" />
+        </div>
+      </section>
+
+      <section className="home-hot-books">
+        <div className="surface-header">
+          <h3><Flame size={16} /> 热门传记推荐</h3>
+          <button className="btn btn-ghost" onClick={() => navigate('/biography-shelf')}>查看全部</button>
+        </div>
+        {hotBooks.length === 0 ? (
+          <div className="hot-books-empty">暂无推荐传记，去公开书架看看吧</div>
+        ) : (
+          <div className="hot-books-grid">
+            {hotBooks.map((b) => (
+              <div className="hot-book-card" key={b.id} onClick={() => navigate(`/biography-shelf/${b.id}`)}>
+                <div className="hot-book-cover">
+                  {b.cover ? <img src={b.cover} alt={b.title} /> : <BookOpen size={32} />}
+                </div>
+                <div className="hot-book-body">
+                  <div className="hot-book-title">{b.title}</div>
+                  <div className="hot-book-author">{b.author}</div>
+                  <div className="hot-book-footer">
+                    <span className="hot-book-price">{b.isFree || b.price === 0 ? '免费' : `¥${b.price.toFixed(2)}`}</span>
+                    <span className="hot-book-views"><Eye size={12} /> {b.views}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section className="home-cases">
+        <div className="surface-header">
+          <h3>平台案例展示</h3>
+        </div>
+        <div className="home-cases-grid">
+          {platformCases.map((c) => (
+            <div className="service-card" key={c.title} onClick={() => navigate(c.path)}>
+              <div className="service-icon" style={{ background: c.bg, color: c.color }}><c.icon size={22} /></div>
+              <div className="service-info">
+                <h4>{c.title}</h4>
+                <p>{c.desc}</p>
+              </div>
+              <ArrowRight size={16} className="service-arrow" />
+            </div>
+          ))}
+        </div>
       </section>
 
       <section className="workspace">
@@ -351,15 +612,19 @@ export default function Home() {
             {!isMVP && <button className="btn btn-ghost" onClick={() => navigate('/family/events')}>查看全部</button>}
           </div>
           <div className="activity-list">
-            {activities.map((a, i) => (
-              <div className="activity-row" key={i}>
-                {a.user === '系统' ? <div className="activity-avatar system">系</div> : <Avatar name={a.user} size={38} />}
-                <div className="activity-main">
-                  <div className="activity-title"><strong>{a.user}</strong> {a.action}</div>
-                  <div className="activity-meta">{a.type} · {a.time}</div>
+            {activities.length === 0 ? (
+              <div className="activity-empty">暂无动态</div>
+            ) : (
+              activities.map((a, i) => (
+                <div className="activity-row" key={i}>
+                  {a.user === '系统' ? <div className="activity-avatar system">系</div> : <Avatar name={a.user} size={38} />}
+                  <div className="activity-main">
+                    <div className="activity-title"><strong>{a.user}</strong> {a.action}</div>
+                    <div className="activity-meta">{a.type} · {a.time}</div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
 
@@ -369,16 +634,20 @@ export default function Home() {
             <button className="btn btn-ghost" onClick={() => navigate('/interview')}>查看全部</button>
           </div>
           <div className="todo-list">
-            {todos.map((t, i) => (
-              <div className="todo-row" key={i} onClick={() => t.path && navigate(t.path)}>
-                <div className="todo-main">
-                  <div className="todo-title">{t.title}</div>
-                  <div className="todo-desc">{t.desc}</div>
+            {todos.length === 0 ? (
+              <div className="todo-empty">暂无待办事项</div>
+            ) : (
+              todos.map((t, i) => (
+                <div className="todo-row" key={i} onClick={() => t.path && navigate(t.path)}>
+                  <div className="todo-main">
+                    <div className="todo-title">{t.title}</div>
+                    <div className="todo-desc">{t.desc}</div>
+                  </div>
+                  <div className="todo-count">{t.count}</div>
+                  <ChevronRight size={16} className="todo-arrow" />
                 </div>
-                <div className="todo-count">{t.count}</div>
-                <ChevronRight size={16} className="todo-arrow" />
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
       </section>

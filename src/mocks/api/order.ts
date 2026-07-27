@@ -176,6 +176,31 @@ export const orderHandlers: HttpHandler[] = [
     return success(orders.map((o) => ({ ...o, ...getOrderUserInfo(o) })))
   }),
 
+  // 手动补单（创建一条已支付订单）
+  http.post('/api/admin/orders', async ({ request }) => {
+    const userId = getCurrentUserId()
+    if (!userId) return unauthorized()
+    const body = (await request.json()) as { userId?: string; type?: Order['type']; productName?: string; amount?: number; remark?: string }
+    if (!body.userId) return fail('请选择用户')
+    if (!body.amount || body.amount <= 0) return fail('请填写有效金额')
+    const now = new Date().toISOString()
+    const order: Order = {
+      id: generateId(),
+      userId: body.userId,
+      type: body.type || 'biography',
+      productId: '',
+      productName: body.productName?.trim() || '手动补单',
+      amount: body.amount,
+      remark: body.remark,
+      status: 'paid',
+      payTime: now,
+      createdAt: now,
+      updatedAt: now,
+    }
+    saveOrder(order)
+    return success({ ...order, ...getOrderUserInfo(order) }, '补单成功')
+  }),
+
   http.put('/api/admin/orders/:id/status', async ({ request, params }) => {
     const userId = getCurrentUserId()
     if (!userId) return unauthorized()

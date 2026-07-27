@@ -7,6 +7,7 @@ import {
   Users,
   TrendingUp,
   CreditCard,
+  Award,
   LogOut,
   ArrowLeft,
   ChevronDown,
@@ -25,6 +26,7 @@ const partnerNavItems: NavItem[] = [
   { to: '/partner', icon: LayoutDashboard, label: '数据看板' },
   { to: '/partner?tab=customers', icon: Users, label: '我的客户' },
   { to: '/partner?tab=earnings', icon: TrendingUp, label: '我的收益' },
+  { to: '/partner?tab=assessment', icon: Award, label: '考核结算' },
   { to: '/partner?tab=withdraw', icon: CreditCard, label: '提现' },
 ];
 
@@ -95,7 +97,7 @@ export default function PartnerLayout() {
               <ChevronDown size={14} className={`user-menu-arrow ${showUserMenu ? 'open' : ''}`} />
               {showUserMenu && (
                 <div className="user-dropdown">
-                  <NavLink to="/" className="user-dropdown-item">
+                  <NavLink to="/home" className="user-dropdown-item">
                     <ArrowLeft size={14} /> 用户端
                   </NavLink>
                   <div className="user-dropdown-divider" />

@@ -15,6 +15,12 @@ import { biographerHandlers } from './api/biographer'
 import { partnerHandlers } from './api/partner'
 import { familyHandlers } from './api/family'
 import { quotaHandlers } from './api/quota'
+import { adminUserHandlers } from './api/adminUsers'
+import { adminArchiveHandlers } from './api/adminArchives'
+import { aiTaskHandlers } from './api/aiTasks'
+import { complianceHandlers } from './api/compliance'
+import { contentReviewHandlers } from './api/contentReview'
+import { biographerEarningsHandlers } from './api/biographerEarnings'
 
 export const handlers = [
   ...authHandlers,
@@ -34,4 +40,10 @@ export const handlers = [
   ...partnerHandlers,
   ...familyHandlers,
   ...quotaHandlers,
+  ...adminUserHandlers,
+  ...adminArchiveHandlers,
+  ...aiTaskHandlers,
+  ...complianceHandlers,
+  ...contentReviewHandlers,
+  ...biographerEarningsHandlers,
 ]

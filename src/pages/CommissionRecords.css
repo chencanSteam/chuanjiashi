@@ -134,6 +134,45 @@
   color: #d97706;
 }
 
+.commission-rules-body {
+  max-width: 480px;
+}
+
+.commission-rule-tip {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.commission-risk-tip {
+  margin-bottom: 20px;
+  border-left: 4px solid #2563eb;
+}
+
+.commission-risk-tip-body {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.commission-risk-tip-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.commission-risk-tip-text {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  line-height: 1.6;
+}
+
+.commission-deduct {
+  color: #dc2626;
+  font-weight: 600;
+}
+
 @media (max-width: 960px) {
   .commission-stats {
     grid-template-columns: 1fr;

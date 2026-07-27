@@ -1,0 +1,655 @@
+.museum-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px 16px 64px;
+  color: #1f2937;
+}
+
+.museum-loading,
+.museum-empty {
+  text-align: center;
+  padding: 80px 16px;
+  color: #6b7280;
+}
+
+.museum-empty p {
+  margin: 16px 0;
+}
+
+/* Hero */
+.museum-hero {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 28px;
+  padding: 28px;
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+  margin-bottom: 24px;
+}
+
+.museum-cover {
+  width: 260px;
+  height: 320px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #1b5e4b, #2e8b72);
+  color: #fff;
+  overflow: hidden;
+}
+
+.museum-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.museum-hero-info {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.museum-hero-info h1 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.museum-years {
+  font-size: 15px;
+  color: #6b7280;
+  letter-spacing: 2px;
+}
+
+.museum-intro {
+  margin: 0;
+  line-height: 1.8;
+  color: #374151;
+  font-size: 15px;
+}
+
+.museum-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.museum-hero-actions .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Stats */
+.museum-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr) 2fr;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.museum-stat-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 18px;
+  text-align: center;
+}
+
+.museum-stat-num {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 22px;
+  font-weight: 700;
+  color: #1b5e4b;
+}
+
+.museum-stat-label {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.museum-stat-trend {
+  text-align: left;
+}
+
+.museum-trend-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  height: 72px;
+}
+
+.museum-trend-bar {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  height: 100%;
+}
+
+.museum-trend-bar-fill {
+  width: 100%;
+  min-height: 4px;
+  border-radius: 4px 4px 0 0;
+  background: linear-gradient(180deg, #2e8b72, #1b5e4b);
+}
+
+.museum-trend-bar span {
+  font-size: 10px;
+  color: #9ca3af;
+}
+
+/* Tabs */
+.museum-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.museum-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 20px;
+  background: #fff;
+  color: #4b5563;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.museum-tab:hover,
+.museum-tab.active {
+  border-color: #1b5e4b;
+  background: #1b5e4b;
+  color: #fff;
+}
+
+.museum-tab-content {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 24px;
+  min-height: 200px;
+}
+
+.museum-tab-empty {
+  text-align: center;
+  padding: 48px 16px;
+  color: #9ca3af;
+  font-size: 14px;
+}
+
+/* Timeline */
+.museum-timeline {
+  display: flex;
+  flex-direction: column;
+}
+
+.museum-timeline-item {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  gap: 16px;
+  padding: 16px 0;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.museum-timeline-item:last-child {
+  border-bottom: none;
+}
+
+.museum-timeline-year {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1b5e4b;
+}
+
+.museum-timeline-body h4 {
+  margin: 0 0 6px;
+  font-size: 15px;
+}
+
+.museum-timeline-body p {
+  margin: 0;
+  font-size: 13px;
+  color: #6b7280;
+  line-height: 1.7;
+}
+
+/* Biography */
+.museum-biography h3 {
+  margin: 0 0 16px;
+  font-size: 20px;
+}
+
+.museum-chapter {
+  margin-bottom: 20px;
+}
+
+.museum-chapter h4 {
+  margin: 0 0 8px;
+  font-size: 16px;
+  color: #1b5e4b;
+}
+
+.museum-chapter p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.9;
+  color: #374151;
+  white-space: pre-wrap;
+}
+
+/* Album */
+.museum-album {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.museum-photo {
+  aspect-ratio: 4 / 3;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f3f4f6;
+}
+
+.museum-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Honors */
+.museum-honors {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.museum-honor-card {
+  padding: 20px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  color: #1b5e4b;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.museum-honor-card h4 {
+  margin: 0;
+  font-size: 15px;
+  color: #1f2937;
+}
+
+.museum-honor-card p {
+  margin: 0;
+  font-size: 13px;
+  color: #6b7280;
+  line-height: 1.6;
+}
+
+.museum-honor-card span {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+/* Motto / Video / Companion */
+.museum-motto,
+.museum-video-placeholder,
+.museum-companion {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 40px 16px;
+  text-align: center;
+  color: #1b5e4b;
+}
+
+.museum-motto blockquote {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.museum-motto p,
+.museum-video-placeholder p,
+.museum-companion p {
+  margin: 0;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.museum-video-placeholder h4,
+.museum-companion h4 {
+  margin: 0;
+  font-size: 16px;
+  color: #1f2937;
+}
+
+.museum-companion .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.museum-motto .btn,
+.museum-video-placeholder .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.museum-motto-section {
+  width: 100%;
+  max-width: 480px;
+  text-align: left;
+}
+
+.museum-motto-section h4 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: #1f2937;
+}
+
+.museum-motto-section ul {
+  margin: 0;
+  padding-left: 18px;
+  color: #4b5563;
+  font-size: 13px;
+  line-height: 1.9;
+}
+
+.museum-motto-section p {
+  margin: 0;
+  font-size: 13px;
+  color: #4b5563;
+  line-height: 1.8;
+}
+
+/* Sections */
+.museum-section {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.museum-section h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 16px;
+  font-size: 16px;
+}
+
+/* Messages */
+.museum-message-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.museum-message-form textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 14px;
+  color: #374151;
+  resize: vertical;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.museum-message-form textarea:focus {
+  border-color: #1b5e4b;
+}
+
+.museum-message-form .btn {
+  align-self: flex-end;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.museum-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.museum-message {
+  display: flex;
+  gap: 12px;
+}
+
+.museum-message-avatar {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #ecfdf5;
+  color: #1b5e4b;
+  font-size: 14px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.museum-message-header {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.museum-message-header strong {
+  font-size: 14px;
+}
+
+.museum-message-header span {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.museum-message-body p {
+  margin: 0;
+  font-size: 14px;
+  color: #374151;
+  line-height: 1.6;
+}
+
+/* Share */
+.museum-share {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.museum-share-link {
+  padding: 10px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #f9fafb;
+  font-size: 12px;
+  color: #6b7280;
+  word-break: break-all;
+}
+
+.museum-share-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.museum-share-actions .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.museum-qr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.museum-qr-svg {
+  width: 200px;
+  height: 200px;
+  border: 8px solid #fff;
+  border-radius: 8px;
+  box-shadow: 0 0 0 1px #e5e7eb;
+}
+
+.museum-qr p {
+  margin: 0;
+  font-size: 13px;
+  color: #6b7280;
+  text-align: center;
+}
+
+/* Visibility */
+.museum-visibility {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.museum-visibility-option {
+  padding: 8px 18px;
+  border: 1px solid #e5e7eb;
+  border-radius: 20px;
+  background: #fff;
+  color: #4b5563;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.museum-visibility-option:hover,
+.museum-visibility-option.active {
+  border-color: #1b5e4b;
+  background: #1b5e4b;
+  color: #fff;
+}
+
+.museum-password-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.museum-password-row label {
+  font-size: 13px;
+  color: #4b5563;
+  flex-shrink: 0;
+}
+
+.museum-password-row input {
+  max-width: 260px;
+  padding: 8px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+}
+
+.museum-password-row input:focus {
+  border-color: #1b5e4b;
+}
+
+.museum-visibility-tip {
+  margin: 0 0 16px;
+  font-size: 12px;
+  color: #9ca3af;
+  line-height: 1.7;
+}
+
+@media (max-width: 900px) {
+  .museum-stats {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .museum-stat-trend {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 640px) {
+  .museum-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .museum-cover {
+    width: 100%;
+    height: 200px;
+  }
+}
+
+/* 家人共享 */
+.museum-family-share {
+  margin: 12px 0;
+  padding: 14px;
+  border: 1px solid #e8ecea;
+  border-radius: 12px;
+  background: #fafbfa;
+}
+
+.museum-family-tip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.museum-family-invite {
+  display: flex;
+  gap: 8px;
+}
+
+.museum-family-invite input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #e8ecea;
+  border-radius: 8px;
+  font-size: 13px;
+  outline: none;
+}
+
+.museum-family-invite input:focus {
+  border-color: var(--primary);
+}
+
+.museum-family-invited {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--text-muted);
+}

@@ -99,6 +99,19 @@
   color: #6b7280;
 }
 
+.ai-refine-history-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.ai-refine-history-meta span {
+  flex: 1;
+}
+
 .spin {
   animation: spin 1s linear infinite;
 }

@@ -2,7 +2,8 @@ import { http, type HttpHandler } from 'msw'
 import { success, fail, unauthorized, notFound } from '../utils/response'
 import { getItem, setItem, generateId, storeKeys } from '../utils/store'
 import { partnerTypeConfig } from '../../data/partnerData'
-import type { Partner, PartnerApplication, PartnerCustomer } from '../types'
+import { defaultPartnerChannels, defaultPartnerAssessment, defaultGmvLineStats, defaultPartnerLocalOrders, defaultAdminUsers, defaultPartnerFees, defaultPartnerShareConfigs, defaultPartnerRewardConfigs, defaultPartnerAssessments } from '../data/seed'
+import type { Partner, PartnerApplication, PartnerCustomer, PartnerChannel, PartnerAssessment, PartnerLocalOrder, AdminUser, PartnerFeeRecord, PartnerShareConfig, PartnerRewardConfig, PartnerAssessmentRecord } from '../types'
 
 function getCurrentUserId(): string | null {
   const user = getItem<{ id: string } | null>(storeKeys.currentUser, null)
@@ -340,5 +341,162 @@ export const partnerHandlers: HttpHandler[] = [
     customers.push(customer)
     setItem(storeKeys.partnerCustomers, customers)
     return success(customer)
+  }),
+
+  // ===== 渠道/考核/GMV/本地数据 =====
+
+  // 渠道列表（按类型/状态过滤）
+  http.get('/api/partner/channels', async ({ request }) => {
+    const userId = getCurrentUserId()
+    if (!userId) return unauthorized()
+    const url = new URL(request.url)
+    const type = url.searchParams.get('type') || 'all'
+    const status = url.searchParams.get('status') || 'all'
+    let channels = getItem<PartnerChannel[]>(storeKeys.partnerChannels, [])
+    if (channels.length === 0) {
+      channels = defaultPartnerChannels
+      setItem(storeKeys.partnerChannels, channels)
+    }
+    if (type !== 'all') channels = channels.filter((c) => c.type === type)
+    if (status !== 'all') channels = channels.filter((c) => c.status === status)
+    return success(channels)
+  }),
+
+  // 新增渠道
+  http.post('/api/partner/channels', async ({ request }) => {
+    const userId = getCurrentUserId()
+    if (!userId) return unauthorized()
+    const body = (await request.json()) as Partial<PartnerChannel>
+    if (!body.orgName || !body.type) return fail('请填写机构名和渠道类型')
+    const partner = findPartnerByUserId(userId)
+    const channels = getItem<PartnerChannel[]>(storeKeys.partnerChannels, [])
+    const channel: PartnerChannel = {
+      id: generateId(),
+      partnerId: body.partnerId || partner?.id || 'partner_demo',
+      type: body.type,
+      orgName: body.orgName,
+      contact: body.contact || '',
+      phone: body.phone || '',
+      status: 'active',
+      cooperatedAt: new Date().toISOString(),
+    }
+    channels.push(channel)
+    setItem(storeKeys.partnerChannels, channels)
+    return success(channel, '渠道添加成功')
+  }),
+
+  // 年度考核结算数据
+  http.get('/api/partner/assessment', async () => {
+    const userId = getCurrentUserId()
+    if (!userId) return unauthorized()
+    const assessment = getItem<PartnerAssessment | null>(storeKeys.partnerAssessment, null)
+    if (assessment) return success(assessment)
+    setItem(storeKeys.partnerAssessment, defaultPartnerAssessment)
+    return success(defaultPartnerAssessment)
+  }),
+
+  // GMV 分业务线统计
+  http.get('/api/partner/gmv-stats', async () => {
+    const userId = getCurrentUserId()
+    if (!userId) return unauthorized()
+    return success(defaultGmvLineStats)
+  }),
+
+  // 本地用户列表
+  http.get('/api/partner/local/users', async () => {
+    const userId = getCurrentUserId()
+    if (!userId) return unauthorized()
+    const users = getItem<AdminUser[]>(storeKeys.adminUsers, [])
+    return success(users.length > 0 ? users : defaultAdminUsers)
+  }),
+
+  // 本地订单列表
+  http.get('/api/partner/local/orders', async () => {
+    const userId = getCurrentUserId()
+    if (!userId) return unauthorized()
+    let orders = getItem<PartnerLocalOrder[]>(storeKeys.partnerLocalOrders, [])
+    if (orders.length === 0) {
+      orders = defaultPartnerLocalOrders
+      setItem(storeKeys.partnerLocalOrders, orders)
+    }
+    return success(orders)
+  }),
+
+  // ===== 管理后台：服务商费用/分成/奖励/考核 =====
+
+  // 费用记录列表
+  http.get('/api/admin/partner/fees', async () => {
+    const userId = getCurrentUserId()
+    if (!userId) return unauthorized()
+    let fees = getItem<PartnerFeeRecord[]>(storeKeys.partnerFees, [])
+    if (fees.length === 0) {
+      fees = defaultPartnerFees
+      setItem(storeKeys.partnerFees, fees)
+    }
+    return success(fees)
+  }),
+
+  // 分成配置列表
+  http.get('/api/admin/partner/share-configs', async () => {
+    const userId = getCurrentUserId()
+    if (!userId) return unauthorized()
+    let configs = getItem<PartnerShareConfig[]>(storeKeys.partnerShareConfigs, [])
+    if (configs.length === 0) {
+      configs = defaultPartnerShareConfigs
+      setItem(storeKeys.partnerShareConfigs, configs)
+    }
+    return success(configs)
+  }),
+
+  // 更新分成配置
+  http.put('/api/admin/partner/share-configs/:id', async ({ params, request }) => {
+    const userId = getCurrentUserId()
+    if (!userId) return unauthorized()
+    const body = (await request.json()) as Partial<PartnerShareConfig>
+    const configs = getItem<PartnerShareConfig[]>(storeKeys.partnerShareConfigs, defaultPartnerShareConfigs)
+    const idx = configs.findIndex((c) => c.id === params.id)
+    if (idx < 0) return notFound('分成配置不存在')
+    if (body.rate !== undefined && (body.rate < 0 || body.rate > 1)) return fail('分成比例需在 0-1 之间')
+    configs[idx] = { ...configs[idx], ...body, id: configs[idx].id }
+    setItem(storeKeys.partnerShareConfigs, configs)
+    return success(configs[idx], '分成配置已更新')
+  }),
+
+  // 奖励配置列表
+  http.get('/api/admin/partner/reward-configs', async () => {
+    const userId = getCurrentUserId()
+    if (!userId) return unauthorized()
+    let configs = getItem<PartnerRewardConfig[]>(storeKeys.partnerRewardConfigs, [])
+    if (configs.length === 0) {
+      configs = defaultPartnerRewardConfigs
+      setItem(storeKeys.partnerRewardConfigs, configs)
+    }
+    return success(configs)
+  }),
+
+  // 更新奖励配置
+  http.put('/api/admin/partner/reward-configs/:id', async ({ params, request }) => {
+    const userId = getCurrentUserId()
+    if (!userId) return unauthorized()
+    const body = (await request.json()) as Partial<PartnerRewardConfig>
+    const configs = getItem<PartnerRewardConfig[]>(storeKeys.partnerRewardConfigs, defaultPartnerRewardConfigs)
+    const idx = configs.findIndex((c) => c.id === params.id)
+    if (idx < 0) return notFound('奖励配置不存在')
+    if (body.amount !== undefined && body.amount < 0) return fail('奖励金额无效')
+    configs[idx] = { ...configs[idx], ...body, id: configs[idx].id }
+    setItem(storeKeys.partnerRewardConfigs, configs)
+    return success(configs[idx], '奖励配置已更新')
+  }),
+
+  // 考核记录列表（管理端视角）
+  http.get('/api/admin/partner/assessments', async () => {
+    const userId = getCurrentUserId()
+    if (!userId) return unauthorized()
+    let records = getItem<PartnerAssessmentRecord[]>(storeKeys.partnerAssessments, [])
+    if (records.length === 0) {
+      records = defaultPartnerAssessments
+      setItem(storeKeys.partnerAssessments, records)
+    }
+    return success(records)
   }),
 ]

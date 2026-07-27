@@ -1,0 +1,12 @@
+{
+  "version": "2.0",
+  "envId": "cc2026-d0gtw9uu873b04cf0",
+  "$schema": "https://framework-1258016615.tcloudbaseapp.com/schema/latest.json",
+  "app": {
+    "serviceName": "chuanjiashi",
+    "framework": "static",
+    "installCommand": "npm install",
+    "buildCommand": "npm run build",
+    "outputDir": "dist"
+  }
+}

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ClipboardList,
   RefreshCw,
@@ -17,10 +17,15 @@ import {
   X,
   Copy,
   Star,
+  User,
+  Phone,
+  Calendar,
+  MessageCircle,
   CreditCard as PayIcon,
 } from 'lucide-react';
 import { orderApi } from '../api/order';
-import type { Order } from '../mocks/types';
+import { biographerApi } from '../api/biographer';
+import type { Order, Biographer, BiographerOrder } from '../mocks/types';
 import { paymentApi } from '../api/payment';
 import { useToast } from '../hooks/useToast';
 import './MyOrders.css';
@@ -74,6 +79,20 @@ const deliverableTypeLabels: Record<string, string> = {
   image: '图片',
 };
 
+const bioStatusMap: Record<BiographerOrder['status'], { label: string; color: string }> = {
+  pending_deposit: { label: '待付定金', color: '#d97706' },
+  paid_deposit: { label: '已付定金', color: '#2563eb' },
+  interview_scheduled: { label: '已预约采访', color: '#7c3aed' },
+  draft_submitted: { label: '已提交初稿', color: '#2563eb' },
+  modifying: { label: '修改中', color: '#d97706' },
+  final_submitted: { label: '已提交终稿', color: '#2563eb' },
+  paid_full: { label: '已付尾款', color: '#7c3aed' },
+  completed: { label: '已完成', color: '#1B5E4B' },
+  after_sales: { label: '售后中', color: '#ef4444' },
+};
+
+const bioProgressNodes = ['支付定金', '预约采访', '提交初稿', '修改完善', '支付尾款', '交付定稿'];
+
 function formatCountdown(target: string): string {
   const diff = new Date(target).getTime() - Date.now();
   if (diff <= 0) return '已过期';
@@ -94,10 +113,16 @@ function useCountdown() {
 export default function MyOrders() {
   const navigate = useNavigate();
   const { addToast } = useToast();
+  const [searchParams] = useSearchParams();
   const [orders, setOrders] = useState<Order[]>([]);
+  const [bioOrders, setBioOrders] = useState<BiographerOrder[]>([]);
+  const [biographers, setBiographers] = useState<Record<string, Biographer>>({});
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<Order['status'] | 'all'>('all');
-  const [typeFilter, setTypeFilter] = useState<Order['type'] | 'all'>('all');
+  const [typeFilter, setTypeFilter] = useState<Order['type'] | 'all'>(() => {
+    const t = searchParams.get('type');
+    return typeOptions.some((o) => o.value === t) ? (t as Order['type']) : 'all';
+  });
   const [selected, setSelected] = useState<Order | null>(null);
   const [payingId, setPayingId] = useState<string | null>(null);
   const [reviewOrder, setReviewOrder] = useState<Order | null>(null);
@@ -114,10 +139,19 @@ export default function MyOrders() {
 
   const loadOrders = () => {
     setLoading(true);
-    orderApi
-      .list()
-      .then(setOrders)
-      .catch(() => setOrders([]))
+    Promise.all([orderApi.list(), biographerApi.orders(), biographerApi.list()])
+      .then(([orderList, bioOrderList, bioList]) => {
+        setOrders(orderList);
+        setBioOrders(bioOrderList);
+        const map: Record<string, Biographer> = {};
+        bioList.forEach((b) => (map[b.id] = b));
+        setBiographers(map);
+      })
+      .catch(() => {
+        setOrders([]);
+        setBioOrders([]);
+        setBiographers({});
+      })
       .finally(() => setLoading(false));
   };
 
@@ -128,6 +162,14 @@ export default function MyOrders() {
       return matchStatus && matchType;
     });
   }, [orders, statusFilter, typeFilter]);
+
+  // 传记师订单：仅在「全部类型」或「传记师服务」下展示，不参与普通订单的状态筛选
+  const visibleBioOrders = useMemo(() => {
+    if (typeFilter !== 'all' && typeFilter !== 'biographer_service') return [];
+    return bioOrders;
+  }, [bioOrders, typeFilter]);
+
+  const isBioType = typeFilter === 'biographer_service';
 
   const stats = useMemo(() => {
     return {
@@ -247,11 +289,13 @@ export default function MyOrders() {
       <div className="card my-order-list-card">
         <div className="card-header my-order-list-header">
           <div className="my-order-filters">
-            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as Order['status'] | 'all')}>
-              {statusOptions.map((s) => (
-                <option value={s.value} key={s.value}>{s.label}</option>
-              ))}
-            </select>
+            {!isBioType && (
+              <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as Order['status'] | 'all')}>
+                {statusOptions.map((s) => (
+                  <option value={s.value} key={s.value}>{s.label}</option>
+                ))}
+              </select>
+            )}
             <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as Order['type'] | 'all')}>
               {typeOptions.map((t) => (
                 <option value={t.value} key={t.value}>{t.label}</option>
@@ -262,12 +306,20 @@ export default function MyOrders() {
         <div className="card-body my-order-list-body">
           {loading ? (
             <div className="my-order-empty">加载中…</div>
-          ) : filtered.length === 0 ? (
-            <div className="my-order-empty">
-              <ShoppingBag size={40} color="#d1d5db" />
-              <p>暂无符合条件的订单</p>
-              <button className="btn btn-primary" onClick={() => navigate('/store')}>去商城逛逛</button>
-            </div>
+          ) : filtered.length === 0 && visibleBioOrders.length === 0 ? (
+            isBioType ? (
+              <div className="my-order-empty">
+                <MessageCircle size={40} color="#d1d5db" />
+                <p>暂无传记师订单</p>
+                <button className="btn btn-primary" onClick={() => navigate('/biographers')}>去找传记师预约</button>
+              </div>
+            ) : (
+              <div className="my-order-empty">
+                <ShoppingBag size={40} color="#d1d5db" />
+                <p>暂无符合条件的订单</p>
+                <button className="btn btn-primary" onClick={() => navigate('/store')}>去商城逛逛</button>
+              </div>
+            )
           ) : (
             <div className="my-order-list">
               {filtered.map((order) => {
@@ -316,6 +368,61 @@ export default function MyOrders() {
                           <PayIcon size={12} /> {payingId === order.id ? '支付中…' : '去支付'}
                         </button>
                       )}
+                    </div>
+                  </div>
+                );
+              })}
+              {visibleBioOrders.map((o) => {
+                const bio = biographers[o.biographerId];
+                const doneCount = o.progress.filter((p) => p.status === 'done').length;
+                const progressPct = Math.round((doneCount / bioProgressNodes.length) * 100);
+                return (
+                  <div className="my-bio-order-item" key={o.id}>
+                    <div className="my-bio-order-main">
+                      <div className="my-bio-order-info">
+                        <div className="my-bio-order-service">{o.serviceName}</div>
+                        {bio && (
+                          <div className="my-bio-order-bio">
+                            <User size={12} /> 传记师：{bio.name} · {(bio.rating || 5).toFixed(1)} 分
+                          </div>
+                        )}
+                        <div className="my-bio-order-meta">
+                          <span><Phone size={12} /> 订单号 {o.id.slice(-8)}</span>
+                          <span>订单金额 ¥{o.amount.toLocaleString()}</span>
+                          <span>定金 ¥{o.deposit.toLocaleString()}</span>
+                        </div>
+                        {o.schedule?.time && (
+                          <div className="my-bio-order-schedule">
+                            <Calendar size={12} /> {o.schedule.time}
+                            <MapPin size={12} /> {o.schedule.address}
+                          </div>
+                        )}
+                      </div>
+                      <div className="my-bio-order-status">
+                        <span style={{ color: bioStatusMap[o.status].color, fontWeight: 600 }}>{bioStatusMap[o.status].label}</span>
+                      </div>
+                    </div>
+
+                    <div className="my-bio-order-progress">
+                      <div className="my-bio-order-progress-header">
+                        <span>服务进度</span>
+                        <span>{progressPct}%</span>
+                      </div>
+                      <div className="my-bio-order-progress-track">
+                        <div className="my-bio-order-progress-fill" style={{ width: `${progressPct}%` }} />
+                      </div>
+                      <div className="my-bio-order-progress-nodes">
+                        {bioProgressNodes.map((node) => {
+                          const p = o.progress.find((x) => x.node === node);
+                          const done = p?.status === 'done';
+                          return (
+                            <div key={node} className={`my-bio-order-progress-node ${done ? 'done' : ''}`}>
+                              <div className="my-bio-order-progress-dot">{done && <CheckCircle size={10} />}</div>
+                              <span>{node}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
                 );

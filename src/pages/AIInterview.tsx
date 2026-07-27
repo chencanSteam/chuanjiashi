@@ -20,6 +20,8 @@ import {
   Plus,
   X,
   Users,
+  FileAudio,
+  FileUp,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Avatar from '../components/ui/Avatar';
@@ -58,6 +60,8 @@ interface Archive {
   origin: string;
   occupation: string;
   tags?: string[];
+  /** 资料完整度（百分比），未设置时按采访已答问题数计算 */
+  completion?: number;
 }
 
 interface TranscriptLine {
@@ -200,6 +204,12 @@ export default function AIInterview() {
   const voiceTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const videoTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const audioFileRef = useRef<HTMLInputElement>(null);
+  const docFileRef = useRef<HTMLInputElement>(null);
+
+  // 素材处理：语音转文字 / 采访记录导入
+  const [transcribing, setTranscribing] = useState(false);
+  const [transcribeProgress, setTranscribeProgress] = useState(0);
 
   const currentTopic = interviewTopics[session.currentTopicIndex];
   const currentQuestion = currentTopic?.questions[session.currentQuestionIndex];
@@ -305,6 +315,64 @@ export default function AIInterview() {
   );
   const answeredCount = session.answeredIds.length;
   const progressPercent = Math.round((answeredCount / totalQuestions) * 100);
+  // 资料完整度：优先取档案的 completion 字段，否则按已答问题比例计算
+  const completionPercent = Math.max(
+    0,
+    Math.min(100, Math.round(archive?.completion ?? progressPercent))
+  );
+
+  // 语音转文字：选择音频文件 → mock 转换进度 → 生成文本片段插入采访记录
+  const handleAudioFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setTranscribing(true);
+    setTranscribeProgress(0);
+    addToast(`正在将「${file.name}」转换为文字…`, 'info');
+    const timer = setInterval(() => {
+      setTranscribeProgress((prev) => {
+        const next = Math.min(100, prev + 20);
+        if (next >= 100) {
+          clearInterval(timer);
+          setTranscribing(false);
+          setTranscript((list) => [
+            ...list,
+            {
+              speaker: '语音转文字',
+              time: nowTime(),
+              text: `[语音转文字 · ${file.name}] 那时候家里条件虽然艰苦，但一家人和和睦睦，日子过得很踏实。我记得最清楚的，是父亲手把手教我写字的那个晚上……（mock 转写内容）`,
+            },
+          ]);
+          addToast('语音转文字完成，已插入采访记录', 'success');
+        }
+        return next;
+      });
+    }, 300);
+  };
+
+  // 采访记录导入：选择文本/文档文件 → 读取内容作为一条采访记录
+  const handleDocFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const text = ((reader.result as string) || '').trim();
+      if (!text) {
+        addToast('文件内容为空，未导入', 'error');
+        return;
+      }
+      const snippet = text.length > 500 ? `${text.slice(0, 500)}…` : text;
+      setTranscript((list) => [
+        ...list,
+        { speaker: '采访记录导入', time: nowTime(), text: `[导入自 ${file.name}]\n${snippet}` },
+      ]);
+      addToast('采访记录已导入', 'success');
+    };
+    reader.onerror = () => addToast('文件读取失败，请重试', 'error');
+    reader.readAsText(file);
+  };
+
 
   const saveCurrentAnswer = async () => {
     if (!currentQuestion) return;
@@ -713,6 +781,18 @@ export default function AIInterview() {
                 协作者
               </button>
             </div>
+            <div className="archive-completion">
+              <div className="archive-completion-header">
+                <span>资料完整度</span>
+                <span className="archive-completion-value">{completionPercent}%</span>
+              </div>
+              <div className="archive-completion-bar">
+                <div className="archive-completion-fill" style={{ width: `${completionPercent}%` }} />
+              </div>
+              {completionPercent < 60 && (
+                <div className="archive-completion-tip">资料还不够完整，继续采访可生成更丰富的传记</div>
+              )}
+            </div>
           </div>
         </div>
         <div className="card stat-phase">
@@ -1119,6 +1199,49 @@ export default function AIInterview() {
                 <div className="followup-sidebar-empty">
                   <Sparkles size={24} color="#9ca3af" />
                   <p>采访已完成</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="card material-card">
+            <div className="card-header">
+              <h3 className="card-title"><FileUp size={14} /> 素材处理</h3>
+            </div>
+            <div className="card-body material-body">
+              <button
+                className="btn btn-outline material-btn"
+                onClick={() => audioFileRef.current?.click()}
+                disabled={transcribing}
+              >
+                <FileAudio size={14} /> 语音转文字
+              </button>
+              <input
+                ref={audioFileRef}
+                type="file"
+                accept="audio/*,.mp3,.wav,.m4a,.aac"
+                style={{ display: 'none' }}
+                onChange={handleAudioFile}
+              />
+              <button
+                className="btn btn-outline material-btn"
+                onClick={() => docFileRef.current?.click()}
+              >
+                <FileUp size={14} /> 采访记录导入
+              </button>
+              <input
+                ref={docFileRef}
+                type="file"
+                accept=".txt,.md,.doc,.docx"
+                style={{ display: 'none' }}
+                onChange={handleDocFile}
+              />
+              {transcribing && (
+                <div className="material-progress">
+                  <div className="material-progress-text">语音转换中 {transcribeProgress}%</div>
+                  <div className="material-progress-bar">
+                    <div className="material-progress-fill" style={{ width: `${transcribeProgress}%` }} />
+                  </div>
                 </div>
               )}
             </div>

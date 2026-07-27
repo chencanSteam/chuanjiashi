@@ -676,3 +676,32 @@
 .call-actions {
   margin-top: 20px;
 }
+
+/* 数字人免责声明 */
+.companion-disclaimer-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #9ca3af;
+  margin: -8px 0 12px;
+}
+
+.disclaimer-modal-body p {
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.9;
+  margin: 0 0 12px;
+  text-indent: 2em;
+}
+
+/* 敏感消息拦截标记 */
+.bubble-blocked-tag {
+  margin-left: 6px;
+  font-size: 10px;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  border-radius: 4px;
+  padding: 0 4px;
+}

@@ -3,11 +3,19 @@ import { success, fail, unauthorized } from '../utils/response'
 import { getItem, setItem, generateId, storeKeys } from '../utils/store'
 import { findPartnerByUserId, savePartner } from './partner'
 import { partnerTypeConfig } from '../../data/partnerData'
-import type { CommissionRecord, WithdrawalRecord, Order, User } from '../types'
+import { defaultCommissionRules } from '../data/seed'
+import type { CommissionRecord, CommissionRules, WithdrawalRecord, Order, User } from '../types'
 
 function getCurrentUserId(): string | null {
   const user = getItem<{ id: string } | null>(storeKeys.currentUser, null)
   return user?.id || null
+}
+
+function ensureCommissionRules(): CommissionRules {
+  const rules = getItem<CommissionRules | null>(storeKeys.commissionRules, null)
+  if (rules) return rules
+  setItem(storeKeys.commissionRules, defaultCommissionRules)
+  return defaultCommissionRules
 }
 
 function saveCommission(record: CommissionRecord): void {
@@ -95,6 +103,25 @@ export const commissionHandlers: HttpHandler[] = [
     if (!userId) return unauthorized()
     const records = getItem<CommissionRecord[]>(storeKeys.commissions, [])
     return success(records)
+  }),
+
+  // 管理后台：读取分润规则
+  http.get('/api/admin/commission-rules', async () => {
+    const userId = getCurrentUserId()
+    if (!userId) return unauthorized()
+    return success(ensureCommissionRules())
+  }),
+
+  // 管理后台：保存分润规则
+  http.put('/api/admin/commission-rules', async ({ request }) => {
+    const userId = getCurrentUserId()
+    if (!userId) return unauthorized()
+    const body = (await request.json()) as Partial<CommissionRules>
+    const rules: CommissionRules = { ...ensureCommissionRules(), ...body }
+    const values = [rules.directRate, rules.platformPoolRate, rules.bookshelfRate, rules.biographerRate]
+    if (values.some((v) => Number.isNaN(v) || v < 0 || v > 100)) return fail('比例需在 0-100 之间')
+    setItem(storeKeys.commissionRules, rules)
+    return success(rules, '分润规则已保存')
   }),
 
   http.post('/api/withdrawals', async ({ request }) => {

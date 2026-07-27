@@ -1,7 +1,7 @@
 import { http, type HttpHandler } from 'msw'
 import { success, fail, unauthorized, notFound } from '../utils/response'
 import { getItem, setItem, generateId, storeKeys } from '../utils/store'
-import { defaultQuestions } from '../data/seed'
+import { getSortedQuestions } from '../utils/questions'
 import type { InterviewSession, Answer, TimelineEvent } from '../types'
 
 function getCurrentUserId(): string | null {
@@ -56,13 +56,14 @@ export const interviewHandlers: HttpHandler[] = [
   http.get('/api/interviews/:archiveId/session', async ({ params }) => {
     const userId = getCurrentUserId()
     if (!userId) return unauthorized()
+    const questions = getSortedQuestions()
     let session = getSessionByArchiveId(params.archiveId as string)
     if (!session) {
       session = {
         id: generateId(),
         archiveId: params.archiveId as string,
         answers: [],
-        currentCategory: defaultQuestions[0].category,
+        currentCategory: questions[0]?.category || '童年成长',
         currentQuestionIndex: 0,
         status: 'pending',
         createdAt: new Date().toISOString(),
@@ -70,7 +71,7 @@ export const interviewHandlers: HttpHandler[] = [
       }
       saveSession(session)
     }
-    const question = defaultQuestions[session.currentQuestionIndex]
+    const question = questions[session.currentQuestionIndex]
     return success({ session, question })
   }),
 
@@ -84,7 +85,8 @@ export const interviewHandlers: HttpHandler[] = [
     const { answer, questionId } = await request.json() as { answer?: string; questionId?: string }
     if (!answer || !questionId) return fail('参数错误')
 
-    const question = defaultQuestions.find(q => q.id === questionId)
+    const questions = getSortedQuestions()
+    const question = questions.find(q => q.id === questionId)
     const category = question?.category || '人生经历'
 
     const existingIdx = session.answers.findIndex(a => a.questionId === questionId)
@@ -96,15 +98,15 @@ export const interviewHandlers: HttpHandler[] = [
 
     const followUp = buildFollowUp(answer, question?.question || '')
     if (!followUp) {
-      session.currentQuestionIndex = Math.min(session.currentQuestionIndex + 1, defaultQuestions.length - 1)
-      session.status = session.currentQuestionIndex >= defaultQuestions.length - 1 ? 'completed' : 'in_progress'
+      session.currentQuestionIndex = Math.min(session.currentQuestionIndex + 1, questions.length - 1)
+      session.status = session.currentQuestionIndex >= questions.length - 1 ? 'completed' : 'in_progress'
     }
     session.updatedAt = new Date().toISOString()
     saveSession(session)
 
     const nextQuestion = followUp && question
       ? { id: questionId + '_follow', category: question.category, title: '补充提问', question: followUp, order: question.order }
-      : defaultQuestions[session.currentQuestionIndex]
+      : questions[session.currentQuestionIndex]
 
     return success({ session, followUp, nextQuestion })
   }),

@@ -38,6 +38,23 @@ export default function BiographerProfile({ biographerId, embedded, onClose, onB
   const [bookingForm, setBookingForm] = useState<BiographerBookingForm>(emptyBookingForm);
   const [bookingSubmitting, setBookingSubmitting] = useState(false);
 
+  // 在线咨询弹窗
+  const [showConsult, setShowConsult] = useState(false);
+  const [consultInput, setConsultInput] = useState('');
+  const [consultMessages, setConsultMessages] = useState<{ from: 'me' | 'biographer'; text: string }[]>([]);
+
+  const handleConsultSend = () => {
+    const text = consultInput.trim();
+    if (!text) return;
+    setConsultMessages((prev) => [
+      ...prev,
+      { from: 'me', text },
+      { from: 'biographer', text: '传记师稍后会联系您' },
+    ]);
+    setConsultInput('');
+    addToast('消息已发送，传记师稍后会联系您', 'success');
+  };
+
   const isOwnProfile = !id || (biographer && user?.phone === biographer.phone);
 
   useEffect(() => {
@@ -189,8 +206,12 @@ export default function BiographerProfile({ biographerId, embedded, onClose, onB
               <ShoppingCart size={16} /> 立即预约
             </button>
           )}
-          {!onBookService && <button className="btn btn-primary">立即预约</button>}
-          <button className="btn btn-outline">在线咨询</button>
+          {!onBookService && (
+            <button className="btn btn-primary" onClick={() => navigate('/biographers')}>
+              <ShoppingCart size={16} /> 立即预约
+            </button>
+          )}
+          <button className="btn btn-outline" onClick={() => setShowConsult(true)}>在线咨询</button>
         </div>
       </div>
 
@@ -386,7 +407,7 @@ export default function BiographerProfile({ biographerId, embedded, onClose, onB
             立即预约
           </button>
         ) : (
-          <button className="biographer-profile-cta-btn">免费咨询</button>
+          <button className="biographer-profile-cta-btn" onClick={() => navigate('/biographers')}>免费咨询</button>
         )}
       </div>
 
@@ -478,6 +499,51 @@ export default function BiographerProfile({ biographerId, embedded, onClose, onB
               >
                 {bookingSubmitting ? '提交中…' : `确认预约并支付定金 ¥${biographer.deposit || Math.round(bookingService.price * 0.3)}`}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showConsult && (
+        <div className="modal-overlay" onClick={() => setShowConsult(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h4>在线咨询 · {biographer.name}</h4>
+              <button className="modal-close" onClick={() => setShowConsult(false)}><X size={16} /></button>
+            </div>
+            <div className="modal-body">
+              <div style={{ maxHeight: 240, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
+                {consultMessages.length === 0 && (
+                  <p style={{ color: '#6b7280', fontSize: 13 }}>您好，向 {biographer.name} 描述您的传记需求，传记师稍后会联系您。</p>
+                )}
+                {consultMessages.map((m, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      alignSelf: m.from === 'me' ? 'flex-end' : 'flex-start',
+                      maxWidth: '80%',
+                      padding: '8px 12px',
+                      borderRadius: 10,
+                      fontSize: 13,
+                      lineHeight: 1.5,
+                      background: m.from === 'me' ? '#1B5E4B' : '#f3f4f6',
+                      color: m.from === 'me' ? '#fff' : '#1f2937',
+                    }}
+                  >
+                    {m.text}
+                  </div>
+                ))}
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input
+                  type="text"
+                  style={{ flex: 1, padding: '8px 12px', border: '1px solid #e5e7eb', borderRadius: 8, fontSize: 13 }}
+                  placeholder="输入咨询内容…"
+                  value={consultInput}
+                  onChange={(e) => setConsultInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleConsultSend(); }}
+                />
+                <button className="btn btn-primary" onClick={handleConsultSend}>发送</button>
+              </div>
             </div>
           </div>
         </div>

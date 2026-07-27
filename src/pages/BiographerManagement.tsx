@@ -21,8 +21,9 @@ import {
 import Avatar from '../components/ui/Avatar';
 import { useToast } from '../hooks/useToast';
 import { biographerApi } from '../api/biographer';
+import { biographerEarningsApi } from '../api/biographerEarnings';
 import { getStatusLabel } from '../data/biographerData';
-import type { Biographer as MockBiographer } from '../mocks/types';
+import type { Biographer as MockBiographer, BiographerDepositRecord, BiographerPenaltyRecord } from '../mocks/types';
 import type { Biographer, BiographerFormData, BiographerStatus } from '../types/biographer';
 import BiographerProfile from './BiographerProfile';
 import './BiographerManagement.css';
@@ -38,6 +39,31 @@ const emptyForm: BiographerFormData = {
   certificationLevel: 'standard',
 };
 
+const bioTabs = [
+  { key: 'list', label: '传记师列表' },
+  { key: 'deposits', label: '押金管理' },
+  { key: 'penalties', label: '违规处罚' },
+] as const;
+
+type BioTabKey = (typeof bioTabs)[number]['key'];
+
+const depositStatusLabels: Record<BiographerDepositRecord['status'], string> = {
+  paid: '已缴纳',
+  refunded: '已退还',
+  deducted: '已扣除',
+};
+
+const violationTypeOptions = ['私单引流', '交付逾期', '服务质量', '违规内容', '其他'];
+const measureOptions = ['扣款', '警告', '扣款+警告', '暂停接单', '清退'];
+
+const emptyPenaltyForm = {
+  biographerId: '',
+  violationType: violationTypeOptions[0],
+  measure: measureOptions[0],
+  amount: '',
+  reason: '',
+};
+
 export default function BiographerManagement() {
   const { addToast } = useToast();
   const [biographers, setBiographers] = useState<Biographer[]>([]);
@@ -51,12 +77,28 @@ export default function BiographerManagement() {
   const [selectedBiographerId, setSelectedBiographerId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [activeTab, setActiveTab] = useState<BioTabKey>('list');
+  const [deposits, setDeposits] = useState<BiographerDepositRecord[]>([]);
+  const [penalties, setPenalties] = useState<BiographerPenaltyRecord[]>([]);
+  const [showPenaltyModal, setShowPenaltyModal] = useState(false);
+  const [penaltyForm, setPenaltyForm] = useState(emptyPenaltyForm);
+  const [penaltySubmitting, setPenaltySubmitting] = useState(false);
+
   useEffect(() => {
     biographerApi
       .adminList()
       .then((list) => setBiographers(list.map(mapMockBiographer)))
       .catch(() => setBiographers([]));
   }, []);
+
+  useEffect(() => {
+    if (activeTab === 'deposits') {
+      biographerEarningsApi.adminDeposits().then(setDeposits).catch(() => setDeposits([]));
+    }
+    if (activeTab === 'penalties') {
+      biographerEarningsApi.adminPenalties().then(setPenalties).catch(() => setPenalties([]));
+    }
+  }, [activeTab]);
 
   const filtered = useMemo(() => {
     return biographers.filter((item) => {
@@ -165,6 +207,75 @@ export default function BiographerManagement() {
     }
   };
 
+  const handleReview = async (item: Biographer, action: 'approve' | 'reject') => {
+    let reason: string | undefined;
+    if (action === 'reject') {
+      const input = window.prompt('请输入驳回原因', '资质材料不符合要求，请修改后重新提交。');
+      if (input === null) return;
+      reason = input;
+    }
+    try {
+      await biographerApi.review(item.id, action, reason);
+      const list = await biographerApi.adminList();
+      setBiographers(list.map(mapMockBiographer));
+      addToast(action === 'approve' ? `已通过「${item.name}」的入驻审核` : `已驳回「${item.name}」的入驻申请`, 'success');
+    } catch (err) {
+      addToast(err instanceof Error ? err.message : '操作失败', 'error');
+    }
+  };
+
+  const handleDepositAction = async (record: BiographerDepositRecord, action: 'refund' | 'deduct') => {
+    const label = action === 'refund' ? '退还' : '扣除';
+    if (!window.confirm(`确定要${label}传记师「${record.biographerName}」的押金 ¥${record.amount.toLocaleString()} 吗？`)) return;
+    try {
+      if (action === 'refund') {
+        await biographerEarningsApi.refundDeposit(record.id);
+      } else {
+        await biographerEarningsApi.deductDeposit(record.id);
+      }
+      const list = await biographerEarningsApi.adminDeposits();
+      setDeposits(list);
+      addToast(`押金已${label}`, 'success');
+    } catch (err) {
+      addToast(err instanceof Error ? err.message : '操作失败', 'error');
+    }
+  };
+
+  const handlePenaltySubmit = async () => {
+    if (!penaltyForm.biographerId) {
+      addToast('请选择传记师', 'error');
+      return;
+    }
+    if (!penaltyForm.reason.trim()) {
+      addToast('请填写处罚原因', 'error');
+      return;
+    }
+    const amount = Number(penaltyForm.amount) || 0;
+    if (amount < 0) {
+      addToast('扣款金额无效', 'error');
+      return;
+    }
+    try {
+      setPenaltySubmitting(true);
+      await biographerEarningsApi.createPenalty({
+        biographerId: penaltyForm.biographerId,
+        violationType: penaltyForm.violationType,
+        measure: penaltyForm.measure,
+        amount,
+        reason: penaltyForm.reason.trim(),
+      });
+      const list = await biographerEarningsApi.adminPenalties();
+      setPenalties(list);
+      setShowPenaltyModal(false);
+      setPenaltyForm(emptyPenaltyForm);
+      addToast(amount > 0 ? '处罚已记录，扣款已同步扣减其可结算金额' : '处罚已记录', 'success');
+    } catch (err) {
+      addToast(err instanceof Error ? err.message : '操作失败', 'error');
+    } finally {
+      setPenaltySubmitting(false);
+    }
+  };
+
   const addSpecialty = () => {
     const value = specialtyInput.trim();
     if (!value) return;
@@ -184,11 +295,32 @@ export default function BiographerManagement() {
     <div className="biographer-management-page">
       <header className="page-header">
         <h1 className="page-title">传记师管理</h1>
-        <button className="btn btn-primary" onClick={openCreate}>
-          <Plus size={16} /> 新增传记师
-        </button>
+        {activeTab === 'list' && (
+          <button className="btn btn-primary" onClick={openCreate}>
+            <Plus size={16} /> 新增传记师
+          </button>
+        )}
+        {activeTab === 'penalties' && (
+          <button className="btn btn-primary" onClick={() => setShowPenaltyModal(true)}>
+            <Plus size={16} /> 新增处罚
+          </button>
+        )}
       </header>
 
+      <div className="tabs">
+        {bioTabs.map((t) => (
+          <button
+            key={t.key}
+            className={`tab ${activeTab === t.key ? 'active' : ''}`}
+            onClick={() => setActiveTab(t.key)}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === 'list' && (
+      <>
       <div className="bio-stats">
         <div className="card bio-stat-card">
           <div className="bio-stat-icon" style={{ color: '#1B5E4B', background: 'rgba(27,94,75,0.08)' }}>
@@ -293,6 +425,16 @@ export default function BiographerManagement() {
                     <span className={`bio-status ${item.status}`}>{getStatusLabel(item.status)}</span>
                   </div>
                   <div className="bio-cell bio-cell-action">
+                    {item.status === 'pending' && (
+                      <>
+                        <button className="icon-btn" title="审核通过" onClick={() => handleReview(item, 'approve')}>
+                          <CheckCircle size={14} />
+                        </button>
+                        <button className="icon-btn" title="审核驳回" onClick={() => handleReview(item, 'reject')}>
+                          <AlertCircle size={14} />
+                        </button>
+                      </>
+                    )}
                     <button className="icon-btn" title="编辑" onClick={() => openEdit(item)}>
                       <Edit2 size={14} />
                     </button>
@@ -306,6 +448,171 @@ export default function BiographerManagement() {
           )}
         </div>
       </div>
+      </>
+      )}
+
+      {activeTab === 'deposits' && (
+        <div className="card bio-list-card">
+          <div className="card-body bio-list-body">
+            {deposits.length === 0 ? (
+              <div className="bio-empty">暂无押金记录</div>
+            ) : (
+              <div className="bio-table">
+                <div className="bio-row bio-header bio-row-admin">
+                  <div className="bio-cell bio-cell-name">传记师</div>
+                  <div className="bio-cell bio-cell-contact">押金金额</div>
+                  <div className="bio-cell bio-cell-specialty">缴纳时间</div>
+                  <div className="bio-cell bio-cell-status">状态</div>
+                  <div className="bio-cell bio-cell-action">操作</div>
+                </div>
+                {deposits.map((d) => (
+                  <div className="bio-row bio-row-admin" key={d.id}>
+                    <div className="bio-cell bio-cell-name">
+                      <Avatar name={d.biographerName} size={32} />
+                      <div className="bio-name-info">
+                        <div className="bio-name">{d.biographerName}</div>
+                      </div>
+                    </div>
+                    <div className="bio-cell bio-cell-contact">¥{d.amount.toLocaleString()}</div>
+                    <div className="bio-cell bio-cell-specialty">{new Date(d.paidAt).toLocaleString()}</div>
+                    <div className="bio-cell bio-cell-status">
+                      <span className={`bio-status ${d.status === 'paid' ? 'active' : 'inactive'}`}>
+                        {depositStatusLabels[d.status]}
+                      </span>
+                    </div>
+                    <div className="bio-cell bio-cell-action">
+                      {d.status === 'paid' ? (
+                        <>
+                          <button className="btn btn-outline btn-sm" onClick={() => handleDepositAction(d, 'refund')}>退还押金</button>
+                          <button className="btn btn-danger btn-sm" onClick={() => handleDepositAction(d, 'deduct')}>扣除押金</button>
+                        </>
+                      ) : (
+                        <span style={{ color: '#9ca3af', fontSize: 12 }}>已处理</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'penalties' && (
+        <div className="card bio-list-card">
+          <div className="card-body bio-list-body">
+            {penalties.length === 0 ? (
+              <div className="bio-empty">暂无处罚记录</div>
+            ) : (
+              <div className="bio-table">
+                <div className="bio-row bio-header bio-row-penalty">
+                  <div className="bio-cell bio-cell-name">传记师</div>
+                  <div className="bio-cell">违规类型</div>
+                  <div className="bio-cell">处罚措施</div>
+                  <div className="bio-cell">扣款金额</div>
+                  <div className="bio-cell bio-cell-specialty">原因</div>
+                  <div className="bio-cell">时间</div>
+                  <div className="bio-cell bio-cell-status">状态</div>
+                </div>
+                {penalties.map((p) => (
+                  <div className="bio-row bio-row-penalty" key={p.id}>
+                    <div className="bio-cell bio-cell-name">
+                      <Avatar name={p.biographerName} size={32} />
+                      <div className="bio-name-info">
+                        <div className="bio-name">{p.biographerName}</div>
+                      </div>
+                    </div>
+                    <div className="bio-cell">{p.violationType}</div>
+                    <div className="bio-cell">{p.measure}</div>
+                    <div className="bio-cell">{p.amount > 0 ? `¥${p.amount.toLocaleString()}` : '-'}</div>
+                    <div className="bio-cell bio-cell-specialty" title={p.reason}>
+                      <div className="bio-intro">{p.reason}</div>
+                    </div>
+                    <div className="bio-cell">{new Date(p.createdAt).toLocaleString()}</div>
+                    <div className="bio-cell bio-cell-status">
+                      <span className={`bio-status ${p.status === 'effective' ? 'pending' : 'inactive'}`}>
+                        {p.status === 'effective' ? '生效中' : '已撤销'}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {showPenaltyModal && (
+        <div className="modal-overlay" onClick={() => setShowPenaltyModal(false)}>
+          <div className="modal-content bio-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h4>新增处罚</h4>
+              <button className="modal-close" onClick={() => setShowPenaltyModal(false)}><X size={16} /></button>
+            </div>
+            <div className="modal-body">
+              <div className="form-row">
+                <label><User size={12} /> 传记师</label>
+                <select
+                  value={penaltyForm.biographerId}
+                  onChange={(e) => setPenaltyForm((prev) => ({ ...prev, biographerId: e.target.value }))}
+                >
+                  <option value="">请选择传记师</option>
+                  {biographers.map((b) => (
+                    <option value={b.id} key={b.id}>{b.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-row">
+                <label>违规类型</label>
+                <select
+                  value={penaltyForm.violationType}
+                  onChange={(e) => setPenaltyForm((prev) => ({ ...prev, violationType: e.target.value }))}
+                >
+                  {violationTypeOptions.map((t) => (
+                    <option value={t} key={t}>{t}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-row">
+                <label>处罚措施</label>
+                <select
+                  value={penaltyForm.measure}
+                  onChange={(e) => setPenaltyForm((prev) => ({ ...prev, measure: e.target.value }))}
+                >
+                  {measureOptions.map((m) => (
+                    <option value={m} key={m}>{m}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-row">
+                <label>扣款金额（元）</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={penaltyForm.amount}
+                  onChange={(e) => setPenaltyForm((prev) => ({ ...prev, amount: e.target.value }))}
+                  placeholder="0 表示不扣款"
+                />
+              </div>
+              <div className="form-row">
+                <label>处罚原因</label>
+                <textarea
+                  rows={3}
+                  value={penaltyForm.reason}
+                  onChange={(e) => setPenaltyForm((prev) => ({ ...prev, reason: e.target.value }))}
+                  placeholder="请输入处罚原因"
+                />
+              </div>
+              <p style={{ color: '#9ca3af', fontSize: 12, margin: '4px 0 0' }}>
+                扣款金额将同步扣减该传记师的可结算金额，并写入其违规扣款记录。
+              </p>
+              <button className="btn btn-primary" style={{ width: '100%', marginTop: 8 }} disabled={penaltySubmitting} onClick={handlePenaltySubmit}>
+                {penaltySubmitting ? '提交中…' : '确认提交'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showModal && (
         <div className="modal-overlay" onClick={closeModal}>

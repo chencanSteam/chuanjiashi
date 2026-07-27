@@ -1,4 +1,40 @@
-import type { Question, User, ProductPackage, GroupBuyActivity, Biographer, BiographerReview } from '../types'
+import type {
+  Question,
+  User,
+  ProductPackage,
+  GroupBuyActivity,
+  GroupBuyRules,
+  CommissionRules,
+  Biographer,
+  BiographerReview,
+  AdminUser,
+  AdminArchive,
+  AITask,
+  PromptTemplate,
+  ComplianceRecord,
+  AgreementConfig,
+  ComplianceAlert,
+  BookComment,
+  MuseumMessage,
+  MediaReviewItem,
+  ContentReport,
+  Biography,
+  TimelineEvent,
+  Material,
+  Museum,
+  PartnerChannel,
+  PartnerAssessment,
+  PartnerLocalOrder,
+  GmvLineStat,
+  BiographerSettlement,
+  QrCodeRecord,
+  BiographerDepositRecord,
+  BiographerPenaltyRecord,
+  PartnerFeeRecord,
+  PartnerShareConfig,
+  PartnerRewardConfig,
+  PartnerAssessmentRecord,
+} from '../types'
 
 export const demoUser: User = {
   id: 'u_demo_001',
@@ -405,4 +441,463 @@ export const defaultReviews: BiographerReview[] = [
     tags: ['方言采访', '自然'],
     createdAt: new Date(Date.now() - 55 * 24 * 60 * 60 * 1000).toISOString(),
   },
+]
+
+// ========== 后台管理种子数据 ==========
+
+const DAY = 24 * 60 * 60 * 1000
+const daysAgo = (n: number) => new Date(Date.now() - n * DAY).toISOString()
+
+export const defaultAdminUsers: AdminUser[] = [
+  { id: 'u_demo_001', nickname: '体验用户', phone: '13800138000', registeredAt: daysAgo(180), status: 'active', realNameStatus: 'verified', archiveCount: 3, orderCount: 5, inviterName: '张先生' },
+  { id: 'u_demo_002', nickname: '张先生', phone: '13800000001', registeredAt: daysAgo(150), status: 'active', realNameStatus: 'verified', archiveCount: 2, orderCount: 3, inviterName: '体验用户' },
+  { id: 'u_demo_003', nickname: '李女士', phone: '13900000002', registeredAt: daysAgo(120), status: 'active', realNameStatus: 'pending', archiveCount: 1, orderCount: 2 },
+  { id: 'u_demo_004', nickname: '王先生', phone: '13700000003', registeredAt: daysAgo(96), status: 'active', realNameStatus: 'none', archiveCount: 1, orderCount: 0, inviterName: '张先生' },
+  { id: 'u_demo_005', nickname: '陈女士', phone: '13600000004', registeredAt: daysAgo(75), status: 'active', realNameStatus: 'verified', archiveCount: 4, orderCount: 6, inviterName: '李女士' },
+  { id: 'u_demo_006', nickname: '刘阿姨', phone: '13500000005', registeredAt: daysAgo(50), status: 'disabled', realNameStatus: 'rejected', archiveCount: 0, orderCount: 1 },
+  { id: 'u_demo_007', nickname: '赵大伯', phone: '13400000006', registeredAt: daysAgo(32), status: 'active', realNameStatus: 'pending', archiveCount: 2, orderCount: 1, inviterName: '陈女士' },
+  { id: 'u_demo_008', nickname: '孙女士', phone: '13300000007', registeredAt: daysAgo(12), status: 'active', realNameStatus: 'none', archiveCount: 1, orderCount: 0, inviterName: '陈女士' },
+]
+
+export const defaultAdminArchives: AdminArchive[] = [
+  { id: 'arch_001', ownerName: '张明远', archiveType: 'self', creatorNickname: '体验用户', materialCounts: { image: 46, audio: 8, document: 5 }, privacyStatus: 'public', completion: 92, createdAt: daysAgo(160) },
+  { id: 'arch_002', ownerName: '王桂芬', archiveType: 'parent', creatorNickname: '张先生', materialCounts: { image: 32, audio: 5, document: 3 }, privacyStatus: 'public', completion: 85, createdAt: daysAgo(140) },
+  { id: 'arch_003', ownerName: '李华亭', archiveType: 'grandparent', creatorNickname: '李女士', materialCounts: { image: 58, audio: 12, document: 9 }, privacyStatus: 'shared', completion: 78, createdAt: daysAgo(110) },
+  { id: 'arch_004', ownerName: '周秀英', archiveType: 'parent', creatorNickname: '陈女士', materialCounts: { image: 21, audio: 3, document: 2 }, privacyStatus: 'shared', completion: 66, createdAt: daysAgo(70) },
+  { id: 'arch_005', ownerName: '陈建国', archiveType: 'self', creatorNickname: '陈女士', materialCounts: { image: 15, audio: 2, document: 1 }, privacyStatus: 'private', completion: 45, createdAt: daysAgo(60) },
+  { id: 'arch_006', ownerName: '赵德柱', archiveType: 'grandparent', creatorNickname: '赵大伯', materialCounts: { image: 9, audio: 1, document: 0 }, privacyStatus: 'private', completion: 30, createdAt: daysAgo(28) },
+  { id: 'arch_007', ownerName: '孙玉梅', archiveType: 'relative', creatorNickname: '孙女士', materialCounts: { image: 6, audio: 0, document: 1 }, privacyStatus: 'private', completion: 18, createdAt: daysAgo(10) },
+  { id: 'arch_008', ownerName: '王守义', archiveType: 'other', creatorNickname: '王先生', materialCounts: { image: 12, audio: 4, document: 2 }, privacyStatus: 'shared', completion: 52, createdAt: daysAgo(90) },
+]
+
+export const defaultAITasks: AITask[] = [
+  { id: 'task_001', type: 'biography', targetName: '张明远：一位苏州企业家的六十年', status: 'success', tokens: 48200, createdAt: daysAgo(20), finishedAt: daysAgo(20) },
+  { id: 'task_002', type: 'biography', targetName: '山村教师王桂芬', status: 'success', tokens: 39500, createdAt: daysAgo(15), finishedAt: daysAgo(15) },
+  { id: 'task_003', type: 'digital_person', targetName: '李华亭', status: 'success', tokens: 76800, createdAt: daysAgo(12), finishedAt: daysAgo(12) },
+  { id: 'task_004', type: 'short_video', targetName: '周秀英纪念短视频', status: 'failed', tokens: 12400, createdAt: daysAgo(8), finishedAt: daysAgo(8), failReason: '配音服务超时，请重试' },
+  { id: 'task_005', type: 'pdf', targetName: '我的母亲周秀英', status: 'success', tokens: 3200, createdAt: daysAgo(7), finishedAt: daysAgo(7) },
+  { id: 'task_006', type: 'biography', targetName: '陈建国自传', status: 'running', tokens: 18600, createdAt: daysAgo(1) },
+  { id: 'task_007', type: 'digital_person', targetName: '王桂芬', status: 'queued', tokens: 0, createdAt: daysAgo(1) },
+  { id: 'task_008', type: 'short_video', targetName: '张明远创业故事短片', status: 'queued', tokens: 0, createdAt: daysAgo(0) },
+  { id: 'task_009', type: 'pdf', targetName: '山村教师王桂芬', status: 'failed', tokens: 800, createdAt: daysAgo(3), finishedAt: daysAgo(3), failReason: '章节内容为空，排版失败' },
+  { id: 'task_010', type: 'biography', targetName: '赵德柱回忆录', status: 'running', tokens: 9800, createdAt: daysAgo(0) },
+  { id: 'task_011', type: 'qrcode', targetName: '李华亭纪念馆·墓碑码', status: 'success', tokens: 200, createdAt: daysAgo(10), finishedAt: daysAgo(10) },
+  { id: 'task_012', type: 'qrcode', targetName: '周秀英纪念馆·分享码', status: 'success', tokens: 150, createdAt: daysAgo(5), finishedAt: daysAgo(5) },
+  { id: 'task_013', type: 'qrcode', targetName: '张明远纪念馆·纪念物码', status: 'failed', tokens: 80, createdAt: daysAgo(2), finishedAt: daysAgo(2), failReason: '关联数字馆不存在，生成失败' },
+]
+
+export const defaultPromptTemplates: PromptTemplate[] = [
+  { id: 'tpl_001', type: 'prompt', name: '传记生成·朴实纪实', summary: '以第三人称平实叙述，突出时间线与事实细节，避免夸张修辞。', updatedAt: daysAgo(30), enabled: true },
+  { id: 'tpl_002', type: 'prompt', name: '传记生成·温情怀念', summary: '以家人视角书写，强调情感记忆与亲情细节，适合纪念逝者。', updatedAt: daysAgo(25), enabled: true },
+  { id: 'tpl_003', type: 'questionnaire', name: '标准采访问卷（10 题）', summary: '覆盖童年、家庭、事业、人生回忆、家风传承五大类共 10 题。', updatedAt: daysAgo(40), enabled: true },
+  { id: 'tpl_004', type: 'questionnaire', name: '企业家深度问卷', summary: '增加创业抉择、关键战役、管理感悟等 8 道追问题目。', updatedAt: daysAgo(18), enabled: true },
+  { id: 'tpl_005', type: 'style', name: '家族传承文风', summary: '语言庄重典雅，章节末附家训小结，面向后代读者。', updatedAt: daysAgo(22), enabled: true },
+  { id: 'tpl_006', type: 'interview_rule', name: '采访追问规则 v2', summary: '当回答少于 50 字时自动追问细节；涉及敏感话题时礼貌跳过。', updatedAt: daysAgo(10), enabled: true },
+  { id: 'tpl_007', type: 'interview_rule', name: '老人友好采访规则', summary: '单次提问不超过 20 字，语速放慢，允许长时间沉默与重复讲述。', updatedAt: daysAgo(6), enabled: false },
+]
+
+export const defaultComplianceRecords: ComplianceRecord[] = [
+  { id: 'comp_001', type: 'biography_public', targetName: '张明远：一位苏州企业家的六十年', authorizedBy: '体验用户', authorizedAt: daysAgo(90), status: 'valid' },
+  { id: 'comp_002', type: 'biography_public', targetName: '山村教师王桂芬', authorizedBy: '张先生', authorizedAt: daysAgo(80), status: 'valid' },
+  { id: 'comp_003', type: 'portrait', targetName: '李华亭', authorizedBy: '李女士', authorizedAt: daysAgo(60), status: 'valid' },
+  { id: 'comp_004', type: 'voice', targetName: '李华亭', authorizedBy: '李女士', authorizedAt: daysAgo(60), status: 'valid' },
+  { id: 'comp_005', type: 'portrait', targetName: '周秀英', authorizedBy: '陈女士', authorizedAt: daysAgo(45), status: 'expired' },
+  { id: 'comp_006', type: 'biography_public', targetName: '医者仁心：李华亭回忆录', authorizedBy: '李女士', authorizedAt: daysAgo(38), status: 'revoked' },
+]
+
+export const defaultAgreementConfigs: AgreementConfig[] = [
+  {
+    id: 'agr_001',
+    name: '用户服务协议',
+    version: 'v3.2',
+    content: [
+      '一、协议的确认与接受。欢迎使用传家世 AI 数字人生与家风传承平台（以下简称"本平台"）。您在注册、登录或使用本平台服务前，应当认真阅读并充分理解本协议全部内容。您点击"同意"或实际使用本平台服务，即视为您已阅读并同意接受本协议的全部约定。',
+      '二、服务内容。本平台为您提供 AI 智能采访、AI 传记生成、人生档案馆、家庭空间、数字家谱、数字博物馆、数字人格等数字人生记录与家风传承相关服务。平台有权根据业务发展调整服务内容，并通过页面公告等方式通知您。',
+      '三、账号管理。您应使用本人真实有效的手机号注册账号，并妥善保管账号与验证码。因您主动泄露账号信息导致的损失，由您自行承担。如发现账号被盗用，请立即联系平台客服处理。',
+      '四、用户行为规范。您承诺不上传、发布含有违法违规、侵犯他人合法权益（包括但不限于肖像权、名誉权、隐私权、著作权）的内容。您上传的传记、照片、音视频等素材，应确保已取得相关权利人的合法授权。',
+      '五、付费服务。本平台部分服务为付费服务，具体价格以页面展示为准。虚拟内容服务一经交付，除法律法规另有规定外，不支持退款；实体产品（如精装书）适用七天无理由退货规则（定制类商品除外）。',
+      '六、协议的变更与终止。平台可根据法律法规及业务需要修订本协议，修订后的协议将在平台公示。若您不同意变更后的协议，应停止使用本平台服务；继续使用则视为接受变更。',
+    ].join('\n\n'),
+    updatedAt: daysAgo(60),
+  },
+  {
+    id: 'agr_002',
+    name: '隐私政策',
+    version: 'v2.8',
+    content: [
+      '一、我们收集的信息。为向您提供传记生成、数字人构建等服务，我们会收集您主动提供的姓名、手机号、采访回答、照片、音视频录音等信息，以及为完成实名认证所需的身份证信息。',
+      '二、信息的使用。我们仅在以下场景使用您的信息：生成与排版您的传记内容、构建您授权创建的数字人形象与声音、完成订单交付与售后服务、依法履行内容安全审核义务。我们不会将您的传记内容用于训练公开模型或向无关第三方提供。',
+      '三、信息的存储与保护。您的数据存储于境内服务器，我们采用加密传输、访问权限控制等措施保护您的信息安全。涉及逝者的数字馆内容，仅在您授权的访问范围内展示。',
+      '四、您的权利。您可以随时查询、更正、删除您的个人信息与传记内容；可以申请注销账号，注销后我们将依法删除或匿名化处理您的个人信息。涉及他人肖像、声音的内容删除，我们将同步停用相关数字人服务。',
+      '五、未成年人保护。本平台服务主要面向成年人。如您为未成年人，请在监护人陪同与同意下使用本平台服务。',
+      '六、联系我们。如对本政策有任何疑问、意见或投诉，可通过平台"我的-联系客服"或隐私保护专线与我们取得联系，我们将在 15 个工作日内回复。',
+    ].join('\n\n'),
+    updatedAt: daysAgo(45),
+  },
+  {
+    id: 'agr_003',
+    name: '传记公开发布授权协议',
+    version: 'v1.5',
+    content: [
+      '一、授权内容。您同意将本人创作或委托本平台生成的传记作品（以下简称"作品"）在本平台"公开书架"栏目公开发表，供其他用户在线阅读或付费解锁阅读。',
+      '二、授权性质。本授权为非独占性授权，您仍保留作品的著作权及在其他平台发表的权利。涉及付费阅读的收益，按照平台公示的分成比例结算给您。',
+      '三、内容保证。您保证对作品拥有合法权利，作品内容不侵犯任何第三方的肖像权、名誉权、隐私权及著作权；作品中涉及的仍在世人物，您已取得其本人或监护人的同意。因作品内容引发的纠纷，由您承担相应责任。',
+      '四、审核与下架。平台有权对申请公开的作品进行内容审核，审核不通过的不予公开；已公开作品如被投诉或发现违规，平台有权先行下架并通知您。',
+      '五、授权的撤销。您可随时申请撤销公开授权，平台将在 3 个工作日内完成下架处理。撤销前已产生的付费阅读订单仍按原约定结算。',
+    ].join('\n\n'),
+    updatedAt: daysAgo(30),
+  },
+  {
+    id: 'agr_004',
+    name: '数字人肖像与声音授权协议',
+    version: 'v1.2',
+    content: [
+      '一、授权范围。您授权本平台使用您（或经权利人授权的被记录人）的照片、影像、录音等素材，通过 AI 技术生成数字人形象与声音模型，用于本平台内的数字人对话、视频生成等服务。',
+      '二、授权前提。若数字人以他人（含已故亲友）为原型，您声明已取得该本人、其监护人或近亲属的明确授权，并愿意就授权真实性承担法律责任。平台有权要求您补充提供授权证明材料。',
+      '三、使用限制。数字人形象与声音仅在本平台服务范围内使用，未经您另行书面同意，平台不会将其用于广告代言、模型训练对外授权等其他用途。任何用户不得利用数字人服务生成冒充他人、误导公众的内容。',
+      '四、授权期限与撤回。本授权自您确认之日起生效，至您主动删除数字人或注销账号时终止。您可随时申请删除数字人及其底层素材，平台将在 7 个工作日内完成删除并停止相关服务。',
+      '五、风险提示。AI 生成的数字人内容可能与真人表达存在差异，平台已在页面显著位置标注"AI 生成"标识。请勿将数字人内容用于任何违法或违背公序良俗的用途。',
+    ].join('\n\n'),
+    updatedAt: daysAgo(20),
+  },
+]
+
+/** 拼团规则默认配置（与默认活动保持一致） */
+export const defaultGroupBuyRules: GroupBuyRules = {
+  firstRoundSize: 6,
+  laterRoundSize: 5,
+  durationHours: 24,
+  freeEnabled: true,
+  firstRoundFreeCount: 3,
+  laterRoundFreeCount: 2,
+  maxLaunchPerDevice: 1,
+  maxJoinPerPhone: 1,
+}
+
+/** 分润规则默认配置 */
+export const defaultCommissionRules: CommissionRules = {
+  directRate: 10,
+  platformPoolRate: 15,
+  bookshelfRate: 30,
+  biographerRate: 85,
+}
+
+/** 内容审核-素材审核种子数据 */
+export const defaultMediaReviewItems: MediaReviewItem[] = [
+  { id: 'media_001', type: 'image', title: '1978 年全家福老照片', owner: '张先生', createdAt: '2026-07-18 10:24', status: 'pending' },
+  { id: 'media_002', type: 'audio', title: '父亲口述录音·参军经历', owner: '李女士', createdAt: '2026-07-17 15:02', status: 'pending' },
+  { id: 'media_003', type: 'image', title: '老宅门前合影', owner: '王先生', createdAt: '2026-07-16 09:40', status: 'pending' },
+]
+
+/** 内容审核-举报种子数据 */
+export const defaultContentReports: ContentReport[] = [
+  { id: 'report_001', reporter: '刘先生', target: '传记《医者仁心：李华亭回忆录》', reason: '部分内容侵犯家属隐私，未经授权公开', createdAt: '2026-07-19 09:18', status: 'pending' },
+  { id: 'report_002', reporter: '赵女士', target: '书架评论', reason: '评论含人身攻击内容', createdAt: '2026-07-18 16:45', status: 'pending' },
+  { id: 'report_003', reporter: '周先生', target: '公开传记《陈建国自传》', reason: '疑似抄袭其他出版物章节', createdAt: '2026-07-15 13:27', status: 'processed' },
+]
+
+export const defaultComplianceAlerts: ComplianceAlert[] = [
+  { id: 'alert_001', biographerName: '陈墨涵', userNickname: '周先生', reason: '用户反馈传记师引导线下私下交易，绕过平台付款', riskLevel: 'high', status: 'pending', createdAt: daysAgo(3) },
+  { id: 'alert_002', biographerName: '林清风', userNickname: '郑先生', reason: '订单沟通中多次出现个人收款码截图', riskLevel: 'medium', status: 'pending', createdAt: daysAgo(6) },
+  { id: 'alert_003', biographerName: '王雅琴', userNickname: '刘女士', reason: '疑似要求用户取消平台订单改为私下签约', riskLevel: 'low', status: 'resolved', createdAt: daysAgo(15) },
+]
+
+export const defaultBookComments: BookComment[] = [
+  { id: 'cmt_001', bookId: 'book_demo_001', userNickname: '张先生', content: '读完后对父辈那一代人的创业艰辛有了更深的理解，很受触动。', createdAt: daysAgo(18), likes: 12 },
+  { id: 'cmt_002', bookId: 'book_demo_001', userNickname: '李女士', content: '文字很朴实，但正是这种真实最打动人，推荐给家里年轻人看看。', createdAt: daysAgo(12), likes: 8 },
+  { id: 'cmt_003', bookId: 'book_demo_001', userNickname: '陈女士', content: '苏州老巷的描写特别有画面感，想起了自己的童年。', createdAt: daysAgo(5), likes: 5 },
+  { id: 'cmt_004', bookId: 'book_demo_002', userNickname: '王先生', content: '四十年坚守山村讲台，向王老师致敬。', createdAt: daysAgo(10), likes: 15 },
+  { id: 'cmt_005', bookId: 'book_demo_002', userNickname: '体验用户', content: '章节不长但内容很扎实，值回票价。', createdAt: daysAgo(4), likes: 3 },
+  { id: 'cmt_006', bookId: 'book_demo_003', userNickname: '赵大伯', content: '从赤脚医生到专家的经历很传奇，期待正式上架。', createdAt: daysAgo(2), likes: 1 },
+]
+
+export const defaultMuseumMessages: MuseumMessage[] = [
+  { id: 'msg_001', archiveId: 'arch_001', userNickname: '张先生', content: '张伯伯一路走好，您的创业故事我们会一直讲下去。', createdAt: daysAgo(9) },
+  { id: 'msg_002', archiveId: 'arch_001', userNickname: '李女士', content: '看了数字馆很受感动，家风就是这样一代代传下来的。', createdAt: daysAgo(6) },
+  { id: 'msg_003', archiveId: 'arch_002', userNickname: '王先生', content: '王老师是我小学班主任，永远怀念您。', createdAt: daysAgo(4) },
+  { id: 'msg_004', archiveId: 'arch_003', userNickname: '陈女士', content: '爷爷的故事整理得真好，孩子们都来听。', createdAt: daysAgo(2) },
+  { id: 'msg_005', archiveId: 'arch_001', userNickname: '孙女士', content: '献上一束花，愿先辈安息。', createdAt: daysAgo(1) },
+]
+
+// ========== 演示数字博物馆种子数据（archiveId 固定为 'demo'） ==========
+
+export const DEMO_MUSEUM_ARCHIVE_ID = 'demo'
+
+export const defaultDemoBiography: Biography = {
+  id: 'biog_demo_001',
+  archiveId: DEMO_MUSEUM_ARCHIVE_ID,
+  title: '张明远：一位苏州企业家的六十年',
+  style: 'plain',
+  wordCount: 'standard',
+  status: 'final',
+  createdAt: daysAgo(200),
+  updatedAt: daysAgo(180),
+  chapters: [
+    {
+      id: 'biog_demo_ch1',
+      order: 0,
+      title: '第一章 水乡童年',
+      images: [],
+      content: [
+        '1942 年深秋，张明远出生在苏州平江路的一座老宅里。宅子临水而建，清晨推开窗，便能听见摇橹声由远及近。父亲在绸缎庄做账房先生，母亲操持家务，一家人日子过得清苦却安稳。',
+        '童年的张明远最盼的是年节。除夕夜，一家人围坐在八仙桌旁，父亲会讲祖上做丝绸生意的旧事，母亲则把积攒了一年的好布料拿出来，给孩子们各做一身新衣。那些关于诚信与勤恳的家常话，像种子一样埋进了他幼小的心田。',
+        '家中兄弟姐妹五人，他排行第三，从小就懂得谦让与分担。放学后他常帮父亲誊抄账目，一笔一画工整清晰，父亲看了总是点头：「做事先做人，账要清，心更要清。」这句话，他记了一辈子。',
+      ].join('\n\n'),
+    },
+    {
+      id: 'biog_demo_ch2',
+      order: 1,
+      title: '第二章 从丝绸厂到创业路',
+      images: [],
+      content: [
+        '1959 年，张明远考入苏州纺织工业学校。毕业后，他被分配到国营苏州丝绸厂，从学徒工做起，白天在车间跟师傅学手艺，晚上在灯下自学机械原理，很快成为厂里的技术骨干。那些年，他参与改进的织机工艺，让车间的良品率提升了近两成。',
+        '1984 年，改革开放的春风吹遍江南。已过不惑之年的张明远做出了一个让全家人捏把汗的决定——辞去铁饭碗，倾尽积蓄创办明远纺织厂。创业之初，厂房是租来的旧仓库，机器是二手的，他白天跑原料、谈客户，晚上和工人一起检修设备，常常忙到后半夜。',
+        '凭着「做生意先做人」的信条，明远纺织厂渐渐在苏州站稳了脚跟。九十年代末，企业已拥有员工三百余人，产品远销海外，先后获评「江苏省优秀民营企业」「苏州市诚信经营示范企业」。他最常说的一句话是：「厂子可以小，信誉不能倒。」',
+      ].join('\n\n'),
+    },
+    {
+      id: 'biog_demo_ch3',
+      order: 2,
+      title: '第三章 家风与晚年',
+      images: [],
+      content: [
+        '1968 年，张明远与同厂的女工周婉清结为夫妻。两人相濡以沫五十余载，养育了一子一女。在子女的记忆里，父亲从不说教，却用行动立规矩：饭桌上长辈不动筷，孩子不能先吃；借了东西，必须按时归还；逢年过节，全家必回老宅团聚。',
+        '2003 年退休后，张明远把企业交给儿女打理，自己则投身于家族事务与公益。他主持修订了张氏族谱，捐资助建了家乡的小学图书室，还坚持每年清明带着儿孙回乡祭祖，一路上讲述祖辈的故事，唯恐家风断代。',
+        '2023 年春，张明远在苏州家中安详离世，享年八十一岁。弥留之际，他留给子孙最后一句话：「忠厚传家久，诗书继世长。守住本分，就是守住我们张家的根。」',
+      ].join('\n\n'),
+    },
+  ],
+}
+
+export const defaultDemoTimeline: TimelineEvent[] = [
+  { id: 'tl_demo_001', archiveId: DEMO_MUSEUM_ARCHIVE_ID, year: 1942, title: '出生于苏州', description: '深秋时节，张明远出生于苏州平江路一座临水老宅，父亲在绸缎庄做账房先生，家境清苦而温馨。', category: '童年', images: [] },
+  { id: 'tl_demo_002', archiveId: DEMO_MUSEUM_ARCHIVE_ID, year: 1959, title: '考入纺织工业学校', description: '以优异成绩考入苏州纺织工业学校，离开老宅住校求学，开始系统学习纺织技术。', category: '求学', images: [] },
+  { id: 'tl_demo_003', archiveId: DEMO_MUSEUM_ARCHIVE_ID, year: 1963, title: '进入国营苏州丝绸厂', description: '毕业后分配至国营苏州丝绸厂，从学徒工成长为技术骨干，参与改进织机工艺，良品率提升近两成。', category: '事业', images: [] },
+  { id: 'tl_demo_004', archiveId: DEMO_MUSEUM_ARCHIVE_ID, year: 1968, title: '与周婉清结婚', description: '与同厂女工周婉清结为夫妻，婚礼简朴而热闹，两人相濡以沫五十余载，育有一子一女。', category: '家庭', images: [] },
+  { id: 'tl_demo_005', archiveId: DEMO_MUSEUM_ARCHIVE_ID, year: 1984, title: '创办明远纺织厂', description: '改革开放浪潮中辞去公职，倾尽积蓄创办明远纺织厂。从租来的旧仓库起步，逐步发展为三百余人规模的企业。', category: '事业', images: [] },
+  { id: 'tl_demo_006', archiveId: DEMO_MUSEUM_ARCHIVE_ID, year: 1998, title: '获评省优秀民营企业', description: '明远纺织厂获评「江苏省优秀民营企业」，产品远销海外，张明远本人当选苏州市劳动模范。', category: '荣誉', images: [] },
+  { id: 'tl_demo_007', archiveId: DEMO_MUSEUM_ARCHIVE_ID, year: 2003, title: '退休，投身家族公益', description: '正式退休，将企业交给子女打理，此后主持修订张氏族谱，捐资助建家乡小学图书室。', category: '人生', images: [] },
+  { id: 'tl_demo_008', archiveId: DEMO_MUSEUM_ARCHIVE_ID, year: 2023, title: '安详逝世', description: '2023 年春，张明远在苏州家中安详离世，享年八十一岁。临终留下家训：忠厚传家久，诗书继世长。', category: '人生', images: [] },
+]
+
+export const defaultDemoMaterials: Material[] = [
+  { id: 'mat_demo_001', archiveId: DEMO_MUSEUM_ARCHIVE_ID, type: 'image', url: 'https://picsum.photos/seed/mingyuan-childhood/800/600', title: '平江路老宅旧影', category: '童年', description: '张家祖宅临水而建，承载着张明远的童年记忆。', shootTime: '1948-06-01', shootPlace: '苏州平江路', createdAt: daysAgo(200) },
+  { id: 'mat_demo_002', archiveId: DEMO_MUSEUM_ARCHIVE_ID, type: 'image', url: 'https://picsum.photos/seed/mingyuan-school/800/600', title: '纺织工业学校求学照', category: '其他', description: '1959 年入学时与同窗在校门口的合影。', shootTime: '1959-09-01', shootPlace: '苏州', createdAt: daysAgo(200) },
+  { id: 'mat_demo_003', archiveId: DEMO_MUSEUM_ARCHIVE_ID, type: 'image', url: 'https://picsum.photos/seed/mingyuan-factory/800/600', title: '丝绸厂车间留影', category: '事业', description: '张明远在织机车间的留影，彼时已是厂里的技术骨干。', shootTime: '1972-05-01', shootPlace: '国营苏州丝绸厂', createdAt: daysAgo(200) },
+  { id: 'mat_demo_004', archiveId: DEMO_MUSEUM_ARCHIVE_ID, type: 'image', url: 'https://picsum.photos/seed/mingyuan-family/800/600', title: '全家合影', category: '家庭', description: '1975 年春节全家福，一家人在老宅门前合影。', shootTime: '1975-02-11', shootPlace: '苏州', createdAt: daysAgo(200) },
+  { id: 'mat_demo_005', archiveId: DEMO_MUSEUM_ARCHIVE_ID, type: 'image', url: 'https://picsum.photos/seed/mingyuan-startup/800/600', title: '创业初期的厂房', category: '事业', description: '1984 年明远纺织厂创业之初租用的旧仓库厂房。', shootTime: '1984-10-01', shootPlace: '苏州郊区', createdAt: daysAgo(200) },
+  { id: 'mat_demo_006', archiveId: DEMO_MUSEUM_ARCHIVE_ID, type: 'image', url: 'https://picsum.photos/seed/mingyuan-anniversary/800/600', title: '金婚纪念', category: '家庭', description: '2018 年与夫人周婉清的金婚纪念照，儿孙满堂。', shootTime: '2018-10-01', shootPlace: '苏州', createdAt: daysAgo(200) },
+  { id: 'mat_demo_007', archiveId: DEMO_MUSEUM_ARCHIVE_ID, type: 'document', url: '', title: '江苏省优秀民营企业家', category: '荣誉', description: '1998 年，因明远纺织厂诚信经营、带动地方就业，张明远获评「江苏省优秀民营企业家」。', shootTime: '1998-12-01', createdAt: daysAgo(200) },
+  { id: 'mat_demo_008', archiveId: DEMO_MUSEUM_ARCHIVE_ID, type: 'document', url: '', title: '苏州市劳动模范', category: '荣誉', description: '1998 年当选苏州市劳动模范，表彰其在纺织行业的突出贡献。', shootTime: '1998-05-01', createdAt: daysAgo(200) },
+  { id: 'mat_demo_009', archiveId: DEMO_MUSEUM_ARCHIVE_ID, type: 'document', url: '', title: '诚信经营示范企业', category: '荣誉', description: '2002 年，明远纺织厂被苏州市评为「诚信经营示范企业」。', shootTime: '2002-03-01', createdAt: daysAgo(200) },
+]
+
+export const defaultDemoMuseum: Museum = {
+  id: 'museum_demo_001',
+  archiveId: DEMO_MUSEUM_ARCHIVE_ID,
+  title: '张明远的人生数字博物馆',
+  intro: '张明远（1942—2023），苏州人，明远纺织厂创始人。从国营丝绸厂学徒工到改革开放后的民营企业家，他用一生践行「做生意先做人」的信条。晚年修订族谱、捐资助学，把「忠厚传家久，诗书继世长」的家风留给了子孙后代。',
+  cover: 'https://picsum.photos/seed/mingyuan-cover/1200/480',
+  visibility: 'public',
+  views: 3268,
+  visitors: 1156,
+  likes: 236,
+  candles: 88,
+  flowers: 152,
+  createdAt: daysAgo(200),
+}
+
+// ========== 合伙人渠道/考核种子数据 ==========
+
+export const defaultPartnerChannels: PartnerChannel[] = [
+  { id: 'ch_001', partnerId: 'partner_demo', type: 'cemetery', orgName: '杭州南山陵园', contact: '周主任', phone: '057188001001', status: 'active', cooperatedAt: daysAgo(120) },
+  { id: 'ch_002', partnerId: 'partner_demo', type: 'cemetery', orgName: '上海福寿园', contact: '吴经理', phone: '02188002002', status: 'active', cooperatedAt: daysAgo(90) },
+  { id: 'ch_003', partnerId: 'partner_demo', type: 'elderly', orgName: '杭州亲和源养老社区', contact: '沈院长', phone: '057188003003', status: 'active', cooperatedAt: daysAgo(75) },
+  { id: 'ch_004', partnerId: 'partner_demo', type: 'elderly', orgName: '苏州怡养老年公寓', contact: '钱院长', phone: '051288004004', status: 'active', cooperatedAt: daysAgo(50) },
+  { id: 'ch_005', partnerId: 'partner_demo', type: 'cemetery', orgName: '南京雨花台功德园', contact: '徐经理', phone: '02588005005', status: 'inactive', cooperatedAt: daysAgo(150) },
+  { id: 'ch_006', partnerId: 'partner_demo', type: 'elderly', orgName: '北京太阳城养老社区', contact: '马主任', phone: '01088006006', status: 'active', cooperatedAt: daysAgo(30) },
+]
+
+export const defaultPartnerAssessment: PartnerAssessment = {
+  year: 2026,
+  gmvTier: 'A 档（≥200 万）',
+  gmvTarget: 2000000,
+  gmvCompleted: 1286000,
+  metrics: [
+    { name: '渠道拓展', target: 10, completed: 6 },
+    { name: '服务履约', target: 100, completed: 96 },
+    { name: '品牌运营', target: 12, completed: 8 },
+    { name: '合规风控', target: 100, completed: 100 },
+  ],
+  payouts: [
+    { id: 'pay_001', period: '2026-03', amount: 12800, status: 'paid', paidAt: daysAgo(100) },
+    { id: 'pay_002', period: '2026-04', amount: 15600, status: 'paid', paidAt: daysAgo(70) },
+    { id: 'pay_003', period: '2026-05', amount: 18400, status: 'paid', paidAt: daysAgo(40) },
+    { id: 'pay_004', period: '2026-06', amount: 21200, status: 'pending' },
+  ],
+}
+
+export const defaultGmvLineStats: GmvLineStat[] = [
+  {
+    line: 'ai_biography',
+    lineName: 'AI 传记',
+    monthly: [
+      { month: '2026-01', gmv: 68000 }, { month: '2026-02', gmv: 82000 }, { month: '2026-03', gmv: 96000 },
+      { month: '2026-04', gmv: 112000 }, { month: '2026-05', gmv: 128000 }, { month: '2026-06', gmv: 145000 },
+    ],
+  },
+  {
+    line: 'bookshelf',
+    lineName: '书架付费',
+    monthly: [
+      { month: '2026-01', gmv: 8600 }, { month: '2026-02', gmv: 12400 }, { month: '2026-03', gmv: 15800 },
+      { month: '2026-04', gmv: 19200 }, { month: '2026-05', gmv: 23600 }, { month: '2026-06', gmv: 28900 },
+    ],
+  },
+  {
+    line: 'biographer_service',
+    lineName: '传记师服务',
+    monthly: [
+      { month: '2026-01', gmv: 42000 }, { month: '2026-02', gmv: 56000 }, { month: '2026-03', gmv: 73000 },
+      { month: '2026-04', gmv: 88000 }, { month: '2026-05', gmv: 96000 }, { month: '2026-06', gmv: 118000 },
+    ],
+  },
+  {
+    line: 'robot_hardware',
+    lineName: '机器人硬件',
+    monthly: [
+      { month: '2026-01', gmv: 0 }, { month: '2026-02', gmv: 15800 }, { month: '2026-03', gmv: 31600 },
+      { month: '2026-04', gmv: 47400 }, { month: '2026-05', gmv: 63200 }, { month: '2026-06', gmv: 94800 },
+    ],
+  },
+]
+
+export const defaultPartnerLocalOrders: PartnerLocalOrder[] = [
+  { id: 'lo_001', userNickname: '张先生', productName: 'AI 传记标准版', amount: 99, status: 'completed', createdAt: daysAgo(26) },
+  { id: 'lo_002', userNickname: '李女士', productName: '数字人陪伴版', amount: 299, status: 'completed', createdAt: daysAgo(19) },
+  { id: 'lo_003', userNickname: '王先生', productName: '99 元 AI 传记拼团', amount: 99, status: 'paid', createdAt: daysAgo(11) },
+  { id: 'lo_004', userNickname: '陈女士', productName: '实体书·精装版', amount: 288, status: 'delivering', createdAt: daysAgo(6) },
+  { id: 'lo_005', userNickname: '赵大伯', productName: '60 秒纪念短视频', amount: 199, status: 'completed', createdAt: daysAgo(3) },
+  { id: 'lo_006', userNickname: '孙女士', productName: '码记二维码', amount: 49, status: 'pending_pay', createdAt: daysAgo(1) },
+]
+
+// ========== 传记师结算种子数据 ==========
+
+export const defaultBiographerSettlements: BiographerSettlement[] = [
+  {
+    biographerId: 'bio_001',
+    escrowAmount: 5999,
+    availableAmount: 23800,
+    commissionRate: 0.15,
+    incomes: [
+      { orderNo: 'ord_001', amount: 1999, commission: 299.85, createdAt: daysAgo(32) },
+      { orderNo: 'ord_002', amount: 5999, commission: 899.85, createdAt: daysAgo(47) },
+      { orderNo: 'ord_003', amount: 1999, commission: 299.85, createdAt: daysAgo(62) },
+    ],
+    withdrawals: [
+      { id: 'wd_001', amount: 8000, status: 'paid', appliedAt: daysAgo(50), paidAt: daysAgo(48) },
+      { id: 'wd_002', amount: 5000, status: 'pending', appliedAt: daysAgo(2) },
+    ],
+    penalties: [],
+  },
+  {
+    biographerId: 'bio_002',
+    escrowAmount: 1299,
+    availableAmount: 15200,
+    commissionRate: 0.15,
+    incomes: [
+      { orderNo: 'ord_004', amount: 1299, commission: 194.85, createdAt: daysAgo(22) },
+      { orderNo: 'ord_005', amount: 3999, commission: 599.85, createdAt: daysAgo(37) },
+      { orderNo: 'ord_006', amount: 1299, commission: 194.85, createdAt: daysAgo(52) },
+    ],
+    withdrawals: [
+      { id: 'wd_003', amount: 6000, status: 'paid', appliedAt: daysAgo(40), paidAt: daysAgo(38) },
+    ],
+    penalties: [
+      { id: 'pen_001', reason: '交付逾期 2 天，按约扣除违约金', amount: 200, createdAt: daysAgo(50) },
+    ],
+  },
+  {
+    biographerId: 'bio_003',
+    escrowAmount: 8999,
+    availableAmount: 31600,
+    commissionRate: 0.18,
+    incomes: [
+      { orderNo: 'ord_007', amount: 8999, commission: 1619.82, createdAt: daysAgo(17) },
+      { orderNo: 'ord_008', amount: 4999, commission: 899.82, createdAt: daysAgo(42) },
+    ],
+    withdrawals: [
+      { id: 'wd_004', amount: 12000, status: 'paid', appliedAt: daysAgo(30), paidAt: daysAgo(28) },
+      { id: 'wd_005', amount: 8000, status: 'rejected', appliedAt: daysAgo(5) },
+    ],
+    penalties: [
+      { id: 'pen_002', reason: '疑似引导私单，冻结部分结算款', amount: 1000, createdAt: daysAgo(3) },
+    ],
+  },
+  {
+    biographerId: 'bio_004',
+    escrowAmount: 2999,
+    availableAmount: 9800,
+    commissionRate: 0.15,
+    incomes: [
+      { orderNo: 'ord_009', amount: 2999, commission: 449.85, createdAt: daysAgo(27) },
+      { orderNo: 'ord_010', amount: 1599, commission: 239.85, createdAt: daysAgo(57) },
+    ],
+    withdrawals: [
+      { id: 'wd_006', amount: 4000, status: 'paid', appliedAt: daysAgo(35), paidAt: daysAgo(33) },
+    ],
+    penalties: [],
+  },
+]
+
+// ========== 平台管理端扩展种子数据 ==========
+
+export const defaultQrCodes: QrCodeRecord[] = [
+  { id: 'qr_001', code: 'QR-T-20260001', museumName: '李华亭数字纪念馆', type: 'tombstone', status: 'bound', createdAt: daysAgo(60) },
+  { id: 'qr_002', code: 'QR-T-20260002', museumName: '周秀英数字纪念馆', type: 'tombstone', status: 'enabled', createdAt: daysAgo(45) },
+  { id: 'qr_003', code: 'QR-M-20260003', museumName: '张明远家风馆', type: 'memorial', status: 'bound', createdAt: daysAgo(40) },
+  { id: 'qr_004', code: 'QR-M-20260004', museumName: '王桂芬纪念馆', type: 'memorial', status: 'disabled', createdAt: daysAgo(30) },
+  { id: 'qr_005', code: 'QR-S-20260005', museumName: '李华亭数字纪念馆', type: 'share', status: 'enabled', createdAt: daysAgo(20) },
+  { id: 'qr_006', code: 'QR-S-20260006', museumName: '陈氏家族馆', type: 'share', status: 'unbound', createdAt: daysAgo(10) },
+  { id: 'qr_007', code: 'QR-T-20260007', museumName: '赵德柱纪念馆', type: 'tombstone', status: 'unbound', createdAt: daysAgo(3) },
+]
+
+export const defaultBiographerDeposits: BiographerDepositRecord[] = [
+  { id: 'dep_001', biographerId: 'bio_001', biographerName: '李传记', amount: 1000, paidAt: daysAgo(120), status: 'paid' },
+  { id: 'dep_002', biographerId: 'bio_002', biographerName: '王雅琴', amount: 800, paidAt: daysAgo(100), status: 'paid' },
+  { id: 'dep_003', biographerId: 'bio_003', biographerName: '陈墨涵', amount: 1000, paidAt: daysAgo(80), status: 'deducted' },
+  { id: 'dep_004', biographerId: 'bio_004', biographerName: '林清风', amount: 500, paidAt: daysAgo(60), status: 'refunded' },
+]
+
+export const defaultBiographerPenalties: BiographerPenaltyRecord[] = [
+  { id: 'pnr_001', biographerId: 'bio_002', biographerName: '王雅琴', violationType: '交付逾期', measure: '扣款', amount: 200, reason: '交付逾期 2 天，按约扣除违约金', status: 'effective', createdAt: daysAgo(50) },
+  { id: 'pnr_002', biographerId: 'bio_003', biographerName: '陈墨涵', violationType: '私单引流', measure: '扣款+警告', amount: 1000, reason: '疑似引导私单，冻结部分结算款', status: 'effective', createdAt: daysAgo(3) },
+]
+
+export const defaultPartnerFees: PartnerFeeRecord[] = [
+  { id: 'fee_001', partnerId: 'partner_001', partnerName: '杭州合作服务商', feeType: 'license', amount: 50000, paidAt: daysAgo(150), status: 'paid' },
+  { id: 'fee_002', partnerId: 'partner_001', partnerName: '杭州合作服务商', feeType: 'saas', amount: 12000, paidAt: daysAgo(150), status: 'paid' },
+  { id: 'fee_003', partnerId: 'partner_001', partnerName: '杭州合作服务商', feeType: 'deposit', amount: 30000, paidAt: daysAgo(148), status: 'paid' },
+  { id: 'fee_004', partnerId: 'partner_002', partnerName: '宁波合作服务商', feeType: 'license', amount: 50000, paidAt: daysAgo(90), status: 'paid' },
+  { id: 'fee_005', partnerId: 'partner_002', partnerName: '宁波合作服务商', feeType: 'saas', amount: 12000, paidAt: daysAgo(88), status: 'pending' },
+  { id: 'fee_006', partnerId: 'partner_003', partnerName: '温州合作服务商', feeType: 'deposit', amount: 30000, paidAt: daysAgo(30), status: 'refunded' },
+]
+
+export const defaultPartnerShareConfigs: PartnerShareConfig[] = [
+  { id: 'shr_001', regionName: '杭州市西湖区', partnerId: 'partner_001', partnerName: '杭州合作服务商', rate: 0.15, effectiveAt: '2026-01-01T00:00:00' },
+  { id: 'shr_002', regionName: '宁波市海曙区', partnerId: 'partner_002', partnerName: '宁波合作服务商', rate: 0.12, effectiveAt: '2026-01-01T00:00:00' },
+  { id: 'shr_003', regionName: '温州市鹿城区', partnerId: 'partner_003', partnerName: '温州合作服务商', rate: 0.1, effectiveAt: '2026-03-01T00:00:00' },
+]
+
+export const defaultPartnerRewardConfigs: PartnerRewardConfig[] = [
+  { id: 'rwd_001', level: 'city', condition: '年度 GMV ≥ 100 万', amount: 20000, status: 'enabled' },
+  { id: 'rwd_002', level: 'city', condition: '年度 GMV ≥ 300 万', amount: 60000, status: 'enabled' },
+  { id: 'rwd_003', level: 'province', condition: '年度 GMV ≥ 500 万且考核评级优秀', amount: 150000, status: 'enabled' },
+  { id: 'rwd_004', level: 'province', condition: '年度渠道拓展 ≥ 20 家', amount: 80000, status: 'disabled' },
+]
+
+export const defaultPartnerAssessments: PartnerAssessmentRecord[] = [
+  { id: 'asm_001', partnerId: 'partner_001', partnerName: '杭州合作服务商', year: 2025, gmvTier: 'A 档（300-500 万）', channelScore: 88, fulfillmentScore: 95, brandScore: 82, complianceScore: 100, rating: '优秀' },
+  { id: 'asm_002', partnerId: 'partner_002', partnerName: '宁波合作服务商', year: 2025, gmvTier: 'B 档（100-300 万）', channelScore: 76, fulfillmentScore: 90, brandScore: 70, complianceScore: 95, rating: '良好' },
+  { id: 'asm_003', partnerId: 'partner_003', partnerName: '温州合作服务商', year: 2025, gmvTier: 'C 档（50-100 万）', channelScore: 60, fulfillmentScore: 72, brandScore: 55, complianceScore: 80, rating: '合格' },
 ]

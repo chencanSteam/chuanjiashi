@@ -592,3 +592,10 @@
     padding-bottom: 0;
   }
 }
+
+/* 押金/处罚表格按钮 */
+.bio-cell-action .btn-sm {
+  padding: 4px 10px;
+  font-size: 12px;
+  white-space: nowrap;
+}

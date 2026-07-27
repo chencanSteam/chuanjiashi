@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../hooks/useToast';
+import { downloadTextFile } from '../utils/albumStorage';
 import {
   ChevronRight,
   Plus,
@@ -66,6 +67,17 @@ const pageModules = [
   '轮播Banner', '家训家规', '家风故事', '家风课程', '最美家庭', 'AI家风导师'
 ];
 
+/* 模板预览样式差异 */
+const templateStyles: Record<string, { bannerBg: string; accent: string; moduleBg: string; align: 'center' | 'left' }> = {
+  '水墨典雅（默认）': { bannerBg: 'linear-gradient(135deg, #1B5E4B 0%, #2e7d63 100%)', accent: '#1B5E4B', moduleBg: '#f2f7f4', align: 'center' },
+  '红色家风': { bannerBg: 'linear-gradient(135deg, #9c2b2b 0%, #c0392b 100%)', accent: '#9c2b2b', moduleBg: '#faf1f0', align: 'center' },
+  '现代简约': { bannerBg: 'linear-gradient(135deg, #374151 0%, #6b7280 100%)', accent: '#374151', moduleBg: '#f4f5f7', align: 'left' },
+};
+
+const TEMPLATE_KEY = 'cj_hall_template';
+const BANNER_KEY = 'cj_hall_banner';
+const MAX_BANNER_SIZE = 2 * 1024 * 1024; // 2MB
+
 const contentCards = [
   { title: 'AI家风提炼', desc: '基于人物档案与故事，AI提炼家风内涵', btn: '开始提炼', path: '/family-hall/ai-refine' },
   { title: '家风故事库', desc: '管理家风故事，支持AI扩写与润色', btn: '故事管理', path: '/family-hall/story-library' },
@@ -95,8 +107,40 @@ export default function AIFamilyHall() {
   const [activeColor, setActiveColor] = useState('#1B5E4B');
   const [configTab, setConfigTab] = useState('配置');
   const [publishSetting, setPublishSetting] = useState('公开访问');
-  const [template, setTemplate] = useState('水墨典雅（默认）');
-  const [bannerUploaded, setBannerUploaded] = useState(false);
+  const [template, setTemplate] = useState(() => localStorage.getItem(TEMPLATE_KEY) ?? '水墨典雅（默认）');
+  const [bannerImage, setBannerImage] = useState<string | null>(() => localStorage.getItem(BANNER_KEY));
+  const bannerInputRef = useRef<HTMLInputElement>(null);
+
+  const tpl = templateStyles[template] ?? templateStyles['水墨典雅（默认）'];
+
+  const changeTemplate = (value: string) => {
+    setTemplate(value);
+    localStorage.setItem(TEMPLATE_KEY, value);
+  };
+
+  const handleBannerFile = (file: File | undefined) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      addToast('请选择图片文件', 'error');
+      return;
+    }
+    if (file.size > MAX_BANNER_SIZE) {
+      addToast('图片超过 2MB，请压缩后再上传', 'error');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = String(reader.result);
+      setBannerImage(dataUrl);
+      try {
+        localStorage.setItem(BANNER_KEY, dataUrl);
+        addToast('Banner图片已更换', 'success');
+      } catch {
+        addToast('图片已替换，但存储空间不足，刷新后可能丢失', 'info');
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   const [projectsList, setProjectsList] = useState(initialProjects);
   const [showNewHall, setShowNewHall] = useState(false);
@@ -147,13 +191,55 @@ export default function AIFamilyHall() {
     navigate('/family-hall/deploy');
   };
 
+  const buildExport = (type: string): { content: string; filename: string } => {
+    const now = new Date().toLocaleString('zh-CN', { hour12: false });
+    const hallInfo = [
+      `家风馆模板：${template}`,
+      `配色方案：${activeColor}`,
+      `发布设置：${publishSetting}`,
+      `开启模块：${Array.from(visibleModules).join('、')}`,
+      `馆馆项目：${projectsList.map((p) => `${p.name}（${p.status}）`).join('、')}`,
+    ].join('\n');
+    switch (type) {
+      case '成果输出':
+        return {
+          filename: '口述史工程成果.md',
+          content: `# 口述史工程成果报告\n\n生成时间：${now}\n\n## 任务统计\n${oralStats.map((s) => `- ${s.label}：${s.value}`).join('\n')}\n\n## 家风馆配置\n${hallInfo}\n`,
+        };
+      case '成果报告':
+        return {
+          filename: '政务家风建设成果报告.md',
+          content: `# 政务客户服务成果报告\n\n生成时间：${now}\n\n## 服务数据\n${govStats.map((s) => `- ${s.label}：${s.value}`).join('\n')}\n\n## 家风馆配置\n${hallInfo}\n`,
+        };
+      case '宣传册生成':
+        return {
+          filename: '家风馆宣传册.md',
+          content: `# 张氏家风馆 宣传册\n\n生成时间：${now}\n\n忠厚传家久 · 诗书继世长\n\n## 展馆模块\n${Array.from(visibleModules).map((m) => `- ${m}`).join('\n')}\n\n## 当前模板\n${template}\n`,
+        };
+      case '数据包导出':
+        return {
+          filename: '家风馆数据包.txt',
+          content: `家风馆数据包（${now}）\n\n${hallInfo}\n\n[项目明细]\n${projectsList.map((p) => `${p.name} | ${p.status} | ${p.date}`).join('\n')}\n`,
+        };
+      default:
+        return {
+          filename: '家风馆导出.md',
+          content: `# 家风馆导出\n\n生成时间：${now}\n\n${hallInfo}\n`,
+        };
+    }
+  };
+
   const output = (type: string) => {
     setOutputing((prev) => ({ ...prev, [type]: true }));
-    addToast(`${type} 生成中…`, 'info');
-    setTimeout(() => {
+    try {
+      const { content, filename } = buildExport(type);
+      downloadTextFile(content, filename, 'text/markdown;charset=utf-8');
+      addToast(`${type} 已导出：${filename}`, 'success');
+    } catch {
+      addToast(`${type} 导出失败`, 'error');
+    } finally {
       setOutputing((prev) => ({ ...prev, [type]: false }));
-      addToast(`${type} 已完成`, 'success');
-    }, 1200);
+    }
   };
 
   const previewModules = modules.filter((m) => visibleModules.has(m.label));
@@ -222,8 +308,13 @@ export default function AIFamilyHall() {
             </div>
           </div>
           <div className="card-body preview-body">
-            <div className="preview-banner">
-              <div className="preview-banner-content">
+            <div
+              className="preview-banner"
+              style={bannerImage
+                ? { backgroundImage: `linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.35)), url(${bannerImage})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundColor: tpl.accent }
+                : { background: tpl.bannerBg }}
+            >
+              <div className="preview-banner-content" style={{ textAlign: tpl.align, alignItems: tpl.align === 'left' ? 'flex-start' : undefined }}>
                 <div className="preview-logo">张氏家风馆</div>
                 <div className="preview-nav">
                   {hallNav.map((n) => (
@@ -231,14 +322,14 @@ export default function AIFamilyHall() {
                   ))}
                 </div>
                 <h2 className="preview-slogan">忠厚传家久 · 诗书继世长</h2>
-                <p className="preview-desc">百年张氏家风传承与数字化展馆</p>
-                <button className="btn btn-primary enter-hall" onClick={() => navigate('/family-hall/project/张氏家风馆')}>进入家风馆 <ChevronRight size={14} /></button>
+                <p className="preview-desc">百年张氏家风传承与数字化展馆 · {template.replace('（默认）', '')}</p>
+                <button className="btn btn-primary enter-hall" style={{ background: tpl.accent }} onClick={() => navigate('/family-hall/project/张氏家风馆')}>进入家风馆 <ChevronRight size={14} /></button>
               </div>
             </div>
             <div className="preview-modules">
               {previewModules.map((m, i) => (
-                <div className="preview-module" key={i} onClick={() => navigate(`/family-hall/project/${encodeURIComponent('张氏家风馆')}/${moduleRouteMap[m.label] ?? 'rules'}`)}>
-                  <div className="preview-module-icon"><m.icon size={22} /></div>
+                <div className="preview-module" style={{ background: tpl.moduleBg }} key={i} onClick={() => navigate(`/family-hall/project/${encodeURIComponent('张氏家风馆')}/${moduleRouteMap[m.label] ?? 'rules'}`)}>
+                  <div className="preview-module-icon" style={{ color: tpl.accent }}><m.icon size={22} /></div>
                   <div className="preview-module-label">{m.label}</div>
                   <div className="preview-module-desc">{m.desc}</div>
                 </div>
@@ -260,7 +351,7 @@ export default function AIFamilyHall() {
             </div>
             <div className="config-row">
               <label>模板选择</label>
-              <select value={template} onChange={(e) => setTemplate(e.target.value)}>
+              <select value={template} onChange={(e) => changeTemplate(e.target.value)}>
                 <option>水墨典雅（默认）</option>
                 <option>红色家风</option>
                 <option>现代简约</option>
@@ -295,11 +386,20 @@ export default function AIFamilyHall() {
             </div>
             <div className="config-row">
               <label>Banner设置</label>
-              <label className="banner-thumb" style={{ cursor: 'pointer' }}>
-                <Image size={16} />
-                <input type="file" accept="image/*" hidden onChange={() => { setBannerUploaded(true); addToast('Banner图片已更换', 'success'); }} />
+              <label
+                className="banner-thumb"
+                style={{ cursor: 'pointer', ...(bannerImage ? { backgroundImage: `url(${bannerImage})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}) }}
+              >
+                {!bannerImage && <Image size={16} />}
+                <input
+                  ref={bannerInputRef}
+                  type="file"
+                  accept="image/*"
+                  hidden
+                  onChange={(e) => { handleBannerFile(e.target.files?.[0]); e.target.value = ''; }}
+                />
               </label>
-              <button className="btn btn-ghost" onClick={() => addToast('图片已更换', bannerUploaded ? 'success' : 'info')}>更换图片</button>
+              <button className="btn btn-ghost" onClick={() => bannerInputRef.current?.click()}>更换图片</button>
             </div>
             <div className="config-row">
               <label>发布设置</label>

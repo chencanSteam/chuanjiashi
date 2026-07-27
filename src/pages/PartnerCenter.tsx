@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   LayoutDashboard,
   Users,
@@ -14,7 +14,20 @@ import {
   Phone,
   User,
   FileText,
+  MapPin,
+  ClipboardCheck,
+  BarChart3,
 } from 'lucide-react';
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+} from 'recharts';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/useToast';
 import { useSearchParams } from 'react-router-dom';
@@ -26,6 +39,9 @@ import type {
   CommissionRecord as MockCommissionRecord,
   Partner as MockPartner,
   PartnerCustomer as MockPartnerCustomer,
+  GmvLineStat,
+  PartnerAssessment,
+  PartnerLocalOrder,
 } from '../mocks/types';
 import {
   getCommissionStatusLabel,
@@ -43,7 +59,10 @@ const tabs = [
   { key: 'customers', icon: Users, label: '我的客户' },
   { key: 'earnings', icon: TrendingUp, label: '我的收益' },
   { key: 'withdraw', icon: CreditCard, label: '提现' },
+  { key: 'assessment', icon: ClipboardCheck, label: '考核结算' },
 ];
+
+const GMV_LINE_COLORS = ['#1B5E4B', '#2563eb', '#d97706', '#7c3aed'];
 
 export default function PartnerCenter() {
   useAuth();
@@ -117,6 +136,7 @@ export default function PartnerCenter() {
           {activeTab === 'customers' && <CustomersTab partner={partner} />}
           {activeTab === 'earnings' && <EarningsTab partner={partner} />}
           {activeTab === 'withdraw' && <WithdrawTab partner={partner} />}
+          {activeTab === 'assessment' && <AssessmentTab />}
       </div>
     </div>
   );
@@ -124,16 +144,26 @@ export default function PartnerCenter() {
 
 function DashboardTab({ partner }: { partner: Partner }) {
   const [customers, setCustomers] = useState<PartnerCustomer[]>([]);
+  const [gmvStats, setGmvStats] = useState<GmvLineStat[]>([]);
+  const [localOrders, setLocalOrders] = useState<PartnerLocalOrder[]>([]);
 
   useEffect(() => {
     partnerApi
       .customers()
       .then((list) => setCustomers(list.map(mapMockCustomer)))
       .catch(() => setCustomers([]));
+    partnerApi
+      .gmvStats()
+      .then(setGmvStats)
+      .catch(() => setGmvStats([]));
+    partnerApi
+      .localOrders()
+      .then(setLocalOrders)
+      .catch(() => setLocalOrders([]));
   }, [partner.id]);
   const paidCustomers = customers.filter((c) => c.hasPaid);
   const [summary, setSummary] = useState({ total: 0, settled: 0, pending: 0, frozen: 0 });
-  const inviteUrl = `${window.location.origin}/login?invite=${partner.inviteCode}`;
+  const inviteUrl = `${window.location.origin}${window.location.pathname}#/login?invite=${partner.inviteCode}`;
   const { addToast } = useToast();
 
   useEffect(() => {
@@ -146,6 +176,25 @@ function DashboardTab({ partner }: { partner: Partner }) {
   };
 
   const typeConfig = partnerTypeConfig[partner.type];
+
+  const gmvChartData = useMemo(() => {
+    const rows: Record<string, Record<string, number | string>> = {};
+    gmvStats.forEach((line) => {
+      line.monthly.forEach((point) => {
+        rows[point.month] = { ...rows[point.month], month: point.month, [line.lineName]: point.gmv };
+      });
+    });
+    return Object.values(rows).sort((a, b) => String(a.month).localeCompare(String(b.month)));
+  }, [gmvStats]);
+
+  const localGmv = useMemo(
+    () =>
+      localOrders
+        .filter((o) => o.status !== 'pending_pay' && o.status !== 'refunded' && o.status !== 'closed')
+        .reduce((sum, o) => sum + o.amount, 0),
+    [localOrders]
+  );
+  const localShare = localGmv * (partner.commissionRate || typeConfig.rate);
 
   return (
     <div className="partner-center-dashboard">
@@ -171,6 +220,41 @@ function DashboardTab({ partner }: { partner: Partner }) {
         <div className="card partner-center-stat"><TrendingUp size={20} color="#2563eb" /><div><div className="partner-center-stat-value">¥{summary.total.toFixed(2)}</div><div className="partner-center-stat-label">累计收益</div></div></div>
         <div className="card partner-center-stat"><Users size={20} color="#7c3aed" /><div><div className="partner-center-stat-value">{customers.length}</div><div className="partner-center-stat-label">绑定客户</div></div></div>
         <div className="card partner-center-stat"><Share2 size={20} color="#d97706" /><div><div className="partner-center-stat-value">{paidCustomers.length}</div><div className="partner-center-stat-label">已付费客户</div></div></div>
+      </div>
+
+      <div className="partner-center-local-share">
+        <div className="card partner-center-stat"><MapPin size={20} color="#0891b2" /><div><div className="partner-center-stat-value">{partner.regionName || '未划分区域'}</div><div className="partner-center-stat-label">负责属地</div></div></div>
+        <div className="card partner-center-stat"><BarChart3 size={20} color="#1B5E4B" /><div><div className="partner-center-stat-value">¥{localGmv.toFixed(2)}</div><div className="partner-center-stat-label">属地 GMV</div></div></div>
+        <div className="card partner-center-stat"><Wallet size={20} color="#d97706" /><div><div className="partner-center-stat-value">¥{localShare.toFixed(2)}</div><div className="partner-center-stat-label">属地分成金额</div></div></div>
+      </div>
+
+      <div className="card">
+        <div className="card-header"><h3 className="card-title"><BarChart3 size={16} /> GMV 分业务线统计</h3></div>
+        <div className="card-body partner-center-chart-body">
+          {gmvChartData.length === 0 ? (
+            <div className="partner-center-empty">暂无 GMV 统计数据</div>
+          ) : (
+            <ResponsiveContainer width="100%" height={280}>
+              <LineChart data={gmvChartData} margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#eef1f0" />
+                <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+                <YAxis tick={{ fontSize: 12 }} />
+                <Tooltip formatter={(value) => `¥${Number(value ?? 0).toLocaleString()}`} />
+                <Legend />
+                {gmvStats.map((line, idx) => (
+                  <Line
+                    key={line.line}
+                    type="monotone"
+                    dataKey={line.lineName}
+                    stroke={GMV_LINE_COLORS[idx % GMV_LINE_COLORS.length]}
+                    strokeWidth={2}
+                    dot={{ r: 3 }}
+                  />
+                ))}
+              </LineChart>
+            </ResponsiveContainer>
+          )}
+        </div>
       </div>
 
       <div className="card partner-center-invite">
@@ -438,6 +522,121 @@ function WithdrawTab({ partner }: { partner: Partner }) {
                     {w.status === 'rejected' && <XCircle size={12} />}
                     {getWithdrawalStatusLabel(w.status)}
                   </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+function AssessmentTab() {
+  const [data, setData] = useState<PartnerAssessment | null>(null);
+
+  useEffect(() => {
+    partnerApi
+      .assessment()
+      .then(setData)
+      .catch(() => setData(null));
+  }, []);
+
+  if (!data) {
+    return (
+      <div className="card">
+        <div className="card-body partner-center-empty">暂无考核数据</div>
+      </div>
+    );
+  }
+
+  const percent = data.gmvTarget > 0 ? Math.min(100, (data.gmvCompleted / data.gmvTarget) * 100) : 0;
+  const gap = Math.max(0, data.gmvTarget - data.gmvCompleted);
+
+  return (
+    <div className="partner-center-dashboard">
+      <div className="card partner-center-level-card">
+        <div className="partner-center-level-main">
+          <div>
+            <div className="partner-center-level-name" style={{ color: '#1B5E4B' }}>{data.gmvTier}</div>
+            <div className="partner-center-level-rate">
+              {data.year} 年度 GMV ¥{data.gmvCompleted.toLocaleString()} / 目标 ¥{data.gmvTarget.toLocaleString()}
+            </div>
+          </div>
+          <div className="partner-center-level-progress">
+            <div className="partner-center-level-progress-bar" style={{ width: `${percent}%`, background: '#1B5E4B' }} />
+          </div>
+          <div className="partner-center-level-percent">{percent.toFixed(1)}%</div>
+        </div>
+        <div className="partner-center-level-benefits">
+          <span className="partner-center-level-benefit">当前档位 {data.gmvTier}</span>
+          <span className="partner-center-level-benefit">
+            {gap > 0 ? `距下一档位还差 ¥${gap.toLocaleString()}` : '已达成最高档位目标'}
+          </span>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card-header"><h3 className="card-title"><ClipboardCheck size={16} /> 考核指标</h3></div>
+        <div className="card-body partner-center-list-body">
+          {data.metrics.length === 0 ? (
+            <div className="partner-center-empty">暂无考核指标</div>
+          ) : (
+            <div className="pc-table">
+              <div className="pc-row pc-header">
+                <div className="pc-cell">考核指标</div>
+                <div className="pc-cell">目标值</div>
+                <div className="pc-cell">完成值</div>
+                <div className="pc-cell">完成率</div>
+              </div>
+              {data.metrics.map((m) => {
+                const rate = m.target > 0 ? Math.min(100, (m.completed / m.target) * 100) : 0;
+                return (
+                  <div className="pc-row" key={m.name}>
+                    <div className="pc-cell">{m.name}</div>
+                    <div className="pc-cell">{m.target}</div>
+                    <div className="pc-cell">{m.completed}</div>
+                    <div className="pc-cell">
+                      <div className="pc-metric-rate">
+                        <div className="partner-center-level-progress pc-metric-bar">
+                          <div
+                            className="partner-center-level-progress-bar"
+                            style={{ width: `${rate}%`, background: rate >= 100 ? '#1B5E4B' : '#d97706' }}
+                          />
+                        </div>
+                        <span>{rate.toFixed(0)}%</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card-header"><h3 className="card-title"><Wallet size={16} /> 分成发放记录</h3></div>
+        <div className="card-body partner-center-list-body">
+          {data.payouts.length === 0 ? (
+            <div className="partner-center-empty">暂无分成发放记录</div>
+          ) : (
+            <div className="pc-table">
+              <div className="pc-row pc-header">
+                <div className="pc-cell">结算周期</div>
+                <div className="pc-cell">发放金额</div>
+                <div className="pc-cell">状态</div>
+                <div className="pc-cell">发放时间</div>
+              </div>
+              {data.payouts.map((p) => (
+                <div className="pc-row" key={p.id}>
+                  <div className="pc-cell">{p.period}</div>
+                  <div className="pc-cell">¥{p.amount.toFixed(2)}</div>
+                  <div className="pc-cell">
+                    <span className={`pc-status ${p.status}`}>{p.status === 'paid' ? '已发放' : '待发放'}</span>
+                  </div>
+                  <div className="pc-cell">{p.paidAt ? new Date(p.paidAt).toLocaleString() : '-'}</div>
                 </div>
               ))}
             </div>

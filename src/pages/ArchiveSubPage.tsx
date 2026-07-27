@@ -16,14 +16,31 @@ export default function ArchiveSubPage() {
   const { section } = useParams<{ section: string }>();
   const config = initialMeta[section ?? ''] ?? initialMeta.completeness;
   const { title, Icon, items: initialItems } = config;
-  const [items, setItems] = useState(initialItems);
+  const storageKey = `cj_archive_sub_${section ?? 'completeness'}`;
+  const [items, setItems] = useState(() => {
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (raw) {
+        const saved = JSON.parse(raw) as typeof initialItems;
+        // 与初始项按 label 对齐，避免数据结构变更后错位
+        return initialItems.map((item) => saved.find((s) => s.label === item.label) ?? item);
+      }
+    } catch { /* ignore */ }
+    return initialItems;
+  });
+
+  const persist = (next: typeof initialItems) => {
+    setItems(next);
+    try { localStorage.setItem(storageKey, JSON.stringify(next)); } catch { /* ignore */ }
+  };
 
   const updateValue = (i: number, value: number) => {
-    setItems((prev) => prev.map((item, idx) => idx === i ? { ...item, value } : item));
+    persist(items.map((item, idx) => idx === i ? { ...item, value } : item));
   };
 
   const updateRole = (i: number, role: string) => {
-    setItems((prev) => prev.map((item, idx) => idx === i ? { ...item, role } : item));
+    persist(items.map((item, idx) => idx === i ? { ...item, role } : item));
+    addToast(`已将 ${items[i].label} 的角色调整为「${role}」`, 'success');
   };
 
   return (

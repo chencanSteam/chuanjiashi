@@ -1,7 +1,7 @@
 import { http, type HttpHandler } from 'msw'
 import { success, unauthorized, notFound } from '../utils/response'
 import { getItem, setItem, removeItem, generateId, storeKeys } from '../utils/store'
-import { defaultQuestions } from '../data/seed'
+import { getSortedQuestions } from '../utils/questions'
 import type { Archive, Material, TimelineEvent } from '../types'
 
 function getCurrentUserId(): string | null {
@@ -106,7 +106,7 @@ export const archiveHandlers: HttpHandler[] = [
   http.get('/api/archives/:id/questions', async () => {
     const userId = getCurrentUserId()
     if (!userId) return unauthorized()
-    return success(defaultQuestions)
+    return success(getSortedQuestions())
   }),
 
   http.get('/api/archive-types', async () => {

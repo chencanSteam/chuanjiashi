@@ -1,7 +1,8 @@
 import { http, type HttpHandler } from 'msw'
-import { success, unauthorized, notFound } from '../utils/response'
+import { success, fail, unauthorized, notFound } from '../utils/response'
 import { getItem, setItem, generateId, storeKeys } from '../utils/store'
-import type { PublicBook, Biography, BiographyChapter, Archive } from '../types'
+import { defaultBookComments } from '../data/seed'
+import type { PublicBook, Biography, BiographyChapter, Archive, BookComment } from '../types'
 
 function getCurrentUserId(): string | null {
   const user = getItem<{ id: string } | null>(storeKeys.currentUser, null)
@@ -176,15 +177,44 @@ function ensureDemoBiographies(books: PublicBook[]): void {
   setItem(storeKeys.biographies, biographies)
 }
 
+function buildBookContent(book: PublicBook): { trialContent: string; fullContent?: string } {
+  const firstChapter = `第一章 童年记忆\n\n    ${book.intro}\n\n    写下这段故事，并非为了渲染传奇，而是希望在时光的长河中，为家人、为后代留存一份真实而温暖的记忆。本书传主的一生，与这个国家普通人的命运紧紧相连，经历了动荡、奋斗、欢笑与泪水，也见证了时代的变迁与家庭的延续。\n\n    家中兄弟姐妹众多，父母言传身教，深深影响了传主日后的为人处世。童年的春节团聚、夏夜纳凉、祖辈讲述的家族往事，都成为记忆中最温暖的底色。`
+  const fullText = `${firstChapter}\n\n第二章 求学岁月\n\n    求学之路并不平坦，但传主始终保持着对知识的渴望。那些煤油灯下苦读的夜晚，那些恩师的谆谆教诲，都化作了日后人生路上最坚实的基石。\n\n第三章 人生感悟\n\n    回顾走过的路，最骄傲的不是事业上的成就，而是培养了一群正直善良的后代。愿后辈心怀善念、脚踏实地，把这份珍贵的家风一代一代传下去。`
+  // 设置了试看字数时，从全本按字数截取试读内容；否则维持默认（第一章试读）
+  const trialContent =
+    book.trialWords && book.trialWords > 0 ? fullText.slice(0, book.trialWords) : firstChapter
+  if (book.isFree) {
+    return { trialContent, fullContent: fullText }
+  }
+  return { trialContent }
+}
+
 function ensureBooks(): PublicBook[] {
-  const books = getItem<PublicBook[]>(storeKeys.publicBooks, [])
+  let books = getItem<PublicBook[]>(storeKeys.publicBooks, [])
   if (books.length === 0) {
     const defaults = getDefaultPublicBooks()
     setItem(storeKeys.publicBooks, defaults)
     ensureDemoBiographies(defaults)
     return defaults
   }
+  // 老数据兼容：补齐试读/全本/解锁字段
+  let changed = false
+  books = books.map((b) => {
+    if (b.trialContent) return b
+    changed = true
+    return { ...b, ...buildBookContent(b), unlocked: b.unlocked ?? b.isFree }
+  })
+  if (changed) setItem(storeKeys.publicBooks, books)
   return books
+}
+
+function ensureBookComments(): BookComment[] {
+  const comments = getItem<BookComment[]>(storeKeys.bookComments, [])
+  if (comments.length === 0) {
+    setItem(storeKeys.bookComments, defaultBookComments)
+    return defaultBookComments
+  }
+  return comments
 }
 
 export const bookshelfHandlers: HttpHandler[] = [
@@ -256,13 +286,21 @@ export const bookshelfHandlers: HttpHandler[] = [
         likes: 0,
         collects: 0,
         shares: 0,
+        trialWords: body.trialWords,
         createdAt: new Date().toISOString(),
       }
+      Object.assign(book, buildBookContent(book))
+      book.unlocked = book.isFree
       books.push(book)
       setItem(storeKeys.publicBooks, books)
       return success(book, '提交审核成功')
     }
-    books[idx] = { ...books[idx], ...body, status: 'pending' }
+    const merged: PublicBook = { ...books[idx], ...body, status: 'pending' }
+    // 价格/试看字数等变化后重新生成试读内容；全本内容仅在免费时随试读一起更新
+    const content = buildBookContent(merged)
+    merged.trialContent = content.trialContent
+    if (content.fullContent) merged.fullContent = content.fullContent
+    books[idx] = merged
     setItem(storeKeys.publicBooks, books)
     return success(books[idx], '更新成功')
   }),
@@ -307,5 +345,51 @@ export const bookshelfHandlers: HttpHandler[] = [
     }
     setItem(storeKeys.publicBooks, books)
     return success(books[idx], status === 'approved' ? '审核通过' : status === 'rejected' ? '已拒绝' : '已下架')
+  }),
+
+  // 评论列表
+  http.get('/api/bookshelf/:id/comments', async ({ params }) => {
+    const comments = ensureBookComments()
+      .filter((c) => c.bookId === params.id)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    return success(comments)
+  }),
+
+  // 发表评论
+  http.post('/api/bookshelf/:id/comments', async ({ params, request }) => {
+    const user = getItem<{ id: string; nickname?: string } | null>(storeKeys.currentUser, null)
+    if (!user) return unauthorized()
+    const books = ensureBooks()
+    const book = books.find((b) => b.id === params.id)
+    if (!book) return notFound('传记不存在')
+    const { content } = (await request.json()) as { content?: string }
+    if (!content || !content.trim()) return fail('评论内容不能为空')
+    const comments = ensureBookComments()
+    const comment: BookComment = {
+      id: generateId(),
+      bookId: book.id,
+      userNickname: user.nickname || '匿名用户',
+      content: content.trim(),
+      createdAt: new Date().toISOString(),
+      likes: 0,
+    }
+    comments.unshift(comment)
+    setItem(storeKeys.bookComments, comments)
+    return success(comment, '评论成功')
+  }),
+
+  // 付费解锁全本
+  http.post('/api/bookshelf/:id/unlock', async ({ params }) => {
+    const userId = getCurrentUserId()
+    if (!userId) return unauthorized()
+    const books = ensureBooks()
+    const book = books.find((b) => b.id === params.id)
+    if (!book) return notFound('传记不存在')
+    if (book.isFree || book.unlocked) return success(book, '已解锁')
+    // mock 环境直接视为支付成功，并补全全本文本
+    book.unlocked = true
+    book.fullContent = book.fullContent || buildBookContent({ ...book, isFree: true }).fullContent
+    setItem(storeKeys.publicBooks, books)
+    return success(book, '解锁成功')
   }),
 ]

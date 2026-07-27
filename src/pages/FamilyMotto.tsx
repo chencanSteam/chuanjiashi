@@ -4,12 +4,20 @@ import { useNavigate } from 'react-router-dom';
 import { useToast } from '../hooks/useToast';
 import './FamilyMotto.css';
 
+const MOTTO_KEY = 'cj_family_motto';
+const DEFAULT_MOTTO = '忠厚传家远，诗书继世长';
+
 export default function FamilyMotto() {
   const navigate = useNavigate();
   const { addToast } = useToast();
-  const [motto, setMotto] = useState('忠厚传家远，诗书继世长');
+  const [motto, setMotto] = useState(() => localStorage.getItem(MOTTO_KEY) ?? DEFAULT_MOTTO);
 
   const handleSave = () => {
+    if (!motto.trim()) {
+      addToast('家训内容不能为空', 'error');
+      return;
+    }
+    localStorage.setItem(MOTTO_KEY, motto.trim());
     addToast('家训已保存', 'success');
     navigate('/family');
   };

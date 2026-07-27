@@ -634,8 +634,11 @@ export default function DigitalLife() {
       <div className="digital-stats-row">
         {stats.map((s, i) => {
           const statPaths = ['/digital-person', '/digital-person', '/digital-person/training-records', '/digital-person', '/government'];
+          // MVP 模式下训练记录与政务服务未开放，点击统计卡统一回到数字人首页（与训练记录按钮的处理一致）
+          const mvpBlocked = statPaths[i] === '/government' || statPaths[i] === '/digital-person/training-records';
+          const target = isMVP && mvpBlocked ? '/digital-person' : statPaths[i];
           return (
-            <div className="card digital-stat" key={i} onClick={() => navigate(statPaths[i])}>
+            <div className="card digital-stat" key={i} onClick={() => navigate(target)}>
               <div className="card-body">
                 <div className="digital-stat-icon"><s.icon size={22} color="#1B5E4B" /></div>
                 <div className="digital-stat-label">{s.label}</div>

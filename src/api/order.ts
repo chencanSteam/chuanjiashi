@@ -11,6 +11,8 @@ export const orderApi = {
 
   // 管理后台
   adminList: () => api.get<AdminOrder[]>('/api/admin/orders'),
+  adminCreate: (data: { userId: string; type: Order['type']; productName?: string; amount: number; remark?: string }) =>
+    api.post<AdminOrder>('/api/admin/orders', data),
   adminUpdateStatus: (id: string, status: OrderStatus) => api.put<AdminOrder>(`/api/admin/orders/${id}/status`, { status }),
   adminDeliver: (id: string, logistics: OrderLogistics) => api.put<AdminOrder>(`/api/admin/orders/${id}/deliver`, { logistics }),
   adminAddDeliverable: (id: string, deliverable: Deliverable) => api.put<AdminOrder>(`/api/admin/orders/${id}/deliverable`, { deliverable }),

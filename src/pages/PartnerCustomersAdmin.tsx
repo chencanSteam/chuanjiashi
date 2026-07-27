@@ -13,7 +13,8 @@ export default function PartnerCustomersAdmin() {
   const [customers, setCustomers] = useState<PartnerCustomer[]>([]);
   const [partners, setPartners] = useState<Partner[]>([]);
   const [keyword, setKeyword] = useState('');
-  const [selectedPartner, setSelectedPartner] = useState('');
+  const [filterPartnerId, setFilterPartnerId] = useState('');
+  const [bindPartnerId, setBindPartnerId] = useState('');
   const [newUserId, setNewUserId] = useState('');
   const [newUserName, setNewUserName] = useState('');
   const [refresh, setRefresh] = useState(0);
@@ -36,21 +37,21 @@ export default function PartnerCustomersAdmin() {
         c.userId.includes(keyword) ||
         c.userName?.includes(keyword) ||
         c.userPhone?.includes(keyword);
-      const matchPartner = !selectedPartner || c.partnerId === selectedPartner;
+      const matchPartner = !filterPartnerId || c.partnerId === filterPartnerId;
       return matchKeyword && matchPartner;
     });
-  }, [customers, keyword, selectedPartner]);
+  }, [customers, keyword, filterPartnerId]);
 
   const getPartner = (id: string) => partners.find((p) => p.id === id);
 
   const handleBind = async () => {
-    if (!selectedPartner || !newUserId.trim()) {
+    if (!bindPartnerId || !newUserId.trim()) {
       addToast('请选择合伙人并填写客户ID', 'error');
       return;
     }
     try {
       await partnerApi.bindCustomer({
-        partnerId: selectedPartner,
+        partnerId: bindPartnerId,
         userId: newUserId.trim(),
         userName: newUserName.trim() || undefined,
       });
@@ -73,7 +74,7 @@ export default function PartnerCustomersAdmin() {
         <div className="card-header"><h3 className="card-title"><Link2 size={16} /> 手动绑定客户</h3></div>
         <div className="card-body">
           <div className="partner-bind-form">
-            <select value={selectedPartner} onChange={(e) => setSelectedPartner(e.target.value)}>
+            <select value={bindPartnerId} onChange={(e) => setBindPartnerId(e.target.value)}>
               <option value="">选择合伙人</option>
               {partners.map((p) => (
                 <option value={p.id} key={p.id}>{p.name}（{getPartnerTypeLabel(p.type)}）</option>
@@ -94,7 +95,7 @@ export default function PartnerCustomersAdmin() {
               <Search size={14} />
               <input type="text" placeholder="搜索客户" value={keyword} onChange={(e) => setKeyword(e.target.value)} />
             </div>
-            <select value={selectedPartner} onChange={(e) => setSelectedPartner(e.target.value)}>
+            <select value={filterPartnerId} onChange={(e) => setFilterPartnerId(e.target.value)}>
               <option value="">全部合伙人</option>
               {partners.map((p) => (
                 <option value={p.id} key={p.id}>{p.name}</option>

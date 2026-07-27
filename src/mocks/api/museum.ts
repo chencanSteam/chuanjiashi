@@ -1,7 +1,8 @@
 import { http, type HttpHandler } from 'msw'
-import { success, unauthorized, notFound } from '../utils/response'
+import { success, fail, unauthorized, notFound } from '../utils/response'
 import { getItem, setItem, generateId, storeKeys } from '../utils/store'
-import type { Museum, Biography, TimelineEvent, Material } from '../types'
+import { defaultMuseumMessages, DEMO_MUSEUM_ARCHIVE_ID, defaultDemoBiography, defaultDemoTimeline, defaultDemoMaterials, defaultDemoMuseum } from '../data/seed'
+import type { Museum, Biography, TimelineEvent, Material, MuseumMessage } from '../types'
 
 function getCurrentUserId(): string | null {
   const user = getItem<{ id: string } | null>(storeKeys.currentUser, null)
@@ -40,8 +41,34 @@ function buildMuseumData(archiveId: string) {
   }
 }
 
+/**
+ * 懒加载演示数字博物馆（archiveId 固定为 'demo'）。
+ * 仅当 demo 博物馆不存在时播种，各 store 只追加缺失的 demo 记录，
+ * 不影响用户已有的任何数据。
+ */
+function ensureDemoMuseum(): void {
+  const museums = getItem<Museum[]>(storeKeys.museums, [])
+  if (museums.some(m => m.archiveId === DEMO_MUSEUM_ARCHIVE_ID)) return
+
+  const biographies = getItem<Biography[]>(storeKeys.biographies, [])
+  if (!biographies.some(b => b.archiveId === DEMO_MUSEUM_ARCHIVE_ID)) {
+    setItem(storeKeys.biographies, [...biographies, defaultDemoBiography])
+  }
+
+  const timeline = getItem<TimelineEvent[]>(storeKeys.timeline, [])
+  const missingEvents = defaultDemoTimeline.filter(e => !timeline.some(t => t.id === e.id))
+  if (missingEvents.length > 0) setItem(storeKeys.timeline, [...timeline, ...missingEvents])
+
+  const materials = getItem<Material[]>(storeKeys.materials, [])
+  const missingMaterials = defaultDemoMaterials.filter(m => !materials.some(x => x.id === m.id))
+  if (missingMaterials.length > 0) setItem(storeKeys.materials, [...materials, ...missingMaterials])
+
+  setItem(storeKeys.museums, [...museums, defaultDemoMuseum])
+}
+
 export const museumHandlers: HttpHandler[] = [
   http.get('/api/museums/:archiveId', async ({ params }) => {
+    ensureDemoMuseum()
     const archiveId = params.archiveId as string
     let museum = findMuseum(archiveId)
     if (!museum) {
@@ -57,6 +84,7 @@ export const museumHandlers: HttpHandler[] = [
         visitors: 0,
         likes: 0,
         candles: 0,
+        flowers: 0,
         createdAt: new Date().toISOString(),
       }
       saveMuseum(museum)
@@ -89,6 +117,68 @@ export const museumHandlers: HttpHandler[] = [
     museum.candles += 1
     saveMuseum(museum)
     return success(museum)
+  }),
+
+  // 献花计数
+  http.post('/api/museums/:archiveId/flower', async ({ params }) => {
+    const museum = findMuseum(params.archiveId as string)
+    if (!museum) return notFound('数字馆不存在')
+    museum.flowers += 1
+    saveMuseum(museum)
+    return success(museum)
+  }),
+
+  // 访问统计（含近 7 日访问趋势）
+  http.get('/api/museums/:archiveId/stats', async ({ params }) => {
+    // 与 GET /api/museums/:archiveId 并行请求时可能先到达，需幂等播种 demo 馆
+    ensureDemoMuseum()
+    const museum = findMuseum(params.archiveId as string)
+    if (!museum) return notFound('数字馆不存在')
+    const daily = Array.from({ length: 7 }, (_, i) => ({
+      date: new Date(Date.now() - (6 - i) * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+      views: Math.max(1, Math.round(museum.views / 7) + i),
+      visitors: Math.max(1, Math.round(museum.visitors / 7) + i),
+    }))
+    return success({
+      views: museum.views,
+      visitors: museum.visitors,
+      likes: museum.likes,
+      candles: museum.candles,
+      flowers: museum.flowers,
+      daily,
+    })
+  }),
+
+  // 留言列表
+  http.get('/api/museums/:archiveId/messages', async ({ params }) => {
+    const archiveId = params.archiveId as string
+    let messages = getItem<MuseumMessage[]>(storeKeys.museumMessages, [])
+    if (messages.length === 0) {
+      messages = defaultMuseumMessages
+      setItem(storeKeys.museumMessages, messages)
+    }
+    return success(messages.filter((m) => m.archiveId === archiveId))
+  }),
+
+  // 发表留言
+  http.post('/api/museums/:archiveId/messages', async ({ params, request }) => {
+    const user = getItem<{ id: string; nickname?: string } | null>(storeKeys.currentUser, null)
+    if (!user) return unauthorized()
+    const museum = findMuseum(params.archiveId as string)
+    if (!museum) return notFound('数字馆不存在')
+    const { content } = (await request.json()) as { content?: string }
+    if (!content || !content.trim()) return fail('留言内容不能为空')
+    const messages = getItem<MuseumMessage[]>(storeKeys.museumMessages, [])
+    const message: MuseumMessage = {
+      id: generateId(),
+      archiveId: museum.archiveId,
+      userNickname: user.nickname || '匿名访客',
+      content: content.trim(),
+      createdAt: new Date().toISOString(),
+    }
+    messages.unshift(message)
+    setItem(storeKeys.museumMessages, messages)
+    return success(message, '留言成功')
   }),
 
   http.post('/api/museums/:archiveId/share', async ({ params }) => {

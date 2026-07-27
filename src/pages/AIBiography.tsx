@@ -18,6 +18,8 @@ import {
   Video,
   File,
   DollarSign,
+  RefreshCw,
+  Copy,
 } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 import { useAuth } from '../hooks/useAuth';
@@ -82,6 +84,88 @@ function loadArchiveMediaItems(archiveId: string): ArchiveMediaItem[] {
   return [];
 }
 
+type DerivedTab = 'quotes' | 'motto' | 'letter' | 'timeline';
+
+type BiographyStyle = 'plain' | 'warm' | 'classical' | 'news';
+type WordCountLevel = 'short' | 'standard' | 'long';
+
+const styleOptions: { key: BiographyStyle; label: string }[] = [
+  { key: 'plain', label: '朴实自然' },
+  { key: 'warm', label: '温情叙事' },
+  { key: 'classical', label: '典雅文言' },
+  { key: 'news', label: '新闻纪实' },
+];
+
+const wordCountOptions: { key: WordCountLevel; label: string }[] = [
+  { key: 'short', label: '短篇 · 约5000字' },
+  { key: 'standard', label: '标准 · 约15000字' },
+  { key: 'long', label: '长篇 · 约30000字' },
+];
+
+const derivedTabLabels: Record<DerivedTab, string> = {
+  quotes: '人生金句',
+  motto: '家风总结',
+  letter: '写给后人的话',
+  timeline: '人生时间线',
+};
+
+function buildDerivedVariants(tab: DerivedTab, name: string, birthYear: string): string[][] {
+  const year = birthYear || '1958';
+  switch (tab) {
+    case 'quotes':
+      return [
+        [
+          '人这一辈子，吃的是苦，留下的是甜。',
+          '手上有茧，心里才不慌。',
+          '日子再难，也不能丢了诚信二字。',
+          '家和万事兴，不是一句口号，是一辈子的事。',
+        ],
+        [
+          '做人要实在，做事要踏实。',
+          '吃亏是福，忍让是德。',
+          '书可以不读多，但理不能不懂。',
+          '对上要敬，对下要慈，对己要严。',
+        ],
+      ];
+    case 'motto':
+      return [
+        [
+          `${name}一生勤勉正直、节俭持家。他/她常教导子女：做人先立德，做事先尽心。家里不富裕时，宁可自己省吃俭用，也要供孩子读书；邻里有难，总是第一个伸手。这种「勤、俭、诚、善」的家风，是这个家庭最宝贵的财富。`,
+        ],
+        [
+          `${name}用一生诠释了「忠厚传家久，诗书继世长」。无论顺境逆境，始终坚守诚信本分，孝顺长辈、疼爱晚辈、友善待人。他/她留下的不只是回忆，更是一种可以代代相传的处世之道。`,
+        ],
+      ];
+    case 'letter':
+      return [
+        [
+          `亲爱的孩子们：我是${name}。人这一生，说长不长，说短不短。我没什么大道理留给你们，只希望你们记住三件事：一是堂堂正正做人，走到哪里都抬得起头；二是踏踏实实做事，天上不会掉馅饼；三是常回家看看，家人团聚比什么都重要。家里的故事，我都写在这本传记里了，想我的时候，就翻一翻。`,
+        ],
+        [
+          `孩子们，当你们读到这段话时，我已把一生的经历都留在了这本书里。我经历过苦日子，也赶上了好时代。请记住：不要怕吃苦，苦尽自有甘来；不要忘本，根在哪里，心就在哪里。愿你们兄弟姊妹和睦，把咱们的家风一代代传下去。——${name}`,
+        ],
+      ];
+    case 'timeline':
+      return [
+        [
+          `${year}年 · 出生，在一个普通家庭中长大`,
+          `${Number(year) + 18}年 · 青年时期，参加工作/务农，挑起家庭重担`,
+          `${Number(year) + 26}年 · 成家立业，迎来人生新阶段`,
+          `${Number(year) + 40}年 · 中年打拼，为子女教育与家庭奔波`,
+          `${Number(year) + 60}年 · 退休生活，含饴弄孙，安享天伦`,
+        ],
+        [
+          `${year}年 · 出生于故乡`,
+          `${Number(year) + 16}年 · 求学/学徒，习得立身之本`,
+          `${Number(year) + 24}年 · 婚姻大事，组建自己的小家庭`,
+          `${Number(year) + 35}年 · 事业转折点，抓住时代机遇`,
+          `${Number(year) + 55}年 · 子女成才，家庭渐趋圆满`,
+          `${Number(year) + 65}年 · 回望一生，著此传记以飨后人`,
+        ],
+      ];
+  }
+}
+
 export default function AIBiography() {
   const navigate = useNavigate();
   const { addToast } = useToast();
@@ -101,6 +185,35 @@ export default function AIBiography() {
   const [importText, setImportText] = useState('');
   const [importingFile, setImportingFile] = useState(false);
   const [preview, setPreview] = useState<{ type: string; title: string } | null>(null);
+  const [derivedTab, setDerivedTab] = useState<DerivedTab>('quotes');
+  const [derivedResults, setDerivedResults] = useState<Partial<Record<DerivedTab, string[]>>>({});
+  const [derivedGenerating, setDerivedGenerating] = useState(false);
+
+  const handleDerivedGenerate = () => {
+    setDerivedGenerating(true);
+    setTimeout(() => {
+      const variants = buildDerivedVariants(derivedTab, subjectName, archive?.birthYear || '');
+      const current = derivedResults[derivedTab];
+      let next = variants[Math.floor(Math.random() * variants.length)];
+      if (variants.length > 1 && current && JSON.stringify(next) === JSON.stringify(current)) {
+        next = variants[(variants.indexOf(next) + 1) % variants.length];
+      }
+      setDerivedResults((prev) => ({ ...prev, [derivedTab]: next }));
+      setDerivedGenerating(false);
+      addToast(`「${derivedTabLabels[derivedTab]}」已生成`, 'success');
+    }, 800);
+  };
+
+  const handleDerivedCopy = async () => {
+    const content = derivedResults[derivedTab];
+    if (!content) return;
+    try {
+      await navigator.clipboard.writeText(content.join('\n'));
+      addToast('已复制到剪贴板', 'success');
+    } catch {
+      addToast('复制失败，请手动选择文本复制', 'error');
+    }
+  };
 
   const activeChapter = chapters[activeIndex];
   const editorRef = useRef<HTMLDivElement>(null);
@@ -170,8 +283,23 @@ export default function AIBiography() {
     e.target.value = '';
   };
 
-  const [biographyStyle, setBiographyStyle] = useState<'plain' | 'warm' | 'family'>('warm');
-  const [wordCountLevel, setWordCountLevel] = useState<'short' | 'standard' | 'long'>('standard');
+  const [biographyStyle, setBiographyStyle] = useState<BiographyStyle>(() =>
+    loadJson<BiographyStyle>(`cj_biography_style_${archiveId}`, 'warm')
+  );
+  const [wordCountLevel, setWordCountLevel] = useState<WordCountLevel>(() =>
+    loadJson<WordCountLevel>(`cj_biography_word_count_${archiveId}`, 'standard')
+  );
+
+  useEffect(() => {
+    saveJson(`cj_biography_style_${archiveId}`, biographyStyle);
+  }, [biographyStyle, archiveId]);
+
+  useEffect(() => {
+    saveJson(`cj_biography_word_count_${archiveId}`, wordCountLevel);
+  }, [wordCountLevel, archiveId]);
+
+  const styleLabel = styleOptions.find((s) => s.key === biographyStyle)?.label || '温情叙事';
+  const wordCountLabel = wordCountOptions.find((w) => w.key === wordCountLevel)?.label || '标准 · 约15000字';
 
   const handleGenerate = async () => {
     try {
@@ -181,6 +309,7 @@ export default function AIBiography() {
       return;
     }
     setGenerating(true);
+    addToast(`以「${styleLabel}」文风、${wordCountLabel}档位生成`, 'info');
 
     try {
       const isFirstGenerate = chapters.every((c) => c.status === 'notGenerated');
@@ -195,7 +324,7 @@ export default function AIBiography() {
             updatedAt: new Date().toLocaleString('zh-CN'),
           }))
         );
-        addToast('传记全部章节已生成', 'success');
+        addToast(`传记全部章节已生成（${styleLabel} · ${wordCountLabel}）`, 'success');
       } else {
         const biography = await biographyApi.regenerateChapter(archiveId, activeChapter.title);
         const regenerated = biography.chapters.find((c) => c.title === activeChapter.title);
@@ -205,7 +334,7 @@ export default function AIBiography() {
             content: regenerated.content,
             updatedAt: new Date().toLocaleString('zh-CN'),
           });
-          addToast(`「${activeChapter.title}」重新生成完成`, 'success');
+          addToast(`「${activeChapter.title}」已按${styleLabel}文风重新生成`, 'success');
         }
       }
     } catch (err: any) {
@@ -524,43 +653,35 @@ export default function AIBiography() {
                   })}
                 </div>
               )}
-              <div className="setting-row">
-                <label>叙事风格</label>
-                <select
-                  className="setting-select"
-                  value={biographyStyle === 'plain' ? '纪实简洁风' : biographyStyle === 'family' ? '家族传承风' : '温馨叙事风'}
-                  onChange={(e) => {
-                    const map: Record<string, 'plain' | 'warm' | 'family'> = {
-                      '纪实简洁风': 'plain',
-                      '温馨叙事风': 'warm',
-                      '家族传承风': 'family',
-                    };
-                    setBiographyStyle(map[e.target.value] || 'warm');
-                  }}
-                >
-                  <option>温馨叙事风</option>
-                  <option>纪实简洁风</option>
-                  <option>家族传承风</option>
-                </select>
+              <div className="setting-row setting-row-chips">
+                <label>文风选择</label>
+                <div className="option-chips">
+                  {styleOptions.map((s) => (
+                    <button
+                      key={s.key}
+                      type="button"
+                      className={`option-chip ${biographyStyle === s.key ? 'active' : ''}`}
+                      onClick={() => setBiographyStyle(s.key)}
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
               </div>
-              <div className="setting-row">
-                <label>章节长度</label>
-                <select
-                  className="setting-select"
-                  value={wordCountLevel === 'short' ? '精简' : wordCountLevel === 'long' ? '详细' : '适中'}
-                  onChange={(e) => {
-                    const map: Record<string, 'short' | 'standard' | 'long'> = {
-                      '精简': 'short',
-                      '适中': 'standard',
-                      '详细': 'long',
-                    };
-                    setWordCountLevel(map[e.target.value] || 'standard');
-                  }}
-                >
-                  <option>适中</option>
-                  <option>精简</option>
-                  <option>详细</option>
-                </select>
+              <div className="setting-row setting-row-chips">
+                <label>字数档位</label>
+                <div className="option-chips">
+                  {wordCountOptions.map((w) => (
+                    <button
+                      key={w.key}
+                      type="button"
+                      className={`option-chip ${wordCountLevel === w.key ? 'active' : ''}`}
+                      onClick={() => setWordCountLevel(w.key)}
+                    >
+                      {w.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
@@ -597,6 +718,46 @@ export default function AIBiography() {
                 <Sparkles size={14} /> 创建数字人
               </button>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="card derived-card">
+        <div className="card-header">
+          <h3 className="card-title"><Sparkles size={14} /> 衍生内容</h3>
+          <span className="card-extra">基于已生成传记智能提炼</span>
+        </div>
+        <div className="card-body derived-body">
+          <div className="derived-tabs">
+            {(Object.keys(derivedTabLabels) as DerivedTab[]).map((t) => (
+              <button
+                key={t}
+                className={`derived-tab ${derivedTab === t ? 'active' : ''}`}
+                onClick={() => setDerivedTab(t)}
+                type="button"
+              >
+                {derivedTabLabels[t]}
+              </button>
+            ))}
+          </div>
+          <div className="derived-result">
+            {derivedGenerating ? (
+              <div className="derived-empty">AI 正在提炼「{derivedTabLabels[derivedTab]}」…</div>
+            ) : derivedResults[derivedTab] ? (
+              derivedResults[derivedTab]!.map((text, i) => <p key={i}>{text}</p>)
+            ) : (
+              <div className="derived-empty">
+                点击下方「生成」按钮，AI 将基于传记内容提炼{derivedTabLabels[derivedTab]}。
+              </div>
+            )}
+          </div>
+          <div className="derived-actions">
+            <button className="btn btn-primary" onClick={handleDerivedGenerate} disabled={derivedGenerating}>
+              <RefreshCw size={14} /> {derivedGenerating ? '生成中…' : derivedResults[derivedTab] ? '重新生成' : '生成'}
+            </button>
+            <button className="btn btn-outline" onClick={handleDerivedCopy} disabled={!derivedResults[derivedTab]}>
+              <Copy size={14} /> 复制
+            </button>
           </div>
         </div>
       </div>

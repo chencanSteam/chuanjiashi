@@ -1,0 +1,152 @@
+.groupbuy-mgmt-page .page-header {
+  margin-bottom: 20px;
+}
+
+.groupbuy-rules-body {
+  max-width: 480px;
+}
+
+.groupbuy-current-activity {
+  font-size: 13px;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  margin-bottom: 16px;
+}
+
+.groupbuy-section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin: 20px 0 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-light);
+}
+
+.groupbuy-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.groupbuy-check input {
+  width: 16px;
+  height: 16px;
+  accent-color: #1B5E4B;
+}
+
+.groupbuy-body {
+  padding: 0;
+}
+
+.groupbuy-empty {
+  text-align: center;
+  padding: 48px 20px;
+  color: var(--text-muted);
+}
+
+.groupbuy-table {
+  display: table;
+  width: 100%;
+  min-width: 860px;
+}
+
+.groupbuy-row {
+  display: table-row;
+}
+
+.groupbuy-header-row {
+  background: var(--bg-secondary);
+  font-weight: 500;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.groupbuy-row:not(.groupbuy-header-row) {
+  border-bottom: 1px solid var(--border-light);
+}
+
+.groupbuy-cell {
+  display: table-cell;
+  padding: 12px 14px;
+  vertical-align: middle;
+  font-size: 13px;
+}
+
+.groupbuy-money {
+  color: #1B5E4B;
+  font-weight: 600;
+}
+
+.groupbuy-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.groupbuy-progress-bar {
+  width: 100px;
+  height: 6px;
+  background: var(--bg-secondary);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.groupbuy-progress-inner {
+  height: 100%;
+  background: #1B5E4B;
+  border-radius: 999px;
+}
+
+.groupbuy-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+
+.groupbuy-status.pending {
+  background: rgba(217, 119, 6, 0.1);
+  color: #d97706;
+}
+
+.groupbuy-status.success {
+  background: rgba(27, 94, 75, 0.08);
+  color: #1B5E4B;
+}
+
+.groupbuy-status.failed {
+  background: rgba(220, 38, 38, 0.08);
+  color: #dc2626;
+}
+
+.groupbuy-status.refunded {
+  background: rgba(124, 58, 237, 0.08);
+  color: #7c3aed;
+}
+
+.groupbuy-refund-btn {
+  padding: 4px 12px;
+  font-size: 12px;
+}
+
+@media (max-width: 960px) {
+  .groupbuy-table {
+    min-width: unset;
+    display: block;
+  }
+
+  .groupbuy-row,
+  .groupbuy-cell {
+    display: block;
+  }
+
+  .groupbuy-header-row {
+    display: none;
+  }
+}

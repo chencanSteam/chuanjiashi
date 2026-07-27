@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useState } from 'react';
 import { useToast } from '../hooks/useToast';
 import { familyApi } from '../api/family';
-import { generateImageDataUrl } from '../utils/mediaPlaceholder';
+import { downloadDataUrl } from '../utils/albumStorage';
 import './EventEdit.css';
 
 interface ArchiveEvent {
@@ -11,6 +11,41 @@ interface ArchiveEvent {
   endYear?: string;
   title: string;
   desc: string;
+}
+
+interface Attachment {
+  id: string;
+  name: string;
+  size: number;
+  mime: string;
+  dataUrl?: string;
+}
+
+const MAX_ATTACHMENT_SIZE = 2 * 1024 * 1024; // 2MB
+
+function formatSize(bytes: number): string {
+  if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)}MB`;
+  if (bytes >= 1024) return `${(bytes / 1024).toFixed(1)}KB`;
+  return `${bytes}B`;
+}
+
+function readAttachments(files: FileList): Promise<Attachment[]> {
+  return Promise.all(
+    Array.from(files).map(
+      (file) =>
+        new Promise<Attachment>((resolve) => {
+          const base = { id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, name: file.name, size: file.size, mime: file.type || 'application/octet-stream' };
+          if (file.size > MAX_ATTACHMENT_SIZE) {
+            resolve({ ...base });
+            return;
+          }
+          const reader = new FileReader();
+          reader.onload = () => resolve({ ...base, dataUrl: String(reader.result) });
+          reader.onerror = () => resolve({ ...base });
+          reader.readAsDataURL(file);
+        }),
+    ),
+  );
 }
 
 function loadArchiveEvents(archiveId: string): ArchiveEvent[] {
@@ -40,7 +75,7 @@ export default function EventEdit() {
   const safeYear = year ?? '1992';
   const archiveId = localStorage.getItem('cj_current_archive_id') ?? 'default';
   const detail = eventDetails[safeYear] ?? eventDetails['1992'];
-  const loadSaved = (): typeof detail => {
+  const loadSaved = (): typeof detail & { attachments: Attachment[] } => {
     const saved = localStorage.getItem(`event-${archiveId}-${safeYear}`);
     if (saved) {
       try {
@@ -50,10 +85,11 @@ export default function EventEdit() {
           subtitle: parsed.subtitle ?? detail.subtitle,
           content: parsed.content ?? detail.content,
           tags: parsed.tags ?? detail.tags,
+          attachments: Array.isArray(parsed.attachments) ? parsed.attachments : [],
         };
       } catch { /* ignore */ }
     }
-    return detail;
+    return { ...detail, attachments: [] };
   };
   const initial = loadSaved();
   const [archiveEvents, setArchiveEvents] = useState<ArchiveEvent[]>(() => loadArchiveEvents(archiveId));
@@ -65,10 +101,11 @@ export default function EventEdit() {
   const [endYear, setEndYear] = useState(currentEvent?.endYear ?? '');
   const [showTagInput, setShowTagInput] = useState(false);
   const [newTag, setNewTag] = useState('');
-  const [preview, setPreview] = useState<{ title: string; type: string } | null>(null);
+  const [attachments, setAttachments] = useState<Attachment[]>(initial.attachments);
+  const [preview, setPreview] = useState<Attachment | null>(null);
 
   const saveEvent = async () => {
-    localStorage.setItem(`event-${archiveId}-${safeYear}`, JSON.stringify({ title, subtitle, content, tags }));
+    localStorage.setItem(`event-${archiveId}-${safeYear}`, JSON.stringify({ title, subtitle, content, tags, attachments }));
     const nextEvents = archiveEvents.map((e) =>
       e.year === safeYear ? { ...e, endYear: endYear.trim() || undefined } : e
     );
@@ -76,7 +113,7 @@ export default function EventEdit() {
     setArchiveEvents(nextEvents);
     try {
       await familyApi.syncPlace(archiveId, subtitle, safeYear, title);
-    } catch {}
+    } catch { /* 同步失败不影响本地保存 */ }
     addToast('事件已保存', 'success');
     navigate(-1);
   };
@@ -162,22 +199,47 @@ export default function EventEdit() {
             <div className="form-field form-field-full">
               <label><ImageIcon size={14} /> 附件与照片</label>
               <div className="edit-attachments">
-                <div className="edit-attach-item" onClick={() => setPreview({ type: 'doc', title: '创业计划书.pdf' })}>
-                  <div className="edit-attach-icon doc"><FileText size={18} /></div>
-                  <div className="edit-attach-name">创业计划书.pdf</div>
-                  <div className="edit-attach-meta">文档</div>
-                </div>
-                <div className="edit-attach-item" onClick={() => setPreview({ type: 'image', title: '老照片.jpg' })}>
-                  <div className="edit-attach-icon image"><ImageIcon size={18} /></div>
-                  <div className="edit-attach-name">老照片.jpg</div>
-                  <div className="edit-attach-meta">图片</div>
-                </div>
+                {attachments.map((att) => {
+                  const isImage = att.mime.startsWith('image/');
+                  return (
+                    <div className="edit-attach-item" key={att.id} onClick={() => setPreview(att)}>
+                      <div className={`edit-attach-icon ${isImage ? 'image' : 'doc'}`}>{isImage ? <ImageIcon size={18} /> : <FileText size={18} />}</div>
+                      <div className="edit-attach-name">{att.name}</div>
+                      <div className="edit-attach-meta">{isImage ? '图片' : '文档'} · {formatSize(att.size)}</div>
+                      <button
+                        className="edit-tag-remove"
+                        title="删除附件"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setAttachments((prev) => prev.filter((a) => a.id !== att.id));
+                          addToast('附件已删除', 'info');
+                        }}
+                      >
+                        <X size={10} />
+                      </button>
+                    </div>
+                  );
+                })}
                 <label className="edit-attach-item edit-attach-upload">
                   <Upload size={20} />
                   <span>上传附件</span>
-                  <input type="file" hidden onChange={() => addToast('附件上传成功', 'success')} />
+                  <input
+                    type="file"
+                    hidden
+                    multiple
+                    onChange={async (e) => {
+                      if (!e.target.files || e.target.files.length === 0) return;
+                      const oversized = Array.from(e.target.files).filter((f) => f.size > MAX_ATTACHMENT_SIZE);
+                      if (oversized.length > 0) addToast(`${oversized.length} 个文件超过 2MB，仅保存文件信息`, 'info');
+                      const added = await readAttachments(e.target.files);
+                      setAttachments((prev) => [...prev, ...added]);
+                      e.target.value = '';
+                      addToast(`已添加 ${added.length} 个附件，保存事件后生效`, 'success');
+                    }}
+                  />
                 </label>
               </div>
+              {attachments.length === 0 && <div className="edit-attach-empty">暂无附件，点击「上传附件」添加（单个不超过 2MB）</div>}
             </div>
           </div>
         </div>
@@ -185,11 +247,14 @@ export default function EventEdit() {
       {preview && (
         <div className="modal-overlay" onClick={() => setPreview(null)}>
           <div className="modal-content preview-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header"><h4>{preview.title}</h4><button className="modal-close" onClick={() => setPreview(null)}>关闭</button></div>
+            <div className="modal-header"><h4>{preview.name}</h4><button className="modal-close" onClick={() => setPreview(null)}>关闭</button></div>
             <div className="modal-body preview-body">
-              {preview.type === 'image' && <img className="preview-image" src={generateImageDataUrl(preview.title)} alt={preview.title} />}
-              {preview.type === 'doc' && <div className="preview-doc"><FileText size={48} /></div>}
-              <p>正在预览：{preview.title}</p>
+              {preview.mime.startsWith('image/') && preview.dataUrl && <img className="preview-image" src={preview.dataUrl} alt={preview.name} />}
+              {!preview.mime.startsWith('image/') && <div className="preview-doc"><FileText size={48} /></div>}
+              <p>正在预览：{preview.name}（{formatSize(preview.size)}）</p>
+              {preview.dataUrl && (
+                <button className="btn btn-outline" onClick={() => downloadDataUrl(preview.dataUrl!, preview.name)}><Upload size={14} /> 下载附件</button>
+              )}
             </div>
           </div>
         </div>

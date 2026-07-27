@@ -335,3 +335,225 @@
     height: 200px;
   }
 }
+
+/* 阅读区（试读 / 全本） */
+.biography-shelf-content {
+  margin-top: 24px;
+  padding: 28px;
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+}
+
+.biography-shelf-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 18px;
+  font-size: 17px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.biography-shelf-reader p {
+  margin: 0 0 14px;
+  font-size: 15px;
+  line-height: 1.9;
+  color: #374151;
+  text-indent: 2em;
+}
+
+.biography-shelf-unlock-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 8px;
+  padding: 16px 20px;
+  border: 1px dashed #d1d5db;
+  border-radius: 12px;
+  background: #f9fafb;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.biography-shelf-unlock-bar .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* 评论区 */
+.biography-shelf-comments {
+  margin-top: 24px;
+  padding: 28px;
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+}
+
+.biography-shelf-comment-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.biography-shelf-comment-form textarea {
+  padding: 12px 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  font-size: 14px;
+  color: #374151;
+  outline: none;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.biography-shelf-comment-form textarea:focus {
+  border-color: #1b5e4b;
+}
+
+.biography-shelf-comment-form .btn {
+  align-self: flex-end;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.biography-shelf-comment-empty {
+  padding: 32px 0;
+  text-align: center;
+  color: #9ca3af;
+  font-size: 13px;
+}
+
+.biography-shelf-comment-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.biography-shelf-comment {
+  padding: 14px 0;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.biography-shelf-comment:last-child {
+  border-bottom: none;
+}
+
+.biography-shelf-comment-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.biography-shelf-comment-user {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1b5e4b;
+}
+
+.biography-shelf-comment-time {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.biography-shelf-comment-text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.7;
+  color: #374151;
+}
+
+/* 热度榜单 */
+.biography-shelf-rank {
+  margin-bottom: 24px;
+  padding: 20px 24px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+}
+
+.biography-shelf-rank-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 14px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.biography-shelf-rank-title svg {
+  color: #dc2626;
+}
+
+.biography-shelf-rank-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.biography-shelf-rank-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 8px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.biography-shelf-rank-item:hover {
+  background: #f9fafb;
+}
+
+.biography-shelf-rank-no {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #9ca3af;
+  background: #f3f4f6;
+  flex-shrink: 0;
+}
+
+.biography-shelf-rank-no.rank-1 {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.biography-shelf-rank-no.rank-2 {
+  background: #ffedd5;
+  color: #d97706;
+}
+
+.biography-shelf-rank-no.rank-3 {
+  background: #fef9c3;
+  color: #a16207;
+}
+
+.biography-shelf-rank-book {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  color: #374151;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.biography-shelf-rank-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #9ca3af;
+  flex-shrink: 0;
+}

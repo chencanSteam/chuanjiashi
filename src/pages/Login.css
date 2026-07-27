@@ -200,6 +200,67 @@
   color: #9ca3af;
   margin-top: 16px;
 }
+
+/* 协议勾选 */
+.login-agreement {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 14px;
+  cursor: pointer;
+  line-height: 1.6;
+}
+
+.login-agreement input[type='checkbox'] {
+  margin-top: 3px;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
+.login-agreement-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--primary);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.login-agreement-link:hover {
+  text-decoration: underline;
+}
+
+/* 微信授权登录 */
+.login-wechat {
+  width: 100%;
+  justify-content: center;
+  margin-top: 12px;
+  background: #07c160;
+  border-color: #07c160;
+  color: #fff;
+}
+
+.login-wechat:hover {
+  background: #06ad56;
+  border-color: #06ad56;
+  color: #fff;
+}
+
+/* 协议内容弹窗 */
+.agreement-modal-body {
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+.agreement-modal-body p {
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.9;
+  margin: 0 0 12px;
+  text-indent: 2em;
+}
 .entry-selector {
   margin-bottom: 24px;
 }
@@ -315,6 +376,15 @@
   background: #f5f3ff;
 }
 
+.portal-card.mobile:hover {
+  border-color: #c45c26;
+  background: #fff7f2;
+}
+
+.portal-card.mobile {
+  grid-column: span 2;
+}
+
 .portal-card svg {
   color: var(--primary);
 }
@@ -329,6 +399,10 @@
 
 .portal-card.biographer svg {
   color: #7c3aed;
+}
+
+.portal-card.mobile svg {
+  color: #c45c26;
 }
 
 .portal-name {

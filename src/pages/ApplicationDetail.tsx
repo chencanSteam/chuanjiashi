@@ -12,10 +12,10 @@ const appData: Record<string, { name: string; type: string; status: string; date
 
 export default function ApplicationDetail() {
   const navigate = useNavigate();
-  const { code } = useParams<{ code: string }>();
+  const { id } = useParams<{ id: string }>();
   const { addToast } = useToast();
   const [showProof, setShowProof] = useState(false);
-  const decodedCode = decodeURIComponent(code ?? '');
+  const decodedCode = decodeURIComponent(id ?? '');
   const data = appData[decodedCode] ?? appData['ZJ-20260618-001'];
 
   return (

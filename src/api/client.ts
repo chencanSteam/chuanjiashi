@@ -21,7 +21,28 @@ async function request<T>(method: string, url: string, body?: unknown): Promise<
     options.body = JSON.stringify(body)
   }
   const res = await fetch(`${BASE_URL}${url}`, options)
-  const json = (await res.json()) as ApiResult<T>
+
+  // 先以文本形式读取，避免空响应导致 res.json() 抛错
+  const text = await res.text()
+
+  // 204 / 空响应体：视为无数据
+  if (!text) {
+    if (!res.ok) {
+      throw new Error(`请求失败 (${res.status})`)
+    }
+    return null as T
+  }
+
+  let json: ApiResult<T>
+  try {
+    json = JSON.parse(text) as ApiResult<T>
+  } catch {
+    // 返回的不是 JSON（例如 HTML 错误页）
+    // eslint-disable-next-line no-console
+    console.error('[api] 非 JSON 响应:', url, res.status, text.slice(0, 200))
+    throw new Error(`请求失败 (${res.status})`)
+  }
+
   if (!res.ok || json.code !== 200) {
     const err = new Error(json.message || '请求失败')
     ;(err as any).code = json.code
@@ -34,6 +55,7 @@ export const api = {
   get: <T>(url: string) => request<T>('GET', url),
   post: <T>(url: string, body?: unknown) => request<T>('POST', url, body),
   put: <T>(url: string, body?: unknown) => request<T>('PUT', url, body),
+  patch: <T>(url: string, body?: unknown) => request<T>('PATCH', url, body),
   delete: <T>(url: string) => request<T>('DELETE', url),
 }
 

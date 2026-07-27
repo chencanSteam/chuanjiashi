@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Search,
@@ -78,6 +78,41 @@ export default function Genealogy() {
   const [expandedOrigin, setExpandedOrigin] = useState(false);
   const [extraMembers, setExtraMembers] = useState<{ name: string; years: string }[]>([]);
   const [exporting, setExporting] = useState<Record<string, boolean>>({});
+  const [searchKeyword, setSearchKeyword] = useState('');
+  const [surnameFilter, setSurnameFilter] = useState('全部');
+  const [advancedInput, setAdvancedInput] = useState('');
+  const [appliedAdvanced, setAppliedAdvanced] = useState('');
+
+  const filteredGens = useMemo(() => {
+    const kw = searchKeyword.trim();
+    const adv = appliedAdvanced.trim();
+    return treeGens
+      .map((g) => ({
+        ...g,
+        members: g.members.filter((m) => {
+          if (surnameFilter !== '全部' && !m.name.startsWith(surnameFilter)) return false;
+          if (kw && !m.name.includes(kw) && !g.gen.includes(kw)) return false;
+          if (adv && !m.name.includes(adv) && !g.gen.includes(adv) && !m.years.includes(adv)) return false;
+          return true;
+        }),
+      }))
+      .filter((g) => g.members.length > 0);
+  }, [searchKeyword, surnameFilter, appliedAdvanced]);
+
+  const runAdvancedSearch = () => {
+    setAppliedAdvanced(advancedInput);
+    const kw = searchKeyword.trim();
+    const adv = advancedInput.trim();
+    const count = treeGens
+      .flatMap((g) => g.members.map((m) => ({ ...m, gen: g.gen })))
+      .filter((m) => {
+        if (surnameFilter !== '全部' && !m.name.startsWith(surnameFilter)) return false;
+        if (kw && !m.name.includes(kw) && !m.gen.includes(kw)) return false;
+        if (adv && !m.name.includes(adv) && !m.gen.includes(adv) && !m.years.includes(adv)) return false;
+        return true;
+      }).length;
+    addToast(`检索完成，共匹配 ${count} 位成员`, 'success');
+  };
 
   const zoomIn = () => setScale((s) => Math.min(2, Number((s + 0.1).toFixed(1))));
   const zoomOut = () => setScale((s) => Math.max(0.5, Number((s - 0.1).toFixed(1))));
@@ -132,14 +167,33 @@ export default function Genealogy() {
           <div className="card search-card">
             <div className="card-header"><h3 className="card-title">家谱检索</h3></div>
             <div className="card-body">
-              <div className="genealogy-search"><Search size={14} /><input type="text" placeholder="搜索姓名、字、号或称谓" /></div>
-              <div className="surname-filter"><span>按姓氏筛选</span><select><option>张</option></select></div>
+              <div className="genealogy-search">
+                <Search size={14} />
+                <input
+                  type="text"
+                  placeholder="搜索姓名、字、号或称谓"
+                  value={searchKeyword}
+                  onChange={(e) => setSearchKeyword(e.target.value)}
+                />
+              </div>
+              <div className="surname-filter">
+                <span>按姓氏筛选</span>
+                <select value={surnameFilter} onChange={(e) => setSurnameFilter(e.target.value)}>
+                  {['全部', '张', '李', '王', '刘', '陈', '周', '赵'].map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+              </div>
               <button className="advanced-search" onClick={() => setShowAdvanced((v) => !v)}>{showAdvanced ? '收起' : '高级检索'}</button>
               {showAdvanced && (
                 <div className="advanced-search-panel">
-                  <input type="text" placeholder="字、号、籍贯" />
-                  <select><option>全部性别</option><option>男</option><option>女</option></select>
-                  <button className="btn btn-primary btn-sm" onClick={() => addToast('开始高级检索', 'info')}>检索</button>
+                  <input
+                    type="text"
+                    placeholder="字、号、籍贯"
+                    value={advancedInput}
+                    onChange={(e) => setAdvancedInput(e.target.value)}
+                  />
+                  <button className="btn btn-primary btn-sm" onClick={runAdvancedSearch}>检索</button>
                 </div>
               )}
               <div className="surname-origin">
@@ -176,7 +230,10 @@ export default function Genealogy() {
               </div>
             )}
             <div className="card-body big-tree-body" style={{ transform: `scale(${scale})`, transformOrigin: 'top left' }}>
-              {treeGens.map((g, i) => (
+              {filteredGens.length === 0 && (
+                <div className="big-tree-empty">未找到匹配的成员，请调整检索条件</div>
+              )}
+              {filteredGens.map((g, i) => (
                 <div className="big-tree-gen" key={i}>
                   <div className="big-gen-label">{g.gen}</div>
                   <div className="big-gen-members">

@@ -273,6 +273,13 @@
   margin-top: 10px;
 }
 
+.big-tree-empty {
+  padding: 32px 16px;
+  text-align: center;
+  color: #9ca3af;
+  font-size: 13px;
+}
+
 .migration-card {
   grid-column: 3 / 4;
 }

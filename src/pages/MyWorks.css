@@ -141,3 +141,177 @@
     align-items: flex-start;
   }
 }
+
+/* 创作者收益 + 公开授权 */
+.work-extra {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #f3f4f6;
+}
+
+.work-earnings {
+  display: flex;
+  gap: 24px;
+}
+
+.work-earnings-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.work-earnings-value {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1f2937;
+  font-family: var(--font-family);
+}
+
+.work-earnings-total {
+  color: #b8860b;
+}
+
+.work-earnings-label {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.work-license {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.work-license-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: #4b5563;
+}
+
+.work-switch {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  border: none;
+  border-radius: 999px;
+  background: #e5e7eb;
+  cursor: pointer;
+  transition: background 0.2s;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.work-switch.on {
+  background: #1B5E4B;
+}
+
+.work-switch-dot {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s;
+}
+
+.work-switch.on .work-switch-dot {
+  transform: translateX(18px);
+}
+
+.work-license-status {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.work-license-status.on {
+  color: #1B5E4B;
+  font-weight: 500;
+}
+
+/* 已公开作品的授权详情行 */
+.work-license-detail {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+/* 公开到书架设置弹窗 */
+.license-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.license-field-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 8px;
+}
+
+.license-radio-group {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.license-radio {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #4b5563;
+  cursor: pointer;
+}
+
+.license-price-input {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: #374151;
+}
+
+.license-price-input input {
+  width: 120px;
+  padding: 8px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.license-custom-input {
+  width: 110px;
+  padding: 6px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.license-hint {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.license-error {
+  font-size: 12px;
+  color: #dc2626;
+}

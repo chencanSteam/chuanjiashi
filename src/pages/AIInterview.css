@@ -1337,3 +1337,80 @@
   background: rgba(184, 134, 11, 0.12);
   color: var(--accent);
 }
+
+/* 资料完整度 */
+.archive-completion {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px dashed #e8ecea;
+}
+
+.archive-completion-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.archive-completion-value {
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.archive-completion-bar {
+  height: 6px;
+  background: #eef1ef;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.archive-completion-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), #3d7a64);
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+
+.archive-completion-tip {
+  margin-top: 8px;
+  font-size: 11px;
+  color: #b8860b;
+}
+
+/* 素材处理 */
+.material-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.material-btn {
+  justify-content: flex-start;
+  width: 100%;
+}
+
+.material-progress {
+  margin-top: 4px;
+}
+
+.material-progress-text {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.material-progress-bar {
+  height: 6px;
+  background: #eef1ef;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.material-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), #3d7a64);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}

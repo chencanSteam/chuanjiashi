@@ -13,9 +13,20 @@ import {
   LogOut,
   ArrowLeft,
   ChevronDown,
+  ChevronRight,
   ShoppingCart,
   Brain,
   BookOpen,
+  LayoutDashboard,
+  FolderOpen,
+  PenLine,
+  Package,
+  TicketPercent,
+  Bot,
+  FileCheck,
+  ShieldAlert,
+  Settings,
+  Briefcase,
 } from 'lucide-react';
 import Avatar from './ui/Avatar';
 import { useAuth } from '../hooks/useAuth';
@@ -27,25 +38,96 @@ interface NavItem {
   label: string;
 }
 
-const adminNavItems: NavItem[] = [
-  { to: '/admin/biographers', icon: Users, label: '传记师管理' },
-  { to: '/admin/partners', icon: UserCheck, label: '合伙人管理' },
-  { to: '/admin/partner-applications', icon: ClipboardList, label: '合伙人申请' },
-  { to: '/admin/partner-customers', icon: Link2, label: '客户归属' },
-  { to: '/admin/orders', icon: ShoppingCart, label: '订单管理' },
-  { to: '/admin/commission-records', icon: TrendingUp, label: '分润流水' },
-  { to: '/admin/book-review', icon: BookOpen, label: '传记上架审核' },
-  { to: '/admin/withdrawals', icon: Wallet, label: '提现审核' },
-  { to: '/admin/user-invites', icon: Share2, label: '用户邀请奖励' },
-  { to: '/admin/ai-usage', icon: Brain, label: 'AI 使用情况' },
+interface NavGroup {
+  key: string;
+  icon: LucideIcon;
+  label: string;
+  items: NavItem[];
+}
+
+// 独立入口
+const dashboardNavItem: NavItem = { to: '/admin/dashboard', icon: LayoutDashboard, label: '总览看板' };
+
+const adminNavGroups: NavGroup[] = [
+  {
+    key: 'users',
+    icon: Users,
+    label: '用户与档案',
+    items: [
+      { to: '/admin/users', icon: Users, label: '用户管理' },
+      { to: '/admin/archives', icon: FolderOpen, label: '人物档案管理' },
+    ],
+  },
+  {
+    key: 'business',
+    icon: Briefcase,
+    label: '业务管理',
+    items: [
+      { to: '/admin/biographers', icon: PenLine, label: '传记师管理' },
+      { to: '/admin/partners', icon: UserCheck, label: '合伙人管理' },
+      { to: '/admin/partner-applications', icon: ClipboardList, label: '合伙人申请' },
+      { to: '/admin/partner-customers', icon: Link2, label: '客户归属' },
+      { to: '/admin/orders', icon: ShoppingCart, label: '订单管理' },
+      { to: '/admin/products', icon: Package, label: '产品套餐管理' },
+      { to: '/admin/group-buy', icon: TicketPercent, label: '拼团管理' },
+    ],
+  },
+  {
+    key: 'finance',
+    icon: Wallet,
+    label: '财务分润',
+    items: [
+      { to: '/admin/commission-records', icon: TrendingUp, label: '分润管理' },
+      { to: '/admin/withdrawals', icon: Wallet, label: '提现审核' },
+    ],
+  },
+  {
+    key: 'content',
+    icon: FileCheck,
+    label: '内容与合规',
+    items: [
+      { to: '/admin/book-review', icon: BookOpen, label: '传记上架审核' },
+      { to: '/admin/content-review', icon: FileCheck, label: '内容审核' },
+      { to: '/admin/compliance', icon: ShieldAlert, label: '合规风控' },
+    ],
+  },
+  {
+    key: 'operations',
+    icon: Settings,
+    label: '运营与系统',
+    items: [
+      { to: '/admin/user-invites', icon: Share2, label: '用户邀请奖励' },
+      { to: '/admin/ai-usage', icon: Brain, label: 'AI 使用情况' },
+      { to: '/admin/ai-tasks', icon: Bot, label: 'AI任务管理' },
+      { to: '/admin/settings', icon: Settings, label: '系统设置' },
+    ],
+  },
 ];
+
+function isGroupActive(group: NavGroup, pathname: string): boolean {
+  return group.items.some((item) => pathname.startsWith(item.to));
+}
 
 export default function AdminLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const pathname = location.pathname;
   const displayName = user?.name || user?.phone || '管理员';
   const [showUserMenu, setShowUserMenu] = useState(false);
+
+  // 用户手动折叠/展开的覆盖值；未覆盖时默认展开当前路由所在分组
+  const [expandedOverrides, setExpandedOverrides] = useState<Record<string, boolean>>({});
+
+  const isExpanded = (group: NavGroup) =>
+    expandedOverrides[group.key] ?? isGroupActive(group, pathname);
+
+  const toggleGroup = (key: string) => {
+    setExpandedOverrides((prev) => ({
+      ...prev,
+      [key]: !(prev[key] ?? adminNavGroups.some((g) => g.key === key && isGroupActive(g, pathname))),
+    }));
+  };
 
   useEffect(() => {
     setShowUserMenu(false);
@@ -71,15 +153,42 @@ export default function AdminLayout() {
 
         <nav className="nav">
           <ul className="nav-list">
-            {adminNavItems.map((item) => (
-              <li className="nav-item" key={item.to}>
-                <NavLink
-                  to={item.to}
-                  className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+            <li className="nav-item">
+              <NavLink
+                to={dashboardNavItem.to}
+                className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+              >
+                <dashboardNavItem.icon className="nav-icon" size={18} />
+                <span>{dashboardNavItem.label}</span>
+              </NavLink>
+            </li>
+
+            {adminNavGroups.map((group) => (
+              <li className={`nav-item nav-group ${isGroupActive(group, pathname) ? 'active' : ''}`} key={group.key}>
+                <button
+                  className="nav-group-header"
+                  onClick={() => toggleGroup(group.key)}
+                  type="button"
                 >
-                  <item.icon className="nav-icon" size={18} />
-                  <span>{item.label}</span>
-                </NavLink>
+                  <group.icon className="nav-icon" size={18} />
+                  <span>{group.label}</span>
+                  {isExpanded(group) ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                </button>
+                {isExpanded(group) && (
+                  <ul className="nav-sub-list">
+                    {group.items.map((item) => (
+                      <li className="nav-sub-item" key={item.to}>
+                        <NavLink
+                          to={item.to}
+                          className={({ isActive }) => `nav-sub-link ${isActive ? 'active' : ''}`}
+                        >
+                          <item.icon className="nav-icon" size={16} />
+                          <span>{item.label}</span>
+                        </NavLink>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </li>
             ))}
           </ul>
@@ -100,7 +209,7 @@ export default function AdminLayout() {
               <ChevronDown size={14} className={`user-menu-arrow ${showUserMenu ? 'open' : ''}`} />
               {showUserMenu && (
                 <div className="user-dropdown">
-                  <NavLink to="/" className="user-dropdown-item">
+                  <NavLink to="/home" className="user-dropdown-item">
                     <ArrowLeft size={14} /> 返回用户端
                   </NavLink>
                   <div className="user-dropdown-divider" />

@@ -24,6 +24,7 @@ import {
 import Avatar from '../components/ui/Avatar';
 import { useToast } from '../hooks/useToast';
 import { generateImageDataUrl } from '../utils/mediaPlaceholder';
+import { loadAlbumPhotos, readFilesAsDataUrls, saveAlbumPhotos, type AlbumPhoto } from '../utils/albumStorage';
 import './FamilySpace.css';
 
 const tabs = [
@@ -117,7 +118,13 @@ export default function FamilySpace() {
   const [storyFilter, setStoryFilter] = useState('最新故事');
   const [storyPageFilter, setStoryPageFilter] = useState('全部');
   const [albumCategory, setAlbumCategory] = useState('全部');
-  const [photoPreview, setPhotoPreview] = useState<{ title: string } | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<{ title: string; dataUrl?: string } | null>(null);
+  const [albumPhotos, setAlbumPhotos] = useState<Record<string, AlbumPhoto[]>>(() => {
+    const map: Record<string, AlbumPhoto[]> = {};
+    albumCategories.forEach((c) => { map[c] = loadAlbumPhotos(c); });
+    return map;
+  });
+  const [familyMotto] = useState(() => localStorage.getItem('cj_family_motto') ?? '忠厚传家远，诗书继世长');
   const [memberSearch, setMemberSearch] = useState('');
   const [stories, setStories] = useState(initialStories);
   const [likedStories, setLikedStories] = useState<Set<string>>(new Set());
@@ -172,6 +179,22 @@ export default function FamilySpace() {
     }
   };
 
+  const uploadPhotos = (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    readFilesAsDataUrls(
+      files,
+      (photo) => {
+        setAlbumPhotos((prev) => {
+          const next = { ...prev, [albumCategory]: [...(prev[albumCategory] ?? []), photo] };
+          saveAlbumPhotos(albumCategory, next[albumCategory]);
+          return next;
+        });
+      },
+      (file) => addToast(`「${file.name}」超过 2MB，已跳过`, 'error'),
+      () => addToast(`照片已上传到「${albumCategory}」`, 'success'),
+    );
+  };
+
   const likeStory = (title: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setLikedStories((prev) => {
@@ -224,7 +247,7 @@ export default function FamilySpace() {
                   <div className="family-badge">张</div>
                   <div>
                     <div className="family-name">张氏家庭空间</div>
-                    <div className="family-motto" onClick={() => navigate('/family/motto')}>家训：忠厚传家远，诗书继世长 <Edit3 size={12} /></div>
+                    <div className="family-motto" onClick={() => navigate('/family/motto')}>家训：{familyMotto} <Edit3 size={12} /></div>
                     <div className="family-meta">
                       <span>创建时间<br /><strong>2018-05-20</strong></span>
                       <span>创建者<br /><strong>张明远</strong></span>
@@ -649,7 +672,7 @@ export default function FamilySpace() {
             <h3 className="card-title">家庭相册</h3>
             <label className="btn btn-primary" style={{ cursor: 'pointer' }}>
               <Image size={14} /> 上传照片
-              <input type="file" accept="image/*" hidden onChange={() => addToast('照片上传成功', 'success')} />
+              <input type="file" accept="image/*" multiple hidden onChange={(e) => { uploadPhotos(e.target.files); e.target.value = ''; }} />
             </label>
           </div>
           <div className="card-body album-page-body">
@@ -659,6 +682,13 @@ export default function FamilySpace() {
               ))}
             </div>
             <div className="album-photo-grid">
+              {(albumPhotos[albumCategory] ?? []).map((p) => (
+                <div className="album-photo" key={p.id} onClick={() => setPhotoPreview({ title: p.name, dataUrl: p.dataUrl })}>
+                  <div className="album-photo-thumb"><img src={p.dataUrl} alt={p.name} /></div>
+                  <div className="album-photo-title">{p.name}</div>
+                  <div className="album-photo-date">{p.date}</div>
+                </div>
+              ))}
               {Array.from({ length: albumCategory === '全部' ? 12 : 6 }).map((_, i) => (
                 <div className="album-photo" key={i} onClick={() => setPhotoPreview({ title: `${albumCategory === '全部' ? '家庭影像' : albumCategory} 第 ${i + 1} 张` })}>
                   <div className="album-photo-thumb"><Image size={24} /></div>
@@ -676,7 +706,7 @@ export default function FamilySpace() {
           <div className="modal-content preview-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header"><h4>{photoPreview.title}</h4><button className="modal-close" onClick={() => setPhotoPreview(null)}><X size={16} /></button></div>
             <div className="modal-body preview-body">
-              <img className="preview-image" src={generateImageDataUrl(photoPreview.title)} alt={photoPreview.title} />
+              <img className="preview-image" src={photoPreview.dataUrl ?? generateImageDataUrl(photoPreview.title)} alt={photoPreview.title} />
               <p>正在预览：{photoPreview.title}</p>
             </div>
           </div>

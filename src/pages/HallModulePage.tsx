@@ -21,6 +21,25 @@ import {
 } from 'lucide-react';
 import './HallModulePage.css';
 
+/* localStorage 持久化 state（cj_ 前缀惯例） */
+function useStoredState<T>(key: string, initial: T) {
+  const [state, setState] = useState<T>(() => {
+    try {
+      const raw = localStorage.getItem(key);
+      if (raw) return JSON.parse(raw) as T;
+    } catch { /* ignore */ }
+    return initial;
+  });
+  const set = (value: T | ((prev: T) => T)) => {
+    setState((prev) => {
+      const next = typeof value === 'function' ? (value as (p: T) => T)(prev) : value;
+      try { localStorage.setItem(key, JSON.stringify(next)); } catch { /* ignore */ }
+      return next;
+    });
+  };
+  return [state, set] as const;
+}
+
 const moduleMeta: Record<string, { label: string; icon: React.ElementType; desc: string }> = {
   rules: { label: '家训家规', icon: FileText, desc: '编辑与管理家训家规内容' },
   stories: { label: '家风故事', icon: BookOpen, desc: '发布与展示家风故事' },
@@ -38,7 +57,7 @@ const initialRules = [
 
 function RulesModule({ projectName }: { projectName: string }) {
   const { addToast } = useToast();
-  const [rules, setRules] = useState(initialRules);
+  const [rules, setRules] = useStoredState('cj_hall_rules', initialRules);
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [title, setTitle] = useState('');
@@ -114,7 +133,7 @@ const initialStories = [
 
 function StoriesModule({ projectName }: { projectName: string }) {
   const { addToast } = useToast();
-  const [stories, setStories] = useState(initialStories);
+  const [stories, setStories] = useStoredState('cj_hall_stories', initialStories);
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [title, setTitle] = useState('');

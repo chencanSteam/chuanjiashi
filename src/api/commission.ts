@@ -1,5 +1,5 @@
 import { api } from './client'
-import type { CommissionRecord, WithdrawalRecord } from '../mocks/types'
+import type { CommissionRecord, CommissionRules, WithdrawalRecord } from '../mocks/types'
 
 export const commissionApi = {
   list: () => api.get<CommissionRecord[]>('/api/commissions'),
@@ -13,4 +13,6 @@ export const commissionApi = {
   adminWithdrawals: () => api.get<WithdrawalRecord[]>('/api/withdrawals/all'),
   processWithdrawal: (id: string, status: WithdrawalRecord['status']) =>
     api.post<WithdrawalRecord>(`/api/withdrawals/${id}/process`, { status }),
+  rules: () => api.get<CommissionRules>('/api/admin/commission-rules'),
+  saveRules: (rules: CommissionRules) => api.put<CommissionRules>('/api/admin/commission-rules', rules),
 }

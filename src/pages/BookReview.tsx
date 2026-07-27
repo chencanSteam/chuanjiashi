@@ -26,6 +26,7 @@ const statusMap: Record<PublicBook['status'], { label: string; className: string
 export default function BookReview() {
   const { addToast } = useToast();
   const [books, setBooks] = useState<PublicBook[]>([]);
+  const [allBooks, setAllBooks] = useState<PublicBook[]>([]);
   const [keyword, setKeyword] = useState('');
   const [statusFilter, setStatusFilter] = useState<PublicBook['status'] | 'all'>('all');
   const [loading, setLoading] = useState(true);
@@ -36,10 +37,6 @@ export default function BookReview() {
   const [rejectReason, setRejectReason] = useState('');
   const [rejectingBook, setRejectingBook] = useState<PublicBook | null>(null);
 
-  useEffect(() => {
-    loadBooks();
-  }, []);
-
   const loadBooks = () => {
     setLoading(true);
     bookshelfApi
@@ -49,18 +46,35 @@ export default function BookReview() {
       .finally(() => setLoading(false));
   };
 
+  // 全量列表仅用于顶部统计卡，避免随筛选条件变化
+  const loadAllBooks = () => {
+    bookshelfApi
+      .adminList({ status: 'all' })
+      .then(setAllBooks)
+      .catch(() => setAllBooks([]));
+  };
+
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadBooks();
+    loadAllBooks();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadBooks();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter, keyword]);
 
   const stats = useMemo(() => {
     return {
-      total: books.length,
-      pending: books.filter((b) => b.status === 'pending').length,
-      approved: books.filter((b) => b.status === 'approved').length,
-      rejected: books.filter((b) => b.status === 'rejected').length,
+      total: allBooks.length,
+      pending: allBooks.filter((b) => b.status === 'pending').length,
+      approved: allBooks.filter((b) => b.status === 'approved').length,
+      rejected: allBooks.filter((b) => b.status === 'rejected').length,
     };
-  }, [books]);
+  }, [allBooks]);
 
   const handleReview = async (book: PublicBook, status: BookReviewStatus) => {
     try {
@@ -71,6 +85,7 @@ export default function BookReview() {
       setSelectedBook(null);
       setSelectedBiography(null);
       loadBooks();
+      loadAllBooks();
     } catch (err: any) {
       addToast(err.message || '操作失败', 'error');
     }

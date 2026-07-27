@@ -14,12 +14,89 @@ import {
   Clock,
   Activity,
   MapPin,
+  ShieldAlert,
 } from 'lucide-react';
 import Avatar from '../components/ui/Avatar';
+import Modal from '../components/ui/Modal';
 
 import { useToast } from '../hooks/useToast';
+import { loadJson, type ChapterData } from '../data/aiMock';
+import { familyApi } from '../api/family';
+import { getArchiveBasedDigitalAnswer } from '../utils/digitalAnswer';
 import './DigitalCompanion.css';
 import { useNavigate } from 'react-router-dom';
+
+interface ChatMessage {
+  sender: 'me' | 'other';
+  text: string;
+  time: string;
+  /** 命中敏感词被拦截的消息 */
+  blocked?: boolean;
+}
+
+/** 敏感词列表：政治、色情、暴恐、赌博、毒品等类别 */
+const SENSITIVE_WORDS = [
+  '领导人', '政变', '颠覆国家', '法轮功',
+  '色情', '约炮', '裸聊',
+  '恐怖袭击', '爆炸物', '自制炸弹', '枪支',
+  '赌博', '赌场', '时时彩', '六合彩',
+  '毒品', '冰毒', '海洛因',
+];
+
+const SENSITIVE_REPLY = '这个问题超出了我的回答范围，我们聊聊别的吧。';
+
+const containsSensitiveWord = (text: string) => SENSITIVE_WORDS.some((w) => text.includes(w));
+
+/** 关键词 → 传记章节匹配规则：问童年/事业/家人等话题时引用对应章节 */
+const CHAPTER_RULES: { keywords: string[]; chapter: string }[] = [
+  { keywords: ['童年', '小时候', '儿时', '长大'], chapter: '童年记忆' },
+  { keywords: ['求学', '读书', '上学', '大学', '学校', '老师', '同学'], chapter: '求学岁月' },
+  { keywords: ['事业', '工作', '职业', '工厂', '单位', '退休'], chapter: '工作经历' },
+  { keywords: ['创业', '公司', '生意', '合伙', '经商'], chapter: '创业之路' },
+  { keywords: ['家人', '家庭', '妻子', '丈夫', '孩子', '儿女', '儿子', '女儿', '结婚', '父亲', '母亲', '父母'], chapter: '家庭生活' },
+  { keywords: ['家风', '家训', '感悟', '遗憾', '骄傲', '人生'], chapter: '人生感悟' },
+];
+
+function stripHtml(html: string): string {
+  return html.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').trim();
+}
+
+/**
+ * 基于档案资料的规则回复：按关键词匹配传记章节/家庭关系数据，
+ * 以第一人称口吻引用内容并标注来源章节；匹配不到时回退到档案问答/温和拒答。
+ */
+async function buildArchiveReply(question: string, contactName: string): Promise<string> {
+  const archiveId = localStorage.getItem('cj_current_archive_id') || 'default';
+  const rule = CHAPTER_RULES.find((r) => r.keywords.some((k) => question.includes(k)));
+
+  if (rule) {
+    const chapters = loadJson<ChapterData[]>(`cj_biography_chapters_${archiveId}`, []);
+    const idx = chapters.findIndex((c) => c.title === rule.chapter);
+    const chapter = idx >= 0 ? chapters[idx] : null;
+    const chapterText = chapter && chapter.status !== 'notGenerated' ? stripHtml(chapter.content) : '';
+    if (chapter && chapterText) {
+      const excerpt = chapterText.slice(0, 120);
+      return `这段我记得很清楚。${excerpt}${chapterText.length > 120 ? '……' : ''}想听更多细节的话，可以再问我。（根据传记第${idx + 1}章「${chapter.title}」）`;
+    }
+    // 家人话题：章节未生成时引用家庭关系数据
+    if (rule.chapter === '家庭生活') {
+      try {
+        const relations = await familyApi.relations(archiveId);
+        if (relations.length > 0) {
+          const desc = relations.slice(0, 4).map((r) => `${r.from}是我的${r.relation}${r.to ? `（${r.to}）` : ''}`).join('，');
+          return `说起家里人，我都记着呢：${desc}。你还想听谁的故事？（根据家庭关系档案）`;
+        }
+      } catch {
+        // 关系数据不可用时继续走兜底
+      }
+    }
+  }
+
+  // 匹配不到章节时，使用档案问答的规则回复（含温和拒答）
+  return getArchiveBasedDigitalAnswer(question, contactName).answer;
+}
+
+const DISCLAIMER_CONFIRMED_KEY = 'cj_companion_disclaimer_confirmed';
 
 const tabs = [
   { key: 'chat', label: '陪伴聊天' },
@@ -36,7 +113,7 @@ const initialContacts = [
   { name: '张慧女儿', status: '2小时前', recent: '谢谢奶奶的语音' },
 ];
 
-const initMessages: Record<string, { sender: 'me' | 'other'; text: string; time: string }[]> = {
+const initMessages: Record<string, ChatMessage[]> = {
   chat: [
     { sender: 'other', text: '今天天气不错，你那边怎么样？', time: '09:30' },
     { sender: 'me', text: '挺好的，我刚从外面回来。', time: '09:32' },
@@ -68,10 +145,28 @@ export default function DigitalCompanion() {
   const [activeTab, setActiveTab] = useState('chat');
   const [contacts, setContacts] = useState(initialContacts);
   const [activeContact, setActiveContact] = useState(contacts[0].name);
-  const [messages, setMessages] = useState(initMessages.chat);
+  const [messages, setMessages] = useState<ChatMessage[]>(initMessages.chat);
   const [input, setInput] = useState('');
   const { addToast } = useToast();
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  // 首次进入需确认数字人免责声明
+  const [showDisclaimer, setShowDisclaimer] = useState(() => {
+    try {
+      return !localStorage.getItem(DISCLAIMER_CONFIRMED_KEY);
+    } catch {
+      return false;
+    }
+  });
+
+  const confirmDisclaimer = () => {
+    try {
+      localStorage.setItem(DISCLAIMER_CONFIRMED_KEY, '1');
+    } catch {
+      // ignore
+    }
+    setShowDisclaimer(false);
+  };
 
   const [showAddContact, setShowAddContact] = useState(false);
   const [newContactName, setNewContactName] = useState('');
@@ -99,16 +194,32 @@ export default function DigitalCompanion() {
   const handleSend = () => {
     if (!input.trim()) return;
     const now = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
-    setMessages((m) => [...m, { sender: 'me', text: input, time: now }]);
+    const text = input;
+    // 敏感问题拦截：命中敏感词的消息标记为已拦截，返回固定拒答文案
+    if (containsSensitiveWord(text)) {
+      setMessages((m) => [...m, { sender: 'me', text, time: now, blocked: true }]);
+      setInput('');
+      setTimeout(() => {
+        setMessages((m) => [...m, {
+          sender: 'other',
+          text: SENSITIVE_REPLY,
+          time: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
+        }]);
+      }, 800);
+      return;
+    }
+    setMessages((m) => [...m, { sender: 'me', text, time: now }]);
     setInput('');
     setTimeout(() => {
-      setMessages((m) => [...m, {
-        sender: 'other',
-        text: `收到你的消息啦，我会一直陪着你的。${activeContact === '爸爸' ? '你也要注意身体。' : ''}`,
-        time: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
-      }]);
-      addToast(`已收到 ${activeContact} 的回复`, 'success');
-    }, 1500);
+      void buildArchiveReply(text, activeContact).then((reply) => {
+        setMessages((m) => [...m, {
+          sender: 'other',
+          text: reply,
+          time: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
+        }]);
+        addToast(`已收到 ${activeContact} 的回复`, 'success');
+      });
+    }, 1200);
   };
 
   const handleKey = (e: React.KeyboardEvent<HTMLInputElement>) => { if (e.key === 'Enter') handleSend(); };
@@ -142,6 +253,11 @@ export default function DigitalCompanion() {
   return (
     <div className="companion-page">
       <header className="page-header"><h1 className="page-title">数字陪伴</h1></header>
+
+      <div className="companion-disclaimer-bar">
+        <ShieldAlert size={13} />
+        本数字人由 AI 基于生平资料生成，回复不代表本人真实意愿
+      </div>
 
       <div className="tabs">
         {tabs.map((t) => <button key={t.key} className={`tab ${activeTab === t.key ? 'active' : ''}`} onClick={() => setActiveTab(t.key)}>{t.label}</button>)}
@@ -204,7 +320,10 @@ export default function DigitalCompanion() {
                   <Avatar name={m.sender === 'me' ? '我' : activeContact} size={32} />
                   <div className="bubble-content">
                     <div className="bubble-text">{m.text}</div>
-                    <div className="bubble-time">{m.time}</div>
+                    <div className="bubble-time">
+                      {m.time}
+                      {m.blocked && <span className="bubble-blocked-tag">已拦截</span>}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -367,6 +486,24 @@ export default function DigitalCompanion() {
           </div>
         </div>
       )}
+
+      <Modal
+        open={showDisclaimer}
+        title="数字人免责声明"
+        onClose={confirmDisclaimer}
+        footer={
+          <button className="btn btn-primary" onClick={confirmDisclaimer}>
+            我已知晓并同意
+          </button>
+        }
+      >
+        <div className="disclaimer-modal-body">
+          <p>本平台提供的「数字人」是基于您提供的生平资料、采访记录等素材，由人工智能技术生成的虚拟对话形象，并非真实人物本人。</p>
+          <p>数字人的所有回复均由 AI 自动生成，仅供情感陪伴与纪念之用，不代表被纪念者的真实意愿、观点或立场，也不构成任何法律、医疗、投资等领域的专业建议。</p>
+          <p>请勿将数字人的回复作为重大决策依据。如对话内容涉及敏感话题，系统将自动拦截并拒绝回答。平台不会将您的对话内容用于本服务之外的其他用途。</p>
+          <p>继续使用即表示您已充分理解并接受上述内容。若您在使用过程中感到不适，可随时停止使用本功能。</p>
+        </div>
+      </Modal>
     </div>
   );
 }

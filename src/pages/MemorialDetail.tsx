@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, Landmark, Flower2, Image as ImageIcon, BookOpen, Music, X, Pause } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useToast } from '../hooks/useToast';
@@ -10,6 +10,25 @@ const memorialData: Record<string, { years: string; title: string; bio: string }
   '王淑兰': { years: '1923-2001', title: '家族始祖配偶', bio: '王淑兰，1923年生于江苏苏州，擅长苏绣与传统烹饪，以勤劳善良哺育后代，是家族温暖的记忆。' },
 };
 
+/* 舒缓的五声音阶旋律（Web Audio 合成，无需外部音频） */
+const MELODY = [261.63, 329.63, 392.0, 440.0, 523.25, 440.0, 392.0, 329.63, 293.66, 329.63];
+const NOTE_GAP_MS = 1400;
+
+function playNote(ctx: AudioContext, freq: number, volume: number) {
+  const start = ctx.currentTime;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = 'sine';
+  osc.frequency.value = freq;
+  gain.gain.setValueAtTime(0, start);
+  gain.gain.linearRampToValueAtTime(volume, start + 0.2);
+  gain.gain.exponentialRampToValueAtTime(0.0001, start + 2.2);
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.start(start);
+  osc.stop(start + 2.4);
+}
+
 export default function MemorialDetail() {
   const navigate = useNavigate();
   const { name } = useParams<{ name: string }>();
@@ -19,6 +38,46 @@ export default function MemorialDetail() {
   const [preview, setPreview] = useState<{ type: 'photo' | 'article'; title: string } | null>(null);
   const decodedName = decodeURIComponent(name ?? '');
   const data = memorialData[decodedName] ?? { years: '-', title: '家族先辈', bio: '暂无纪念资料。' };
+
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const timerRef = useRef<number | null>(null);
+  const noteIndexRef = useRef(0);
+
+  const stopMusic = () => {
+    if (timerRef.current !== null) {
+      window.clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    void audioCtxRef.current?.suspend();
+  };
+
+  const startMusic = () => {
+    if (!audioCtxRef.current) audioCtxRef.current = new AudioContext();
+    const ctx = audioCtxRef.current;
+    void ctx.resume();
+    const tick = () => {
+      const freq = MELODY[noteIndexRef.current % MELODY.length];
+      playNote(ctx, freq, 0.12);
+      playNote(ctx, freq / 2, 0.05); // 低八度轻声垫音
+      noteIndexRef.current += 1;
+      timerRef.current = window.setTimeout(tick, NOTE_GAP_MS);
+    };
+    tick();
+  };
+
+  useEffect(() => stopMusic, []);
+
+  const toggleMusic = () => {
+    if (playing) {
+      stopMusic();
+      setPlaying(false);
+      addToast('已暂停纪念音乐', 'info');
+    } else {
+      startMusic();
+      setPlaying(true);
+      addToast('开始播放纪念音乐', 'info');
+    }
+  };
 
   return (
     <div className="detail-page memorial-detail-page">
@@ -72,7 +131,7 @@ export default function MemorialDetail() {
           </div>
           <div className="memorial-actions">
             <button className="btn btn-primary" onClick={() => { setFlowers((c) => c + 1); addToast(`已向 ${decodedName} 献花`, 'success'); }}><Flower2 size={14} /> 献花缅怀（{flowers}）</button>
-            <button className="btn btn-outline" onClick={() => { setPlaying((p) => !p); addToast(playing ? '已暂停纪念音乐' : '开始播放纪念音乐', 'info'); }}>{playing ? <Pause size={14} /> : <Music size={14} />} {playing ? '暂停音乐' : '纪念音乐'}</button>
+            <button className="btn btn-outline" onClick={toggleMusic}>{playing ? <Pause size={14} /> : <Music size={14} />} {playing ? '暂停音乐' : '纪念音乐'}</button>
           </div>
         </div>
       </div>

@@ -1,0 +1,150 @@
+.mobile-photo-restore {
+  padding: 16px;
+  padding-bottom: 24px;
+}
+
+.mobile-photo-restore-hero {
+  background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+  border-radius: 16px;
+  padding: 24px 20px;
+  margin-bottom: 16px;
+  color: #fff;
+  text-align: center;
+}
+
+.mobile-photo-restore-hero h2 {
+  margin: 12px 0 6px;
+  font-size: 20px;
+}
+
+.mobile-photo-restore-hero p {
+  margin: 0;
+  font-size: 13px;
+  opacity: 0.9;
+}
+
+.mobile-photo-restore-empty {
+  background: #fff;
+  border-radius: 16px;
+  padding: 48px 16px;
+  text-align: center;
+  color: #999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.mobile-photo-restore-empty p {
+  margin: 0;
+  font-size: 15px;
+  color: #666;
+}
+
+.mobile-photo-restore-empty span {
+  font-size: 13px;
+}
+
+.mobile-photo-restore-empty.clickable {
+  cursor: pointer;
+}
+
+.mobile-photo-restore-input {
+  display: none;
+}
+
+.mobile-photo-restore-panel {
+  background: #fff;
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.mobile-photo-preview img {
+  width: 100%;
+  border-radius: 12px;
+  display: block;
+}
+
+.mobile-photo-compare {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.mobile-photo-compare-item {
+  position: relative;
+}
+
+.mobile-photo-compare-item img {
+  width: 100%;
+  border-radius: 12px;
+  display: block;
+}
+
+.mobile-photo-compare-item span {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.mobile-photo-progress {
+  margin-top: 14px;
+}
+
+.mobile-photo-progress-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 6px;
+}
+
+.mobile-photo-progress-bar {
+  height: 6px;
+  background: #f0f2f1;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.mobile-photo-progress-fill {
+  height: 100%;
+  background: #f59e0b;
+  border-radius: 999px;
+  transition: width 0.25s ease;
+}
+
+.mobile-photo-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.mobile-photo-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fff;
+  color: #333;
+  font-size: 14px;
+}
+
+.mobile-photo-btn.primary {
+  background: #f59e0b;
+  border-color: #f59e0b;
+  color: #fff;
+  font-weight: 500;
+}
+
+.mobile-photo-btn:disabled {
+  opacity: 0.6;
+}

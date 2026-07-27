@@ -19,11 +19,13 @@ import {
   Share2,
   Wallet,
   TrendingUp,
+  ChevronDown,
+  ChevronUp,
+  Info,
 } from 'lucide-react';
 import Avatar from '../components/ui/Avatar';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/useToast';
-import { authApi } from '../api/auth';
 import { quotaApi } from '../api/quota';
 import type { AIQuota } from '../mocks/types';
 import { openGuide } from '../components/GuideTour';
@@ -67,11 +69,85 @@ const initialNotifications = [
   { label: '系统更新与公告', checked: false },
 ];
 
-const helpItems = [
-  { label: '常见问题' },
-  { label: '新手指引' },
-  { label: '联系客服' },
-  { label: '意见反馈' },
+const helpArticles: { label: string; paragraphs: string[] }[] = [
+  {
+    label: '新手指引：创建第一份人生档案',
+    paragraphs: [
+      '进入「首页」后，点击「开始智能采访」，先填写档案主人的基础信息：姓名、性别、出生年份、籍贯与职业。这些信息会帮助 AI 生成更贴合的采访问题。',
+      '第二步可以为档案主人勾选人生标签，例如「参军入伍」「下海创业」「教书育人」等。标签越准确，采访提纲就越有针对性。',
+      '保存基础信息后，系统会自动创建一份人生档案并进入采访页面。你也可以随时在「人生档案馆」中为多位家人分别建档。',
+    ],
+  },
+  {
+    label: '如何完成一次 AI 智能采访',
+    paragraphs: [
+      '采访按主题分章节进行，涵盖童年、求学、工作、家庭、人生感悟等阶段。AI 会逐题提问，您可以用文字或语音回答，语音会自动转写为文字。',
+      '回答较短时，AI 会自动追问细节，比如当时的人物、地点和感受。不用担心答得不完整，后续可以随时回到任意问题补充或修改。',
+      '采访进度实时保存在本机，中途退出不会丢失。全部主题完成后，系统会自动从采访记录中整理出人生大事时间线，供您确认后写入档案。',
+    ],
+  },
+  {
+    label: '传记生成与导出指南',
+    paragraphs: [
+      '采访完成后，进入「AI 传记生成」页面，选择文风（朴实自然、温情叙事、典雅文言、新闻纪实）和篇幅，即可一键生成全部章节。',
+      '每个章节都可以单独重新生成或手动润色，编辑器支持插入照片。修改会实时保存，直到您满意为止。',
+      '定稿后可在「数字资产」页导出 PDF 打印稿和 EPUB 电子书，也可以申请精装书制作、生成纪念短视频与码记二维码，并为传记做区块链存证。',
+    ],
+  },
+  {
+    label: 'AI 额度与套餐说明',
+    paragraphs: [
+      '平台按套餐提供 AI 额度，包括采访问题数、延伸提问数、传记生成次数和数字人对话次数。当前用量可在「设置 - AI 额度」中查看。',
+      '额度按月或按次计算：采访与对话类额度每月重置，传记生成次数按套餐总量累计。额度不足时，对应功能会提示升级。',
+      '如需更多额度，可在「AI 额度」页点击「升级套餐」，选择标准、尊享或家族套餐，支付成功后额度立即生效。',
+    ],
+  },
+  {
+    label: '数据备份与隐私安全',
+    paragraphs: [
+      '您的档案、采访记录与传记数据默认保存在本机浏览器中，平台不会将这些内容用于本服务之外的用途。',
+      '建议定期在「设置 - 存储与备份」中点击「立即备份」，系统会将全部数据打包为 JSON 文件下载保存，更换设备时可凭备份文件恢复。',
+      '数字馆支持公开、私密、密码和家人共享四种访问权限，可在数字博物馆的「权限设置」中随时调整。涉及敏感话题的对话会被系统自动拦截。',
+    ],
+  },
+];
+
+interface UpgradePlan {
+  key: string;
+  name: string;
+  price: number;
+  features: string[];
+  quota: {
+    interviewQuestion: number;
+    followUp: number;
+    biographyGenerate: number;
+    digitalDialog: number;
+    storageMB: number;
+  };
+}
+
+const upgradePlans: UpgradePlan[] = [
+  {
+    key: 'standard',
+    name: '标准传记包',
+    price: 199,
+    features: ['AI 采访问题 30 条/月', 'AI 延伸提问 10 条/月', '传记生成 3 次', '数字人对话 50 次/月', '素材存储 1GB'],
+    quota: { interviewQuestion: 30, followUp: 10, biographyGenerate: 3, digitalDialog: 50, storageMB: 1024 },
+  },
+  {
+    key: 'premium',
+    name: '尊享传记包',
+    price: 399,
+    features: ['AI 采访问题 100 条/月', 'AI 延伸提问 30 条/月', '传记生成 10 次', '数字人对话 200 次/月', '素材存储 5GB', '优先客服支持'],
+    quota: { interviewQuestion: 100, followUp: 30, biographyGenerate: 10, digitalDialog: 200, storageMB: 5120 },
+  },
+  {
+    key: 'family',
+    name: '家族传承包',
+    price: 899,
+    features: ['AI 采访问题不限量', 'AI 延伸提问不限量', '传记生成 30 次', '数字人对话不限量', '素材存储 20GB', '家庭共享 5 名成员', '专属传记顾问'],
+    quota: { interviewQuestion: 999, followUp: 999, biographyGenerate: 30, digitalDialog: 999, storageMB: 20480 },
+  },
 ];
 
 export default function Settings() {
@@ -100,6 +176,27 @@ export default function Settings() {
     }
   }, [user]);
   const [showPassword, setShowPassword] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({ old: '', next: '', confirm: '' });
+  const [passwordError, setPasswordError] = useState('');
+
+  const handlePasswordSubmit = () => {
+    if (!passwordForm.old) {
+      setPasswordError('请输入当前密码');
+      return;
+    }
+    if (passwordForm.next.length < 6) {
+      setPasswordError('新密码长度不能少于 6 位');
+      return;
+    }
+    if (passwordForm.next !== passwordForm.confirm) {
+      setPasswordError('两次输入的新密码不一致');
+      return;
+    }
+    setPasswordForm({ old: '', next: '', confirm: '' });
+    setPasswordError('');
+    setShowPassword(false);
+    addToast('密码已修改', 'success');
+  };
   const [members, setMembers] = useState(familyMembers);
   const [showVisibility, setShowVisibility] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
@@ -108,6 +205,9 @@ export default function Settings() {
   const [helpArticle, setHelpArticle] = useState<string | null>(null);
   const [visibility, setVisibility] = useState<Record<string, string>>({ 基本信息: '家人可见', 多媒体档案: '家人可见', 人生事件: '部分公开', 成就与作品: '公开展示' });
   const [quota, setQuota] = useState<AIQuota>(defaultQuota);
+  const [showUpgrade, setShowUpgrade] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<string>('premium');
+  const [paying, setPaying] = useState(false);
 
   useEffect(() => {
     quotaApi.get().then(setQuota).catch(() => setQuota(defaultQuota));
@@ -123,6 +223,70 @@ export default function Settings() {
       addToast(`${next[i].label} 已${next[i].checked ? '开启' : '关闭'}`, 'success');
       return next;
     });
+  };
+
+  // 立即备份：导出 localStorage 中 cj_ 前缀（含 cj_mock_）的全部数据为 JSON 文件
+  const handleBackup = () => {
+    try {
+      const data: Record<string, unknown> = {};
+      for (let i = 0; i < localStorage.length; i += 1) {
+        const key = localStorage.key(i);
+        if (!key || !key.startsWith('cj_')) continue;
+        const raw = localStorage.getItem(key);
+        try {
+          data[key] = raw ? JSON.parse(raw) : null;
+        } catch {
+          data[key] = raw;
+        }
+      }
+      const payload = { app: 'chuanjiashi', exportedAt: new Date().toISOString(), data };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `传家世数据备份_${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      addToast(`备份完成，已导出 ${Object.keys(data).length} 项数据`, 'success');
+    } catch {
+      addToast('备份失败，请重试', 'error');
+    }
+  };
+
+  // 升级套餐：mock 支付成功后更新额度（同时写回 mock 额度存储，刷新后仍生效）
+  const handleUpgrade = () => {
+    const plan = upgradePlans.find((p) => p.key === selectedPlan);
+    if (!plan || paying) return;
+    setPaying(true);
+    setTimeout(() => {
+      const next: AIQuota = {
+        ...quota,
+        plan: plan.name,
+        interviewQuestion: { ...quota.interviewQuestion, total: plan.quota.interviewQuestion },
+        followUp: { ...quota.followUp, total: plan.quota.followUp },
+        biographyGenerate: { ...quota.biographyGenerate, total: plan.quota.biographyGenerate },
+        digitalDialog: { ...quota.digitalDialog, total: plan.quota.digitalDialog },
+        storage: { ...quota.storage, totalMB: plan.quota.storageMB },
+      };
+      setQuota(next);
+      try {
+        const rawUser = localStorage.getItem('cj_mock_current_user');
+        const userId = rawUser ? (JSON.parse(rawUser) as { id?: string }).id : null;
+        if (userId) {
+          const rawMap = localStorage.getItem('cj_mock_ai_quota');
+          const map = rawMap ? (JSON.parse(rawMap) as Record<string, AIQuota>) : {};
+          map[userId] = next;
+          localStorage.setItem('cj_mock_ai_quota', JSON.stringify(map));
+        }
+      } catch {
+        // 写入失败时仅更新当前展示
+      }
+      setPaying(false);
+      setShowUpgrade(false);
+      addToast(`支付成功，已升级为「${plan.name}」，额度已生效`, 'success');
+    }, 900);
   };
 
   return (
@@ -187,12 +351,6 @@ export default function Settings() {
                   onClick={async () => {
                     try {
                       setSavingAccount(true);
-                      await authApi.updateProfile({
-                        nickname: account.nickname,
-                        avatar: account.avatar || undefined,
-                        community: account.community,
-                        neighborhood: account.neighborhood,
-                      });
                       updateUser({
                         name: account.nickname,
                         community: account.community,
@@ -271,7 +429,7 @@ export default function Settings() {
                 <div className="storage-info">已使用 6.2 GB / 10 GB</div>
                 <div className="setting-row"><span>自动备份</span><div className={`toggle-switch ${autoBackup ? 'on' : ''}`} onClick={() => { setAutoBackup((v) => !v); addToast(`自动备份已${!autoBackup ? '开启' : '关闭'}`, 'success'); }}></div></div>
                 <div className="setting-row"><span>备份频率</span><select value={backupFreq} onChange={(e) => { setBackupFreq(e.target.value); addToast(`备份频率：${e.target.value}`, 'info'); }}><option>每天</option><option>每周</option></select></div>
-                <button className="btn btn-outline" onClick={() => addToast('立即备份', 'success')}>立即备份</button>
+                <button className="btn btn-outline" onClick={handleBackup}>立即备份</button>
               </div>
             </div>
           )}
@@ -320,7 +478,7 @@ export default function Settings() {
                     <AlertCircle size={14} /> 部分额度已用完，可点击下方按钮升级套餐。
                   </div>
                 )}
-                <button className="btn btn-primary save-btn" onClick={() => addToast('已跳转至套餐升级（演示）', 'info')}>升级套餐</button>
+                <button className="btn btn-primary save-btn" onClick={() => setShowUpgrade(true)}>升级套餐</button>
               </div>
             </div>
           )}
@@ -329,7 +487,7 @@ export default function Settings() {
             <div className="card settings-card">
               <div className="card-header"><h3 className="card-title">帮助与反馈</h3></div>
               <div className="card-body settings-body">
-                {helpItems.map((h, i) => (
+                {helpArticles.map((h, i) => (
                   <div className="help-item" key={i} onClick={() => setHelpArticle(h.label)}>
                     <CheckCircle size={16} color="#1B5E4B" /> {h.label}
                   </div>
@@ -351,10 +509,29 @@ export default function Settings() {
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header"><h4>修改登录密码</h4><button className="modal-close" onClick={() => setShowPassword(false)}><X size={16} /></button></div>
             <div className="modal-body">
-              <input type="password" placeholder="当前密码" className="modal-input" />
-              <input type="password" placeholder="新密码" className="modal-input" />
-              <input type="password" placeholder="确认新密码" className="modal-input" />
-              <button className="btn btn-primary" onClick={() => { setShowPassword(false); addToast('密码已修改', 'success'); }}>确认修改</button>
+              <input
+                type="password"
+                placeholder="当前密码"
+                className="modal-input"
+                value={passwordForm.old}
+                onChange={(e) => setPasswordForm((prev) => ({ ...prev, old: e.target.value }))}
+              />
+              <input
+                type="password"
+                placeholder="新密码（不少于 6 位）"
+                className="modal-input"
+                value={passwordForm.next}
+                onChange={(e) => setPasswordForm((prev) => ({ ...prev, next: e.target.value }))}
+              />
+              <input
+                type="password"
+                placeholder="确认新密码"
+                className="modal-input"
+                value={passwordForm.confirm}
+                onChange={(e) => setPasswordForm((prev) => ({ ...prev, confirm: e.target.value }))}
+              />
+              {passwordError && <p style={{ color: '#ef4444', fontSize: 13, margin: '0 0 8px' }}>{passwordError}</p>}
+              <button className="btn btn-primary" onClick={handlePasswordSubmit}>确认修改</button>
             </div>
           </div>
         </div>
@@ -414,7 +591,39 @@ export default function Settings() {
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header"><h4>{helpArticle}</h4><button className="modal-close" onClick={() => setHelpArticle(null)}><X size={16} /></button></div>
             <div className="modal-body">
-              <p style={{ color: '#6b7280', fontSize: 13 }}>这里是「{helpArticle}」的详细说明。您可以通过左侧菜单查看更多帮助内容。</p>
+              {(helpArticles.find((a) => a.label === helpArticle)?.paragraphs ?? []).map((p, i) => (
+                <p key={i} style={{ color: '#4b5563', fontSize: 13, lineHeight: 1.8, margin: '0 0 12px' }}>{p}</p>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showUpgrade && (
+        <div className="modal-overlay" onClick={() => !paying && setShowUpgrade(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header"><h4>升级套餐</h4><button className="modal-close" onClick={() => !paying && setShowUpgrade(false)}><X size={16} /></button></div>
+            <div className="modal-body">
+              <div className="plan-list">
+                {upgradePlans.map((p) => (
+                  <div
+                    key={p.key}
+                    className={`plan-card ${selectedPlan === p.key ? 'active' : ''}`}
+                    onClick={() => setSelectedPlan(p.key)}
+                  >
+                    <div className="plan-card-header">
+                      <strong>{p.name}</strong>
+                      <span className="plan-card-price">¥{p.price}<em>/年</em></span>
+                    </div>
+                    <ul className="plan-card-features">
+                      {p.features.map((f) => <li key={f}>{f}</li>)}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+              <button className="btn btn-primary" style={{ marginTop: 12, width: '100%' }} disabled={paying} onClick={handleUpgrade}>
+                {paying ? '支付中…' : `确认升级并支付 ¥${upgradePlans.find((p) => p.key === selectedPlan)?.price ?? 0}`}
+              </button>
             </div>
           </div>
         </div>
@@ -457,6 +666,15 @@ function MyInvite({ user, refresh, onWithdraw }: { user: { phone: string; name?:
   const [summary, setSummary] = useState({ total: 0, settled: 0, pending: 0, frozen: 0, inviteCount: 0 });
   const [rewards, setRewards] = useState<UserReward[]>([]);
   const [withdrawals, setWithdrawals] = useState<UserWithdrawal[]>([]);
+  const [showRules, setShowRules] = useState(false);
+
+  const directInviteRules = [
+    '仅一级邀请关系有效：您直接邀请的好友产生的消费计入佣金，好友再邀请的人不计入您的收益。',
+    '佣金比例按品类不同：传记服务类订单与商城实物类订单适用不同比例，以结算页面展示为准。',
+    '佣金冻结期为 7 天：订单完成且无退款后，佣金由「冻结中」转为「可提现」。',
+    '违规推广将冻结佣金：包括但不限于刷单、虚假交易、诱导退款等行为，一经发现冻结全部佣金并取消推广资格。',
+    '被邀请人需通过您的邀请链接或邀请码完成注册，方可建立有效邀请关系。',
+  ];
 
   useEffect(() => {
     if (!user) return;
@@ -483,7 +701,7 @@ function MyInvite({ user, refresh, onWithdraw }: { user: { phone: string; name?:
 
   if (!user) return null;
 
-  const inviteUrl = `${window.location.origin}/login?invite=${user.inviteCode}`;
+  const inviteUrl = `${window.location.origin}${window.location.pathname}#/login?invite=${user.inviteCode}`;
 
   const copyCode = () => {
     navigator.clipboard.writeText(user.inviteCode || '');
@@ -530,6 +748,20 @@ function MyInvite({ user, refresh, onWithdraw }: { user: { phone: string; name?:
             <button className="btn btn-outline" onClick={copyCode}><Share2 size={14} /> 复制邀请码</button>
             <button className="btn btn-outline" onClick={copyLink}><Share2 size={14} /> 复制链接</button>
           </div>
+        </div>
+
+        <div className="invite-rules">
+          <button className="invite-rules-toggle" onClick={() => setShowRules((v) => !v)}>
+            <Info size={14} /> 一级直推规则说明
+            {showRules ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+          </button>
+          {showRules && (
+            <ul className="invite-rules-list">
+              {directInviteRules.map((rule, i) => (
+                <li key={i}>{rule}</li>
+              ))}
+            </ul>
+          )}
         </div>
 
         <div className="invite-withdraw">

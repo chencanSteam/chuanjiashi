@@ -1,0 +1,284 @@
+.ai-task-page .page-header {
+  margin-bottom: 20px;
+}
+
+.ai-task-header {
+  padding: 16px 20px;
+}
+
+.ai-task-filters {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.ai-task-filters select {
+  padding: 8px 12px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+  background: var(--card-bg);
+  font-size: 14px;
+  color: var(--text);
+  outline: none;
+}
+
+.ai-task-body {
+  padding: 0;
+}
+
+.ai-task-empty {
+  text-align: center;
+  padding: 48px 20px;
+  color: var(--text-muted);
+}
+
+.ai-task-table {
+  display: table;
+  width: 100%;
+  min-width: 960px;
+}
+
+.ai-task-row {
+  display: table-row;
+}
+
+.ai-task-header-row {
+  background: var(--bg-secondary);
+  font-weight: 500;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.ai-task-row:not(.ai-task-header-row) {
+  border-bottom: 1px solid var(--border-light);
+}
+
+.ai-task-cell {
+  display: table-cell;
+  padding: 12px 14px;
+  vertical-align: middle;
+  font-size: 13px;
+}
+
+.ai-task-target {
+  font-weight: 500;
+  color: var(--text);
+}
+
+.ai-task-fail-reason {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  font-size: 12px;
+  color: #dc2626;
+}
+
+.ai-task-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+
+.ai-task-status.success {
+  background: rgba(27, 94, 75, 0.08);
+  color: #1B5E4B;
+}
+
+.ai-task-status.failed {
+  background: rgba(220, 38, 38, 0.08);
+  color: #dc2626;
+}
+
+.ai-task-status.running {
+  background: rgba(37, 99, 235, 0.08);
+  color: #2563eb;
+}
+
+.ai-task-status.queued {
+  background: rgba(217, 119, 6, 0.1);
+  color: #d97706;
+}
+
+.ai-task-retry-btn {
+  padding: 4px 12px;
+  font-size: 12px;
+}
+
+.ai-token-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.ai-token-stat {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 20px;
+}
+
+.ai-token-stat-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.ai-token-stat-label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.ai-token-table {
+  min-width: 720px;
+}
+
+.ai-token-bar {
+  display: inline-block;
+  width: 120px;
+  height: 6px;
+  background: var(--bg-secondary);
+  border-radius: 999px;
+  margin-right: 8px;
+  vertical-align: middle;
+  overflow: hidden;
+}
+
+.ai-token-bar-inner {
+  height: 100%;
+  background: #1B5E4B;
+  border-radius: 999px;
+}
+
+.ai-tpl-group {
+  margin-bottom: 20px;
+}
+
+.ai-tpl-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.ai-tpl-item:last-child {
+  border-bottom: none;
+}
+
+.ai-tpl-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.ai-tpl-summary {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+.ai-tpl-time {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.ai-tpl-switch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.ai-tpl-switch input {
+  width: 16px;
+  height: 16px;
+  accent-color: #1B5E4B;
+  cursor: pointer;
+}
+
+@media (max-width: 960px) {
+  .ai-token-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .ai-task-table {
+    min-width: unset;
+    display: block;
+  }
+
+  .ai-task-row,
+  .ai-task-cell {
+    display: block;
+  }
+
+  .ai-task-header-row {
+    display: none;
+  }
+}
+
+/* 采访题库 */
+.ai-q-category {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text, #1f2937);
+  margin: 16px 0 8px;
+  padding-left: 8px;
+  border-left: 3px solid #1b5e4b;
+}
+
+.ai-q-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.btn-sm {
+  padding: 5px 12px;
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ai-q-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ai-q-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text, #1f2937);
+  margin-top: 6px;
+}
+
+.ai-q-input {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 13px;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.ai-q-input:focus {
+  border-color: #1b5e4b;
+}
+
+.ai-q-textarea {
+  resize: vertical;
+  font-family: inherit;
+}

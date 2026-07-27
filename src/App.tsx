@@ -1,5 +1,5 @@
 import { Suspense, lazy, type ReactNode } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ToastProvider } from './contexts/ToastProvider';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -13,7 +13,13 @@ import './App.css';
 
 function MVPRedirect({ children }: { children: ReactNode }) {
   const { isMVP } = useVersion();
-  return isMVP ? <Navigate to="/" replace /> : <>{children}</>;
+  return isMVP ? <Navigate to="/home" replace /> : <>{children}</>;
+}
+
+// /login 重定向到 / 时保留查询参数（如邀请链接的 invite 参数）
+function LoginRedirect() {
+  const { search } = useLocation();
+  return <Navigate to={`/${search}`} replace />;
 }
 
 const Onboarding = lazy(() => import('./pages/Onboarding'));
@@ -32,6 +38,9 @@ const TrainingRecords = lazy(() => import('./pages/TrainingRecords'));
 const TrainingReport = lazy(() => import('./pages/TrainingReport'));
 const DigitalCompanion = lazy(() => import('./pages/DigitalCompanion'));
 const GovernmentService = lazy(() => import('./pages/GovernmentService'));
+const GovernmentDashboard = lazy(() => import('./pages/GovernmentDashboard'));
+const ApplicationDetail = lazy(() => import('./pages/ApplicationDetail'));
+const PolicyList = lazy(() => import('./pages/PolicyList'));
 const Settings = lazy(() => import('./pages/Settings'));
 const FamilyMemberList = lazy(() => import('./pages/FamilyMemberList'));
 const FamilyMemberDetail = lazy(() => import('./pages/FamilyMemberDetail'));
@@ -75,6 +84,14 @@ const WithdrawalManagement = lazy(() => import('./pages/WithdrawalManagement'));
 const UserInvites = lazy(() => import('./pages/UserInvites'));
 const PartnerCenter = lazy(() => import('./pages/PartnerCenter'));
 const PartnerApplication = lazy(() => import('./pages/PartnerApplication'));
+const MobileInterview = lazy(() => import('./pages/mobile/MobileInterview'));
+const MobileLayout = lazy(() => import('./components/MobileLayout'));
+const MobileHome = lazy(() => import('./pages/mobile/MobileHome'));
+const MobileArchive = lazy(() => import('./pages/mobile/MobileArchive'));
+const MobileFamily = lazy(() => import('./pages/mobile/MobileFamily'));
+const MobileProfile = lazy(() => import('./pages/mobile/MobileProfile'));
+const MobileWorks = lazy(() => import('./pages/mobile/MobileWorks'));
+const MobilePhotoRestore = lazy(() => import('./pages/mobile/MobilePhotoRestore'));
 const BiographerLayout = lazy(() => import('./components/BiographerLayout'));
 const BiographerCenter = lazy(() => import('./pages/BiographerCenter'));
 const BiographerOrders = lazy(() => import('./pages/BiographerOrders'));
@@ -82,12 +99,25 @@ const BiographerProfile = lazy(() => import('./pages/BiographerProfile'));
 const BiographerProfileEdit = lazy(() => import('./pages/BiographerProfileEdit'));
 const PhotoRestore = lazy(() => import('./pages/PhotoRestore'));
 const BiographerList = lazy(() => import('./pages/BiographerList'));
-const MyBiographerOrders = lazy(() => import('./pages/MyBiographerOrders'));
 const MyOrders = lazy(() => import('./pages/MyOrders'));
 const Store = lazy(() => import('./pages/Store'));
 const ProductDetail = lazy(() => import('./pages/ProductDetail'));
 const BiographyShelf = lazy(() => import('./pages/BiographyShelf'));
 const OrderSuccess = lazy(() => import('./pages/OrderSuccess'));
+const GroupBuy = lazy(() => import('./pages/GroupBuy'));
+const Museum = lazy(() => import('./pages/Museum'));
+const DigitalAssets = lazy(() => import('./pages/DigitalAssets'));
+const BiographerApply = lazy(() => import('./pages/BiographerApply'));
+const BiographerEarnings = lazy(() => import('./pages/BiographerEarnings'));
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+const UserManagement = lazy(() => import('./pages/UserManagement'));
+const ArchiveManagement = lazy(() => import('./pages/ArchiveManagement'));
+const AITaskManagement = lazy(() => import('./pages/AITaskManagement'));
+const ProductManagement = lazy(() => import('./pages/ProductManagement'));
+const GroupBuyManagement = lazy(() => import('./pages/GroupBuyManagement'));
+const ContentReview = lazy(() => import('./pages/ContentReview'));
+const ComplianceRisk = lazy(() => import('./pages/ComplianceRisk'));
+const AdminSettings = lazy(() => import('./pages/AdminSettings'));
 
 function PageFallback() {
   return (
@@ -102,49 +132,83 @@ function App() {
   return (
     <ToastProvider>
       <AuthProvider>
-        <BrowserRouter>
+        <HashRouter>
           <Suspense fallback={<PageFallback />}>
             <Routes>
-              <Route path="/login" element={<Login />} />
+              {/* 默认页：登录 */}
+              <Route path="/" element={<Login />} />
+              <Route path="/login" element={<LoginRedirect />} />
+              <Route path="/home" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+                <Route index element={<Home />} />
+              </Route>
               <Route path="/partner/apply" element={<PartnerApplication />} />
-              <Route path="/partner/login" element={<Navigate to="/login" replace />} />
+              <Route path="/partner/login" element={<Navigate to="/" replace />} />
               <Route path="/partner-center" element={<Navigate to="/partner" replace />} />
               <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
 
               <Route path="/partner" element={<RoleRoute role="partner"><PartnerLayout /></RoleRoute>}>
                 <Route index element={<PartnerCenter />} />
+                <Route path="*" element={<Navigate to="/partner" replace />} />
               </Route>
 
               <Route path="/biographer" element={<RoleRoute role="biographer"><BiographerLayout /></RoleRoute>}>
                 <Route index element={<BiographerCenter />} />
                 <Route path="orders" element={<BiographerOrders />} />
+                <Route path="apply" element={<BiographerApply />} />
+                <Route path="earnings" element={<BiographerEarnings />} />
                 <Route path="profile" element={<BiographerProfile />} />
                 <Route path="profile/edit" element={<BiographerProfileEdit />} />
+                <Route path="*" element={<Navigate to="/biographer" replace />} />
               </Route>
 
               <Route path="/admin" element={<RoleRoute role="admin"><AdminLayout /></RoleRoute>}>
-                <Route index element={<Navigate to="/admin/biographers" replace />} />
+                <Route index element={<Navigate to="/admin/dashboard" replace />} />
+                <Route path="dashboard" element={<AdminDashboard />} />
+                <Route path="users" element={<UserManagement />} />
+                <Route path="archives" element={<ArchiveManagement />} />
                 <Route path="biographers" element={<BiographerManagement />} />
                 <Route path="partners" element={<PartnerManagement />} />
                 <Route path="partner-applications" element={<PartnerApplications />} />
                 <Route path="partner-customers" element={<PartnerCustomersAdmin />} />
                 <Route path="orders" element={<OrderManagement />} />
+                <Route path="products" element={<ProductManagement />} />
+                <Route path="group-buy" element={<GroupBuyManagement />} />
                 <Route path="commission-records" element={<CommissionRecords />} />
                 <Route path="book-review" element={<BookReview />} />
                 <Route path="ai-usage" element={<AIUsage />} />
                 <Route path="withdrawals" element={<WithdrawalManagement />} />
                 <Route path="user-invites" element={<UserInvites />} />
+                <Route path="ai-tasks" element={<AITaskManagement />} />
+                <Route path="content-review" element={<ContentReview />} />
+                <Route path="compliance" element={<ComplianceRisk />} />
+                <Route path="settings" element={<AdminSettings />} />
+                <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
               </Route>
 
-              <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-                <Route index element={<Home />} />
+              <Route path="/m" element={<ProtectedRoute><MobileLayout /></ProtectedRoute>}>
+                <Route index element={<MobileHome />} />
+                <Route path="interview" element={<MobileInterview />} />
+                <Route path="archive" element={<MobileArchive />} />
+                <Route path="family" element={<MobileFamily />} />
+                <Route path="works" element={<MobileWorks />} />
+                <Route path="photo-restore" element={<MobilePhotoRestore />} />
+                <Route path="profile" element={<MobileProfile />} />
+                <Route path="*" element={<Navigate to="/m" replace />} />
+              </Route>
+
+              {/* 应用内其它页面，保持原有 URL */}
+              <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
                 <Route path="interview" element={<AIInterview />} />
                 <Route path="interview-review" element={<InterviewReview />} />
                 <Route path="biography" element={<AIBiography />} />
                 <Route path="biography/print" element={<BiographyPrint />} />
                 <Route path="my-works" element={<MyWorks />} />
+                <Route path="group-buy" element={<GroupBuy />} />
+                <Route path="museum" element={<Museum />} />
+                <Route path="museum/:archiveId" element={<Museum />} />
+                <Route path="digital-assets" element={<DigitalAssets />} />
                 <Route path="biographers" element={<BiographerList />} />
-                <Route path="my-biographer-orders" element={<MyBiographerOrders />} />
+                <Route path="my-biographer-orders" element={<Navigate to="/my-orders?type=biographer_service" replace />} />
                 <Route path="my-orders" element={<MyOrders />} />
                 <Route path="store" element={<Store />} />
                 <Route path="store/:id" element={<ProductDetail />} />
@@ -161,6 +225,9 @@ function App() {
                 <Route path="digital-person/training-report" element={<MVPRedirect><TrainingReport /></MVPRedirect>} />
                 <Route path="digital-companion" element={<MVPRedirect><DigitalCompanion /></MVPRedirect>} />
                 <Route path="government" element={<MVPRedirect><GovernmentService /></MVPRedirect>} />
+                <Route path="government/dashboard" element={<MVPRedirect><GovernmentDashboard /></MVPRedirect>} />
+                <Route path="government/application/:id" element={<MVPRedirect><ApplicationDetail /></MVPRedirect>} />
+                <Route path="government/policies" element={<MVPRedirect><PolicyList /></MVPRedirect>} />
                 <Route path="settings" element={<Navigate to="/settings/account" replace />} />
                 <Route path="settings/:section" element={<Settings />} />
                 <Route path="family/members" element={<MVPRedirect><FamilyMemberList /></MVPRedirect>} />
@@ -193,11 +260,11 @@ function App() {
                 <Route path="family/motto" element={<MVPRedirect><FamilyMotto /></MVPRedirect>} />
                 <Route path="family/inherit/:id" element={<MVPRedirect><FamilyInherit /></MVPRedirect>} />
                 <Route path="family/events" element={<MVPRedirect><FamilyEvents /></MVPRedirect>} />
-                <Route path="*" element={<Navigate to="/" replace />} />
+                <Route path="*" element={<Navigate to="/home" replace />} />
               </Route>
             </Routes>
           </Suspense>
-        </BrowserRouter>
+        </HashRouter>
       </AuthProvider>
     </ToastProvider>
   );

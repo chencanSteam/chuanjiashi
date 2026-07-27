@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "deploy:cloudbase": "npx tcb app deploy chuanjiashi -e cc2026-d0gtw9uu873b04cf0 --framework static --build-command \"npm run build\" --output-dir dist -f"
   },
   "dependencies": {
     "clsx": "^2.1.1",
@@ -19,6 +20,7 @@
     "recharts": "^3.8.1"
   },
   "devDependencies": {
+    "@cloudbase/cli": "^3.6.3",
     "@eslint/js": "^10.0.1",
     "@types/node": "^24.12.3",
     "@types/react": "^19.2.14",

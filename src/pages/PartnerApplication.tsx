@@ -10,7 +10,7 @@ export default function PartnerApplication() {
     <div className="partner-application-page">
       <div className="partner-application-card">
         <header className="partner-application-header">
-          <button className="btn btn-ghost" onClick={() => navigate('/')}>
+          <button className="btn btn-ghost" onClick={() => navigate('/home')}>
             <ArrowLeft size={16} /> 返回首页
           </button>
           <h1>申请成为合伙人</h1>
