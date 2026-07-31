@@ -69,17 +69,57 @@
   letter-spacing: 0.5px;
 }
 
-.mvp-badge {
+.version-switch {
   margin: 0 16px 12px;
   padding: 8px 12px;
   border-radius: var(--radius-md);
-  background: linear-gradient(135deg, var(--accent) 0%, #D4A84B 100%);
-  color: #fff;
+  background: var(--bg-soft, #f3f0ea);
+  border: 1px solid var(--border-color, #e5e0d8);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   font-size: 12px;
   font-weight: 600;
-  text-align: center;
+  color: var(--text-muted);
   letter-spacing: 1px;
+}
+
+.version-switch.on {
+  background: linear-gradient(135deg, var(--accent) 0%, #D4A84B 100%);
+  border-color: transparent;
+  color: #fff;
   box-shadow: 0 2px 8px rgba(184, 134, 11, 0.25);
+}
+
+.version-switch-toggle {
+  width: 32px;
+  height: 18px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.15);
+  position: relative;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  flex-shrink: 0;
+}
+
+.version-switch-toggle::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  transition: left 0.2s ease;
+}
+
+.version-switch.on .version-switch-toggle {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.version-switch.on .version-switch-toggle::after {
+  left: 16px;
 }
 
 .nav {

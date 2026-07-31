@@ -2,32 +2,6 @@
   margin-bottom: 20px;
 }
 
-.um-tabs {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-
-.um-tab {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius);
-  background: var(--card-bg);
-  color: var(--text-secondary);
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.um-tab.active {
-  background: var(--primary);
-  border-color: var(--primary);
-  color: #fff;
-}
-
 .um-list-card {
   overflow: hidden;
 }

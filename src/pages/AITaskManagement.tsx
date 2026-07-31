@@ -15,6 +15,13 @@ import {
 } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 import { aiTaskApi } from '../api/aiTask';
+import {
+  loadTopicConfig,
+  createTopic,
+  updateTopic,
+  removeTopic,
+  type InterviewTopicConfig,
+} from '../data/interviewTopicConfig';
 import type { TokenCostStat } from '../api/aiTask';
 import Modal from '../components/ui/Modal';
 import type { AITask, AITaskType, AITaskStatus, PromptTemplate, PromptTemplateType, QrCodeRecord, Question } from '../mocks/types';
@@ -24,6 +31,7 @@ const tabs = [
   { key: 'queue', label: '任务队列' },
   { key: 'token', label: 'Token 成本' },
   { key: 'templates', label: '模板管理' },
+  { key: 'topics', label: '采访主题' },
   { key: 'questions', label: '采访题库' },
   { key: 'qrcodes', label: '二维码管理' },
 ] as const;
@@ -80,6 +88,9 @@ export default function AITaskManagement() {
   const [questionModal, setQuestionModal] = useState<{ mode: 'create' | 'edit'; question?: Question } | null>(null);
   const [questionForm, setQuestionForm] = useState({ category: '', title: '', question: '' });
   const [savingQuestion, setSavingQuestion] = useState(false);
+  const [topicList, setTopicList] = useState<InterviewTopicConfig[]>([]);
+  const [topicModal, setTopicModal] = useState<{ mode: 'create' | 'edit'; topic?: InterviewTopicConfig } | null>(null);
+  const [topicForm, setTopicForm] = useState({ title: '', summary: '' });
 
   const loadQuestions = () => {
     aiTaskApi
@@ -112,6 +123,9 @@ export default function AITaskManagement() {
     }
     if (activeTab === 'questions') {
       loadQuestions();
+    }
+    if (activeTab === 'topics') {
+      setTopicList(loadTopicConfig());
     }
   }, [activeTab]);
 
@@ -198,6 +212,48 @@ export default function AITaskManagement() {
     } catch (err) {
       addToast(err instanceof Error ? err.message : '删除失败', 'error');
     }
+  };
+
+  // 采访主题 CRUD（采访页实时读取该配置）
+  const refreshTopics = () => setTopicList(loadTopicConfig());
+
+  const openCreateTopic = () => {
+    setTopicForm({ title: '', summary: '' });
+    setTopicModal({ mode: 'create' });
+  };
+
+  const openEditTopic = (t: InterviewTopicConfig) => {
+    setTopicForm({ title: t.title, summary: t.summary });
+    setTopicModal({ mode: 'edit', topic: t });
+  };
+
+  const saveTopic = () => {
+    if (!topicForm.title.trim()) {
+      addToast('主题名称不能为空', 'error');
+      return;
+    }
+    if (topicModal?.mode === 'edit' && topicModal.topic) {
+      updateTopic(topicModal.topic.id, { title: topicForm.title.trim(), summary: topicForm.summary.trim() });
+      addToast('主题已更新，采访时立即生效', 'success');
+    } else {
+      createTopic({ title: topicForm.title.trim(), summary: topicForm.summary.trim() });
+      addToast('主题已添加，采访问题将由 AI 根据主题名生成', 'success');
+    }
+    setTopicModal(null);
+    refreshTopics();
+  };
+
+  const toggleTopic = (t: InterviewTopicConfig) => {
+    updateTopic(t.id, { enabled: !t.enabled });
+    addToast(`主题「${t.title}」已${t.enabled ? '停用' : '启用'}`, 'success');
+    refreshTopics();
+  };
+
+  const deleteTopic = (t: InterviewTopicConfig) => {
+    if (!window.confirm(`确定删除主题「${t.title}」吗？采访将不再包含该主题。`)) return;
+    removeTopic(t.id);
+    addToast('主题已删除', 'success');
+    refreshTopics();
   };
 
   const totalTokens = useMemo(() => tokenStats.reduce((sum, s) => sum + s.totalTokens, 0), [tokenStats]);
@@ -400,6 +456,49 @@ export default function AITaskManagement() {
           ))}
         </>
       )}
+      {activeTab === 'topics' && (
+        <div className="card">
+          <div className="card-header ai-task-header">
+            <h3 className="card-title"><ListTodo size={16} /> 采访主题（采访页按此配置展示，共 {topicList.length} 个）</h3>
+            <button className="btn btn-primary btn-sm" onClick={openCreateTopic}>
+              <Plus size={14} /> 新增主题
+            </button>
+          </div>
+          <div className="card-body ai-task-body">
+            {topicList.length === 0 ? (
+              <div className="ai-task-empty">暂无主题，点击右上角「新增主题」添加</div>
+            ) : (
+              topicList.map((t, i) => (
+                <div className="ai-tpl-item" key={t.id}>
+                  <div className="ai-tpl-info">
+                    <div className="ai-tpl-name">
+                      {i + 1}. {t.title}
+                      <span className={`ai-task-status ${t.enabled ? 'success' : 'queued'}`} style={{ marginLeft: 8 }}>
+                        {t.enabled ? '启用中' : '已停用'}
+                      </span>
+                      {!t.builtin && (
+                        <span className="ai-task-status queued" style={{ marginLeft: 4 }}>AI 出题</span>
+                      )}
+                    </div>
+                    <div className="ai-tpl-summary">{t.summary || '暂无简介'}</div>
+                  </div>
+                  <div className="ai-q-actions">
+                    <button className="btn btn-outline btn-sm" onClick={() => toggleTopic(t)}>
+                      {t.enabled ? '停用' : '启用'}
+                    </button>
+                    <button className="btn btn-outline btn-sm" onClick={() => openEditTopic(t)}>
+                      <Pencil size={13} /> 编辑
+                    </button>
+                    <button className="btn btn-outline btn-sm" onClick={() => deleteTopic(t)}>
+                      <Trash2 size={13} /> 删除
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
       {activeTab === 'questions' && (
         <div className="card">
           <div className="card-header ai-task-header">
@@ -415,10 +514,10 @@ export default function AITaskManagement() {
               groupedQuestions.map((group) => (
                 <div className="ai-tpl-group" key={group.category}>
                   <div className="ai-q-category">{group.category}（{group.items.length}）</div>
-                  {group.items.map((q) => (
+                  {group.items.map((q, qi) => (
                     <div className="ai-tpl-item" key={q.id}>
                       <div className="ai-tpl-info">
-                        <div className="ai-tpl-name">{q.order}. {q.title}</div>
+                        <div className="ai-tpl-name">{qi + 1}. {q.title}</div>
                         <div className="ai-tpl-summary">{q.question}</div>
                       </div>
                       <div className="ai-q-actions">
@@ -480,6 +579,38 @@ export default function AITaskManagement() {
           </div>
         </div>
       )}
+
+      <Modal
+        open={!!topicModal}
+        title={topicModal?.mode === 'edit' ? '编辑主题' : '新增主题'}
+        onClose={() => setTopicModal(null)}
+      >
+        <div className="ai-q-form">
+          <label className="ai-q-label">主题名称</label>
+          <input
+            className="ai-q-input"
+            placeholder="如：军旅生涯 / 手艺传承"
+            value={topicForm.title}
+            onChange={(e) => setTopicForm((f) => ({ ...f, title: e.target.value }))}
+          />
+          <label className="ai-q-label">主题简介</label>
+          <textarea
+            className="ai-q-input ai-q-textarea"
+            rows={3}
+            placeholder="一句话说明该主题采访的内容方向"
+            value={topicForm.summary}
+            onChange={(e) => setTopicForm((f) => ({ ...f, summary: e.target.value }))}
+          />
+          {topicModal?.mode === 'create' && (
+            <p style={{ fontSize: 12, color: '#6b7280', margin: '0 0 8px' }}>
+              新增的主题没有预设题库，采访问题将由 AI 根据主题名称自动生成。
+            </p>
+          )}
+          <button className="btn btn-primary" style={{ width: '100%', marginTop: 8 }} onClick={saveTopic}>
+            保存
+          </button>
+        </div>
+      </Modal>
 
       <Modal
         open={!!questionModal}

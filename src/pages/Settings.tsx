@@ -323,7 +323,7 @@ export default function Settings() {
                 </div>
                 <div className="form-row">
                   <label>真实姓名</label>
-                  <input type="text" value={account.realName} onChange={(e) => setAccount((a) => ({ ...a, realName: e.target.value }))} />
+                  <input type="text" value={account.realName} onChange={(e) => setAccount((a) => ({ ...a, realName: e.target.value }))} placeholder="实名认证后作为账号姓名展示" />
                 </div>
                 <div className="form-row">
                   <label>手机号码</label>
@@ -351,8 +351,9 @@ export default function Settings() {
                   onClick={async () => {
                     try {
                       setSavingAccount(true);
+                      // 账号姓名优先级：实名姓名 > 昵称 > 默认数字名
                       updateUser({
-                        name: account.nickname,
+                        name: account.realName.trim() || account.nickname,
                         community: account.community,
                         neighborhood: account.neighborhood,
                       });

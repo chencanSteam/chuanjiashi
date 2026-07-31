@@ -153,6 +153,40 @@ export const interviewTopics: InterviewTopic[] = [
   },
 ];
 
+// 预设主题的扩展题库：采访开始时与主题自带 3 题合并，随机抽取 3 题作为开场问题
+export const interviewQuestionBank: Record<string, InterviewQuestion[]> = {
+  childhood: [
+    { id: 'c4', text: '您小时候最喜欢玩的游戏或活动是什么？', mockAnswer: '' },
+    { id: 'c5', text: '童年时，家里谁对您的影响最深？', mockAnswer: '' },
+    { id: 'c6', text: '小时候家里有什么规矩或习惯，您一直记到现在？', mockAnswer: '' },
+  ],
+  school: [
+    { id: 's4', text: '上学时您最擅长和最头疼的科目分别是什么？', mockAnswer: '' },
+    { id: 's5', text: '求学路上有没有遇到过特别困难的时刻？是怎么克服的？', mockAnswer: '' },
+    { id: 's6', text: '学生时代有没有特别要好的同学？你们之间有什么难忘的故事？', mockAnswer: '' },
+  ],
+  work: [
+    { id: 'w4', text: '工作中有没有一位让您特别敬佩的师傅或同事？', mockAnswer: '' },
+    { id: 'w5', text: '职业生涯里最难熬的一段时期是什么时候？', mockAnswer: '' },
+    { id: 'w6', text: '如果回到刚参加工作的时候，您会对自己说什么？', mockAnswer: '' },
+  ],
+  family: [
+    { id: 'f4', text: '养育孩子的过程中，有没有让您特别感动或愧疚的事？', mockAnswer: '' },
+    { id: 'f5', text: '您和伴侣之间有没有保持多年的小习惯？', mockAnswer: '' },
+    { id: 'f6', text: '家里最热闹、最温馨的时刻通常是什么时候？', mockAnswer: '' },
+  ],
+  startup: [
+    { id: 'st4', text: '创业初期最艰难的是什么？您是怎么坚持下来的？', mockAnswer: '' },
+    { id: 'st5', text: '创业路上有没有遇到过贵人？TA 给了您什么帮助？', mockAnswer: '' },
+    { id: 'st6', text: '您最希望把企业做成什么样子？', mockAnswer: '' },
+  ],
+  reflection: [
+    { id: 'r4', text: '回头看这一生，您觉得自己最幸运的是什么？', mockAnswer: '' },
+    { id: 'r5', text: '有没有一件事，让您至今想起来仍觉得遗憾？', mockAnswer: '' },
+    { id: 'r6', text: '如果给年轻人一句忠告，您最想说什么？', mockAnswer: '' },
+  ],
+};
+
 export const followUpQuestionsPool = [
   '能再详细说说当时的感受吗？',
   '这件事对您后来的选择有什么影响？',

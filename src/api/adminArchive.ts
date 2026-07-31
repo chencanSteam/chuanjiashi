@@ -1,4 +1,4 @@
-import { api } from './client'
+import { api, toQuery } from './client'
 import type { AdminArchive } from '../mocks/types'
 
 export const adminArchiveApi = {
@@ -7,7 +7,7 @@ export const adminArchiveApi = {
     keyword?: string
     archiveType?: AdminArchive['archiveType'] | 'all'
     privacyStatus?: AdminArchive['privacyStatus'] | 'all'
-  }) => api.get<AdminArchive[]>(`/api/admin/archives?${new URLSearchParams(params || {}).toString()}`),
+  }) => api.get<AdminArchive[]>(`/api/admin/archives?${toQuery(params)}`),
   // 档案详情
   get: (id: string) => api.get<AdminArchive>(`/api/admin/archives/${id}`),
   // 修改隐私状态

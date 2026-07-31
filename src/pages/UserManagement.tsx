@@ -1,16 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
-  Users,
   Search,
   UserCheck,
   X,
   Ban,
   CheckCircle,
-  XCircle,
   Phone,
   Share2,
   Wallet,
-  ShieldCheck,
 } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 import { adminUserApi, type AdminUserDetail } from '../api/adminUser';
@@ -18,10 +15,10 @@ import type { AdminUser, CommissionRecord, OrderType } from '../mocks/types';
 import './UserManagement.css';
 
 const REALNAME_STATUS_LABELS: Record<AdminUser['realNameStatus'], string> = {
-  none: '未提交',
-  pending: '待审核',
+  none: '未认证',
+  pending: '认证中',
   verified: '已实名',
-  rejected: '已驳回',
+  rejected: '认证失败',
 };
 
 const COMMISSION_STATUS_LABELS: Record<CommissionRecord['status'], string> = {
@@ -44,7 +41,6 @@ const ORDER_TYPE_LABELS: Record<OrderType, string> = {
 
 export default function UserManagement() {
   const { addToast } = useToast();
-  const [activeTab, setActiveTab] = useState<'users' | 'realname'>('users');
 
   return (
     <div className="user-management-page">
@@ -52,22 +48,7 @@ export default function UserManagement() {
         <h1 className="page-title">用户管理</h1>
       </header>
 
-      <div className="um-tabs">
-        <button
-          className={`um-tab ${activeTab === 'users' ? 'active' : ''}`}
-          onClick={() => setActiveTab('users')}
-        >
-          <Users size={14} /> 用户列表
-        </button>
-        <button
-          className={`um-tab ${activeTab === 'realname' ? 'active' : ''}`}
-          onClick={() => setActiveTab('realname')}
-        >
-          <ShieldCheck size={14} /> 实名认证审核
-        </button>
-      </div>
-
-      {activeTab === 'users' ? <UserListTab addToast={addToast} /> : <RealnameTab addToast={addToast} />}
+      <UserListTab addToast={addToast} />
     </div>
   );
 }
@@ -78,15 +59,16 @@ function UserListTab({ addToast }: { addToast: AddToast }) {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [keyword, setKeyword] = useState('');
   const [statusFilter, setStatusFilter] = useState<AdminUser['status'] | 'all'>('all');
+  const [realnameFilter, setRealnameFilter] = useState<AdminUser['realNameStatus'] | 'all'>('all');
   const [detail, setDetail] = useState<AdminUserDetail | null>(null);
   const [confirmUser, setConfirmUser] = useState<AdminUser | null>(null);
 
   const load = useCallback(() => {
     adminUserApi
       .list({ keyword: keyword || undefined, status: statusFilter })
-      .then(setUsers)
+      .then((list) => setUsers(realnameFilter === 'all' ? list : list.filter((u) => u.realNameStatus === realnameFilter)))
       .catch(() => setUsers([]));
-  }, [keyword, statusFilter]);
+  }, [keyword, statusFilter, realnameFilter]);
 
   useEffect(() => {
     const timer = setTimeout(load, 300);
@@ -135,6 +117,16 @@ function UserListTab({ addToast }: { addToast: AddToast }) {
               <option value="active">正常</option>
               <option value="disabled">已禁用</option>
             </select>
+            <select
+              value={realnameFilter}
+              onChange={(e) => setRealnameFilter(e.target.value as AdminUser['realNameStatus'] | 'all')}
+            >
+              <option value="all">全部实名状态</option>
+              <option value="pending">认证中</option>
+              <option value="verified">已实名</option>
+              <option value="rejected">认证失败</option>
+              <option value="none">未认证</option>
+            </select>
           </div>
         </div>
         <div className="card-body um-list-body">
@@ -147,8 +139,6 @@ function UserListTab({ addToast }: { addToast: AddToast }) {
                 <div className="um-cell">手机号</div>
                 <div className="um-cell">注册时间</div>
                 <div className="um-cell">实名状态</div>
-                <div className="um-cell">档案数</div>
-                <div className="um-cell">订单数</div>
                 <div className="um-cell">状态</div>
                 <div className="um-cell">操作</div>
               </div>
@@ -162,8 +152,6 @@ function UserListTab({ addToast }: { addToast: AddToast }) {
                       {REALNAME_STATUS_LABELS[u.realNameStatus]}
                     </span>
                   </div>
-                  <div className="um-cell">{u.archiveCount}</div>
-                  <div className="um-cell">{u.orderCount}</div>
                   <div className="um-cell">
                     <span className={`um-status ${u.status}`}>{u.status === 'active' ? '正常' : '已禁用'}</span>
                   </div>
@@ -277,87 +265,3 @@ function UserListTab({ addToast }: { addToast: AddToast }) {
   );
 }
 
-function RealnameTab({ addToast }: { addToast: AddToast }) {
-  const [list, setList] = useState<AdminUser[]>([]);
-  const [statusFilter, setStatusFilter] = useState<'pending' | 'verified' | 'rejected' | 'all'>('pending');
-
-  const load = useCallback(() => {
-    adminUserApi
-      .realnameList({ status: statusFilter })
-      .then(setList)
-      .catch(() => setList([]));
-  }, [statusFilter]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  const handleReview = async (user: AdminUser, status: 'verified' | 'rejected') => {
-    try {
-      await adminUserApi.reviewRealname(user.id, status);
-      addToast(status === 'verified' ? `已通过「${user.nickname}」的实名认证` : `已驳回「${user.nickname}」的实名认证`, 'success');
-      load();
-    } catch (err) {
-      addToast(err instanceof Error ? err.message : '操作失败', 'error');
-    }
-  };
-
-  return (
-    <div className="card um-list-card">
-      <div className="card-header um-list-header">
-        <div className="um-filters">
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
-          >
-            <option value="pending">待审核</option>
-            <option value="verified">已通过</option>
-            <option value="rejected">已驳回</option>
-            <option value="all">全部</option>
-          </select>
-        </div>
-      </div>
-      <div className="card-body um-list-body">
-        {list.length === 0 ? (
-          <div className="um-empty">暂无实名认证申请</div>
-        ) : (
-          <div className="um-table">
-            <div className="um-row um-header">
-              <div className="um-cell">昵称</div>
-              <div className="um-cell">手机号</div>
-              <div className="um-cell">注册时间</div>
-              <div className="um-cell">实名状态</div>
-              <div className="um-cell">操作</div>
-            </div>
-            {list.map((u) => (
-              <div className="um-row" key={u.id}>
-                <div className="um-cell um-cell-name">{u.nickname}</div>
-                <div className="um-cell">{u.phone}</div>
-                <div className="um-cell">{new Date(u.registeredAt).toLocaleDateString()}</div>
-                <div className="um-cell">
-                  <span className={`um-status realname-${u.realNameStatus}`}>
-                    {REALNAME_STATUS_LABELS[u.realNameStatus]}
-                  </span>
-                </div>
-                <div className="um-cell">
-                  {u.realNameStatus === 'pending' ? (
-                    <div className="um-review-actions">
-                      <button className="btn btn-primary" onClick={() => handleReview(u, 'verified')}>
-                        <CheckCircle size={12} /> 通过
-                      </button>
-                      <button className="btn um-btn-danger" onClick={() => handleReview(u, 'rejected')}>
-                        <XCircle size={12} /> 驳回
-                      </button>
-                    </div>
-                  ) : (
-                    <span className="um-reviewed">已处理</span>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}

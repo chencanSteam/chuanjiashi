@@ -1,4 +1,4 @@
-import { api } from './client'
+import { api, toQuery } from './client'
 import type {
   Partner,
   PartnerApplication,
@@ -59,7 +59,7 @@ export const partnerApi = {
 
   // 渠道管理
   channels: (params?: { type?: PartnerChannel['type'] | 'all'; status?: PartnerChannel['status'] | 'all' }) =>
-    api.get<PartnerChannel[]>(`/api/partner/channels?${new URLSearchParams(params || {}).toString()}`),
+    api.get<PartnerChannel[]>(`/api/partner/channels?${toQuery(params)}`),
   createChannel: (data: Partial<PartnerChannel>) =>
     api.post<PartnerChannel>('/api/partner/channels', data),
   // 年度考核结算

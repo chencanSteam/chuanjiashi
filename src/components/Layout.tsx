@@ -57,23 +57,27 @@ interface NavGroup {
 // 独立入口
 const homeNavItem: NavItem = { to: '/home', icon: LayoutDashboard, label: '首页' };
 
-// 「传记创作」组
-const creationGroupItems: NavItem[] = [
+// 「传记创作」组（MVP 版仅保留 AI智能采访、AI传记生成）
+const creationGroupItemsMVP: NavItem[] = [
   { to: '/interview', icon: Mic, label: 'AI智能采访' },
   { to: '/biography', icon: BookOpen, label: 'AI传记生成' },
+];
+
+const creationGroupItemsFull: NavItem[] = [
+  ...creationGroupItemsMVP,
   { to: '/my-works', icon: BookMarked, label: '我的传记' },
   { to: '/digital-assets', icon: Gem, label: '数字资产' },
 ];
 
-// 「人生记录」组（完整版额外包含家庭空间、数字家谱、AI家风馆）
+// 「人生记录」组（MVP 版仅保留人生档案；完整版额外包含老照片修复、数字博物馆、家庭空间、数字家谱、AI家风馆）
 const lifeGroupItemsMVP: NavItem[] = [
   { to: '/archive', icon: FolderOpen, label: '人生档案' },
-  { to: '/photo-restore', icon: Wand2, label: '老照片修复' },
-  { to: '/museum', icon: Building2, label: '数字博物馆' },
 ];
 
 const lifeGroupItemsFull: NavItem[] = [
   ...lifeGroupItemsMVP,
+  { to: '/photo-restore', icon: Wand2, label: '老照片修复' },
+  { to: '/museum', icon: Building2, label: '数字博物馆' },
   { to: '/family', icon: Users, label: '家庭空间' },
   { to: '/genealogy', icon: GitFork, label: '数字家谱' },
   { to: '/family-hall', icon: Landmark, label: 'AI家风馆' },
@@ -87,13 +91,9 @@ const servicesGroupItems: NavItem[] = [
   { to: '/my-orders', icon: ClipboardList, label: '我的订单' },
 ];
 
-// 「AI 数字人」组（完整版额外包含数字陪伴）
-const digitalHumanGroupItemsMVP: NavItem[] = [
-  { to: '/digital-person', icon: UserCircle2, label: '数字人' },
-];
-
+// 「AI 数字人」组（仅完整版展示）
 const digitalHumanGroupItemsFull: NavItem[] = [
-  ...digitalHumanGroupItemsMVP,
+  { to: '/digital-person', icon: UserCircle2, label: '数字人' },
   { to: '/digital-companion', icon: MessageCircleHeart, label: '数字陪伴' },
 ];
 
@@ -132,18 +132,25 @@ const initialNotices: NoticeItem[] = [
 ];
 
 function getNavGroups(isMVP: boolean): NavGroup[] {
+  // MVP 版只保留三大核心功能：AI智能采访、AI传记生成、人生档案
+  if (isMVP) {
+    return [
+      { key: 'creation', icon: BookOpen, label: '传记创作', items: creationGroupItemsMVP },
+      { key: 'life', icon: FolderOpen, label: '人生记录', items: lifeGroupItemsMVP },
+    ];
+  }
   return [
-    { key: 'creation', icon: BookOpen, label: '传记创作', items: creationGroupItems },
-    { key: 'life', icon: FolderOpen, label: '人生记录', items: isMVP ? lifeGroupItemsMVP : lifeGroupItemsFull },
+    { key: 'creation', icon: BookOpen, label: '传记创作', items: creationGroupItemsFull },
+    { key: 'life', icon: FolderOpen, label: '人生记录', items: lifeGroupItemsFull },
     { key: 'services', icon: ShoppingBag, label: '服务与商城', items: servicesGroupItems },
-    { key: 'digital-human', icon: UserCircle2, label: 'AI 数字人', items: isMVP ? digitalHumanGroupItemsMVP : digitalHumanGroupItemsFull },
+    { key: 'digital-human', icon: UserCircle2, label: 'AI 数字人', items: digitalHumanGroupItemsFull },
     { key: 'settings', icon: Settings, label: '系统设置', items: settingsGroupItems },
   ];
 }
 
 export default function Layout() {
   const { user, logout } = useAuth();
-  const { isMVP } = useVersion();
+  const { isMVP, setAppVersion } = useVersion();
   const location = useLocation();
   const pathname = location.pathname;
 
@@ -233,11 +240,18 @@ export default function Layout() {
           </div>
         </div>
 
-        {isMVP && (
-          <div className="mvp-badge" title="当前为 MVP 模式，仅展示核心功能入口">
-            MVP 模式
-          </div>
-        )}
+        <div
+          className={`version-switch ${isMVP ? 'on' : ''}`}
+          title={isMVP ? '当前为 MVP 模式，仅展示核心功能；点击切换到完整版' : '当前为完整版；点击切换到 MVP 模式'}
+        >
+          <span className="version-switch-label">{isMVP ? 'MVP 模式' : '完整版'}</span>
+          <div
+            className="version-switch-toggle"
+            role="switch"
+            aria-checked={isMVP}
+            onClick={() => setAppVersion(isMVP ? 'full' : 'mvp')}
+          />
+        </div>
 
         <nav className="nav">
           <ul className="nav-list">
@@ -333,14 +347,20 @@ export default function Layout() {
               <ChevronDown size={14} className={`user-menu-arrow ${showUserMenu ? 'open' : ''}`} />
               {showUserMenu && (
                 <div className="user-dropdown">
-                  {isPartner ? (
-                    <NavLink to="/partner" className="user-dropdown-item">
-                      <Briefcase size={14} /> 合伙人中心
-                    </NavLink>
-                  ) : (
-                    <NavLink to="/partner/apply" className="user-dropdown-item">
-                      <FileText size={14} /> 申请成为合伙人
-                    </NavLink>
+                  <NavLink to="/profile" className="user-dropdown-item">
+                    <User size={14} /> 个人中心
+                  </NavLink>
+                  <div className="user-dropdown-divider" />
+                  {!isMVP && (
+                    isPartner ? (
+                      <NavLink to="/partner" className="user-dropdown-item">
+                        <Briefcase size={14} /> 合伙人中心
+                      </NavLink>
+                    ) : (
+                      <NavLink to="/partner/apply" className="user-dropdown-item">
+                        <FileText size={14} /> 申请成为合伙人
+                      </NavLink>
+                    )
                   )}
                   {isAdmin && (
                     <NavLink to="/admin" className="user-dropdown-item">

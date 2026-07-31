@@ -16,6 +16,12 @@ function MVPRedirect({ children }: { children: ReactNode }) {
   return isMVP ? <Navigate to="/home" replace /> : <>{children}</>;
 }
 
+// 运营后台 MVP 模式：非核心页面重定向到用户管理
+function AdminMVPRedirect({ children }: { children: ReactNode }) {
+  const { isMVP } = useVersion();
+  return isMVP ? <Navigate to="/admin/users" replace /> : <>{children}</>;
+}
+
 // /login 重定向到 / 时保留查询参数（如邀请链接的 invite 参数）
 function LoginRedirect() {
   const { search } = useLocation();
@@ -42,6 +48,7 @@ const GovernmentDashboard = lazy(() => import('./pages/GovernmentDashboard'));
 const ApplicationDetail = lazy(() => import('./pages/ApplicationDetail'));
 const PolicyList = lazy(() => import('./pages/PolicyList'));
 const Settings = lazy(() => import('./pages/Settings'));
+const Profile = lazy(() => import('./pages/Profile'));
 const FamilyMemberList = lazy(() => import('./pages/FamilyMemberList'));
 const FamilyMemberDetail = lazy(() => import('./pages/FamilyMemberDetail'));
 const AlbumDetail = lazy(() => import('./pages/AlbumDetail'));
@@ -110,6 +117,8 @@ const DigitalAssets = lazy(() => import('./pages/DigitalAssets'));
 const BiographerApply = lazy(() => import('./pages/BiographerApply'));
 const BiographerEarnings = lazy(() => import('./pages/BiographerEarnings'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+const AdminRolePermissions = lazy(() => import('./pages/AdminRolePermissions'));
+const AdminNotifications = lazy(() => import('./pages/AdminNotifications'));
 const UserManagement = lazy(() => import('./pages/UserManagement'));
 const ArchiveManagement = lazy(() => import('./pages/ArchiveManagement'));
 const AITaskManagement = lazy(() => import('./pages/AITaskManagement'));
@@ -162,27 +171,29 @@ function App() {
               </Route>
 
               <Route path="/admin" element={<RoleRoute role="admin"><AdminLayout /></RoleRoute>}>
-                <Route index element={<Navigate to="/admin/dashboard" replace />} />
-                <Route path="dashboard" element={<AdminDashboard />} />
+                <Route index element={<AdminMVPRedirect><Navigate to="/admin/dashboard" replace /></AdminMVPRedirect>} />
+                <Route path="dashboard" element={<AdminMVPRedirect><AdminDashboard /></AdminMVPRedirect>} />
                 <Route path="users" element={<UserManagement />} />
                 <Route path="archives" element={<ArchiveManagement />} />
-                <Route path="biographers" element={<BiographerManagement />} />
-                <Route path="partners" element={<PartnerManagement />} />
-                <Route path="partner-applications" element={<PartnerApplications />} />
-                <Route path="partner-customers" element={<PartnerCustomersAdmin />} />
-                <Route path="orders" element={<OrderManagement />} />
-                <Route path="products" element={<ProductManagement />} />
-                <Route path="group-buy" element={<GroupBuyManagement />} />
-                <Route path="commission-records" element={<CommissionRecords />} />
-                <Route path="book-review" element={<BookReview />} />
-                <Route path="ai-usage" element={<AIUsage />} />
-                <Route path="withdrawals" element={<WithdrawalManagement />} />
-                <Route path="user-invites" element={<UserInvites />} />
+                <Route path="biographers" element={<AdminMVPRedirect><BiographerManagement /></AdminMVPRedirect>} />
+                <Route path="partners" element={<AdminMVPRedirect><PartnerManagement /></AdminMVPRedirect>} />
+                <Route path="partner-applications" element={<AdminMVPRedirect><PartnerApplications /></AdminMVPRedirect>} />
+                <Route path="partner-customers" element={<AdminMVPRedirect><PartnerCustomersAdmin /></AdminMVPRedirect>} />
+                <Route path="orders" element={<AdminMVPRedirect><OrderManagement /></AdminMVPRedirect>} />
+                <Route path="products" element={<AdminMVPRedirect><ProductManagement /></AdminMVPRedirect>} />
+                <Route path="group-buy" element={<AdminMVPRedirect><GroupBuyManagement /></AdminMVPRedirect>} />
+                <Route path="commission-records" element={<AdminMVPRedirect><CommissionRecords /></AdminMVPRedirect>} />
+                <Route path="book-review" element={<AdminMVPRedirect><BookReview /></AdminMVPRedirect>} />
+                <Route path="ai-usage" element={<AdminMVPRedirect><AIUsage /></AdminMVPRedirect>} />
+                <Route path="withdrawals" element={<AdminMVPRedirect><WithdrawalManagement /></AdminMVPRedirect>} />
+                <Route path="user-invites" element={<AdminMVPRedirect><UserInvites /></AdminMVPRedirect>} />
                 <Route path="ai-tasks" element={<AITaskManagement />} />
-                <Route path="content-review" element={<ContentReview />} />
-                <Route path="compliance" element={<ComplianceRisk />} />
-                <Route path="settings" element={<AdminSettings />} />
-                <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
+                <Route path="roles" element={<AdminRolePermissions />} />
+                <Route path="notifications" element={<AdminNotifications />} />
+                <Route path="content-review" element={<AdminMVPRedirect><ContentReview /></AdminMVPRedirect>} />
+                <Route path="compliance" element={<AdminMVPRedirect><ComplianceRisk /></AdminMVPRedirect>} />
+                <Route path="settings" element={<AdminMVPRedirect><AdminSettings /></AdminMVPRedirect>} />
+                <Route path="*" element={<AdminMVPRedirect><Navigate to="/admin/dashboard" replace /></AdminMVPRedirect>} />
               </Route>
 
               <Route path="/m" element={<ProtectedRoute><MobileLayout /></ProtectedRoute>}>
@@ -202,25 +213,25 @@ function App() {
                 <Route path="interview-review" element={<InterviewReview />} />
                 <Route path="biography" element={<AIBiography />} />
                 <Route path="biography/print" element={<BiographyPrint />} />
-                <Route path="my-works" element={<MyWorks />} />
-                <Route path="group-buy" element={<GroupBuy />} />
-                <Route path="museum" element={<Museum />} />
-                <Route path="museum/:archiveId" element={<Museum />} />
-                <Route path="digital-assets" element={<DigitalAssets />} />
-                <Route path="biographers" element={<BiographerList />} />
-                <Route path="my-biographer-orders" element={<Navigate to="/my-orders?type=biographer_service" replace />} />
-                <Route path="my-orders" element={<MyOrders />} />
-                <Route path="store" element={<Store />} />
-                <Route path="store/:id" element={<ProductDetail />} />
-                <Route path="biography-shelf" element={<BiographyShelf />} />
-                <Route path="biography-shelf/:id" element={<BiographyShelf />} />
-                <Route path="order-success" element={<OrderSuccess />} />
-                <Route path="photo-restore" element={<PhotoRestore />} />
+                <Route path="my-works" element={<MVPRedirect><MyWorks /></MVPRedirect>} />
+                <Route path="group-buy" element={<MVPRedirect><GroupBuy /></MVPRedirect>} />
+                <Route path="museum" element={<MVPRedirect><Museum /></MVPRedirect>} />
+                <Route path="museum/:archiveId" element={<MVPRedirect><Museum /></MVPRedirect>} />
+                <Route path="digital-assets" element={<MVPRedirect><DigitalAssets /></MVPRedirect>} />
+                <Route path="biographers" element={<MVPRedirect><BiographerList /></MVPRedirect>} />
+                <Route path="my-biographer-orders" element={<MVPRedirect><Navigate to="/my-orders?type=biographer_service" replace /></MVPRedirect>} />
+                <Route path="my-orders" element={<MVPRedirect><MyOrders /></MVPRedirect>} />
+                <Route path="store" element={<MVPRedirect><Store /></MVPRedirect>} />
+                <Route path="store/:id" element={<MVPRedirect><ProductDetail /></MVPRedirect>} />
+                <Route path="biography-shelf" element={<MVPRedirect><BiographyShelf /></MVPRedirect>} />
+                <Route path="biography-shelf/:id" element={<MVPRedirect><BiographyShelf /></MVPRedirect>} />
+                <Route path="order-success" element={<MVPRedirect><OrderSuccess /></MVPRedirect>} />
+                <Route path="photo-restore" element={<MVPRedirect><PhotoRestore /></MVPRedirect>} />
                 <Route path="archive" element={<LifeArchive />} />
                 <Route path="family" element={<MVPRedirect><FamilySpace /></MVPRedirect>} />
                 <Route path="genealogy" element={<MVPRedirect><Genealogy /></MVPRedirect>} />
                 <Route path="family-hall" element={<MVPRedirect><AIFamilyHall /></MVPRedirect>} />
-                <Route path="digital-person" element={<DigitalLife />} />
+                <Route path="digital-person" element={<MVPRedirect><DigitalLife /></MVPRedirect>} />
                 <Route path="digital-person/training-records" element={<MVPRedirect><TrainingRecords /></MVPRedirect>} />
                 <Route path="digital-person/training-report" element={<MVPRedirect><TrainingReport /></MVPRedirect>} />
                 <Route path="digital-companion" element={<MVPRedirect><DigitalCompanion /></MVPRedirect>} />
@@ -228,8 +239,9 @@ function App() {
                 <Route path="government/dashboard" element={<MVPRedirect><GovernmentDashboard /></MVPRedirect>} />
                 <Route path="government/application/:id" element={<MVPRedirect><ApplicationDetail /></MVPRedirect>} />
                 <Route path="government/policies" element={<MVPRedirect><PolicyList /></MVPRedirect>} />
-                <Route path="settings" element={<Navigate to="/settings/account" replace />} />
-                <Route path="settings/:section" element={<Settings />} />
+                <Route path="settings" element={<MVPRedirect><Navigate to="/settings/account" replace /></MVPRedirect>} />
+                <Route path="settings/:section" element={<MVPRedirect><Settings /></MVPRedirect>} />
+                <Route path="profile" element={<Profile />} />
                 <Route path="family/members" element={<MVPRedirect><FamilyMemberList /></MVPRedirect>} />
                 <Route path="family/members/:name" element={<MVPRedirect><FamilyMemberDetail /></MVPRedirect>} />
                 <Route path="family/album/:title" element={<MVPRedirect><AlbumDetail /></MVPRedirect>} />

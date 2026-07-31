@@ -153,6 +153,35 @@
   gap: 20px;
 }
 
+.home-collab {
+  background: var(--card-bg, #fff);
+  border-radius: var(--radius, 10px);
+  overflow: hidden;
+}
+
+.home-collab .surface-header {
+  padding-bottom: 12px;
+}
+
+.home-collab-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  padding: 16px 24px 20px;
+}
+
+@media (max-width: 900px) {
+  .home-collab-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+.home-invite-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
 .service-card {
   display: flex;
   align-items: center;
@@ -755,7 +784,8 @@
 }
 
 .home-hot-books .surface-header h3,
-.home-cases .surface-header h3 {
+.home-cases .surface-header h3,
+.home-collab .surface-header h3 {
   display: inline-flex;
   align-items: center;
   gap: 6px;

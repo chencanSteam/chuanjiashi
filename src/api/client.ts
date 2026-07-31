@@ -1,5 +1,16 @@
 const BASE_URL = ''
 
+// 拼接查询串：跳过 undefined / null / 空字符串，避免被序列化成 "undefined"
+export function toQuery(params?: Record<string, string | number | undefined | null>): string {
+  const search = new URLSearchParams()
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') {
+      search.set(key, String(value))
+    }
+  })
+  return search.toString()
+}
+
 export interface ApiResult<T> {
   code: number
   message: string

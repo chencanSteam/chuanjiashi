@@ -79,15 +79,9 @@ function loadStoredUser(): User | null {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [ready, setReady] = useState(false);
-
-  // 页面刷新时恢复登录态（纯本地，不走接口）
-  useEffect(() => {
-    const stored = loadStoredUser();
-    setUser(stored);
-    setReady(true);
-  }, []);
+  // 用惰性初始化直接读取本地登录态，避免 effect 恢复与写入 effect 在 StrictMode 下交错清除 cj_user
+  const [user, setUser] = useState<User | null>(() => loadStoredUser());
+  const [ready] = useState(true);
 
   useEffect(() => {
     if (user) {

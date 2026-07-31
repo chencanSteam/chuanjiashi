@@ -1,4 +1,5 @@
-import { interviewTopics, type InterviewTopic } from '../data/aiMock';
+import { interviewTopics, interviewQuestionBank, type InterviewTopic, type InterviewQuestion } from '../data/aiMock';
+import { loadTopicConfig } from '../data/interviewTopicConfig';
 
 interface ArchiveInfo {
   name: string;
@@ -37,6 +38,42 @@ function personalizeTopic(topic: InterviewTopic, archive: ArchiveInfo): Intervie
 }
 
 const customTopicsKey = (archiveId: string) => `cj_interview_custom_topics_${archiveId}`;
+const drawnKey = (archiveId: string) => `cj_interview_drawn_${archiveId}`;
+
+function loadDrawn(archiveId: string): Record<string, string[]> {
+  try {
+    const raw = localStorage.getItem(drawnKey(archiveId));
+    if (raw) return JSON.parse(raw) as Record<string, string[]>;
+  } catch {
+    // ignore
+  }
+  return {};
+}
+
+// 每个主题从题库（自带 3 题 + 扩展题库）随机抽 3 题；抽取结果按 drawKey 持久化，刷新不变
+// drawKey 按回答者区分：本人与每位协助者各自独立抽题（问题由 AI 按各自回答生成，互不相同）
+function drawTopicQuestions(topic: InterviewTopic, archive: ArchiveInfo, drawKey?: string): InterviewTopic {
+  const extra = interviewQuestionBank[topic.id] || [];
+  if (extra.length === 0) return topic;
+  const pool: InterviewQuestion[] = [...topic.questions, ...extra].map((q) => ({
+    ...q,
+    text: replacePlaceholders(q.text, archive),
+    mockAnswer: replacePlaceholders(q.mockAnswer, archive),
+  }));
+  if (!drawKey) return { ...topic, questions: pool.slice(0, 3) };
+
+  const stored = loadDrawn(drawKey);
+  let ids = stored[topic.id];
+  if (!ids || ids.some((id) => !pool.some((q) => q.id === id))) {
+    ids = [...pool].sort(() => Math.random() - 0.5).slice(0, 3).map((q) => q.id);
+    try {
+      localStorage.setItem(drawnKey(drawKey), JSON.stringify({ ...stored, [topic.id]: ids }));
+    } catch {
+      // ignore
+    }
+  }
+  return { ...topic, questions: ids.map((id) => pool.find((q) => q.id === id)!) };
+}
 
 export function loadCustomTopics(archiveId: string): InterviewTopic[] {
   try {
@@ -51,16 +88,16 @@ export function loadCustomTopics(archiveId: string): InterviewTopic[] {
 export function saveCustomTopic(archiveId: string, input: { title: string; summary?: string }): InterviewTopic {
   const existing = loadCustomTopics(archiveId);
   const id = `custom_${Date.now()}`;
+  const title = input.title.trim();
+  // 自定义主题没有预设题库，由 AI 根据主题名称生成开场问题
   const topic: InterviewTopic = {
     id,
-    title: input.title.trim(),
+    title,
     summary: (input.summary || '').trim(),
     questions: [
-      {
-        id: `${id}_q1`,
-        text: `请谈谈您的${input.title.trim()}经历。`,
-        mockAnswer: '',
-      },
+      { id: `${id}_q1`, text: `请谈谈您的${title}经历，它是怎么开始的？`, mockAnswer: '' },
+      { id: `${id}_q2`, text: `在${title}的过程中，有没有让您特别难忘的人或事？`, mockAnswer: '' },
+      { id: `${id}_q3`, text: `${title}这段经历对您后来的生活或想法有什么影响？`, mockAnswer: '' },
     ],
   };
   localStorage.setItem(customTopicsKey(archiveId), JSON.stringify([...existing, topic]));
@@ -249,70 +286,89 @@ function tagBasedTopics(archive: ArchiveInfo): InterviewTopic[] {
   return result;
 }
 
+// 后台新增主题（无固定题库）：AI 按主题名生成开场问题
+function aiGeneratedQuestions(topicId: string, title: string) {
+  return [
+    { id: `${topicId}_q1`, text: `请谈谈您的${title}经历，它是怎么开始的？`, mockAnswer: '' },
+    { id: `${topicId}_q2`, text: `在${title}的过程中，有没有让您特别难忘的人或事？`, mockAnswer: '' },
+    { id: `${topicId}_q3`, text: `${title}这段经历对您后来的生活或想法有什么影响？`, mockAnswer: '' },
+  ];
+}
+
 export function generateInterviewTopics(
   archive: ArchiveInfo | null,
-  archiveId?: string
+  archiveId?: string,
+  drawKey?: string
 ): InterviewTopic[] {
   if (!archive) return interviewTopics;
 
   const age = getAge(archive.birthYear);
   const occupation = (archive.occupation || '').toLowerCase();
-
-  const allTopics = interviewTopics.map((t) => personalizeTopic(t, archive));
-  const result: InterviewTopic[] = [];
-
-  // 童年：几乎所有人都有
-  result.push(allTopics.find((t) => t.id === 'childhood')!);
-
-  // 求学：年龄达到学龄后
-  if (age >= 7) {
-    result.push(allTopics.find((t) => t.id === 'school')!);
-  }
-
-  // 工作：成年后
-  if (age >= 20) {
-    const workTopic = allTopics.find((t) => t.id === 'work')!;
-    result.push({
-      ...workTopic,
-      questions: workTopic.questions.map((q) => ({
-        ...q,
-        text: q.text.replace(/您毕业后/g, `您从${archive.origin || '家乡'}走出来后`),
-      })),
-    });
-  }
-
-  // 婚姻家庭：成家立业的年龄
-  if (age >= 25) {
-    result.push(allTopics.find((t) => t.id === 'family')!);
-  }
-
-  // 创业：职业相关或年龄较大
   const startupKeywords = ['创业', '老板', '企业家', '个体', '经商', '生意', '公司', '厂长'];
   const hasStartup = startupKeywords.some((k) => occupation.includes(k));
-  if (hasStartup && age >= 30) {
-    const startupTopic = allTopics.find((t) => t.id === 'startup')!;
-    result.push({
-      ...startupTopic,
-      questions: startupTopic.questions.map((q) => ({
-        ...q,
-        text: q.text.replace(
-          /为什么选择创业/g,
-          `作为一名${archive.occupation || '从业者'}，您为什么选择创业`
-        ),
-      })),
-    });
-  }
 
-  // 人生感悟：年长者
-  if (age >= 55) {
-    result.push(allTopics.find((t) => t.id === 'reflection')!);
-  }
+  const allTopics = interviewTopics.map((t) => personalizeTopic(t, archive));
+  const presetById = new Map(allTopics.map((t) => [t.id, t]));
 
-  // 如果基本信息无法推断出足够主题，至少保留默认主题（除创业外）
+  // 预设主题的适用条件（按年龄/职业推断）
+  const meetsRule = (id: string): boolean => {
+    switch (id) {
+      case 'school':
+        return age >= 7;
+      case 'work':
+        return age >= 20;
+      case 'family':
+        return age >= 25;
+      case 'startup':
+        return hasStartup && age >= 30;
+      case 'reflection':
+        return age >= 55;
+      default:
+        return true;
+    }
+  };
+
+  // 主题来源：后台「采访主题」配置（启用 + 排序），预设主题沿用固定题库，新增主题由 AI 出题
+  const result: InterviewTopic[] = [];
+  const config = loadTopicConfig().filter((t) => t.enabled);
+  config.forEach((cfg) => {
+    const preset = presetById.get(cfg.id);
+    if (preset) {
+      if (!meetsRule(cfg.id)) return;
+      let topic: InterviewTopic = { ...preset, title: cfg.title || preset.title, summary: cfg.summary || preset.summary };
+      if (cfg.id === 'work') {
+        topic = {
+          ...topic,
+          questions: topic.questions.map((q) => ({
+            ...q,
+            text: q.text.replace(/您毕业后/g, `您从${archive.origin || '家乡'}走出来后`),
+          })),
+        };
+      }
+      if (cfg.id === 'startup') {
+        topic = {
+          ...topic,
+          questions: topic.questions.map((q) => ({
+            ...q,
+            text: q.text.replace(
+              /为什么选择创业/g,
+              `作为一名${archive.occupation || '从业者'}，您为什么选择创业`
+            ),
+          })),
+        };
+      }
+      result.push(topic);
+    } else {
+      result.push({ id: cfg.id, title: cfg.title, summary: cfg.summary, questions: aiGeneratedQuestions(cfg.id, cfg.title) });
+    }
+  });
+
+  // 如果配置/推断出的主题太少，用预设主题补齐（跳过已停用的）
   if (result.length < 3) {
+    const disabledIds = new Set(loadTopicConfig().filter((t) => !t.enabled).map((t) => t.id));
     ['school', 'work', 'family', 'reflection'].forEach((id) => {
-      const topic = allTopics.find((t) => t.id === id);
-      if (topic && !result.some((t) => t.id === id)) {
+      const topic = presetById.get(id);
+      if (topic && !disabledIds.has(id) && !result.some((t) => t.id === id)) {
         result.push(topic);
       }
     });
@@ -321,10 +377,13 @@ export function generateInterviewTopics(
   // 根据人生标签生成针对性主题
   result.push(...tagBasedTopics(archive));
 
-  // 追加用户自定义主题
+  // 每个主题从题库随机抽 3 题作为采访开场（按回答者各自的 drawKey 独立抽取）
+  const drawn = result.map((t) => drawTopicQuestions(t, archive, drawKey ?? archiveId));
+
+  // 追加用户自定义主题（无题库，AI 按主题名生成问题）
   if (archiveId) {
-    result.push(...loadCustomTopics(archiveId));
+    drawn.push(...loadCustomTopics(archiveId));
   }
 
-  return result;
+  return drawn;
 }

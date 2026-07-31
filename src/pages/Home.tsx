@@ -20,8 +20,11 @@ import { useMemo, useEffect, useState } from 'react';
 import Avatar from '../components/ui/Avatar';
 import Modal from '../components/ui/Modal';
 import { useVersion } from '../hooks/useVersion';
+import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/useToast';
 import { openGuide, shouldShowGuide } from '../components/GuideTour';
+import { findCollaboratingArchives, pendingInvitesForPhone, respondCollabInvite } from '../data/interviewCollaboration';
+import { familyApi } from '../api/family';
 import { bookshelfApi } from '../api/bookshelf';
 import { orderApi } from '../api/order';
 import { groupBuyApi } from '../api/groupBuy';
@@ -127,7 +130,45 @@ function saveArchive(archive: Archive) {
 export default function Home() {
   const navigate = useNavigate();
   const { isMVP } = useVersion();
+  const { user } = useAuth();
   const archiveExists = useMemo(() => hasArchives(), []);
+  // 当前账号被邀请协助的传记（协作者入口，按昵称匹配）
+  const [inviteRefresh, setInviteRefresh] = useState(0);
+  const collabArchives = useMemo(
+    () => (user?.name ? findCollaboratingArchives(user.name) : []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [user, inviteRefresh]
+  );
+  // 待我处理的协作邀请（对方同意后才成为协作者）
+  const pendingInvites = useMemo(
+    () => (user?.phone ? pendingInvitesForPhone(user.phone) : []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [user, inviteRefresh]
+  );
+
+  const handleRespondInvite = async (id: string, accept: boolean) => {
+    const accepterName = user?.name || '';
+    const invite = respondCollabInvite(id, accept, accepterName);
+    if (!invite) return;
+    // 人物关系邀请：同意后把关系写入对方档案的关系图谱
+    if (accept && invite.kind === 'relation') {
+      try {
+        await familyApi.addOrUpdateMember(invite.archiveId, { name: accepterName, role: invite.relation, gen: '其他' });
+        await familyApi.addRelation(invite.archiveId, { from: invite.subjectName, to: accepterName, relation: invite.relation });
+      } catch {
+        // 写入失败不影响邀请状态
+      }
+    }
+    setInviteRefresh((v) => v + 1);
+    addToast(
+      accept
+        ? invite.kind === 'relation'
+          ? `已同意与「${invite.subjectName}」建立「${invite.relation}」关系`
+          : `已同意协助《${invite.archiveName} 的传记》，可在采访页选择该传记开始协助`
+        : '已拒绝该邀请',
+      accept ? 'success' : 'info'
+    );
+  };
 
   useEffect(() => {
     if (shouldShowGuide()) {
@@ -480,6 +521,61 @@ export default function Home() {
         </div>
       </section>
 
+      {pendingInvites.length > 0 && (
+        <section className="home-collab">
+          <div className="surface-header">
+            <h3><Users size={16} /> 协作邀请</h3>
+          </div>
+          <div className="home-collab-list">
+            {pendingInvites.map((inv) => (
+              <div className="service-card" key={inv.id}>
+                <div className="service-icon" style={{ background: 'rgba(184,134,11,0.1)', color: '#b8860b' }}><Mic size={22} /></div>
+                <div className="service-info">
+                  <h4>{inv.archiveName} 的传记</h4>
+                  <p>
+                    {inv.kind === 'relation'
+                      ? `${inv.inviterName} 邀请你与「${inv.subjectName}」建立「${inv.relation}」关系`
+                      : `${inv.inviterName} 邀请你以「${inv.relation}」身份协助采访`}
+                  </p>
+                </div>
+                <div className="home-invite-actions">
+                  <button className="btn btn-primary btn-sm" onClick={() => handleRespondInvite(inv.id, true)}>同意</button>
+                  <button className="btn btn-outline btn-sm" onClick={() => handleRespondInvite(inv.id, false)}>拒绝</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {collabArchives.length > 0 && (
+        <section className="home-collab">
+          <div className="surface-header">
+            <h3><Users size={16} /> 我协助的传记</h3>
+          </div>
+          <div className="home-collab-list">
+            {collabArchives.map((c) => (
+              <div
+                className="service-card"
+                key={c.archiveId}
+                onClick={() => {
+                  localStorage.setItem('cj_current_archive_id', c.archiveId);
+                  navigate('/interview');
+                }}
+              >
+                <div className="service-icon" style={{ background: 'rgba(45,90,74,0.1)', color: '#2d5a4a' }}><Mic size={22} /></div>
+                <div className="service-info">
+                  <h4>{c.archiveName} 的传记</h4>
+                  <p>{c.invited ? `邀请你以「${c.relation}」身份协助采访` : `你以「${c.relation}」身份协助采访`}</p>
+                </div>
+                <ArrowRight size={16} className="service-arrow" />
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {!isMVP && (<>
       <section className="home-services">
         <div className="service-card" onClick={() => navigate('/store')}>
           <div className="service-icon" style={{ background: 'rgba(184,134,11,0.1)', color: '#b8860b' }}><ShoppingBag size={22} /></div>
@@ -604,6 +700,7 @@ export default function Home() {
           ))}
         </div>
       </section>
+      </>)}
 
       <section className="workspace">
         <div className="surface activity-surface">

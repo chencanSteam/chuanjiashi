@@ -27,9 +27,12 @@ import {
   ShieldAlert,
   Settings,
   Briefcase,
+  Bell,
+  KeyRound,
 } from 'lucide-react';
 import Avatar from './ui/Avatar';
 import { useAuth } from '../hooks/useAuth';
+import { useVersion } from '../hooks/useVersion';
 import './Layout.css';
 
 interface NavItem {
@@ -57,8 +60,7 @@ const adminNavGroups: NavGroup[] = [
       { to: '/admin/users', icon: Users, label: '用户管理' },
       { to: '/admin/archives', icon: FolderOpen, label: '人物档案管理' },
     ],
-  },
-  {
+  },  {
     key: 'business',
     icon: Briefcase,
     label: '业务管理',
@@ -104,17 +106,42 @@ const adminNavGroups: NavGroup[] = [
   },
 ];
 
+// MVP 版后台仅保留：用户与档案、AI任务、角色权限、消息通知
+const adminNavGroupsMVP: NavGroup[] = [
+  {
+    key: 'users',
+    icon: Users,
+    label: '用户与档案',
+    items: [
+      { to: '/admin/users', icon: Users, label: '用户管理' },
+      { to: '/admin/archives', icon: FolderOpen, label: '人物档案管理' },
+    ],
+  },
+  {
+    key: 'system',
+    icon: Settings,
+    label: '系统管理',
+    items: [
+      { to: '/admin/ai-tasks', icon: Bot, label: 'AI任务管理' },
+      { to: '/admin/roles', icon: KeyRound, label: '角色权限' },
+      { to: '/admin/notifications', icon: Bell, label: '消息通知' },
+    ],
+  },
+];
+
 function isGroupActive(group: NavGroup, pathname: string): boolean {
   return group.items.some((item) => pathname.startsWith(item.to));
 }
 
 export default function AdminLayout() {
   const { user, logout } = useAuth();
+  const { isMVP, setAppVersion } = useVersion();
   const navigate = useNavigate();
   const location = useLocation();
   const pathname = location.pathname;
   const displayName = user?.name || user?.phone || '管理员';
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const navGroups = isMVP ? adminNavGroupsMVP : adminNavGroups;
 
   // 用户手动折叠/展开的覆盖值；未覆盖时默认展开当前路由所在分组
   const [expandedOverrides, setExpandedOverrides] = useState<Record<string, boolean>>({});
@@ -125,7 +152,7 @@ export default function AdminLayout() {
   const toggleGroup = (key: string) => {
     setExpandedOverrides((prev) => ({
       ...prev,
-      [key]: !(prev[key] ?? adminNavGroups.some((g) => g.key === key && isGroupActive(g, pathname))),
+      [key]: !(prev[key] ?? navGroups.some((g) => g.key === key && isGroupActive(g, pathname))),
     }));
   };
 
@@ -151,19 +178,34 @@ export default function AdminLayout() {
           </div>
         </div>
 
+        <div
+          className={`version-switch ${isMVP ? 'on' : ''}`}
+          title={isMVP ? '用户端当前为 MVP 模式，仅展示核心功能；点击切换到完整版' : '用户端当前为完整版；点击切换到 MVP 模式'}
+        >
+          <span className="version-switch-label">用户端：{isMVP ? 'MVP 模式' : '完整版'}</span>
+          <div
+            className="version-switch-toggle"
+            role="switch"
+            aria-checked={isMVP}
+            onClick={() => setAppVersion(isMVP ? 'full' : 'mvp')}
+          />
+        </div>
+
         <nav className="nav">
           <ul className="nav-list">
-            <li className="nav-item">
-              <NavLink
-                to={dashboardNavItem.to}
-                className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-              >
-                <dashboardNavItem.icon className="nav-icon" size={18} />
-                <span>{dashboardNavItem.label}</span>
-              </NavLink>
-            </li>
+            {!isMVP && (
+              <li className="nav-item">
+                <NavLink
+                  to={dashboardNavItem.to}
+                  className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+                >
+                  <dashboardNavItem.icon className="nav-icon" size={18} />
+                  <span>{dashboardNavItem.label}</span>
+                </NavLink>
+              </li>
+            )}
 
-            {adminNavGroups.map((group) => (
+            {navGroups.map((group) => (
               <li className={`nav-item nav-group ${isGroupActive(group, pathname) ? 'active' : ''}`} key={group.key}>
                 <button
                   className="nav-group-header"

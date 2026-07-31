@@ -22,6 +22,7 @@ import {
   Copy,
 } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
+import { useVersion } from '../hooks/useVersion';
 import { useAuth } from '../hooks/useAuth';
 import { biographyApi } from '../api/biography';
 import Modal from '../components/ui/Modal';
@@ -30,6 +31,7 @@ import { paymentApi } from '../api/payment';
 import { quotaApi } from '../api/quota';
 
 import { generateImageDataUrl, generateVideoPoster, generateAudioUrl } from '../utils/mediaPlaceholder';
+import { generateInterviewTopics } from '../utils/interviewTopics';
 import { biographyChapterTitles, loadJson, saveJson, type ChapterData } from '../data/aiMock';
 import './AIBiography.css';
 
@@ -41,6 +43,8 @@ interface Archive {
   origin: string;
   occupation: string;
   tags?: string[];
+  /** 资料完整度（百分比），未设置时按采访已答问题数计算 */
+  completion?: number;
 }
 
 function loadCurrentArchive(): Archive | null {
@@ -169,9 +173,21 @@ function buildDerivedVariants(tab: DerivedTab, name: string, birthYear: string):
 export default function AIBiography() {
   const navigate = useNavigate();
   const { addToast } = useToast();
+  const { isMVP } = useVersion();
   const archive = useMemo(() => loadCurrentArchive(), []);
   const archiveId = archive?.id || 'default';
   const subjectName = archive?.name || '张明远';
+
+  // 资料完整度：优先取档案 completion，否则按采访已答比例计算
+  const completionPercent = useMemo(() => {
+    const topics = generateInterviewTopics(archive, archiveId);
+    const total = topics.reduce((sum, t) => sum + t.questions.length, 0);
+    const session = loadJson<{ answeredIds?: string[] }>(`cj_interview_session_${archiveId}`, {});
+    const progress = total > 0 ? Math.round(((session.answeredIds?.length ?? 0) / total) * 100) : 0;
+    return Math.max(0, Math.min(100, Math.round(archive?.completion ?? progress)));
+  }, [archive, archiveId]);
+
+  const [showLowMaterial, setShowLowMaterial] = useState(false);
 
   const [chapters, setChapters] = useState<ChapterData[]>(() =>
     loadJson<ChapterData[]>(`cj_biography_chapters_${archiveId}`, initChapters())
@@ -301,7 +317,7 @@ export default function AIBiography() {
   const styleLabel = styleOptions.find((s) => s.key === biographyStyle)?.label || '温情叙事';
   const wordCountLabel = wordCountOptions.find((w) => w.key === wordCountLevel)?.label || '标准 · 约15000字';
 
-  const handleGenerate = async () => {
+  const runGenerate = async () => {
     try {
       await quotaApi.consume('biographyGenerate');
     } catch (err: any) {
@@ -342,6 +358,16 @@ export default function AIBiography() {
     } finally {
       setGenerating(false);
     }
+  };
+
+  // 首次生成且材料不足时，先提示但不拦截
+  const handleGenerate = () => {
+    const isFirstGenerate = chapters.every((c) => c.status === 'notGenerated');
+    if (isFirstGenerate && completionPercent < 40) {
+      setShowLowMaterial(true);
+      return;
+    }
+    runGenerate();
   };
 
   const handlePolish = () => {
@@ -513,9 +539,11 @@ export default function AIBiography() {
           <button className="btn btn-primary" onClick={saveToMyWorks}>
             <BookOpen size={14} /> 保存到我的传记
           </button>
-          <button className="btn btn-accent" onClick={simulatePayment}>
-            <DollarSign size={14} /> 模拟支付 ¥99
-          </button>
+          {!isMVP && (
+            <button className="btn btn-accent" onClick={simulatePayment}>
+              <DollarSign size={14} /> 模拟支付 ¥99
+            </button>
+          )}
         </div>
       </header>
 
@@ -703,22 +731,24 @@ export default function AIBiography() {
             </div>
           </div>
 
-          <div className="card quick-gen-card">
-            <div className="card-header">
-              <h3 className="card-title">快捷生成</h3>
+          {!isMVP && (
+            <div className="card quick-gen-card">
+              <div className="card-header">
+                <h3 className="card-title">快捷生成</h3>
+              </div>
+              <div className="card-body quick-gen-body">
+                <button className="btn btn-outline" onClick={() => { setActiveIndex(0); }}>
+                  生成前言
+                </button>
+                <button className="btn btn-outline" onClick={() => { setActiveIndex(chapters.length - 1); }}>
+                  生成后记
+                </button>
+                <button className="btn btn-outline" onClick={() => { navigate('/digital-person'); }}>
+                  <Sparkles size={14} /> 创建数字人
+                </button>
+              </div>
             </div>
-            <div className="card-body quick-gen-body">
-              <button className="btn btn-outline" onClick={() => { setActiveIndex(0); }}>
-                生成前言
-              </button>
-              <button className="btn btn-outline" onClick={() => { setActiveIndex(chapters.length - 1); }}>
-                生成后记
-              </button>
-              <button className="btn btn-outline" onClick={() => { navigate('/digital-person'); }}>
-                <Sparkles size={14} /> 创建数字人
-              </button>
-            </div>
-          </div>
+          )}
         </div>
       </div>
 
@@ -787,6 +817,28 @@ export default function AIBiography() {
           </div>
         </div>
       )}
+
+      <Modal
+        open={showLowMaterial}
+        title="材料还比较少"
+        onClose={() => setShowLowMaterial(false)}
+        footer={
+          <div className="import-modal-footer">
+            <button className="btn btn-outline" onClick={() => { setShowLowMaterial(false); navigate('/interview'); }}>
+              去补充采访
+            </button>
+            <button className="btn btn-primary" onClick={() => { setShowLowMaterial(false); runGenerate(); }}>
+              仍然生成
+            </button>
+          </div>
+        }
+      >
+        <div className="import-modal-body">
+          <p className="import-modal-tip">
+            当前资料完整度仅 {completionPercent}%，材料较少时生成的传记会比较单薄。建议先继续采访补充素材，也可以直接生成。
+          </p>
+        </div>
+      </Modal>
 
       <Modal
         open={showImportModal}

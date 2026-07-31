@@ -15,13 +15,101 @@ export interface SupplementAnswer {
   answeredAt: string;
 }
 
-export interface InterviewInvite {
-  code: string;
+export interface CollabInvite {
+  id: string;
+  /** collab=采访协作邀请；relation=人物关系邀请（同意后建立关系图谱中的关系） */
+  kind: 'collab' | 'relation';
+  archiveId: string;
+  archiveName: string;
+  subjectName: string;
+  inviterName: string;
+  /** 被邀请账号的手机号（查找时可用身份证号定位账号） */
+  targetPhone: string;
   relation: string;
-  remark: string;
-  status: 'pending' | 'accepted' | 'expired';
+  status: 'pending' | 'accepted' | 'rejected';
   createdAt: string;
-  acceptedBy?: string;
+}
+
+const COLLAB_INVITES_KEY = 'cj_collab_invites';
+
+export function loadCollabInvites(): CollabInvite[] {
+  return loadJson<CollabInvite[]>(COLLAB_INVITES_KEY, []);
+}
+
+function saveCollabInvites(list: CollabInvite[]) {
+  saveJson(COLLAB_INVITES_KEY, list);
+}
+
+export function createCollabInvite(input: Omit<CollabInvite, 'id' | 'status' | 'createdAt'>): CollabInvite {
+  const invite: CollabInvite = {
+    ...input,
+    id: `inv_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+    status: 'pending',
+    createdAt: new Date().toISOString(),
+  };
+  saveCollabInvites([invite, ...loadCollabInvites()]);
+  return invite;
+}
+
+export function invitesForArchive(archiveId: string): CollabInvite[] {
+  return loadCollabInvites().filter((i) => i.archiveId === archiveId);
+}
+
+// 当前账号（手机号）收到的待处理邀请
+export function pendingInvitesForPhone(phone: string): CollabInvite[] {
+  return loadCollabInvites().filter((i) => i.targetPhone === phone && i.status === 'pending');
+}
+
+// 撤销未处理的邀请
+export function revokeCollabInvite(id: string) {
+  saveCollabInvites(loadCollabInvites().filter((i) => i.id !== id));
+}
+
+// 被邀请人同意/拒绝；采访协作邀请同意后以其账号昵称（或实名姓名）加入协作者
+// 人物关系邀请的关系建立由调用方处理（需写入关系图谱）
+export function respondCollabInvite(id: string, accept: boolean, accepterName: string): CollabInvite | null {
+  const list = loadCollabInvites();
+  const invite = list.find((i) => i.id === id && i.status === 'pending');
+  if (!invite) return null;
+  invite.status = accept ? 'accepted' : 'rejected';
+  saveCollabInvites(list);
+  if (accept && invite.kind !== 'relation') {
+    addCollaborator(invite.archiveId, { name: accepterName, relation: invite.relation, phone: invite.targetPhone });
+  }
+  return invite;
+}
+
+// 按手机号或身份证号查找账号（原型演示：任意输入均可查到样例账号）
+export function findAccountByPhoneOrIdCard(keyword: string): { phone: string; name?: string } | null {
+  const kw = keyword.trim();
+  if (!kw) return null;
+  // 手机号：优先带出该账号的实名信息，否则返回样例姓名
+  if (/^1\d{10}$/.test(kw)) {
+    try {
+      const raw = localStorage.getItem(`cj_security_${kw}`);
+      const sec = raw ? (JSON.parse(raw) as { realName?: string }) : {};
+      return { phone: kw, name: sec.realName || '李秀英' };
+    } catch {
+      return { phone: kw, name: '李秀英' };
+    }
+  }
+  // 身份证号：先在实名信息中匹配，匹配不到返回样例账号
+  if (/^\d{17}[\dXx]$/.test(kw)) {
+    for (let i = 0; i < localStorage.length; i += 1) {
+      const key = localStorage.key(i);
+      if (!key || !key.startsWith('cj_security_')) continue;
+      try {
+        const sec = JSON.parse(localStorage.getItem(key) || '{}') as { realName?: string; idCard?: string };
+        if (sec.idCard && sec.idCard.toLowerCase() === kw.toLowerCase()) {
+          return { phone: key.replace('cj_security_', ''), name: sec.realName };
+        }
+      } catch {
+        // ignore
+      }
+    }
+  }
+  // 其他任意输入：返回样例账号（演示用）
+  return { phone: '13900001111', name: '李秀英' };
 }
 
 function loadJson<T>(key: string, fallback: T): T {
@@ -48,10 +136,6 @@ export function getCollaboratorsKey(archiveId: string) {
 
 export function getSupplementKey(archiveId: string) {
   return `cj_interview_supplement_${archiveId}`;
-}
-
-export function getInvitesKey(archiveId: string) {
-  return `cj_interview_invites_${archiveId}`;
 }
 
 export function loadCollaborators(archiveId: string): Collaborator[] {
@@ -104,45 +188,6 @@ export function addSupplementAnswer(
   return fullAnswer;
 }
 
-export function loadInvites(archiveId: string): InterviewInvite[] {
-  return loadJson<InterviewInvite[]>(getInvitesKey(archiveId), []);
-}
-
-export function saveInvites(archiveId: string, invites: InterviewInvite[]) {
-  saveJson(getInvitesKey(archiveId), invites);
-}
-
-export function createInvite(archiveId: string, relation: string, remark: string): InterviewInvite {
-  const code = Math.random().toString(36).slice(2, 8).toUpperCase();
-  const invite: InterviewInvite = {
-    code,
-    relation,
-    remark,
-    status: 'pending',
-    createdAt: new Date().toISOString(),
-  };
-  const list = loadInvites(archiveId);
-  saveInvites(archiveId, [invite, ...list]);
-  return invite;
-}
-
-export function acceptInvite(archiveId: string, code: string, name: string): Collaborator | null {
-  const invites = loadInvites(archiveId);
-  const invite = invites.find((i) => i.code === code && i.status === 'pending');
-  if (!invite) return null;
-
-  const collaborator = addCollaborator(archiveId, {
-    name,
-    relation: invite.relation,
-    remark: invite.remark,
-  });
-
-  saveInvites(
-    archiveId,
-    invites.map((i) => (i.code === code ? { ...i, status: 'accepted' as const, acceptedBy: collaborator.id } : i))
-  );
-  return collaborator;
-}
 
 export function getCollaboratorAnswerCounts(
   archiveId: string,
@@ -161,4 +206,28 @@ export function getCollaboratorAnswerCounts(
     });
   });
   return counts;
+}
+
+export interface CollaboratingArchive {
+  archiveId: string;
+  archiveName: string;
+  relation: string;
+  /** 是否有正式邀请记录（否则为通用的协作身份） */
+  invited: boolean;
+}
+
+// 除传主是本人的档案外，其余档案当前账号都以协作身份参与
+export function findCollaboratingArchives(userName: string): CollaboratingArchive[] {
+  const archives = loadJson<{ id: string; name: string }[]>('cj_archives', []);
+  return archives
+    .filter((a) => a.name !== userName)
+    .map((a) => {
+      const collab = loadCollaborators(a.id).find((c) => c.name === userName);
+      return {
+        archiveId: a.id,
+        archiveName: a.name,
+        relation: collab?.relation || '协作人',
+        invited: !!collab,
+      };
+    });
 }

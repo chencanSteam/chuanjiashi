@@ -64,7 +64,9 @@ export default function Login() {
   const { login, addRole, isAuthenticated } = useAuth();
 
   const [phone, setPhone] = useState(DEMO_PHONE);
-  const [code, setCode] = useState('123456');
+  const [code, setCode] = useState('');
+  const [sentCode, setSentCode] = useState('');
+  const [countdown, setCountdown] = useState(0);
   const [showManual, setShowManual] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [agreement, setAgreement] = useState<AgreementType | null>(null);
@@ -89,8 +91,27 @@ export default function Login() {
     }
   }, [isAuthenticated, navigate]);
 
-  const enterPortal = async (targetPhone: string, targetPath: string, options?: { addPartnerRole?: boolean; addBiographerRole?: boolean }) => {
-    const { success, error } = await login(targetPhone, '123456');
+  // 获取验证码倒计时
+  useEffect(() => {
+    if (countdown <= 0) return;
+    const timer = setInterval(() => setCountdown((s) => s - 1), 1000);
+    return () => clearInterval(timer);
+  }, [countdown]);
+
+  // 发送验证码（演示环境：直接通过提示展示验证码）
+  const handleSendCode = () => {
+    if (!/^1\d{10}$/.test(phone.trim())) {
+      addToast('请输入正确的手机号', 'error');
+      return;
+    }
+    const newCode = Math.floor(100000 + Math.random() * 900000).toString();
+    setSentCode(newCode);
+    setCountdown(60);
+    addToast(`验证码已发送（演示环境：${newCode}）`, 'success');
+  };
+
+  const enterPortal = async (targetPhone: string, targetPath: string, options?: { addPartnerRole?: boolean; addBiographerRole?: boolean; name?: string }) => {
+    const { success, error } = await login(targetPhone, '123456', { name: options?.name });
     if (!success) {
       addToast(error || '登录失败', 'error');
       return;
@@ -117,7 +138,15 @@ export default function Login() {
   const handleManualSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!checkAgreement()) return;
-    const { success, error } = await login(phone, code);
+    if (!sentCode) {
+      addToast('请先获取验证码', 'error');
+      return;
+    }
+    if (code.trim() !== sentCode) {
+      addToast('验证码错误，请重新输入', 'error');
+      return;
+    }
+    const { success, error } = await login(phone, '123456');
     if (!success) {
       addToast(error || '手机号或验证码不正确', 'error');
       return;
@@ -130,7 +159,7 @@ export default function Login() {
 
   const handleWechatLogin = async () => {
     if (!checkAgreement()) return;
-    const { success, error } = await login(USER_PHONE, '123456');
+    const { success, error } = await login(USER_PHONE, '123456', { name: '张明远' });
     if (!success) {
       addToast(error || '微信授权失败', 'error');
       return;
@@ -154,7 +183,7 @@ export default function Login() {
         </div>
 
         <div className="portal-grid">
-          <button type="button" className="portal-card" onClick={() => enterPortal(USER_PHONE, '/home')}>
+          <button type="button" className="portal-card" onClick={() => enterPortal(USER_PHONE, '/home', { name: '张明远' })}>
             <User size={24} />
             <span className="portal-name">用户端</span>
             <span className="portal-desc">体验 AI 采访、传记、人生档案</span>
@@ -220,6 +249,9 @@ export default function Login() {
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
               />
+              <button type="button" className="btn btn-outline code-btn" disabled={countdown > 0} onClick={handleSendCode}>
+                {countdown > 0 ? `${countdown}s 后重发` : '获取验证码'}
+              </button>
             </div>
             <button type="submit" className="btn btn-primary login-submit" disabled={!agreed}>
               登录 <ArrowRight size={16} />

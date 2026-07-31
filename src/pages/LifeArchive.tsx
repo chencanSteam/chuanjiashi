@@ -35,12 +35,19 @@ import Avatar from '../components/ui/Avatar';
 import Modal from '../components/ui/Modal';
 import { useToast } from '../hooks/useToast';
 import { useVersion } from '../hooks/useVersion';
+import { useAuth } from '../hooks/useAuth';
 import { archiveApi } from '../api/archive';
 import { generateImageDataUrl, generateVideoPoster, generateAudioUrl } from '../utils/mediaPlaceholder';
 import LocationFootprints from './LocationFootprints';
 import Achievements from './Achievements';
 import { buildRelationNodes, relationTypeOptions, type RelationNode } from '../utils/familyRelations';
 import { familyApi } from '../api/family';
+import {
+  findAccountByPhoneOrIdCard,
+  createCollabInvite,
+  invitesForArchive,
+  revokeCollabInvite,
+} from '../data/interviewCollaboration';
 import type { FamilyRelation, Place } from '../mocks/types';
 import './LifeArchive.css';
 
@@ -483,9 +490,18 @@ export default function LifeArchive() {
   const [relations, setRelations] = useState<FamilyRelation[]>([]);
   const [placeList, setPlaceList] = useState<Place[]>([]);
   const [showRelationModal, setShowRelationModal] = useState(false);
-  const [relationFrom, setRelationFrom] = useState('');
-  const [relationTo, setRelationTo] = useState('');
+  const [relationQuery, setRelationQuery] = useState('');
+  const [relationFound, setRelationFound] = useState<{ phone: string; name?: string } | null>(null);
   const [relationType, setRelationType] = useState('配偶');
+  const [relationInvitesRefresh, setRelationInvitesRefresh] = useState(0);
+  const { user } = useAuth();
+
+  // 本档案已发出、待对方同意的人物关系邀请
+  const pendingRelationInvites = useMemo(
+    () => invitesForArchive(currentArchiveId).filter((i) => i.kind === 'relation' && i.status === 'pending'),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [currentArchiveId, relationInvitesRefresh]
+  );
 
   useEffect(() => {
     familyApi
@@ -751,38 +767,44 @@ export default function LifeArchive() {
     addToast('成员已移除', 'info');
   };
 
-  const handleAddRelation = async () => {
-    const from = relationFrom.trim();
-    const to = relationTo.trim();
-    if (!from || !to) {
-      addToast('请填写双方姓名', 'error');
+  // 查找对方账号（手机号/身份证号）并发出人物关系邀请，对方同意后才会写入关系图谱
+  const handleFindRelationAccount = () => {
+    if (!relationQuery.trim()) {
+      addToast('请输入手机号或身份证号', 'error');
       return;
     }
-    if (from === to) {
+    const found = findAccountByPhoneOrIdCard(relationQuery);
+    if (!found) {
+      setRelationFound(null);
+      addToast('未找到该账号，请确认手机号或身份证号是否正确', 'error');
+      return;
+    }
+    if (found.phone === user?.phone) {
       addToast('不能与自己建立关系', 'error');
       return;
     }
-    const exists = relations.some(
-      (r) =>
-        (r.from === from && r.to === to) ||
-        (r.from === to && r.to === from)
-    );
-    if (exists) {
-      addToast('该关系已存在', 'error');
+    if (pendingRelationInvites.some((i) => i.targetPhone === found.phone)) {
+      addToast('已向 TA 发送过关系邀请，等待对方同意', 'info');
       return;
     }
-    try {
-      await familyApi.addOrUpdateMember(currentArchiveId, { name: from, role: '家庭成员', gen: '其他' });
-      await familyApi.addOrUpdateMember(currentArchiveId, { name: to, role: '家庭成员', gen: '其他' });
-      const added = await familyApi.addRelation(currentArchiveId, { from, to, relation: relationType });
-      setRelations((prev) => [...prev, added]);
-      setRelationFrom('');
-      setRelationTo('');
-      setRelationType('配偶');
-      addToast('关系已添加', 'success');
-    } catch (err: any) {
-      addToast(err.message || '添加失败', 'error');
-    }
+    setRelationFound(found);
+  };
+
+  const handleSendRelationInvite = () => {
+    if (!relationFound) return;
+    createCollabInvite({
+      kind: 'relation',
+      archiveId: currentArchiveId,
+      archiveName: currentArchive.name,
+      subjectName: currentArchive.name,
+      inviterName: user?.name || currentArchive.name,
+      targetPhone: relationFound.phone,
+      relation: relationType,
+    });
+    setRelationFound(null);
+    setRelationQuery('');
+    setRelationInvitesRefresh((v) => v + 1);
+    addToast('关系邀请已发送，待对方同意后写入关系图谱', 'success');
   };
 
   const handleRemoveRelation = async (id: string) => {
@@ -1388,8 +1410,6 @@ export default function LifeArchive() {
                   key={i}
                   onClick={() => {
                     if (isMVP) {
-                      setRelationFrom(r.name);
-                      setRelationTo('');
                       setShowRelationModal(true);
                       return;
                     }
@@ -1427,37 +1447,59 @@ export default function LifeArchive() {
               </button>
             </div>
             <div className="modal-body">
+              <div className="relation-invite-desc">
+                与 <strong>{currentArchive.name}</strong> 建立关系：通过手机号或身份证号查找对方账号，对方同意后才会写入关系图谱。
+              </div>
               <div className="relation-add-inline">
                 <input
-                  list="relation-member-names"
                   type="text"
-                  placeholder="甲方姓名"
-                  value={relationFrom}
-                  onChange={(e) => setRelationFrom(e.target.value)}
+                  placeholder="对方手机号 / 身份证号"
+                  value={relationQuery}
+                  onChange={(e) => { setRelationQuery(e.target.value); setRelationFound(null); }}
                 />
-                <select value={relationType} onChange={(e) => setRelationType(e.target.value)}>
-                  {relationTypeOptions.map((r) => (
-                    <option key={r} value={r}>{r}</option>
-                  ))}
-                </select>
-                <input
-                  list="relation-member-names"
-                  type="text"
-                  placeholder="乙方姓名"
-                  value={relationTo}
-                  onChange={(e) => setRelationTo(e.target.value)}
-                />
-                <datalist id="relation-member-names">
-                  {Array.from(new Set([...members.map((m) => m.name), currentArchive.name])).map((n) => (
-                    <option key={n} value={n} />
-                  ))}
-                </datalist>
-                <button className="btn btn-primary" onClick={handleAddRelation}>
-                  <Plus size={14} /> 添加
-                </button>
+                <button className="btn btn-outline" onClick={handleFindRelationAccount}>查找</button>
               </div>
+              {relationFound && (
+                <div className="invite-found">
+                  <Avatar name={relationFound.name || relationFound.phone} size={40} />
+                  <div className="invite-found-info">
+                    <strong>{relationFound.name || '未设置姓名的用户'}</strong>
+                    <span>{relationFound.phone}</span>
+                  </div>
+                  <select value={relationType} onChange={(e) => setRelationType(e.target.value)}>
+                    {relationTypeOptions.map((r) => (
+                      <option key={r} value={r}>{r}</option>
+                    ))}
+                  </select>
+                  <button className="btn btn-primary btn-sm" onClick={handleSendRelationInvite}>
+                    <Plus size={13} /> 发送邀请
+                  </button>
+                </div>
+              )}
+              {pendingRelationInvites.length > 0 && (
+                <div className="relation-list-inline">
+                  {pendingRelationInvites.map((i) => (
+                    <div className="relation-row-inline" key={i.id}>
+                      <span>{i.targetPhone}</span>
+                      <span className="relation-tag">{i.relation} · 待同意</span>
+                      <button
+                        className="relation-row-delete"
+                        onClick={() => {
+                          revokeCollabInvite(i.id);
+                          setRelationInvitesRefresh((v) => v + 1);
+                          addToast('邀请已撤销', 'info');
+                        }}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
               <div className="relation-list-inline">
-                {relations.length === 0 && <div className="relation-empty">暂无关系，请在上方添加</div>}
+                {relations.length === 0 && pendingRelationInvites.length === 0 && (
+                  <div className="relation-empty">暂无关系，请在上方查找并邀请</div>
+                )}
                 {relations.map((r) => (
                   <div className="relation-row-inline" key={r.id}>
                     <span>{r.from}</span>
