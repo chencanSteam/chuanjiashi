@@ -765,24 +765,26 @@ export default function AIInterview() {
     <div className="interview-page">
       <header className="page-header interview-header">
         <h1 className="page-title">AI智能采访</h1>
-        {isSubjectMode && (
-          <button className="btn btn-primary end-interview-btn" onClick={endInterview}>
-            <FolderOpen size={14} /> 结束采访并整理
-          </button>
-        )}
+        <div className="interview-header-actions">
+          <div className="archive-switch-row header-switch">
+            <span className="respondent-label">选择传记</span>
+            <select value={archiveId} onChange={(e) => handleSwitchArchive(e.target.value)}>
+              {archiveOptions.map((o) => (
+                <option key={o.id} value={o.id}>{o.label}</option>
+              ))}
+            </select>
+          </div>
+          {isSubjectMode && (
+            <button className="btn btn-primary end-interview-btn" onClick={endInterview}>
+              <FolderOpen size={14} /> 结束采访并整理
+            </button>
+          )}
+        </div>
       </header>
 
       <div className="interview-top-stats">
         <div className="card stat-person">
           <div className="card-body">
-            <div className="archive-switch-row">
-              <span className="respondent-label">选择传记</span>
-              <select value={archiveId} onChange={(e) => handleSwitchArchive(e.target.value)}>
-                {archiveOptions.map((o) => (
-                  <option key={o.id} value={o.id}>{o.label}</option>
-                ))}
-              </select>
-            </div>
             <div className="stat-label-text">传记主</div>
             <div className="person-row">
               <Avatar name={subjectName} size={48} />

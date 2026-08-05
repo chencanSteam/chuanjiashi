@@ -669,8 +669,8 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 16px;
-  max-width: 480px;
+  margin-bottom: 0;
+  width: 260px;
 }
 
 .biography-switch-label {

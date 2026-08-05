@@ -538,15 +538,27 @@ export default function AIBiography() {
       <header className="page-header biography-header">
         <h1 className="page-title">AI传记生成</h1>
         <div className="page-actions">
+          <div className="archive-switch-row biography-archive-switch">
+            <span className="biography-switch-label">选择传记</span>
+            <select value={archiveId} onChange={(e) => handleSwitchArchive(e.target.value)}>
+              {archiveOptions.map((o) => (
+                <option key={o.id} value={o.id}>{o.label}</option>
+              ))}
+            </select>
+          </div>
           <button className="btn btn-outline" onClick={() => setShowImportModal(true)}>
             <Upload size={14} /> 导入已有传记
           </button>
-          <button className="btn btn-outline" onClick={() => navigate('/archive')}>
-            <FolderOpen size={14} /> 完善人生档案
-          </button>
-          <button className="btn btn-outline" onClick={() => navigate('/interview-review')}>
-            <FileText size={14} /> 查看采访整理
-          </button>
+          {!isMVP && (
+            <>
+              <button className="btn btn-outline" onClick={() => navigate('/archive')}>
+                <FolderOpen size={14} /> 完善人生档案
+              </button>
+              <button className="btn btn-outline" onClick={() => navigate('/interview-review')}>
+                <FileText size={14} /> 查看采访整理
+              </button>
+            </>
+          )}
           <button className="btn btn-primary" onClick={saveToMyWorks}>
             <BookOpen size={14} /> 保存到我的传记
           </button>
@@ -557,16 +569,6 @@ export default function AIBiography() {
           )}
         </div>
       </header>
-
-      {/* 选择传记：档案可以帮别人建，传记也可以帮别人生成 */}
-      <div className="archive-switch-row biography-archive-switch">
-        <span className="biography-switch-label">选择传记</span>
-        <select value={archiveId} onChange={(e) => handleSwitchArchive(e.target.value)}>
-          {archiveOptions.map((o) => (
-            <option key={o.id} value={o.id}>{o.label}</option>
-          ))}
-        </select>
-      </div>
 
       <div className="biography-main">
         <div className="card chapter-tree">
@@ -735,6 +737,7 @@ export default function AIBiography() {
             </div>
           </div>
 
+          {!isMVP && (
           <div className="card export-card">
             <div className="card-header">
               <h3 className="card-title"><Download size={14} /> 导出</h3>
@@ -751,6 +754,7 @@ export default function AIBiography() {
               </button>
             </div>
           </div>
+          )}
 
           {!isMVP && (
             <div className="card quick-gen-card">
@@ -773,6 +777,7 @@ export default function AIBiography() {
         </div>
       </div>
 
+      {!isMVP && (
       <div className="card derived-card">
         <div className="card-header">
           <h3 className="card-title"><Sparkles size={14} /> 衍生内容</h3>
@@ -812,6 +817,7 @@ export default function AIBiography() {
           </div>
         </div>
       </div>
+      )}
 
       {preview && (
         <div className="modal-overlay" onClick={() => setPreview(null)}>

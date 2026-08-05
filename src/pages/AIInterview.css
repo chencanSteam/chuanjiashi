@@ -1856,3 +1856,14 @@
   cursor: pointer;
   white-space: nowrap;
 }
+
+.interview-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.archive-switch-row.header-switch {
+  margin-bottom: 0;
+  width: 280px;
+}
