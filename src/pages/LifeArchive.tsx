@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState, type ComponentType } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     Image,
-    MapPin,
   Edit3,
   FileText,
   Music,
@@ -41,6 +40,7 @@ import { generateImageDataUrl, generateVideoPoster, generateAudioUrl } from '../
 import LocationFootprints from './LocationFootprints';
 import Achievements from './Achievements';
 import { buildRelationNodes, relationTypeOptions, type RelationNode } from '../utils/familyRelations';
+import { presetLifeTags } from '../data/lifeTags';
 import { familyApi } from '../api/family';
 import {
   findAccountByPhoneOrIdCard,
@@ -48,7 +48,7 @@ import {
   invitesForArchive,
   revokeCollabInvite,
 } from '../data/interviewCollaboration';
-import type { FamilyRelation, Place } from '../mocks/types';
+import type { FamilyRelation } from '../mocks/types';
 import './LifeArchive.css';
 
 const tabs = [
@@ -110,9 +110,9 @@ interface TimelineEvent {
   tags: TagItem[];
 }
 
-type Role = '档案所有者' | '管理员' | '编辑者' | '观察者';
+type Role = '档案所有者' | '观察者';
 
-const ROLES: Role[] = ['档案所有者', '管理员', '编辑者', '观察者'];
+const ROLES: Role[] = ['档案所有者', '观察者'];
 const DEFAULT_ARCHIVE_ID = 'default';
 const DEFAULT_ARCHIVE: Archive = {
   id: DEFAULT_ARCHIVE_ID,
@@ -266,13 +266,16 @@ function getRecentActivities(events: TimelineEvent[], mediaItems: MediaItem[]): 
   return [...latestMedia, ...latestEvents].slice(0, 5);
 }
 
+// 权限项与上方标签一一对应（除「隐私与权限」外的 5 个模块）
 const privacyItems = [
-  { label: '基本信息', value: '家人可见' },
-  { label: '多媒体档案', value: '家人可见' },
-  { label: '人生事件', value: '部分公开' },
-  { label: '成就与作品', value: '公开展示' },
-  { label: '下载控制', value: '已开启' },
+  { label: '人生时间轴', value: '家人可见' },
+  { label: '多媒体档案库', value: '家人可见' },
+  { label: '人物关系图谱', value: '家人可见' },
+  { label: '地点足迹', value: '家人可见' },
+  { label: '成就与作品', value: '家人可见' },
 ];
+
+const privacyOptions = ['家人可见', '公开展示', '仅自己'];
 
 const mediaFilters = ['全部', '照片', '视频', '音频', '文档'];
 
@@ -368,8 +371,8 @@ interface Member {
 
 const defaultMembers: Member[] = [
   { id: 'm1', name: '张明远', role: '档案所有者', status: 'active' },
-  { id: 'm2', name: '李晓如', role: '编辑者', status: 'active' },
-  { id: 'm3', name: '张子涵', role: '管理员', status: 'active' },
+  { id: 'm2', name: '李晓如', role: '观察者', status: 'active' },
+  { id: 'm3', name: '张子涵', role: '观察者', status: 'active' },
   { id: 'm4', name: '张雨桐', role: '观察者', status: 'pending' },
 ];
 
@@ -461,8 +464,6 @@ export default function LifeArchive() {
   const [activeTab, setActiveTab] = useState('timeline');
   const [selectedYear, setSelectedYear] = useState<string>(initialSelectedYear);
   const [mediaFilter, setMediaFilter] = useState('全部');
-  const [newTag, setNewTag] = useState('');
-  const [showTagInput, setShowTagInput] = useState(false);
   const [preview, setPreview] = useState<{ type: string; title: string } | null>(null);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
@@ -478,6 +479,8 @@ export default function LifeArchive() {
   const [newName, setNewName] = useState('');
   const [newGender, setNewGender] = useState<'男' | '女'>('男');
   const [newBirthYear, setNewBirthYear] = useState('');
+  const [newTags, setNewTags] = useState<string[]>([]);
+  const [newCustomTag, setNewCustomTag] = useState('');
   const [newOrigin, setNewOrigin] = useState('');
   const [newOccupation, setNewOccupation] = useState('');
 
@@ -488,7 +491,6 @@ export default function LifeArchive() {
   const [inviteRole, setInviteRole] = useState<Role>('观察者');
 
   const [relations, setRelations] = useState<FamilyRelation[]>([]);
-  const [placeList, setPlaceList] = useState<Place[]>([]);
   const [showRelationModal, setShowRelationModal] = useState(false);
   const [relationQuery, setRelationQuery] = useState('');
   const [relationFound, setRelationFound] = useState<{ phone: string; name?: string } | null>(null);
@@ -508,10 +510,6 @@ export default function LifeArchive() {
       .relations(currentArchiveId)
       .then(setRelations)
       .catch(() => setRelations([]));
-    familyApi
-      .places(currentArchiveId)
-      .then(setPlaceList)
-      .catch(() => setPlaceList([]));
   }, [currentArchiveId]);
 
   const currentArchive = archives.find((a) => a.id === currentArchiveId) ?? DEFAULT_ARCHIVE;
@@ -520,7 +518,7 @@ export default function LifeArchive() {
     [currentArchive.name, relations]
   );
   const canEdit = role !== '观察者';
-  const canManageArchives = role === '档案所有者' || role === '管理员';
+  const canManageArchives = role === '档案所有者';
   const isOwner = role === '档案所有者';
 
   const sortedEvents = events.slice().sort((a, b) => Number(a.year) - Number(b.year));
@@ -545,10 +543,6 @@ export default function LifeArchive() {
       tags: e.tags,
     }));
     localStorage.setItem(`cj_events_${archiveId}`, JSON.stringify(stored));
-  };
-
-  const saveTags = (archiveId: string, next: Record<string, string[]>) => {
-    localStorage.setItem(`cj_event_tags_${archiveId}`, JSON.stringify(next));
   };
 
   const handleSwitchArchive = (id: string) => {
@@ -578,6 +572,7 @@ export default function LifeArchive() {
       birthYear: newBirthYear.trim(),
       origin: newOrigin.trim(),
       occupation: newOccupation.trim(),
+      tags: newTags,
     };
     const nextArchives = [...archives, archive];
     setArchives(nextArchives);
@@ -599,6 +594,8 @@ export default function LifeArchive() {
     setNewBirthYear('');
     setNewOrigin('');
     setNewOccupation('');
+    setNewTags([]);
+    setNewCustomTag('');
     setShowNewArchive(false);
     addToast('档案已创建', 'success');
   };
@@ -712,24 +709,6 @@ export default function LifeArchive() {
       );
     }
     addToast('事件已删除', 'success');
-  };
-
-  const addTag = () => {
-    const tag = newTag.trim();
-    if (!tag) {
-      addToast('请输入标签名称', 'error');
-      return;
-    }
-    if (!canEdit) {
-      addToast('当前角色无编辑权限', 'error');
-      return;
-    }
-    const next = { ...eventTags, [selectedYear]: [...(eventTags[selectedYear] ?? []), tag] };
-    setEventTags(next);
-    saveTags(currentArchiveId, next);
-    setNewTag('');
-    setShowTagInput(false);
-    addToast('标签已添加', 'success');
   };
 
   const handleRoleChange = (r: Role) => {
@@ -908,6 +887,50 @@ export default function LifeArchive() {
                 placeholder="如 企业家 / 高级工程师"
               />
             </div>
+            <div className="form-row">
+              <label>人生标签</label>
+              <div className="life-tags">
+                {presetLifeTags.map((tag) => (
+                  <button
+                    key={tag}
+                    type="button"
+                    className={`life-tag ${newTags.includes(tag) ? 'active' : ''}`}
+                    onClick={() =>
+                      setNewTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]))
+                    }
+                  >
+                    {tag}
+                  </button>
+                ))}
+              </div>
+              <div className="custom-tag-row">
+                <input
+                  type="text"
+                  value={newCustomTag}
+                  onChange={(e) => setNewCustomTag(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      const t = newCustomTag.trim();
+                      if (t && !newTags.includes(t)) setNewTags((prev) => [...prev, t]);
+                      setNewCustomTag('');
+                    }
+                  }}
+                  placeholder="输入自定义标签，按回车添加"
+                />
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={() => {
+                    const t = newCustomTag.trim();
+                    if (t && !newTags.includes(t)) setNewTags((prev) => [...prev, t]);
+                    setNewCustomTag('');
+                  }}
+                >
+                  添加
+                </button>
+              </div>
+            </div>
             <div className="form-actions">
               <button className="btn btn-outline" onClick={() => setShowNewArchive(false)}>
                 取消
@@ -932,6 +955,8 @@ export default function LifeArchive() {
         ))}
       </div>
 
+      <div className="archive-page-layout">
+        <div className="archive-main">
       {activeTab === 'timeline' && (
         <div className="archive-grid">
           <div className="card timeline-card">
@@ -1016,17 +1041,6 @@ export default function LifeArchive() {
                           <span className="event-year">{formatYearRange(e.year, e.endYear)}</span>
                           <span className="event-title">{e.title}</span>
                         </div>
-                        <div className="event-tags">
-                          {e.tags.map((t, idx) => (
-                            <span
-                              className="event-tag"
-                              key={idx}
-                              style={{ color: t.color, background: t.bg }}
-                            >
-                              {t.label}
-                            </span>
-                          ))}
-                        </div>
                       </div>
                     </div>
                     {canEdit && (
@@ -1085,44 +1099,6 @@ export default function LifeArchive() {
                     <div className="event-detail-subtitle">{selectedDetail.subtitle}</div>
                   </div>
                   <p className="event-detail-content">{selectedDetail.content}</p>
-                  <div className="event-tags">
-                    {selectedDetail.tags.map((t, i) => (
-                      <span className="event-tag" key={i}>
-                        {t}
-                      </span>
-                    ))}
-                    {showTagInput ? (
-                      <span className="tag-input-wrap">
-                        <input
-                          type="text"
-                          value={newTag}
-                          onChange={(e) => setNewTag(e.target.value)}
-                          placeholder="标签"
-                          onKeyDown={(e) => e.key === 'Enter' && addTag()}
-                          autoFocus
-                          disabled={!canEdit}
-                        />
-                        <button onClick={addTag} disabled={!canEdit}>
-                          保存
-                        </button>
-                        <button
-                          onClick={() => {
-                            setShowTagInput(false);
-                            setNewTag('');
-                          }}
-                        >
-                          取消
-                        </button>
-                      </span>
-                    ) : (
-                      <span
-                        className={`event-tag add ${!canEdit ? 'disabled' : ''}`}
-                        onClick={() => canEdit && setShowTagInput(true)}
-                      >
-                        + 添加标签
-                      </span>
-                    )}
-                  </div>
                   {(() => {
                     const relatedMedia = mediaItems.filter((m) => m.stage?.startsWith(selectedYear));
                     const relatedImages = relatedMedia.filter((m) => m.type === 'image');
@@ -1198,69 +1174,6 @@ export default function LifeArchive() {
               )}
             </div>
           </div>
-
-          <div className="archive-side">
-            <div className="card profile-card">
-              <div className="card-header">
-                <h3 className="card-title">档案概览</h3>
-              </div>
-              <div className="card-body profile-body">
-                <div className="profile-top">
-                  <Avatar name={currentArchive.name} size={64} />
-                  <div>
-                    <div className="profile-name">
-                      {currentArchive.name} <span className="gender">{currentArchive.gender}</span>
-                    </div>
-                    <div className="profile-meta">出生地：{currentArchive.origin || '-'}</div>
-                    <div className="profile-meta">职业：{currentArchive.occupation || '-'}</div>
-                    <div className="profile-meta">当前阶段：享受生活，传承家风</div>
-                  </div>
-                </div>
-                <div className="activity-section">
-                  <div className="section-title">档案动态</div>
-                  <div className="activity-list">
-                    {recentActivities.length > 0 ? (
-                      recentActivities.map((a) => (
-                        <div className="activity-row" key={a.id}>
-                          <div
-                            className="activity-icon"
-                            style={{ background: `${a.color}20`, color: a.color }}
-                          >
-                            <a.icon size={14} />
-                          </div>
-                          <div className="activity-main">
-                            <div className="activity-title">{a.title}</div>
-                            {a.desc && <div className="activity-desc">{a.desc}</div>}
-                            <div className="activity-time">{a.time}</div>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="activity-empty">暂无动态，开始记录第一个人生事件或上传素材吧</div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="card place-card">
-              <div className="card-header">
-                <h3 className="card-title">地点足迹</h3>
-                <button className="btn btn-ghost" onClick={() => navigate('/archive/places')}>
-                  <MapPin size={14} /> 查看地图
-                </button>
-              </div>
-              <div className="card-body place-body">
-                <div className="map-placeholder">中国地图</div>
-                <div className="place-list">
-                  {placeList.slice(0, 6).map((p) => (
-                    <span key={p.id}>{p.place}</span>
-                  ))}
-                  {placeList.length === 0 && <span className="place-empty">暂无足迹</span>}
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       )}
 
@@ -1276,10 +1189,12 @@ export default function LifeArchive() {
                   </button>
                 ))}
               </div>
-              <button className="media-restore-btn" onClick={() => navigate('/photo-restore')}>
-                <Wand2 size={14} />
-                <span>老照片修复</span>
-              </button>
+              {!isMVP && (
+                <button className="media-restore-btn" onClick={() => navigate('/photo-restore')}>
+                  <Wand2 size={14} />
+                  <span>老照片修复</span>
+                </button>
+              )}
               <button className="media-upload-btn" onClick={openUploadModal}>
                 <Upload size={14} />
                 <span>上传素材</span>
@@ -1316,10 +1231,12 @@ export default function LifeArchive() {
                 <div>该分类下暂无素材</div>
                 {canEdit && (
                   <>
-                    <button className="media-restore-btn media-restore-btn-empty" onClick={() => navigate('/photo-restore')}>
-                      <Wand2 size={14} />
-                      <span>老照片修复</span>
-                    </button>
+                    {!isMVP && (
+                      <button className="media-restore-btn media-restore-btn-empty" onClick={() => navigate('/photo-restore')}>
+                        <Wand2 size={14} />
+                        <span>老照片修复</span>
+                      </button>
+                    )}
                     <button className="media-upload-btn media-upload-btn-empty" onClick={openUploadModal}>
                       <Upload size={14} />
                       <span>上传素材</span>
@@ -1422,17 +1339,6 @@ export default function LifeArchive() {
                 </div>
               ))}
             </div>
-            <div className="relation-legend">
-              <span className="relation-legend-item">
-                <i className="relation-legend-dot direct" />直系亲属
-              </span>
-              <span className="relation-legend-item">
-                <i className="relation-legend-dot spouse" />配偶关系
-              </span>
-              <span className="relation-legend-item">
-                <i className="relation-legend-dot child" />子女关系
-              </span>
-            </div>
           </div>
         </div>
       )}
@@ -1456,6 +1362,12 @@ export default function LifeArchive() {
                   placeholder="对方手机号 / 身份证号"
                   value={relationQuery}
                   onChange={(e) => { setRelationQuery(e.target.value); setRelationFound(null); }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleFindRelationAccount();
+                    }
+                  }}
                 />
                 <button className="btn btn-outline" onClick={handleFindRelationAccount}>查找</button>
               </div>
@@ -1532,11 +1444,7 @@ export default function LifeArchive() {
                 ))}
               </select>
               <span className="role-hint">
-                {role === '观察者'
-                  ? '仅可查看，无法编辑'
-                  : role === '编辑者'
-                  ? '可编辑内容，不可更改所有者设置'
-                  : '可管理档案与权限'}
+                {role === '观察者' ? '仅可查看，无法编辑' : '可管理档案与权限'}
               </span>
             </div>
 
@@ -1548,23 +1456,17 @@ export default function LifeArchive() {
             </div>
             {privacyItems.map((p, i) => {
               const current = privacyValues[p.label] ?? p.value;
-              const options = p.label === '下载控制' ? ['已开启', '已关闭'] : ['家人可见', '部分公开', '公开展示', '仅自己'];
-              const optionDisabled = !canEdit || (!isOwner && p.label === '下载控制');
               return (
                 <div className="privacy-row" key={i}>
                   <span>{p.label}</span>
                   <div className="privacy-options">
-                    {options.map((opt) => (
+                    {privacyOptions.map((opt) => (
                       <button
                         key={opt}
                         className={current === opt ? 'active' : ''}
-                        disabled={optionDisabled}
+                        disabled={!canEdit}
                         onClick={() => {
                           if (!canEdit) return;
-                          if (!isOwner && p.label === '下载控制') {
-                            addToast('仅档案所有者可更改此设置', 'error');
-                            return;
-                          }
                           setPrivacyValues((prev) => ({ ...prev, [p.label]: opt }));
                           addToast(`${p.label} 设为 ${opt}`, 'success');
                         }}
@@ -1624,7 +1526,7 @@ export default function LifeArchive() {
                   <div className="auth-row" key={m.id}>
                     <div className="auth-info">
                       <div className="auth-avatar">
-                        {m.role === '档案所有者' ? <Shield size={16} /> : m.role === '观察者' ? <Eye size={16} /> : <User size={16} />}
+                        {m.role === '档案所有者' ? <Shield size={16} /> : <Eye size={16} />}
                       </div>
                       <div>
                         <div className="auth-name">{m.name}</div>
@@ -1649,6 +1551,61 @@ export default function LifeArchive() {
 
       {activeTab === 'places' && <LocationFootprints />}
       {activeTab === 'achievements' && <Achievements />}
+        </div>
+
+        {/* 档案概览：固定在右侧，切换标签时不变 */}
+        <div className="archive-side">
+          <div className="card profile-card">
+            <div className="card-header">
+              <h3 className="card-title">档案概览</h3>
+            </div>
+            <div className="card-body profile-body">
+              <div className="profile-top">
+                <Avatar name={currentArchive.name} size={64} />
+                <div>
+                  <div className="profile-name">
+                    {currentArchive.name} <span className="gender">{currentArchive.gender}</span>
+                  </div>
+                  <div className="profile-meta">出生地：{currentArchive.origin || '-'}</div>
+                  <div className="profile-meta">职业：{currentArchive.occupation || '-'}</div>
+                  <div className="profile-meta">当前阶段：享受生活，传承家风</div>
+                  {currentArchive.tags && currentArchive.tags.length > 0 && (
+                    <div className="profile-tags">
+                      {currentArchive.tags.map((tag) => (
+                        <span className="profile-tag" key={tag}>{tag}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="activity-section">
+                <div className="section-title">档案动态</div>
+                <div className="activity-list">
+                  {recentActivities.length > 0 ? (
+                    recentActivities.map((a) => (
+                      <div className="activity-row" key={a.id}>
+                        <div
+                          className="activity-icon"
+                          style={{ background: `${a.color}20`, color: a.color }}
+                        >
+                          <a.icon size={14} />
+                        </div>
+                        <div className="activity-main">
+                          <div className="activity-title">{a.title}</div>
+                          {a.desc && <div className="activity-desc">{a.desc}</div>}
+                          <div className="activity-time">{a.time}</div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="activity-empty">暂无动态，开始记录第一个人生事件或上传素材吧</div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {preview && (
         <div className="modal-overlay" onClick={() => setPreview(null)}>

@@ -664,3 +664,33 @@
   border-color: var(--primary);
   color: #fff;
 }
+
+.biography-archive-switch {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  max-width: 480px;
+}
+
+.biography-switch-label {
+  font-size: 12px;
+  color: var(--text-muted, #6b7280);
+  white-space: nowrap;
+}
+
+.biography-archive-switch select {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 12px;
+  border: 1px solid var(--border-light, #e8e4dd);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--text, #2c2824);
+  background: #fff;
+}
+
+.biography-archive-switch select:focus {
+  border-color: var(--primary, #1b5e4b);
+  outline: none;
+}

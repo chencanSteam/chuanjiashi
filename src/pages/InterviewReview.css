@@ -504,3 +504,19 @@
 .question-group-answers .transcript-line {
   margin-bottom: 0;
 }
+
+.supplement-review-item.invalid {
+  opacity: 0.55;
+}
+
+.supplement-review-item.invalid .supplement-review-text {
+  text-decoration: line-through;
+}
+
+.invalid-tag {
+  font-size: 11px;
+  color: #dc2626;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: #fef2f2;
+}

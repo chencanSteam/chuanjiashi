@@ -13,6 +13,8 @@ export interface SupplementAnswer {
   relation: string;
   text: string;
   answeredAt: string;
+  /** 本人可作废协助者的回答，作废后不作为传记参考 */
+  invalid?: boolean;
 }
 
 export interface CollabInvite {
@@ -178,7 +180,9 @@ export function addSupplementAnswer(
   const all = loadSupplementAnswers(archiveId);
   const list = all[questionId] || [];
   const existingIndex = list.findIndex((a) => a.respondentId === answer.respondentId);
-  const fullAnswer: SupplementAnswer = { ...answer, answeredAt: new Date().toISOString() };
+  // 重新回答时保留作废标记
+  const prevInvalid = existingIndex >= 0 ? list[existingIndex].invalid : undefined;
+  const fullAnswer: SupplementAnswer = { ...answer, answeredAt: new Date().toISOString(), invalid: prevInvalid };
   if (existingIndex >= 0) {
     list[existingIndex] = fullAnswer;
   } else {
@@ -186,6 +190,16 @@ export function addSupplementAnswer(
   }
   saveSupplementAnswers(archiveId, { ...all, [questionId]: list });
   return fullAnswer;
+}
+
+// 作废/恢复某位协助者在某问题上的回答；作废后不作为传记参考
+export function setSupplementInvalid(archiveId: string, questionId: string, respondentId: string, invalid: boolean) {
+  const all = loadSupplementAnswers(archiveId);
+  const list = all[questionId] || [];
+  const index = list.findIndex((a) => a.respondentId === respondentId);
+  if (index < 0) return;
+  list[index] = { ...list[index], invalid };
+  saveSupplementAnswers(archiveId, { ...all, [questionId]: list });
 }
 
 

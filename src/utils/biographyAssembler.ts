@@ -75,7 +75,8 @@ function renderAnswers(answers: Record<string, string>): string {
 }
 
 function renderSupplementHighlights(supplementAnswers: Record<string, SupplementAnswer[]>): string {
-  const all = Object.values(supplementAnswers).flat();
+  // 作废的协助回答不作为传记参考
+  const all = Object.values(supplementAnswers).flat().filter((a) => !a.invalid);
   if (all.length === 0) return '';
   const byPerson: Record<string, string[]> = {};
   all.forEach((a) => {

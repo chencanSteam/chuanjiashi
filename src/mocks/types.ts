@@ -598,6 +598,10 @@ export interface AITask {
   type: AITaskType
   /** 关联对象名（档案主人/传记名等） */
   targetName: string
+  /** 任务所属用户的昵称 */
+  userName: string
+  /** 任务所属用户的手机号 */
+  userPhone: string
   /** 状态：queued 排队中 / running 生成中 / success 成功 / failed 失败 */
   status: AITaskStatus
   /** Token 消耗 */

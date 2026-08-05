@@ -1,27 +1,15 @@
 import { useEffect, useMemo, useRef, useState, useReducer } from 'react';
 import {
   Mic,
-  ChevronRight,
-  SkipForward,
-  Save,
-  Sparkles,
-  MessageSquarePlus,
   FolderOpen,
   BookOpen,
+  Clock,
   CheckCircle2,
   Circle,
-  Clock,
   AlertCircle,
-  Type,
-  Video,
-  Square,
-  StopCircle,
-  RefreshCw,
   Plus,
   X,
-  Users,
-  FileAudio,
-  FileUp,
+  Send,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Avatar from '../components/ui/Avatar';
@@ -35,6 +23,7 @@ import {
   loadSupplementAnswers,
   saveSupplementAnswers,
   addSupplementAnswer,
+  setSupplementInvalid,
   getCollaboratorAnswerCounts,
   createCollabInvite,
   invitesForArchive,
@@ -50,7 +39,7 @@ import {
   buildReviewData,
   type AIQuota,
 } from '../data/aiMock';
-import { generateInterviewTopics, saveCustomTopic } from '../utils/interviewTopics';
+import { generateInterviewTopics, saveCustomTopic, removeTopicForArchive } from '../utils/interviewTopics';
 import { syncReviewEventToTimeline } from '../utils/eventSync';
 import './AIInterview.css';
 
@@ -72,18 +61,19 @@ interface TranscriptLine {
   text: string;
 }
 
-interface VideoRecording {
-  seconds: number;
-  recordedAt: string;
-  transcript: string;
-}
-
 interface InterviewSession {
   currentTopicIndex: number;
   currentQuestionIndex: number;
   answeredIds: string[];
   skippedIds: string[];
   followUps: Record<string, { question: string; userAnswer?: string; answered: boolean }[]>;
+}
+
+interface ChatMsg {
+  role: 'ai' | 'user';
+  text: string;
+  invalid?: boolean;
+  qid?: string;
 }
 
 interface RespondentInfo {
@@ -154,7 +144,7 @@ export default function AIInterview() {
 
   // 每个回答者独立抽题与进度：AI 按各自对话生成问题，本人与协助者的问题互不相同
   const respondentSuffix = myCollaborator ? `_${myCollaborator.id}` : '';
-  const interviewTopics = generateInterviewTopics(archive, archiveId, `${archiveId}${respondentSuffix}`);
+  const interviewTopics = generateInterviewTopics(archive, archiveId);
 
   // 本人=回答自己的传记；协作者=协助传主的传记
   const respondentLabel = (r: RespondentInfo) =>
@@ -189,7 +179,6 @@ export default function AIInterview() {
   // 转写/进度/视频按回答者独立存储
   const transcriptKey = `cj_interview_transcript_${archiveId}${respondentSuffix}`;
   const sessionKey = `cj_interview_session_${archiveId}${respondentSuffix}`;
-  const videoKey = `cj_interview_video_${archiveId}${respondentSuffix}`;
   const [transcript, setTranscript] = useState<TranscriptLine[]>(() =>
     loadJson<TranscriptLine[]>(transcriptKey, [])
   );
@@ -212,16 +201,8 @@ export default function AIInterview() {
     return loadJson<Record<string, string>>(`cj_interview_answers_${archiveId}`, {})[firstQuestion.id] || firstQuestion.mockAnswer;
   });
   const [generatingFollowUp, setGeneratingFollowUp] = useState(false);
-  const [answerMode, setAnswerMode] = useState<'text' | 'voice' | 'video'>('text');
   const [recordingVoice, setRecordingVoice] = useState(false);
   const [voiceSeconds, setVoiceSeconds] = useState(0);
-  const [voiceRecorded, setVoiceRecorded] = useState(false);
-  const [recordingVideo, setRecordingVideo] = useState(false);
-  const [videoSeconds, setVideoSeconds] = useState(0);
-  const [videoRecorded, setVideoRecorded] = useState(false);
-  const [videoRecordings, setVideoRecordings] = useState<Record<string, VideoRecording>>(() =>
-    loadJson<Record<string, VideoRecording>>(videoKey, {})
-  );
   const [activeFollowUpIndex, setActiveFollowUpIndex] = useState<number | null>(null);
   const [followUpAnswer, setFollowUpAnswer] = useState('');
   const [showCustomTopic, setShowCustomTopic] = useState(false);
@@ -246,19 +227,11 @@ export default function AIInterview() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [archiveId, invitesRefresh, collaborators]
   );
-  const [viewingSupplements, setViewingSupplements] = useState<string | null>(null);
   // 本人视角：在主题区切换查看某位协助人的问答
   const [viewRespondentId, setViewRespondentId] = useState<'subject' | string>('subject');
 
   const voiceTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const videoTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const audioFileRef = useRef<HTMLInputElement>(null);
-  const docFileRef = useRef<HTMLInputElement>(null);
 
-  // 素材处理：语音转文字 / 采访记录导入
-  const [transcribing, setTranscribing] = useState(false);
-  const [transcribeProgress, setTranscribeProgress] = useState(0);
 
   const currentTopic = interviewTopics[session.currentTopicIndex];
   const currentQuestion = currentTopic?.questions[session.currentQuestionIndex];
@@ -293,27 +266,10 @@ export default function AIInterview() {
     return () => { if (voiceTimerRef.current) clearInterval(voiceTimerRef.current); };
   }, [recordingVoice]);
 
-  useEffect(() => {
-    if (recordingVideo) {
-      videoTimerRef.current = setInterval(() => setVideoSeconds((s) => s + 1), 1000);
-    } else if (videoTimerRef.current) {
-      clearInterval(videoTimerRef.current);
-      videoTimerRef.current = null;
-    }
-    return () => { if (videoTimerRef.current) clearInterval(videoTimerRef.current); };
-  }, [recordingVideo]);
-
-  const voiceWaveHeights = useMemo(
-    () => Array.from({ length: 40 }, (_, i) => 20 + ((i * 37 + 12) % 61)),
-    []
-  );
-
   const collaboratorAnswerCounts = useMemo(
     () => getCollaboratorAnswerCounts(archiveId, collaborators),
     [archiveId, collaborators, supplementAnswers]
   );
-
-  const currentQuestionSupplements = currentQuestion ? supplementAnswers[currentQuestion.id] || [] : [];
 
   // 正在查看的协助人：TA 有独立的问题集与问答记录（AI 按 TA 的回答生成）
   const viewingCollaborator =
@@ -321,22 +277,79 @@ export default function AIInterview() {
       ? collaborators.find((c) => c.id === viewRespondentId) ?? null
       : null;
   const viewedTopics = viewingCollaborator
-    ? generateInterviewTopics(archive, archiveId, `${archiveId}_${viewingCollaborator.id}`)
+    ? generateInterviewTopics(archive, archiveId)
     : interviewTopics;
-  const viewedTopic = viewedTopics[Math.min(session.currentTopicIndex, viewedTopics.length - 1)];
-  const displayedQuestion = viewingCollaborator
-    ? viewedTopic?.questions[Math.min(session.currentQuestionIndex, (viewedTopic?.questions.length || 1) - 1)]
-    : currentQuestion;
-  const viewingCollabAnswer =
-    viewingCollaborator && displayedQuestion
-      ? (supplementAnswers[displayedQuestion.id] || []).find((a) => a.respondentId === viewingCollaborator.id)?.text || ''
-      : '';
+  const currentFollowUps = currentQuestion ? session.followUps[currentQuestion.id] || [] : [];
+  const activeFollowUp = activeFollowUpIndex !== null ? currentFollowUps[activeFollowUpIndex] : null;
+
+  // 对话流：消息记录与当前待答问题
+  const sessionRef = useRef(session);
+  useEffect(() => {
+    sessionRef.current = session;
+  }, [session]);
+  const [chatInput, setChatInput] = useState('');
+  const chatBodyRef = useRef<HTMLDivElement>(null);
+
+  const chatMessages: ChatMsg[] = viewingCollaborator
+    ? viewedTopics
+        .flatMap((t) => t.questions)
+        .flatMap((q) => {
+          const supp = (supplementAnswers[q.id] || []).find((a) => a.respondentId === viewingCollaborator.id);
+          if (!supp) return [];
+          return [
+            { role: 'ai' as const, text: q.text },
+            { role: 'user' as const, text: supp.text, invalid: supp.invalid, qid: q.id },
+          ];
+        })
+    : transcript.map((l) => ({
+        role: (l.speaker.startsWith('AI采访官') ? 'ai' : 'user') as 'ai' | 'user',
+        text: l.text,
+      }));
+
+  // AI 正在问的问题：优先延伸问题，其次当前未答主问题
+  const pendingChatQuestion = viewingCollaborator
+    ? null
+    : activeFollowUp
+      ? activeFollowUp.question
+      : currentQuestion && !session.answeredIds.includes(currentQuestion.id)
+        ? currentQuestion.text
+        : null;
+
+  // 发送回答：延伸问题回答或主问题回答
+  const handleChatSend = () => {
+    const text = chatInput.trim();
+    if (!text || generatingFollowUp) return;
+    setChatInput('');
+    if (activeFollowUpIndex !== null) {
+      setFollowUpAnswer(text);
+      saveFollowUpAnswer(text);
+    } else {
+      setCurrentAnswer(text);
+      saveCurrentAnswer(text);
+    }
+  };
+
+  // 作废/恢复协助者某题的问答：作废后不作为传记参考
+  const toggleSupplementInvalidByQid = (qid: string, respondentId: string, next: boolean) => {
+    setSupplementInvalid(archiveId, qid, respondentId, next);
+    setSupplementAnswers((prev) => ({
+      ...prev,
+      [qid]: (prev[qid] || []).map((a) => (a.respondentId === respondentId ? { ...a, invalid: next } : a)),
+    }));
+    addToast(next ? '已作废，该回答不作为传记参考' : '已恢复，该回答可作为传记参考', 'info');
+  };
+
+  // 对话自动滚动到底部
+  useEffect(() => {
+    const el = chatBodyRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [chatMessages.length, pendingChatQuestion, generatingFollowUp]);
 
   // 当前主题下有补充回答的协助者（协助按主题划分，如发小协助童年、配偶协助婚姻家庭）
   const topicCollaborators = useMemo(() => {
     if (!isSubjectMode || !currentTopic) return [];
     return collaborators.filter((c) => {
-      const theirTopic = generateInterviewTopics(archive, archiveId, `${archiveId}_${c.id}`).find(
+      const theirTopic = generateInterviewTopics(archive, archiveId).find(
         (t) => t.id === currentTopic.id
       );
       return (theirTopic?.questions || []).some((q) =>
@@ -355,74 +368,11 @@ export default function AIInterview() {
   const nowTime = () =>
     new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
 
-  const totalQuestions = useMemo(
-    () => interviewTopics.reduce((sum, t) => sum + t.questions.length, 0),
-    [interviewTopics]
-  );
-  const answeredCount = session.answeredIds.length;
-  const progressPercent = Math.round((answeredCount / totalQuestions) * 100);
-  // 资料完整度：优先取档案的 completion 字段，否则按已答问题比例计算
-  const completionPercent = Math.max(
-    0,
-    Math.min(100, Math.round(archive?.completion ?? progressPercent))
-  );
-
-  // 语音转文字：选择音频文件 → mock 转换进度 → 生成文本片段插入采访记录
-  const handleAudioFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file) return;
-    setTranscribing(true);
-    setTranscribeProgress(0);
-    addToast(`正在将「${file.name}」转换为文字…`, 'info');
-    const timer = setInterval(() => {
-      setTranscribeProgress((prev) => {
-        const next = Math.min(100, prev + 20);
-        if (next >= 100) {
-          clearInterval(timer);
-          setTranscribing(false);
-          setTranscript((list) => [
-            ...list,
-            {
-              speaker: '语音转文字',
-              time: nowTime(),
-              text: `[语音转文字 · ${file.name}] 那时候家里条件虽然艰苦，但一家人和和睦睦，日子过得很踏实。我记得最清楚的，是父亲手把手教我写字的那个晚上……（mock 转写内容）`,
-            },
-          ]);
-          addToast('语音转文字完成，已插入采访记录', 'success');
-        }
-        return next;
-      });
-    }, 300);
-  };
-
   // 采访记录导入：选择文本/文档文件 → 读取内容作为一条采访记录
-  const handleDocFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const text = ((reader.result as string) || '').trim();
-      if (!text) {
-        addToast('文件内容为空，未导入', 'error');
-        return;
-      }
-      const snippet = text.length > 500 ? `${text.slice(0, 500)}…` : text;
-      setTranscript((list) => [
-        ...list,
-        { speaker: '采访记录导入', time: nowTime(), text: `[导入自 ${file.name}]\n${snippet}` },
-      ]);
-      addToast('采访记录已导入', 'success');
-    };
-    reader.onerror = () => addToast('文件读取失败，请重试', 'error');
-    reader.readAsText(file);
-  };
 
-
-  const saveCurrentAnswer = async () => {
+  const saveCurrentAnswer = async (textOverride?: string) => {
     if (!currentQuestion) return;
-    const text = currentAnswer.trim();
+    const text = (textOverride ?? currentAnswer).trim();
     if (!text) {
       addToast('请先输入回答内容', 'error');
       return;
@@ -506,49 +456,77 @@ export default function AIInterview() {
           ],
         },
       }));
+      // 对话流：AI 自动提出第一个新衍生的延伸问题
+      setActiveFollowUpIndex(existing);
       setGeneratingFollowUp(false);
-      addToast(`AI 根据您的回答生成了 ${questions.length} 个延伸问题`, 'success');
     }, 800);
   };
 
   const formatSeconds = (s: number) => `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
 
+  // 语音回答：浏览器支持时用 Web Speech API 实时录制转写；不支持时回退模拟转写
+  const recognitionRef = useRef<{ stop: () => void } | null>(null);
+
   const startVoiceRecord = () => {
-    setVoiceRecorded(false);
-    setRecordingVoice(true);
-    setVoiceSeconds(0);
-    addToast('开始录制语音回答…', 'info');
+    const w = window as unknown as {
+      SpeechRecognition?: new () => any;
+      webkitSpeechRecognition?: new () => any;
+    };
+    const SR = w.SpeechRecognition || w.webkitSpeechRecognition;
+    if (SR) {
+      const rec = new SR();
+      rec.lang = 'zh-CN';
+      rec.continuous = true;
+      rec.interimResults = true;
+      let finalText = '';
+      rec.onresult = (e: any) => {
+        let interim = '';
+        for (let i = e.resultIndex; i < e.results.length; i += 1) {
+          if (e.results[i].isFinal) finalText += e.results[i][0].transcript;
+          else interim += e.results[i][0].transcript;
+        }
+        setChatInput((finalText + interim).trim());
+      };
+      rec.onerror = () => {
+        // 实时转写服务不可用（无麦克风/网络服务受限）时回退模拟录制，不打断录音流程
+        recognitionRef.current = null;
+        addToast('实时转写不可用，已切换为普通录制', 'info');
+      };
+      rec.onend = () => {
+        // 已回退模拟录制时不清除录音状态
+        if (recognitionRef.current) setRecordingVoice(false);
+      };
+      recognitionRef.current = rec;
+      try {
+        rec.start();
+        setRecordingVoice(true);
+        setVoiceSeconds(0);
+        addToast('开始录制，正在实时转写…', 'info');
+      } catch {
+        // 无法启动实时转写（无麦克风/权限被拒）时回退模拟录制
+        recognitionRef.current = null;
+        setRecordingVoice(true);
+        setVoiceSeconds(0);
+        addToast('开始录制语音回答…', 'info');
+      }
+    } else {
+      setRecordingVoice(true);
+      setVoiceSeconds(0);
+      addToast('开始录制语音回答…', 'info');
+    }
   };
 
   const stopVoiceRecord = () => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      recognitionRef.current = null;
+      addToast('语音转写已完成', 'success');
+    } else {
+      const mockTranscript = '[语音转写] 我用语音回答了这个问题，讲述了当时真实的经历和感受。';
+      setChatInput((prev) => (prev.trim() ? `${prev}\n\n${mockTranscript}` : mockTranscript));
+      addToast('语音回答已转写', 'success');
+    }
     setRecordingVoice(false);
-    const mockTranscript = '[语音转写] 我用语音回答了这个问题，讲述了当时真实的经历和感受。';
-    setCurrentAnswer((prev) => (prev.trim() ? `${prev}\n\n${mockTranscript}` : mockTranscript));
-    setVoiceRecorded(true);
-    addToast('语音回答已转写', 'success');
-  };
-
-  const startVideoRecord = () => {
-    if (!currentQuestion) return;
-    setVideoRecorded(false);
-    setRecordingVideo(true);
-    setVideoSeconds(0);
-    addToast('开始录制视频回答…', 'info');
-  };
-
-  const stopVideoRecord = () => {
-    if (!currentQuestion) return;
-    setRecordingVideo(false);
-    const mockTranscript = '[视频转写] 通过视频记录的回答，AI 已提取关键内容并整理成文字。';
-    setCurrentAnswer((prev) => (prev.trim() ? `${prev}\n\n${mockTranscript}` : mockTranscript));
-    const recording: VideoRecording = {
-      seconds: videoSeconds,
-      recordedAt: new Date().toISOString(),
-      transcript: mockTranscript,
-    };
-    setVideoRecordings((prev) => ({ ...prev, [currentQuestion.id]: recording }));
-    setVideoRecorded(true);
-    addToast('视频回答已保存', 'success');
   };
 
   const answerFor = (topicIndex: number, questionIndex: number) => {
@@ -582,13 +560,8 @@ export default function AIInterview() {
       currentQuestionIndex: nextQuestionIndex,
     }));
     setCurrentAnswer(answerFor(nextTopicIndex, nextQuestionIndex));
-    setAnswerMode('text');
     setRecordingVoice(false);
     setVoiceSeconds(0);
-    setVoiceRecorded(false);
-    setRecordingVideo(false);
-    setVideoSeconds(0);
-    setVideoRecorded(false);
   };
 
   const handleNextQuestion = async () => {
@@ -600,14 +573,17 @@ export default function AIInterview() {
     }
   };
 
-  const handleSkip = () => {
-    if (!currentQuestion) return;
-    setSession((prev) => ({
-      ...prev,
-      skippedIds: Array.from(new Set([...prev.skippedIds, currentQuestion.id])),
-    }));
-    addToast('已跳过该问题', 'info');
-    moveToNext();
+  // 删除主题（预设/标签/自定义均可删除，按档案记录，刷新后仍隐藏）
+  const handleRemoveTopic = (topic: { id: string; title: string }) => {
+    if (!window.confirm(`确定删除主题「${topic.title}」吗？该主题的问题与回答进度将一并隐藏。`)) return;
+    removeTopicForArchive(archiveId, topic.id);
+    // 回到第一个主题并刷新其回答内容
+    const freshTopics = generateInterviewTopics(archive, archiveId);
+    const firstQ = freshTopics[0]?.questions[0];
+    setSession((prev) => ({ ...prev, currentTopicIndex: 0, currentQuestionIndex: 0 }));
+    setCurrentAnswer(firstQ ? (myCollaborator ? '' : answers[firstQ.id] || firstQ.mockAnswer) : '');
+    addToast(`主题「${topic.title}」已删除`, 'info');
+    forceUpdate();
   };
 
   const endInterview = async () => {
@@ -650,13 +626,8 @@ export default function AIInterview() {
       currentQuestionIndex: questionIndex,
     }));
     setCurrentAnswer(answerFor(topicIndex, questionIndex));
-    setAnswerMode('text');
     setRecordingVoice(false);
     setVoiceSeconds(0);
-    setVoiceRecorded(false);
-    setRecordingVideo(false);
-    setVideoSeconds(0);
-    setVideoRecorded(false);
     setActiveFollowUpIndex(null);
     setFollowUpAnswer('');
   };
@@ -675,14 +646,9 @@ export default function AIInterview() {
     forceUpdate();
   };
 
-  const currentFollowUps = currentQuestion ? session.followUps[currentQuestion.id] || [] : [];
-  const pendingFollowUps = currentFollowUps.filter((f) => !f.answered);
-  const answeredFollowUps = currentFollowUps.filter((f) => f.answered);
-  const activeFollowUp = activeFollowUpIndex !== null ? currentFollowUps[activeFollowUpIndex] : null;
-
-  const saveFollowUpAnswer = () => {
-    if (!currentQuestion || activeFollowUpIndex === null || !followUpAnswer.trim()) return;
-    const text = followUpAnswer.trim();
+  const saveFollowUpAnswer = (textOverride?: string) => {
+    const text = (textOverride ?? followUpAnswer).trim();
+    if (!currentQuestion || activeFollowUpIndex === null || !text) return;
     const questionText = currentFollowUps[activeFollowUpIndex].question;
 
     if (currentRespondent.isSubject) {
@@ -718,17 +684,23 @@ export default function AIInterview() {
     ]);
     setActiveFollowUpIndex(null);
     setFollowUpAnswer('');
-    addToast('延伸问题回答已保存', 'success');
 
     // 本人回答追问后，AI 可继续衍生新问题（仍受每题 3 次追问上限约束）
     if (currentRespondent.isSubject) {
       generateFollowUps(currentQuestion.id, 1);
+      // 对话流收尾：没有更多待答追问时，自动进入下一道主问题
+      const qid = currentQuestion.id;
+      setTimeout(() => {
+        const list = sessionRef.current.followUps[qid] || [];
+        const pendingIdx = list.findIndex((f) => !f.answered);
+        if (pendingIdx >= 0) {
+          setActiveFollowUpIndex(pendingIdx);
+        } else {
+          setActiveFollowUpIndex(null);
+          handleNextQuestion();
+        }
+      }, 950);
     }
-  };
-
-  const selectFollowUp = (index: number) => {
-    setActiveFollowUpIndex(index);
-    setFollowUpAnswer('');
   };
 
   // 查找账号（手机号/身份证号）并发送协作邀请，对方同意后才会成为协作者
@@ -811,7 +783,7 @@ export default function AIInterview() {
                 ))}
               </select>
             </div>
-            <div className="stat-label-text">当前采访对象</div>
+            <div className="stat-label-text">传记主</div>
             <div className="person-row">
               <Avatar name={subjectName} size={48} />
               <div>
@@ -843,18 +815,6 @@ export default function AIInterview() {
                 你正在协助 {subjectName} 的传记采访，你的回答会作为补充素材，不影响采访进度。
               </div>
             )}
-            <div className="archive-completion">
-              <div className="archive-completion-header">
-                <span>资料完整度</span>
-                <span className="archive-completion-value">{completionPercent}%</span>
-              </div>
-              <div className="archive-completion-bar">
-                <div className="archive-completion-fill" style={{ width: `${completionPercent}%` }} />
-              </div>
-              {completionPercent < 60 && (
-                <div className="archive-completion-tip">资料还不够完整，继续采访可生成更丰富的传记</div>
-              )}
-            </div>
           </div>
         </div>
       </div>
@@ -867,11 +827,6 @@ export default function AIInterview() {
           </div>
           <div className="card-body topic-body">
             {viewedTopics.map((topic, ti) => {
-              const done = viewingCollaborator
-                ? topic.questions.filter((q) =>
-                    (supplementAnswers[q.id] || []).some((a) => a.respondentId === viewingCollaborator.id)
-                  ).length
-                : topic.questions.filter((q) => session.answeredIds.includes(q.id)).length;
               const active = ti === session.currentTopicIndex;
               return (
                 <button
@@ -885,7 +840,18 @@ export default function AIInterview() {
                       {topic.title}
                     </div>
                   </div>
-                  <div className="topic-progress">{done}/{topic.questions.length}</div>
+                  {isSubjectMode && (
+                    <span
+                      className="topic-delete"
+                      title="删除该主题"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemoveTopic(topic);
+                      }}
+                    >
+                      <X size={12} />
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -918,10 +884,10 @@ export default function AIInterview() {
           </div>
         </div>
 
-        <div className="card workspace-card">
+        <div className="card chat-card">
           <div className="card-header">
             <h3 className="card-title">
-              <Mic size={16} /> 当前问题
+              <Mic size={16} /> {viewingCollaborator ? `${viewingCollaborator.name}（${viewingCollaborator.relation}）的采访对话` : '采访对话'}
             </h3>
             {topicCollaborators.length > 0 && (
               <select
@@ -935,273 +901,9 @@ export default function AIInterview() {
                 ))}
               </select>
             )}
-            {currentQuestion && session.answeredIds.includes(currentQuestion.id) && !viewingCollaborator && (
-              <span className="answered-badge"><CheckCircle2 size={12} /> 已保存</span>
-            )}
           </div>
-          <div className="card-body workspace-body">
-            {currentQuestion ? (
-              <>
-                <div className="question-box">
-                  <div className="question-number">{session.currentQuestionIndex + 1}</div>
-                  <div className="question-text">{displayedQuestion?.text}</div>
-                </div>
-
-                {viewingCollaborator && (
-                  <div className="collab-mode-tip">
-                    正在查看 {viewingCollaborator.name}（{viewingCollaborator.relation}）的补充问答，切回「本人回答」可继续采访。
-                  </div>
-                )}
-
-                <div className="workspace-actions workspace-actions-top">
-                  {!viewingCollaborator && (
-                    <button className="btn btn-primary" onClick={saveCurrentAnswer} disabled={generatingFollowUp || !currentAnswer.trim()}>
-                      <Save size={14} /> 保存本段
-                    </button>
-                  )}
-                  <button className="btn btn-outline" onClick={handleNextQuestion} disabled={generatingFollowUp}>
-                    下一题 <ChevronRight size={14} />
-                  </button>
-                  {!viewingCollaborator && (
-                    <button className="btn btn-ghost" onClick={handleSkip} disabled={generatingFollowUp}>
-                      <SkipForward size={14} /> 跳过问题
-                    </button>
-                  )}
-                </div>
-
-                {viewingCollaborator && (
-                  <div className="answer-section">
-                    <label className="section-label">
-                      <Users size={14} /> {viewingCollaborator.name}（{viewingCollaborator.relation}）的补充回答
-                    </label>
-                    {viewingCollabAnswer ? (
-                      <div className="viewing-answer-text">{viewingCollabAnswer}</div>
-                    ) : (
-                      <div className="transcript-empty">TA 还没有回答这道题</div>
-                    )}
-                  </div>
-                )}
-
-                {!viewingCollaborator && (
-                <div className="answer-section">
-                  <div className="answer-section-header">
-                    <label className="section-label">
-                      {answerMode === 'text' ? <Type size={14} /> : answerMode === 'voice' ? <Mic size={14} /> : <Video size={14} />}
-                      回答区
-                    </label>
-                    <div className="answer-mode-tabs">
-                      <button className={`mode-tab ${answerMode === 'text' ? 'active' : ''}`} onClick={() => setAnswerMode('text')}>
-                        <Type size={13} /> 文字
-                      </button>
-                      <button className={`mode-tab ${answerMode === 'voice' ? 'active' : ''}`} onClick={() => setAnswerMode('voice')}>
-                        <Mic size={13} /> 语音
-                      </button>
-                      <button
-                        className={`mode-tab ${answerMode === 'video' ? 'active' : ''}`}
-                        onClick={() => {
-                          setAnswerMode('video');
-                          const rec = currentQuestion ? videoRecordings[currentQuestion.id] : undefined;
-                          if (rec) {
-                            setVideoRecorded(true);
-                            setRecordingVideo(false);
-                            setVideoSeconds(rec.seconds);
-                          } else {
-                            setVideoRecorded(false);
-                            setRecordingVideo(false);
-                            setVideoSeconds(0);
-                          }
-                        }}
-                      >
-                        <Video size={13} /> 视频
-                      </button>
-                    </div>
-                  </div>
-
-                  {answerMode === 'text' && (
-                    <textarea
-                      ref={textareaRef}
-                      className="answer-textarea"
-                      value={currentAnswer}
-                      onChange={(e) => setCurrentAnswer(e.target.value)}
-                      placeholder="请输入或口述回答…"
-                      rows={6}
-                    />
-                  )}
-
-                  {answerMode === 'voice' && (
-                    <div className="media-answer voice-answer">
-                      {voiceRecorded && !recordingVoice ? (
-                        <div className="voice-recorded">
-                          <div className="voice-wave-large">
-                            {voiceWaveHeights.map((h, i) => (
-                              <div key={i} className="voice-large-seg" style={{ height: `${h}%` }} />
-                            ))}
-                          </div>
-                          <div className="voice-meta">
-                            <span className="voice-duration"><Clock size={14} /> {formatSeconds(voiceSeconds)}</span>
-                            <span className="voice-status">语音回答已转写为文字</span>
-                          </div>
-                          <button className="btn btn-outline" onClick={startVoiceRecord}>
-                            <RefreshCw size={14} /> 重新录制
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="voice-recorder">
-                          <div className={`voice-wave-large ${recordingVoice ? 'recording' : ''}`}>
-                            {voiceWaveHeights.map((h, i) => (
-                              <div key={i} className="voice-large-seg" style={{ height: `${h}%` }} />
-                            ))}
-                          </div>
-                          <div className="voice-meta">
-                            {recordingVoice ? (
-                              <>
-                                <span className="recording-dot" />
-                                <span>录制中 {formatSeconds(voiceSeconds)}</span>
-                              </>
-                            ) : (
-                              <span>点击开始录制语音回答</span>
-                            )}
-                          </div>
-                          {recordingVoice ? (
-                            <button className="btn btn-danger" onClick={stopVoiceRecord}>
-                              <Square size={14} /> 结束录制
-                            </button>
-                          ) : (
-                            <button className="btn btn-primary" onClick={startVoiceRecord}>
-                              <Mic size={14} /> 开始录制
-                            </button>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {answerMode === 'video' && (
-                    <div className="media-answer video-answer">
-                      {videoRecorded && !recordingVideo ? (
-                        <div className="video-recorded">
-                          <div className="video-preview">
-                            <CheckCircle2 size={32} color="#1B5E4B" />
-                            <span>视频回答已保存</span>
-                            <span className="video-duration">{formatSeconds(videoSeconds)}</span>
-                          </div>
-                          <button className="btn btn-outline" onClick={startVideoRecord}>
-                            <RefreshCw size={14} /> 重新录制
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="video-recorder">
-                          <div className="video-preview">
-                            {recordingVideo ? (
-                              <>
-                                <div className="recording-dot" />
-                                <span>正在录制 {formatSeconds(videoSeconds)}</span>
-                              </>
-                            ) : (
-                              <>
-                                <Video size={32} color="#9ca3af" />
-                                <span>点击开始录制视频回答</span>
-                              </>
-                            )}
-                          </div>
-                          {recordingVideo ? (
-                            <button className="btn btn-danger" onClick={stopVideoRecord}>
-                              <StopCircle size={14} /> 结束录制
-                            </button>
-                          ) : (
-                            <button className="btn btn-primary" onClick={startVideoRecord}>
-                              <Video size={14} /> 开始录制
-                            </button>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {currentQuestionSupplements.length > 0 && (
-                    <div className="supplement-hint">
-                      <span className="supplement-dot" />
-                      已有 {currentQuestionSupplements.length} 位家人补充回答
-                      <button
-                        className="btn btn-ghost btn-sm"
-                        onClick={() => setViewingSupplements(viewingSupplements === currentQuestion.id ? null : currentQuestion.id)}
-                      >
-                        {viewingSupplements === currentQuestion.id ? '收起' : '查看'}
-                      </button>
-                    </div>
-                  )}
-
-                  {viewingSupplements === currentQuestion.id && currentQuestionSupplements.length > 0 && (
-                    <div className="supplement-list">
-                      {currentQuestionSupplements.map((s, i) => (
-                        <div className="supplement-item" key={i}>
-                          <div className="supplement-meta">
-                            <strong>{s.respondentName}</strong>
-                            <span>{s.relation}</span>
-                            <span>{new Date(s.answeredAt).toLocaleString()}</span>
-                          </div>
-                          <div className="supplement-text">{s.text}</div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                )}
-
-                {activeFollowUp && (
-                  <div className="followup-answer-section">
-                    <label className="section-label">
-                      <MessageSquarePlus size={14} /> 当前延伸问题
-                    </label>
-                    <div className="followup-answer-question">
-                      <Sparkles size={14} />
-                      {activeFollowUp.question}
-                    </div>
-                    <textarea
-                      className="answer-textarea followup-answer-textarea"
-                      value={followUpAnswer}
-                      onChange={(e) => setFollowUpAnswer(e.target.value)}
-                      placeholder="请输入对这个延伸问题的回答…"
-                      rows={4}
-                    />
-                    <div className="followup-answer-actions">
-                      <button
-                        className="btn btn-primary"
-                        onClick={saveFollowUpAnswer}
-                        disabled={!followUpAnswer.trim()}
-                      >
-                        <Save size={14} /> 保存延伸回答
-                      </button>
-                      <button
-                        className="btn btn-ghost"
-                        onClick={() => {
-                          setActiveFollowUpIndex(null);
-                          setFollowUpAnswer('');
-                        }}
-                      >
-                        取消
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {answeredFollowUps.length > 0 && (
-                  <div className="followup-section">
-                    <label className="section-label">
-                      <MessageSquarePlus size={14} /> 已回答延伸问题
-                    </label>
-                    <div className="followup-list">
-                      {answeredFollowUps.map((f, i) => (
-                        <div className="followup-bubble" key={i}>
-                          <div className="followup-q"><Sparkles size={12} /> {f.question}</div>
-                          <div className="followup-a">{f.userAnswer}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </>
-            ) : (
+          <div className="chat-body" ref={chatBodyRef}>
+            {!currentQuestion && !viewingCollaborator ? (
               <div className="interview-done">
                 <CheckCircle2 size={48} color="#1B5E4B" />
                 <h3>本阶段采访问题已全部完成</h3>
@@ -1210,129 +912,109 @@ export default function AIInterview() {
                   <FolderOpen size={14} /> 结束采访并整理
                 </button>
               </div>
+            ) : !viewingCollaborator ? (
+              // 本人模式：中间只显示 AI 当前正在问的问题，历史见右侧对话记录
+              <div className="chat-question-stage">
+                <Avatar name="AI" size={72} />
+                <div className="chat-question-name">AI 采访官</div>
+                {pendingChatQuestion ? (
+                  <div className="chat-question-text">{pendingChatQuestion}</div>
+                ) : (
+                  <div className="chat-empty">从左侧选择主题，AI 采访官将开始提问</div>
+                )}
+                {generatingFollowUp && (
+                  <div className="chat-question-typing">正在根据回答思考延伸问题…</div>
+                )}
+              </div>
+            ) : chatMessages.length === 0 ? (
+              <div className="chat-empty">TA 还没有回答任何主题的问题</div>
+            ) : (
+              <>
+                {chatMessages.map((m, i) => (
+                  <div className={`chat-msg ${m.role}`} key={i}>
+                    {m.role === 'ai' && <Avatar name="AI" size={32} />}
+                    <div className="chat-msg-main">
+                      <div className={`chat-bubble ${m.invalid ? 'invalid' : ''}`}>{m.text}</div>
+                      {viewingCollaborator && m.role === 'user' && m.qid && (
+                        <button
+                          className="chat-invalid-btn"
+                          onClick={() => toggleSupplementInvalidByQid(m.qid!, viewingCollaborator.id, !m.invalid)}
+                        >
+                          {m.invalid ? '取消作废' : '作废'}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </>
             )}
           </div>
+          {!viewingCollaborator && currentQuestion && (
+            recordingVoice ? (
+              <div className="chat-recording-bar">
+                <span className="chat-recording-dot" />
+                <div className="chat-recording-wave">
+                  {Array.from({ length: 24 }, (_, i) => <span key={i} />)}
+                </div>
+                <span className="chat-recording-time">{formatSeconds(voiceSeconds)}</span>
+                <button className="chat-recording-stop" onClick={stopVoiceRecord}>结束</button>
+              </div>
+            ) : (
+            <div className="chat-input-bar">
+              <button
+                className="chat-mic-btn"
+                onClick={startVoiceRecord}
+                title="语音回答"
+              >
+                <Mic size={16} />
+              </button>
+              <input
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleChatSend();
+                  }
+                }}
+                placeholder={activeFollowUp ? '回答这个延伸问题…' : '输入回答，或点左侧话筒口述…'}
+              />
+              <button className="chat-send-btn" onClick={handleChatSend} disabled={!chatInput.trim() || generatingFollowUp}>
+                <Send size={16} />
+              </button>
+            </div>
+            )
+          )}
+          {viewingCollaborator && (
+            <div className="collab-mode-tip chat-view-tip">
+              正在查看 {viewingCollaborator.name}（{viewingCollaborator.relation}）的采访对话，只读；作废的回答不作为传记参考。
+            </div>
+          )}
         </div>
 
         <div className="interview-right">
-          <div className="card progress-card">
+          <div className="card transcript-card">
             <div className="card-header">
-              <h3 className="card-title">本次采访进度</h3>
+              <h3 className="card-title"><BookOpen size={14} /> 对话记录</h3>
+              <div className="card-extra"><Clock size={12} /> 自动保存</div>
             </div>
-            <div className="card-body progress-body">
-              <div className="progress-ring-wrap">
-                <div className="progress-ring-bg">
-                  <svg viewBox="0 0 120 120">
-                    <circle cx="60" cy="60" r="52" fill="none" stroke="#e8ecea" strokeWidth="10" />
-                    <circle
-                      cx="60"
-                      cy="60"
-                      r="52"
-                      fill="none"
-                      stroke="#1B5E4B"
-                      strokeWidth="10"
-                      strokeLinecap="round"
-                      strokeDasharray={`${progressPercent * 3.27} 327`}
-                      transform="rotate(-90 60 60)"
-                    />
-                  </svg>
-                  <div className="progress-ring-text">{progressPercent}%</div>
-                </div>
-              </div>
-              <div className="progress-detail">
-                <div><span className="dot green" /> 已回答 {answeredCount} 题</div>
-                <div><span className="dot gray" /> 待回答 {totalQuestions - answeredCount} 题</div>
-                <div><span className="dot orange" /> 已跳过 {session.skippedIds.length} 题</div>
-              </div>
-
-            </div>
-          </div>
-
-          <div className="card followup-sidebar-card">
-            <div className="card-header">
-              <h3 className="card-title"><MessageSquarePlus size={14} /> 延伸问题</h3>
-              {pendingFollowUps.length > 0 && (
-                <span className="followup-sidebar-count">{pendingFollowUps.length} 个待回答</span>
-              )}
-            </div>
-            <div className="card-body followup-sidebar-body">
-              {currentQuestion ? (
-                pendingFollowUps.length > 0 ? (
-                  <div className="followup-sidebar-list">
-                    {pendingFollowUps.map((f) => {
-                      const realIndex = currentFollowUps.findIndex((item) => item === f);
-                      return (
-                        <div
-                          className={`followup-sidebar-item ${activeFollowUpIndex === realIndex ? 'active' : ''}`}
-                          key={realIndex}
-                          onClick={() => selectFollowUp(realIndex)}
-                          role="button"
-                          tabIndex={0}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' || e.key === ' ') {
-                              selectFollowUp(realIndex);
-                            }
-                          }}
-                        >
-                          <div className="followup-sidebar-q"><Sparkles size={12} /> {f.question}</div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="followup-sidebar-empty">
-                    <Sparkles size={24} color="#9ca3af" />
-                    <p>暂无待回答延伸问题</p>
-                    <span>保存当前问题回答后，AI 将自动根据内容生成延伸问题</span>
-                  </div>
-                )
+            <div className="card-body transcript-body">
+              {transcript.length === 0 ? (
+                <div className="transcript-empty">采访开始后，对话记录会实时出现在这里</div>
               ) : (
-                <div className="followup-sidebar-empty">
-                  <Sparkles size={24} color="#9ca3af" />
-                  <p>采访已完成</p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="card material-card">
-            <div className="card-header">
-              <h3 className="card-title"><FileUp size={14} /> 素材处理</h3>
-            </div>
-            <div className="card-body material-body">
-              <button
-                className="btn btn-outline material-btn"
-                onClick={() => audioFileRef.current?.click()}
-                disabled={transcribing}
-              >
-                <FileAudio size={14} /> 语音转文字
-              </button>
-              <input
-                ref={audioFileRef}
-                type="file"
-                accept="audio/*,.mp3,.wav,.m4a,.aac"
-                style={{ display: 'none' }}
-                onChange={handleAudioFile}
-              />
-              <button
-                className="btn btn-outline material-btn"
-                onClick={() => docFileRef.current?.click()}
-              >
-                <FileUp size={14} /> 采访记录导入
-              </button>
-              <input
-                ref={docFileRef}
-                type="file"
-                accept=".txt,.md,.doc,.docx"
-                style={{ display: 'none' }}
-                onChange={handleDocFile}
-              />
-              {transcribing && (
-                <div className="material-progress">
-                  <div className="material-progress-text">语音转换中 {transcribeProgress}%</div>
-                  <div className="material-progress-bar">
-                    <div className="material-progress-fill" style={{ width: `${transcribeProgress}%` }} />
-                  </div>
+                <div className="transcript-list">
+                  {transcript.map((line, i) => (
+                    <div className={`transcript-line ${line.speaker === 'AI采访官' || line.speaker.includes('延伸') ? 'ai' : 'user'}`} key={i}>
+                      <Avatar name={line.speaker} size={32} />
+                      <div className="tx-main">
+                        <div className="tx-header">
+                          <span className="tx-speaker">{line.speaker}</span>
+                          <span className="tx-time">{line.time}</span>
+                        </div>
+                        <div className="tx-text">{line.text}</div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -1365,6 +1047,12 @@ export default function AIInterview() {
                     type="text"
                     value={inviteQuery}
                     onChange={(e) => { setInviteQuery(e.target.value); setInviteFound(null); }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleFindAccount();
+                      }
+                    }}
                     placeholder="请输入对方注册的手机号或身份证号"
                   />
                   <button className="btn btn-outline" onClick={handleFindAccount}>查找</button>
@@ -1455,32 +1143,6 @@ export default function AIInterview() {
       )}
 
 
-      <div className="card transcript-card">
-        <div className="card-header">
-          <h3 className="card-title"><BookOpen size={14} /> 实时转写</h3>
-          <div className="card-extra"><Clock size={12} /> 自动保存</div>
-        </div>
-        <div className="card-body transcript-body">
-          {transcript.length === 0 ? (
-            <div className="transcript-empty">采访开始后，转写内容会实时出现在这里</div>
-          ) : (
-            <div className="transcript-list">
-              {transcript.map((line, i) => (
-                <div className={`transcript-line ${line.speaker === 'AI采访官' || line.speaker.includes('延伸') ? 'ai' : 'user'}`} key={i}>
-                  <Avatar name={line.speaker} size={32} />
-                  <div className="tx-main">
-                    <div className="tx-header">
-                      <span className="tx-speaker">{line.speaker}</span>
-                      <span className="tx-time">{line.time}</span>
-                    </div>
-                    <div className="tx-text">{line.text}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
     </div>
   );
 }

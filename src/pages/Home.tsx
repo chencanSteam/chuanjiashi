@@ -84,24 +84,7 @@ interface Archive {
   createdAt?: string;
 }
 
-const presetLifeTags = [
-  '求学深造',
-  '参军入伍',
-  '出国留学',
-  '下海创业',
-  '调岗转行',
-  '结婚生子',
-  '养育子女',
-  '退休生活',
-  '疾病康复',
-  '书法绘画',
-  '音乐戏曲',
-  '旅游摄影',
-  '钓鱼养花',
-  '体育运动',
-  '宗教信仰',
-  '家乡迁徙',
-];
+import { presetLifeTags } from '../data/lifeTags';
 
 function loadArchives(): Archive[] {
   try {

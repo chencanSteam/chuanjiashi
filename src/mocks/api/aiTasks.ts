@@ -16,6 +16,22 @@ function ensureAITasks(): AITask[] {
     setItem(storeKeys.aiTasks, defaultAITasks)
     return defaultAITasks
   }
+  // 旧数据没有归属用户字段时，按同 id 的种子数据补齐，兜底为演示用户
+  let migrated = false
+  const next = tasks.map((t) => {
+    if (t.userName && t.userPhone) return t
+    const seedTask = defaultAITasks.find((s) => s.id === t.id)
+    migrated = true
+    return {
+      ...t,
+      userName: seedTask?.userName || '用户8000',
+      userPhone: seedTask?.userPhone || '13800138000',
+    }
+  })
+  if (migrated) {
+    setItem(storeKeys.aiTasks, next)
+    return next
+  }
   return tasks
 }
 
@@ -105,6 +121,20 @@ export const aiTaskHandlers: HttpHandler[] = [
     templates[idx] = { ...templates[idx], enabled, updatedAt: new Date().toISOString() }
     setItem(storeKeys.promptTemplates, templates)
     return success(templates[idx], enabled ? '模板已启用' : '模板已停用')
+  }),
+
+  // 提示词模板编辑（名称/内容）
+  http.put('/api/admin/prompt-templates/:id', async ({ params, request }) => {
+    const userId = getCurrentUserId()
+    if (!userId) return unauthorized()
+    const { name, summary } = (await request.json()) as { name?: string; summary?: string }
+    if (!name?.trim() || !summary?.trim()) return fail('名称和内容不能为空')
+    const templates = ensurePromptTemplates()
+    const idx = templates.findIndex((t) => t.id === params.id)
+    if (idx < 0) return notFound('模板不存在')
+    templates[idx] = { ...templates[idx], name: name.trim(), summary: summary.trim(), updatedAt: new Date().toISOString() }
+    setItem(storeKeys.promptTemplates, templates)
+    return success(templates[idx], '模板已更新')
   }),
 
   // 二维码列表

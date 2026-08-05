@@ -27,7 +27,6 @@ import {
   ShieldAlert,
   Settings,
   Briefcase,
-  Bell,
   KeyRound,
 } from 'lucide-react';
 import Avatar from './ui/Avatar';
@@ -124,7 +123,6 @@ const adminNavGroupsMVP: NavGroup[] = [
     items: [
       { to: '/admin/ai-tasks', icon: Bot, label: 'AI任务管理' },
       { to: '/admin/roles', icon: KeyRound, label: '角色权限' },
-      { to: '/admin/notifications', icon: Bell, label: '消息通知' },
     ],
   },
 ];

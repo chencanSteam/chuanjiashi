@@ -8,15 +8,24 @@ const { chromium } = require('playwright-core');
   await page.waitForTimeout(800);
   await page.click('.portal-card:not(.admin):not(.partner):not(.biographer):not(.mobile)');
   await page.waitForTimeout(2000);
-  await page.goto('http://localhost:5173/#/archive/relations', { waitUntil: 'networkidle' });
+  await page.goto('http://localhost:5173/#/archive', { waitUntil: 'networkidle' });
   await page.waitForTimeout(2000);
   await page.evaluate(() => {
     const btn = Array.from(document.querySelectorAll('button')).find((b) => b.textContent.trim() === '跳过');
     if (btn) btn.click();
   });
   await page.waitForTimeout(400);
-  const btns = await page.evaluate(() => Array.from(document.querySelectorAll('button')).map((b) => b.textContent.trim().slice(0, 20)).filter(Boolean));
-  console.log(JSON.stringify(btns));
-  await page.screenshot({ path: 'scripts/test-relation-debug.png' });
+  await page.evaluate(() => {
+    const tab = Array.from(document.querySelectorAll('.tab')).find((t) => t.textContent.trim() === '隐私与权限');
+    if (tab) tab.click();
+  });
+  await page.waitForTimeout(800);
+  const info = await page.evaluate(() => ({
+    roleOptions: Array.from(document.querySelectorAll('.privacy-role select option')).map((o) => o.textContent),
+    rows: Array.from(document.querySelectorAll('.privacy-row > span')).map((el) => el.textContent),
+    options: Array.from(document.querySelectorAll('.privacy-row:first-of-type .privacy-options button')).map((b) => b.textContent),
+  }));
+  console.log(JSON.stringify(info, null, 2));
+  await page.screenshot({ path: 'scripts/test-privacy.png' });
   await browser.close();
 })();

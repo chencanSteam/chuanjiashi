@@ -4,9 +4,25 @@
   gap: 18px;
 }
 
+.archive-page-layout {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 18px;
+  align-items: start;
+}
+
+.archive-main {
+  min-width: 0;
+}
+
+.archive-side {
+  position: sticky;
+  top: 16px;
+}
+
 .archive-grid {
   display: grid;
-  grid-template-columns: 0.9fr 1.2fr 0.8fr;
+  grid-template-columns: 0.9fr 1.2fr;
   gap: 18px;
   align-items: stretch;
 }
@@ -863,6 +879,12 @@
   .archive-grid {
     grid-template-columns: 1fr;
   }
+  .archive-page-layout {
+    grid-template-columns: 1fr;
+  }
+  .archive-side {
+    position: static;
+  }
   .media-page-body {
     grid-template-columns: repeat(3, 1fr);
   }
@@ -1604,4 +1626,62 @@ select:disabled {
   color: var(--text-muted, #6b7280);
   margin-bottom: 12px;
   line-height: 1.6;
+}
+
+/* 新建档案：人生标签 */
+.new-archive-body .life-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.new-archive-body .life-tag {
+  padding: 6px 12px;
+  border: 1px solid #e8ecea;
+  border-radius: 999px;
+  background: #fff;
+  color: #4b5563;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.new-archive-body .life-tag.active {
+  background: rgba(27, 94, 75, 0.1);
+  border-color: #1B5E4B;
+  color: #1B5E4B;
+}
+
+.new-archive-body .custom-tag-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.new-archive-body .custom-tag-row input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #e8ecea;
+  border-radius: 8px;
+  font-size: 13px;
+  outline: none;
+  font-family: inherit;
+}
+
+/* 档案概览：人生标签展示 */
+.profile-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.profile-tag {
+  padding: 3px 10px;
+  background: rgba(27, 94, 75, 0.08);
+  color: #1B5E4B;
+  border-radius: 999px;
+  font-size: 12px;
 }

@@ -297,11 +297,12 @@ export default function InterviewReview() {
                       list.map((s, i) => {
                         const q = interviewTopics.flatMap((t) => t.questions).find((q) => q.id === qid);
                         return (
-                          <div className="supplement-review-item" key={`${qid}-${i}`}>
+                          <div className={`supplement-review-item ${s.invalid ? 'invalid' : ''}`} key={`${qid}-${i}`}>
                             <div className="supplement-review-meta">
                               <strong>{s.respondentName}</strong>
                               <span>{s.relation}</span>
                               <span>{new Date(s.answeredAt).toLocaleString()}</span>
+                              {s.invalid && <span className="invalid-tag">已作废</span>}
                             </div>
                             {q && <div className="supplement-review-question">问题：{q.text}</div>}
                             <div className="supplement-review-text">{s.text}</div>

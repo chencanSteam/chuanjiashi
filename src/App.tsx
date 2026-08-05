@@ -29,6 +29,7 @@ function LoginRedirect() {
 }
 
 const Onboarding = lazy(() => import('./pages/Onboarding'));
+const Register = lazy(() => import('./pages/Register'));
 const Home = lazy(() => import('./pages/Home'));
 const AIInterview = lazy(() => import('./pages/AIInterview'));
 const InterviewReview = lazy(() => import('./pages/InterviewReview'));
@@ -147,6 +148,7 @@ function App() {
               {/* 默认页：登录 */}
               <Route path="/" element={<Login />} />
               <Route path="/login" element={<LoginRedirect />} />
+              <Route path="/register" element={<Register />} />
               <Route path="/home" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
                 <Route index element={<Home />} />
               </Route>
@@ -189,7 +191,7 @@ function App() {
                 <Route path="user-invites" element={<AdminMVPRedirect><UserInvites /></AdminMVPRedirect>} />
                 <Route path="ai-tasks" element={<AITaskManagement />} />
                 <Route path="roles" element={<AdminRolePermissions />} />
-                <Route path="notifications" element={<AdminNotifications />} />
+                <Route path="notifications" element={<AdminMVPRedirect><AdminNotifications /></AdminMVPRedirect>} />
                 <Route path="content-review" element={<AdminMVPRedirect><ContentReview /></AdminMVPRedirect>} />
                 <Route path="compliance" element={<AdminMVPRedirect><ComplianceRisk /></AdminMVPRedirect>} />
                 <Route path="settings" element={<AdminMVPRedirect><AdminSettings /></AdminMVPRedirect>} />

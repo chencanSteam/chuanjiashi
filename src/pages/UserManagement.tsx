@@ -144,7 +144,7 @@ function UserListTab({ addToast }: { addToast: AddToast }) {
               </div>
               {users.map((u) => (
                 <div className="um-row um-row-clickable" key={u.id} onClick={() => openDetail(u.id)}>
-                  <div className="um-cell um-cell-name">{u.nickname}</div>
+                  <div className="um-cell um-cell-name">用户{u.phone.slice(-4)}</div>
                   <div className="um-cell">{u.phone}</div>
                   <div className="um-cell">{new Date(u.registeredAt).toLocaleDateString()}</div>
                   <div className="um-cell">

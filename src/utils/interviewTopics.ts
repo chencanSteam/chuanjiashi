@@ -1,4 +1,4 @@
-import { interviewTopics, interviewQuestionBank, type InterviewTopic, type InterviewQuestion } from '../data/aiMock';
+import { interviewTopics, type InterviewTopic } from '../data/aiMock';
 import { loadTopicConfig } from '../data/interviewTopicConfig';
 
 interface ArchiveInfo {
@@ -38,41 +38,28 @@ function personalizeTopic(topic: InterviewTopic, archive: ArchiveInfo): Intervie
 }
 
 const customTopicsKey = (archiveId: string) => `cj_interview_custom_topics_${archiveId}`;
-const drawnKey = (archiveId: string) => `cj_interview_drawn_${archiveId}`;
+const removedKey = (archiveId: string) => `cj_interview_removed_topics_${archiveId}`;
 
-function loadDrawn(archiveId: string): Record<string, string[]> {
+// 按档案记录用户删除的主题（预设/标签/自定义主题都可删除）
+export function loadRemovedTopics(archiveId: string): string[] {
   try {
-    const raw = localStorage.getItem(drawnKey(archiveId));
-    if (raw) return JSON.parse(raw) as Record<string, string[]>;
+    const raw = localStorage.getItem(removedKey(archiveId));
+    if (raw) return JSON.parse(raw) as string[];
   } catch {
     // ignore
   }
-  return {};
+  return [];
 }
 
-// 每个主题从题库（自带 3 题 + 扩展题库）随机抽 3 题；抽取结果按 drawKey 持久化，刷新不变
-// drawKey 按回答者区分：本人与每位协助者各自独立抽题（问题由 AI 按各自回答生成，互不相同）
-function drawTopicQuestions(topic: InterviewTopic, archive: ArchiveInfo, drawKey?: string): InterviewTopic {
-  const extra = interviewQuestionBank[topic.id] || [];
-  if (extra.length === 0) return topic;
-  const pool: InterviewQuestion[] = [...topic.questions, ...extra].map((q) => ({
-    ...q,
-    text: replacePlaceholders(q.text, archive),
-    mockAnswer: replacePlaceholders(q.mockAnswer, archive),
-  }));
-  if (!drawKey) return { ...topic, questions: pool.slice(0, 3) };
-
-  const stored = loadDrawn(drawKey);
-  let ids = stored[topic.id];
-  if (!ids || ids.some((id) => !pool.some((q) => q.id === id))) {
-    ids = [...pool].sort(() => Math.random() - 0.5).slice(0, 3).map((q) => q.id);
+export function removeTopicForArchive(archiveId: string, topicId: string) {
+  const removed = loadRemovedTopics(archiveId);
+  if (!removed.includes(topicId)) {
     try {
-      localStorage.setItem(drawnKey(drawKey), JSON.stringify({ ...stored, [topic.id]: ids }));
+      localStorage.setItem(removedKey(archiveId), JSON.stringify([...removed, topicId]));
     } catch {
       // ignore
     }
   }
-  return { ...topic, questions: ids.map((id) => pool.find((q) => q.id === id)!) };
 }
 
 export function loadCustomTopics(archiveId: string): InterviewTopic[] {
@@ -297,8 +284,7 @@ function aiGeneratedQuestions(topicId: string, title: string) {
 
 export function generateInterviewTopics(
   archive: ArchiveInfo | null,
-  archiveId?: string,
-  drawKey?: string
+  archiveId?: string
 ): InterviewTopic[] {
   if (!archive) return interviewTopics;
 
@@ -377,13 +363,21 @@ export function generateInterviewTopics(
   // 根据人生标签生成针对性主题
   result.push(...tagBasedTopics(archive));
 
-  // 每个主题从题库随机抽 3 题作为采访开场（按回答者各自的 drawKey 独立抽取）
-  const drawn = result.map((t) => drawTopicQuestions(t, archive, drawKey ?? archiveId));
+  // 不再使用固定题库：采访问题由 AI 根据主题名称生成（标签主题自带针对性问题）
+  const withQuestions = result.map((t) =>
+    t.id.startsWith('tag_') ? t : { ...t, questions: aiGeneratedQuestions(t.id, t.title) }
+  );
 
-  // 追加用户自定义主题（无题库，AI 按主题名生成问题）
+  // 追加用户自定义主题（AI 按主题名生成问题）
   if (archiveId) {
-    drawn.push(...loadCustomTopics(archiveId));
+    withQuestions.push(...loadCustomTopics(archiveId));
   }
 
-  return drawn;
+  // 过滤用户已删除的主题（预设/标签/自定义统一生效）
+  if (archiveId) {
+    const removed = new Set(loadRemovedTopics(archiveId));
+    return withQuestions.filter((t) => !removed.has(t.id));
+  }
+
+  return withQuestions;
 }

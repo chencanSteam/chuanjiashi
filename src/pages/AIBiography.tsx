@@ -189,6 +189,17 @@ export default function AIBiography() {
 
   const [showLowMaterial, setShowLowMaterial] = useState(false);
 
+  // 选择传记：档案可以帮别人建，传记也可以帮别人生成；切换后重载页面载入对应档案数据
+  const archiveOptions = useMemo(
+    () => loadJson<Archive[]>('cj_archives', []).map((a) => ({ id: a.id, label: `${a.name} 的传记` })),
+    []
+  );
+  const handleSwitchArchive = (id: string) => {
+    if (id === archiveId) return;
+    localStorage.setItem('cj_current_archive_id', id);
+    window.location.reload();
+  };
+
   const [chapters, setChapters] = useState<ChapterData[]>(() =>
     loadJson<ChapterData[]>(`cj_biography_chapters_${archiveId}`, initChapters())
   );
@@ -547,6 +558,16 @@ export default function AIBiography() {
         </div>
       </header>
 
+      {/* 选择传记：档案可以帮别人建，传记也可以帮别人生成 */}
+      <div className="archive-switch-row biography-archive-switch">
+        <span className="biography-switch-label">选择传记</span>
+        <select value={archiveId} onChange={(e) => handleSwitchArchive(e.target.value)}>
+          {archiveOptions.map((o) => (
+            <option key={o.id} value={o.id}>{o.label}</option>
+          ))}
+        </select>
+      </div>
+
       <div className="biography-main">
         <div className="card chapter-tree">
           <div className="card-header">
@@ -855,7 +876,7 @@ export default function AIBiography() {
       >
         <div className="import-modal-body">
           <p className="import-modal-tip">
-            如果您已有写好的传记内容，可粘贴文本或上传 .txt 文件。系统会尝试根据章节标题自动拆分到对应章节；若未识别到章节标题，则将内容导入当前选中的「{activeChapter.title}」。
+            如果您已有写好的传记内容，可粘贴文本或上传文件。系统会尝试根据章节标题自动拆分到对应章节；若未识别到章节标题，则将内容导入当前选中的「{activeChapter.title}」。
           </p>
           <textarea
             className="import-modal-textarea"
@@ -875,7 +896,6 @@ export default function AIBiography() {
               style={{ display: 'none' }}
               onChange={handleImportFile}
             />
-            <span className="import-modal-hint">推荐 .txt；Word/PDF 可能因格式原因无法正确读取</span>
           </div>
         </div>
       </Modal>

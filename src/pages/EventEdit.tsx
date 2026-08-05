@@ -1,8 +1,7 @@
-import { ArrowLeft, Calendar, MapPin, Tag, Image as ImageIcon, FileText, Save, X, Upload } from 'lucide-react';
+import { ArrowLeft, Calendar, Tag, Image as ImageIcon, FileText, Save, X, Upload } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useState } from 'react';
 import { useToast } from '../hooks/useToast';
-import { familyApi } from '../api/family';
 import { downloadDataUrl } from '../utils/albumStorage';
 import './EventEdit.css';
 
@@ -94,41 +93,29 @@ export default function EventEdit() {
   const initial = loadSaved();
   const [archiveEvents, setArchiveEvents] = useState<ArchiveEvent[]>(() => loadArchiveEvents(archiveId));
   const currentEvent = archiveEvents.find((e) => e.year === safeYear);
+  const [startYear, setStartYear] = useState(safeYear);
   const [title, setTitle] = useState(initial.title);
-  const [subtitle, setSubtitle] = useState(initial.subtitle);
   const [content, setContent] = useState(initial.content);
-  const [tags, setTags] = useState(initial.tags);
   const [endYear, setEndYear] = useState(currentEvent?.endYear ?? '');
-  const [showTagInput, setShowTagInput] = useState(false);
-  const [newTag, setNewTag] = useState('');
   const [attachments, setAttachments] = useState<Attachment[]>(initial.attachments);
   const [preview, setPreview] = useState<Attachment | null>(null);
 
+  // 年份下拉选项
+  const currentYear = new Date().getFullYear();
+  const yearOptions = Array.from({ length: currentYear - 1899 }, (_, i) => String(currentYear - i));
+
   const saveEvent = async () => {
-    localStorage.setItem(`event-${archiveId}-${safeYear}`, JSON.stringify({ title, subtitle, content, tags, attachments }));
+    if (startYear !== safeYear) {
+      localStorage.removeItem(`event-${archiveId}-${safeYear}`);
+    }
+    localStorage.setItem(`event-${archiveId}-${startYear}`, JSON.stringify({ title, subtitle: '', content, tags: [], attachments }));
     const nextEvents = archiveEvents.map((e) =>
-      e.year === safeYear ? { ...e, endYear: endYear.trim() || undefined } : e
+      e.year === safeYear ? { ...e, year: startYear, endYear: endYear || undefined } : e
     );
     localStorage.setItem(`cj_events_${archiveId}`, JSON.stringify(nextEvents));
     setArchiveEvents(nextEvents);
-    try {
-      await familyApi.syncPlace(archiveId, subtitle, safeYear, title);
-    } catch { /* 同步失败不影响本地保存 */ }
     addToast('事件已保存', 'success');
     navigate(-1);
-  };
-
-  const removeTag = (tagToRemove: string) => {
-    setTags((prev) => prev.filter((t) => t !== tagToRemove));
-  };
-
-  const addTag = () => {
-    const tag = newTag.trim();
-    if (tag) {
-      setTags((prev) => [...prev, tag]);
-      setNewTag('');
-      setShowTagInput(false);
-    }
   };
 
   return (
@@ -149,52 +136,28 @@ export default function EventEdit() {
           <div className="event-edit-form">
             <div className="form-field form-field-year">
               <label><Calendar size={14} /> 开始年份</label>
-              <input type="text" value={safeYear} readOnly />
+              <select value={startYear} onChange={(e) => setStartYear(e.target.value)}>
+                {yearOptions.map((y) => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
             </div>
             <div className="form-field">
               <label><Calendar size={14} /> 结束年份</label>
-              <input type="text" value={endYear} onChange={(e) => setEndYear(e.target.value)} placeholder="可选，如 1998" />
+              <select value={endYear} onChange={(e) => setEndYear(e.target.value)}>
+                <option value="">（可选）</option>
+                {yearOptions.map((y) => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
             </div>
             <div className="form-field">
               <label><Tag size={14} /> 事件标题</label>
               <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="如：创业、结婚、退休" />
             </div>
-            <div className="form-field">
-              <label><MapPin size={14} /> 副标题</label>
-              <input type="text" value={subtitle} onChange={(e) => setSubtitle(e.target.value)} placeholder="补充地点或简要说明" />
-            </div>
             <div className="form-field form-field-full">
               <label><FileText size={14} /> 事件描述</label>
               <textarea rows={6} value={content} onChange={(e) => setContent(e.target.value)} placeholder="记录这个人生阶段的详细故事…" />
-            </div>
-            <div className="form-field form-field-full">
-              <label><Tag size={14} /> 标签</label>
-              <div className="edit-tags">
-                {tags.map((t) => (
-                  <span key={t} className="edit-tag">
-                    {t}
-                    <button className="edit-tag-remove" onClick={() => removeTag(t)} title="移除">
-                      <X size={10} />
-                    </button>
-                  </span>
-                ))}
-                {showTagInput ? (
-                  <span className="tag-input-wrap">
-                    <input
-                      type="text"
-                      value={newTag}
-                      onChange={(e) => setNewTag(e.target.value)}
-                      placeholder="输入标签"
-                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }}
-                      autoFocus
-                    />
-                    <button onClick={addTag}>保存</button>
-                    <button onClick={() => { setShowTagInput(false); setNewTag(''); }}>取消</button>
-                  </span>
-                ) : (
-                  <button className="edit-tag add" onClick={() => setShowTagInput(true)}>+ 添加标签</button>
-                )}
-              </div>
             </div>
             <div className="form-field form-field-full">
               <label><ImageIcon size={14} /> 附件与照片</label>

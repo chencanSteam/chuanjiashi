@@ -282,3 +282,49 @@
   resize: vertical;
   font-family: inherit;
 }
+
+.ai-task-user-phone {
+  font-size: 12px;
+  color: var(--text-muted, #6b7280);
+  margin-top: 2px;
+}
+
+.ai-bank-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-light, #e8e4dd);
+  border-radius: 8px;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.ai-bank-item.builtin {
+  background: var(--bg-secondary, #f2efe9);
+  color: var(--text-muted, #6b7280);
+}
+
+.ai-bank-tag {
+  font-size: 11px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: rgba(27, 94, 75, 0.1);
+  color: #1b5e4b;
+  flex-shrink: 0;
+}
+
+.ai-bank-add {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.ai-bank-add .ai-q-input {
+  flex: 1;
+}
+
+.ai-bank-add .btn {
+  white-space: nowrap;
+}

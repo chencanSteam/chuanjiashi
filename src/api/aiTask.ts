@@ -20,6 +20,9 @@ export const aiTaskApi = {
   // 提示词模板启用/停用
   updateTemplateStatus: (id: string, enabled: boolean) =>
     api.patch<PromptTemplate>(`/api/admin/prompt-templates/${id}/status`, { enabled }),
+  // 提示词模板编辑（名称/内容）
+  updateTemplate: (id: string, data: { name: string; summary: string }) =>
+    api.put<PromptTemplate>(`/api/admin/prompt-templates/${id}`, data),
   // Token 成本统计（按类型汇总）
   tokenStats: () => api.get<TokenCostStat[]>('/api/admin/ai-tasks/token-stats'),
   // 二维码列表

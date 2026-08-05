@@ -256,6 +256,9 @@ export default function Login() {
             <button type="submit" className="btn btn-primary login-submit" disabled={!agreed}>
               登录 <ArrowRight size={16} />
             </button>
+            <div className="login-register-link">
+              没有账号？<button type="button" onClick={() => navigate('/register')}>立即注册</button>
+            </div>
           </form>
         )}
 
