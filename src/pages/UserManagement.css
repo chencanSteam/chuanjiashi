@@ -61,11 +61,6 @@
   font-size: 14px;
 }
 
-.um-empty.small {
-  padding: 20px;
-  font-size: 13px;
-}
-
 .um-table {
   display: table;
   width: 100%;
@@ -119,27 +114,23 @@
 }
 
 .um-status.active,
-.um-status.realname-verified,
-.um-status.commission-settled {
+.um-status.realname-verified {
   background: rgba(27, 94, 75, 0.08);
   color: #1B5E4B;
 }
 
 .um-status.disabled,
-.um-status.realname-rejected,
-.um-status.commission-deducted {
+.um-status.realname-rejected {
   background: #fef2f2;
   color: #dc2626;
 }
 
-.um-status.realname-pending,
-.um-status.commission-pending {
+.um-status.realname-pending {
   background: rgba(217, 119, 6, 0.1);
   color: #d97706;
 }
 
-.um-status.realname-none,
-.um-status.commission-frozen {
+.um-status.realname-none {
   background: #f3f4f6;
   color: #6b7280;
 }
@@ -245,73 +236,3 @@
   font-weight: 500;
 }
 
-.um-invitee-list {
-  margin-top: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.um-invitee {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 12px;
-  background: var(--bg-secondary);
-  border-radius: var(--radius);
-  font-size: 12px;
-}
-
-.um-invitee-name {
-  font-weight: 500;
-  color: var(--text);
-}
-
-.um-invitee-meta {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  color: var(--text-muted);
-}
-
-.um-commission-list {
-  display: flex;
-  flex-direction: column;
-}
-
-.um-commission {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 0;
-  border-bottom: 1px solid #f0f2f1;
-}
-
-.um-commission:last-child {
-  border-bottom: none;
-}
-
-.um-commission-title {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text);
-}
-
-.um-commission-meta {
-  font-size: 11px;
-  color: var(--text-muted);
-  margin-top: 2px;
-}
-
-.um-commission-right {
-  text-align: right;
-  flex-shrink: 0;
-}
-
-.um-commission-amount {
-  display: block;
-  font-size: 13px;
-  font-weight: 700;
-  color: #1B5E4B;
-}

@@ -150,7 +150,7 @@ function getNavGroups(isMVP: boolean): NavGroup[] {
 
 export default function Layout() {
   const { user, logout } = useAuth();
-  const { isMVP, setAppVersion } = useVersion();
+  const { isMVP } = useVersion();
   const location = useLocation();
   const pathname = location.pathname;
 
@@ -238,19 +238,6 @@ export default function Layout() {
             <div className="brand-title">传家世</div>
             <div className="brand-subtitle">AI数字人生与家风传承平台</div>
           </div>
-        </div>
-
-        <div
-          className={`version-switch ${isMVP ? 'on' : ''}`}
-          title={isMVP ? '当前为 MVP 模式，仅展示核心功能；点击切换到完整版' : '当前为完整版；点击切换到 MVP 模式'}
-        >
-          <span className="version-switch-label">{isMVP ? 'MVP 模式' : '完整版'}</span>
-          <div
-            className="version-switch-toggle"
-            role="switch"
-            aria-checked={isMVP}
-            onClick={() => setAppVersion(isMVP ? 'full' : 'mvp')}
-          />
         </div>
 
         <nav className="nav">

@@ -442,3 +442,57 @@
   margin-top: 12px;
   color: #6b7280;
 }
+
+/* 版本切换（MVP / 完整版），位于端口选择页最上方 */
+.login-version-switch {
+  margin: 0 0 4px;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  background: var(--bg-soft, #f3f0ea);
+  border: 1px solid var(--border-color, #e5e0d8);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+}
+
+.login-version-switch.on {
+  background: linear-gradient(135deg, var(--accent) 0%, #D4A84B 100%);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(184, 134, 11, 0.25);
+}
+
+.login-version-switch .version-switch-toggle {
+  width: 32px;
+  height: 18px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.15);
+  position: relative;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  flex-shrink: 0;
+}
+
+.login-version-switch .version-switch-toggle::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  transition: left 0.2s ease;
+}
+
+.login-version-switch.on .version-switch-toggle {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.login-version-switch.on .version-switch-toggle::after {
+  left: 16px;
+}

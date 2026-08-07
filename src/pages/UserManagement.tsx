@@ -5,13 +5,10 @@ import {
   X,
   Ban,
   CheckCircle,
-  Phone,
-  Share2,
-  Wallet,
 } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 import { adminUserApi, type AdminUserDetail } from '../api/adminUser';
-import type { AdminUser, CommissionRecord, OrderType } from '../mocks/types';
+import type { AdminUser } from '../mocks/types';
 import './UserManagement.css';
 
 const REALNAME_STATUS_LABELS: Record<AdminUser['realNameStatus'], string> = {
@@ -19,24 +16,6 @@ const REALNAME_STATUS_LABELS: Record<AdminUser['realNameStatus'], string> = {
   pending: '认证中',
   verified: '已实名',
   rejected: '认证失败',
-};
-
-const COMMISSION_STATUS_LABELS: Record<CommissionRecord['status'], string> = {
-  pending: '待结算',
-  settled: '已结算',
-  frozen: '冻结中',
-  deducted: '已扣除',
-};
-
-const ORDER_TYPE_LABELS: Record<OrderType, string> = {
-  biography: 'AI 传记',
-  digital_person: '数字人',
-  video: '短视频',
-  qrcode: '二维码',
-  book: '实体书',
-  biographer_service: '传记师服务',
-  group_buy: '拼团',
-  derivative: '衍生品',
 };
 
 export default function UserManagement() {
@@ -190,45 +169,6 @@ function UserListTab({ addToast }: { addToast: AddToast }) {
                 <div className="um-detail-row"><span>实名状态</span><span>{REALNAME_STATUS_LABELS[detail.realNameStatus]}</span></div>
                 <div className="um-detail-row"><span>档案数 / 订单数</span><span>{detail.archiveCount} / {detail.orderCount}</span></div>
                 <div className="um-detail-row"><span>账号状态</span><span>{detail.status === 'active' ? '正常' : '已禁用'}</span></div>
-              </div>
-
-              <div className="um-detail-section">
-                <div className="um-detail-title"><Share2 size={14} /> 推广关系</div>
-                <div className="um-detail-row"><span>邀请人</span><span>{detail.inviterName || '无'}</span></div>
-                <div className="um-detail-row"><span>下级人数</span><span>{detail.invitees.length}</span></div>
-                {detail.invitees.length > 0 && (
-                  <div className="um-invitee-list">
-                    {detail.invitees.map((inv) => (
-                      <div className="um-invitee" key={inv.id}>
-                        <span className="um-invitee-name">{inv.nickname}</span>
-                        <span className="um-invitee-meta"><Phone size={11} /> {inv.phone}</span>
-                        <span className="um-invitee-meta">{new Date(inv.registeredAt).toLocaleDateString()}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div className="um-detail-section">
-                <div className="um-detail-title"><Wallet size={14} /> 佣金明细</div>
-                {detail.commissions.length === 0 ? (
-                  <div className="um-empty small">暂无佣金记录</div>
-                ) : (
-                  <div className="um-commission-list">
-                    {detail.commissions.map((c) => (
-                      <div className="um-commission" key={c.id}>
-                        <div>
-                          <div className="um-commission-title">{ORDER_TYPE_LABELS[c.orderType] || c.orderType}</div>
-                          <div className="um-commission-meta">{c.orderId} · {new Date(c.createdAt).toLocaleDateString()}</div>
-                        </div>
-                        <div className="um-commission-right">
-                          <span className="um-commission-amount">+¥{c.commission.toFixed(2)}</span>
-                          <span className={`um-status commission-${c.status}`}>{COMMISSION_STATUS_LABELS[c.status]}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
               </div>
             </div>
           </div>

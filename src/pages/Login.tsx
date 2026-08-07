@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Phone, Lock, ArrowRight, User, Briefcase, Shield, PenLine, Smartphone, MessageCircle } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/useToast';
+import { useVersion } from '../hooks/useVersion';
 import Modal from '../components/ui/Modal';
 import './Login.css';
 
@@ -62,6 +63,7 @@ export default function Login() {
   const [searchParams] = useSearchParams();
   const { addToast } = useToast();
   const { login, addRole, isAuthenticated } = useAuth();
+  const { isMVP, setAppVersion } = useVersion();
 
   const [phone, setPhone] = useState(DEMO_PHONE);
   const [code, setCode] = useState('');
@@ -182,32 +184,51 @@ export default function Login() {
           </div>
         </div>
 
+        <div
+          className={`login-version-switch ${isMVP ? 'on' : ''}`}
+          title={isMVP ? '当前为 MVP 模式，仅开放用户端与管理后台；点击切换到完整版' : '当前为完整版，开放全部端口；点击切换到 MVP 模式'}
+        >
+          <span className="version-switch-label">{isMVP ? 'MVP 模式' : '完整版'}</span>
+          <div
+            className="version-switch-toggle"
+            role="switch"
+            aria-checked={isMVP}
+            onClick={() => setAppVersion(isMVP ? 'full' : 'mvp')}
+          />
+        </div>
+
         <div className="portal-grid">
           <button type="button" className="portal-card" onClick={() => enterPortal(USER_PHONE, '/home', { name: '张明远' })}>
             <User size={24} />
             <span className="portal-name">用户端</span>
             <span className="portal-desc">体验 AI 采访、传记、人生档案</span>
           </button>
-          <button type="button" className="portal-card partner" onClick={() => enterPortal(USER_PHONE, '/partner', { addPartnerRole: true })}>
-            <Briefcase size={24} />
-            <span className="portal-name">合伙人中心</span>
-            <span className="portal-desc">客户、收益、提现管理</span>
-          </button>
+          {!isMVP && (
+            <button type="button" className="portal-card partner" onClick={() => enterPortal(USER_PHONE, '/partner', { addPartnerRole: true })}>
+              <Briefcase size={24} />
+              <span className="portal-name">合伙人中心</span>
+              <span className="portal-desc">客户、收益、提现管理</span>
+            </button>
+          )}
           <button type="button" className="portal-card admin" onClick={() => enterPortal(DEMO_PHONE, '/admin')}>
             <Shield size={24} />
             <span className="portal-name">管理后台</span>
             <span className="portal-desc">合伙人、传记师、分润审核</span>
           </button>
-          <button type="button" className="portal-card biographer" onClick={() => enterPortal(DEMO_PHONE, '/biographer', { addBiographerRole: true })}>
-            <PenLine size={24} />
-            <span className="portal-name">传记师端</span>
-            <span className="portal-desc">订单管理、传记服务</span>
-          </button>
-          <button type="button" className="portal-card mobile" onClick={() => enterPortal(USER_PHONE, '/m')}>
-            <Smartphone size={24} />
-            <span className="portal-name">移动端</span>
-            <span className="portal-desc">手机 AI 智能采访</span>
-          </button>
+          {!isMVP && (
+            <button type="button" className="portal-card biographer" onClick={() => enterPortal(DEMO_PHONE, '/biographer', { addBiographerRole: true })}>
+              <PenLine size={24} />
+              <span className="portal-name">传记师端</span>
+              <span className="portal-desc">订单管理、传记服务</span>
+            </button>
+          )}
+          {!isMVP && (
+            <button type="button" className="portal-card mobile" onClick={() => enterPortal(USER_PHONE, '/m')}>
+              <Smartphone size={24} />
+              <span className="portal-name">移动端</span>
+              <span className="portal-desc">手机 AI 智能采访</span>
+            </button>
+          )}
         </div>
 
         <div className="login-divider">或</div>

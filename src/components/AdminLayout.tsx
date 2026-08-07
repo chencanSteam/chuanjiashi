@@ -133,7 +133,7 @@ function isGroupActive(group: NavGroup, pathname: string): boolean {
 
 export default function AdminLayout() {
   const { user, logout } = useAuth();
-  const { isMVP, setAppVersion } = useVersion();
+  const { isMVP } = useVersion();
   const navigate = useNavigate();
   const location = useLocation();
   const pathname = location.pathname;
@@ -174,19 +174,6 @@ export default function AdminLayout() {
             <div className="brand-title">运营后台</div>
             <div className="brand-subtitle">传家世管理平台</div>
           </div>
-        </div>
-
-        <div
-          className={`version-switch ${isMVP ? 'on' : ''}`}
-          title={isMVP ? '用户端当前为 MVP 模式，仅展示核心功能；点击切换到完整版' : '用户端当前为完整版；点击切换到 MVP 模式'}
-        >
-          <span className="version-switch-label">用户端：{isMVP ? 'MVP 模式' : '完整版'}</span>
-          <div
-            className="version-switch-toggle"
-            role="switch"
-            aria-checked={isMVP}
-            onClick={() => setAppVersion(isMVP ? 'full' : 'mvp')}
-          />
         </div>
 
         <nav className="nav">
