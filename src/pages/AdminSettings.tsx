@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Building2, ShieldCheck, Bell, Save, Check, X as XIcon } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
+import Annotate from '../components/annotation/Annotate';
 import './AdminSettings.css';
 
 const INFO_KEY = 'admin_platform_info';
@@ -141,6 +142,7 @@ export default function AdminSettings() {
         <h1 className="page-title">系统设置</h1>
       </header>
 
+      <Annotate id="admin-settings.platform-info">
       <div className="card admin-settings-section">
         <div className="card-header">
           <h3 className="card-title"><Building2 size={16} /> 平台基础信息</h3>
@@ -175,7 +177,9 @@ export default function AdminSettings() {
           </button>
         </div>
       </div>
+      </Annotate>
 
+      <Annotate id="admin-settings.role-matrix">
       <div className="card admin-settings-section">
         <div className="card-header">
           <h3 className="card-title"><ShieldCheck size={16} /> 后台角色权限</h3>
@@ -205,7 +209,9 @@ export default function AdminSettings() {
           </div>
         </div>
       </div>
+      </Annotate>
 
+      <Annotate id="admin-settings.notify-config">
       <div className="card admin-settings-section">
         <div className="card-header">
           <h3 className="card-title"><Bell size={16} /> 消息通知配置</h3>
@@ -230,6 +236,7 @@ export default function AdminSettings() {
           ))}
         </div>
       </div>
+      </Annotate>
     </div>
   );
 }

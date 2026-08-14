@@ -27,6 +27,7 @@ import { biographyApi } from '../api/biography';
 import { useToast } from '../hooks/useToast';
 import { useAuth } from '../hooks/useAuth';
 import Modal from '../components/ui/Modal';
+import Annotate from '../components/annotation/Annotate';
 import type { MuseumMessage, Archive } from '../mocks/types';
 import './Museum.css';
 
@@ -260,6 +261,7 @@ export default function Museum() {
             </div>
           )}
           <p className="museum-intro">{archive?.bio || museum.intro}</p>
+          <Annotate id="museum.interactions" inline>
           <div className="museum-hero-actions">
             <button className="btn btn-outline" onClick={() => handleInteract('like')}>
               <Heart size={14} /> {museum.likes}
@@ -271,10 +273,12 @@ export default function Museum() {
               <Flame size={14} /> 点烛 {museum.candles}
             </button>
           </div>
+          </Annotate>
         </div>
       </div>
 
       {stats && (
+        <Annotate id="museum.stats">
         <div className="museum-stats">
           <div className="museum-stat-card">
             <div className="museum-stat-num"><Eye size={16} /> {stats.views}</div>
@@ -303,8 +307,10 @@ export default function Museum() {
             </div>
           </div>
         </div>
+        </Annotate>
       )}
 
+      <Annotate id="museum.tabs" inline>
       <div className="museum-tabs">
         {TABS.map(({ key, label, icon: Icon }) => (
           <button
@@ -316,6 +322,7 @@ export default function Museum() {
           </button>
         ))}
       </div>
+      </Annotate>
 
       <div className="museum-tab-content">
         {tab === 'timeline' && (
@@ -452,6 +459,7 @@ export default function Museum() {
         )}
       </div>
 
+      <Annotate id="museum.messages">
       <div className="museum-section">
         <h3><MessageCircle size={16} /> 思念留言</h3>
         <div className="museum-message-form">
@@ -484,7 +492,9 @@ export default function Museum() {
           </div>
         )}
       </div>
+      </Annotate>
 
+      <Annotate id="museum.share">
       <div className="museum-section">
         <h3><Share2 size={16} /> 分享数字馆</h3>
         <div className="museum-share">
@@ -499,7 +509,9 @@ export default function Museum() {
           </div>
         </div>
       </div>
+      </Annotate>
 
+      <Annotate id="museum.visibility">
       <div className="museum-section">
         <h3><Lock size={16} /> 权限设置</h3>
         <div className="museum-visibility">
@@ -577,6 +589,7 @@ export default function Museum() {
           {savingVisibility ? '保存中…' : '保存设置'}
         </button>
       </div>
+      </Annotate>
 
       <Modal open={showQr} title="扫码访问数字馆" onClose={() => setShowQr(false)}>
         <div className="museum-qr">

@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 import { biographerApi, type BiographerApplicationInfo } from '../api/biographer';
+import Annotate from '../components/annotation/Annotate';
 import './BiographerApply.css';
 
 interface QualificationFile {
@@ -168,6 +169,7 @@ export default function BiographerApply() {
           <p className="page-subtitle">认证通过后即可接单，为更多家庭记录人生故事</p>
         </header>
 
+        <Annotate id="biographer-apply.status">
         <div className="card apply-status-card">
           <div className={`apply-status-banner ${record.status}`}>
             {record.status === 'pending' && (
@@ -230,6 +232,7 @@ export default function BiographerApply() {
             )}
           </div>
         </div>
+        </Annotate>
       </div>
     );
   }
@@ -241,6 +244,7 @@ export default function BiographerApply() {
         <p className="page-subtitle">完成实名认证与资质审核，成为平台认证传记师</p>
       </header>
 
+      <Annotate id="biographer-apply.form">
       <div className="card apply-form-card">
         <div className="card-header">
           <h3 className="card-title"><ShieldCheck size={16} /> 实名信息</h3>
@@ -286,7 +290,9 @@ export default function BiographerApply() {
           </div>
         </div>
       </div>
+      </Annotate>
 
+      <Annotate id="biographer-apply.specialties">
       <div className="card apply-form-card">
         <div className="card-header">
           <h3 className="card-title"><FileText size={16} /> 擅长领域 <span className="apply-required">*</span></h3>
@@ -306,7 +312,9 @@ export default function BiographerApply() {
           </div>
         </div>
       </div>
+      </Annotate>
 
+      <Annotate id="biographer-apply.upload">
       <div className="card apply-form-card">
         <div className="card-header">
           <h3 className="card-title"><UploadCloud size={16} /> 资质资料上传</h3>
@@ -344,7 +352,9 @@ export default function BiographerApply() {
           )}
         </div>
       </div>
+      </Annotate>
 
+      <Annotate id="biographer-apply.deposit">
       <div className="card apply-form-card">
         <div className="card-header">
           <h3 className="card-title"><Wallet size={16} /> 押金缴纳</h3>
@@ -368,12 +378,15 @@ export default function BiographerApply() {
           </div>
         </div>
       </div>
+      </Annotate>
 
+      <Annotate id="biographer-apply.submit">
       <div className="apply-submit-bar">
         <button className="btn btn-primary apply-submit" onClick={handleSubmit} disabled={submitting}>
           <ShieldCheck size={16} /> {submitting ? '提交中…' : '提交入驻申请'}
         </button>
       </div>
+      </Annotate>
     </div>
   );
 }

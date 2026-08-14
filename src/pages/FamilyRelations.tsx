@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, Users, Plus, X, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Avatar from '../components/ui/Avatar';
+import Annotate from '../components/annotation/Annotate';
 import { useToast } from '../hooks/useToast';
 import { relationTypeOptions } from '../utils/familyRelations';
 import { familyApi } from '../api/family';
@@ -93,11 +94,16 @@ export default function FamilyRelations() {
 
       <div className="card">
         <div className="card-header">
+          <Annotate id="family-relations.data-load" inline>
           <h3 className="card-title"><Users size={16} /> 家庭关系网络</h3>
+          </Annotate>
+          <Annotate id="family-relations.add-button" inline>
           <button className="btn btn-primary" onClick={() => setShowAdd(true)}><Plus size={14} /> 添加关系</button>
+          </Annotate>
         </div>
         <div className="card-body">
           {showAdd && (
+            <Annotate id="family-relations.add-form">
             <div className="relation-add-form">
               <input list="member-names" type="text" placeholder="甲方姓名" value={from} onChange={(e) => setFrom(e.target.value)} />
               <select value={relation} onChange={(e) => setRelation(e.target.value)}>
@@ -110,7 +116,9 @@ export default function FamilyRelations() {
               <button className="btn btn-primary" onClick={handleAdd}>添加</button>
               <button className="btn btn-ghost" onClick={() => { setShowAdd(false); setFrom(''); setTo(''); }}><X size={14} /></button>
             </div>
+            </Annotate>
           )}
+          <Annotate id="family-relations.relation-list">
           {relations.map((r) => (
             <div className="relation-row" key={r.id}>
               <div className="relation-person" onClick={() => navigate(`/family/members/${encodeURIComponent(r.from)}`)}>
@@ -128,6 +136,7 @@ export default function FamilyRelations() {
             </div>
           ))}
           {relations.length === 0 && <div className="relation-empty">暂无关系，点击右上角添加</div>}
+          </Annotate>
         </div>
       </div>
     </div>

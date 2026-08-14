@@ -8,6 +8,7 @@ import { bookshelfApi } from '../api/bookshelf';
 import PublishBookModal from '../components/PublishBookModal';
 import PublishLicenseModal, { type LicenseSettings } from '../components/PublishLicenseModal';
 import type { PublicBook } from '../mocks/types';
+import Annotate from '../components/annotation/Annotate';
 import './MyWorks.css';
 
 interface Archive {
@@ -244,9 +245,11 @@ export default function MyWorks() {
     <div className="my-works-page">
       <header className="page-header">
         <h1 className="page-title">我的传记</h1>
+        <Annotate id="my-works.new-biography" inline>
         <button className="btn btn-primary" onClick={() => navigate('/onboarding')}>
           <Plus size={14} /> 新建传记
         </button>
+        </Annotate>
       </header>
 
       {works.length === 0 ? (
@@ -268,6 +271,7 @@ export default function MyWorks() {
             return (
             <div className="card work-card" key={work.id}>
               <div className="card-body work-body">
+                <Annotate id="my-works.work-status">
                 <div className="work-main">
                   <Avatar name={work.name} size={48} />
                   <div className="work-info">
@@ -278,7 +282,9 @@ export default function MyWorks() {
                     <span className={`work-status ${getStatusClass(work.status)}`}>{work.status}</span>
                   </div>
                 </div>
+                </Annotate>
                 <div className="work-extra">
+                  <Annotate id="my-works.earnings">
                   <div className="work-earnings">
                     <div className="work-earnings-item">
                       <span className="work-earnings-value">{earnings.sold}</span>
@@ -297,6 +303,8 @@ export default function MyWorks() {
                       <span className="work-earnings-label">累计收益</span>
                     </div>
                   </div>
+                  </Annotate>
+                  <Annotate id="my-works.license">
                   <div className="work-license">
                     <span className="work-license-label"><Globe size={13} /> 公开授权</span>
                     <button
@@ -312,6 +320,7 @@ export default function MyWorks() {
                       {licenses[work.id] ? '已公开到书架' : '未公开'}
                     </span>
                   </div>
+                  </Annotate>
                   {licenses[work.id] && (
                     <div className="work-license-detail">
                       <span>
@@ -327,6 +336,7 @@ export default function MyWorks() {
                     </div>
                   )}
                 </div>
+                <Annotate id="my-works.work-actions">
                 <div className="work-actions">
                   <button className="btn btn-outline btn-sm" onClick={() => openWork(work)}>
                     {work.status === '未开始' || work.status === '待采访' ? (
@@ -365,6 +375,7 @@ export default function MyWorks() {
                     <Trash2 size={16} />
                   </button>
                 </div>
+                </Annotate>
               </div>
             </div>
             );

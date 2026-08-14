@@ -32,6 +32,7 @@ import {
 import Avatar from './ui/Avatar';
 import { useAuth } from '../hooks/useAuth';
 import { useVersion } from '../hooks/useVersion';
+import AnnotationToggle from './annotation/AnnotationToggle';
 import './Layout.css';
 
 interface NavItem {
@@ -253,6 +254,7 @@ export default function AdminLayout() {
           <Outlet />
         </main>
       </div>
+      <AnnotationToggle />
     </div>
   );
 }

@@ -471,19 +471,16 @@ export const defaultAdminArchives: AdminArchive[] = [
 ]
 
 export const defaultAITasks: AITask[] = [
-  { id: 'task_001', type: 'biography', targetName: '张明远：一位苏州企业家的六十年', userName: '用户8000', userPhone: '13800138000', status: 'success', tokens: 48200, createdAt: daysAgo(20), finishedAt: daysAgo(20) },
-  { id: 'task_002', type: 'biography', targetName: '山村教师王桂芬', userName: '用户0001', userPhone: '13800000001', status: 'success', tokens: 39500, createdAt: daysAgo(15), finishedAt: daysAgo(15) },
-  { id: 'task_003', type: 'digital_person', targetName: '李华亭', userName: '用户0002', userPhone: '13900000002', status: 'success', tokens: 76800, createdAt: daysAgo(12), finishedAt: daysAgo(12) },
-  { id: 'task_004', type: 'short_video', targetName: '周秀英纪念短视频', userName: '用户0004', userPhone: '13600000004', status: 'failed', tokens: 12400, createdAt: daysAgo(8), finishedAt: daysAgo(8), failReason: '配音服务超时，请重试' },
-  { id: 'task_005', type: 'pdf', targetName: '我的母亲周秀英', userName: '用户0004', userPhone: '13600000004', status: 'success', tokens: 3200, createdAt: daysAgo(7), finishedAt: daysAgo(7) },
-  { id: 'task_006', type: 'biography', targetName: '陈建国自传', userName: '用户0004', userPhone: '13600000004', status: 'running', tokens: 18600, createdAt: daysAgo(1) },
-  { id: 'task_007', type: 'digital_person', targetName: '王桂芬', userName: '用户0001', userPhone: '13800000001', status: 'queued', tokens: 0, createdAt: daysAgo(1) },
-  { id: 'task_008', type: 'short_video', targetName: '张明远创业故事短片', userName: '用户8000', userPhone: '13800138000', status: 'queued', tokens: 0, createdAt: daysAgo(0) },
-  { id: 'task_009', type: 'pdf', targetName: '山村教师王桂芬', userName: '用户0001', userPhone: '13800000001', status: 'failed', tokens: 800, createdAt: daysAgo(3), finishedAt: daysAgo(3), failReason: '章节内容为空，排版失败' },
-  { id: 'task_010', type: 'biography', targetName: '赵德柱回忆录', userName: '用户0006', userPhone: '13400000006', status: 'running', tokens: 9800, createdAt: daysAgo(0) },
-  { id: 'task_011', type: 'qrcode', targetName: '李华亭纪念馆·墓碑码', userName: '用户0002', userPhone: '13900000002', status: 'success', tokens: 200, createdAt: daysAgo(10), finishedAt: daysAgo(10) },
-  { id: 'task_012', type: 'qrcode', targetName: '周秀英纪念馆·分享码', userName: '用户0004', userPhone: '13600000004', status: 'success', tokens: 150, createdAt: daysAgo(5), finishedAt: daysAgo(5) },
-  { id: 'task_013', type: 'qrcode', targetName: '张明远纪念馆·纪念物码', userName: '用户8000', userPhone: '13800138000', status: 'failed', tokens: 80, createdAt: daysAgo(2), finishedAt: daysAgo(2), failReason: '关联数字馆不存在，生成失败' },
+  { id: 'task_001', type: 'biography', targetName: '张明远：一位苏州企业家的六十年', userName: '用户8000', userPhone: '13800138000', status: 'success', tokens: 48200, model: 'Kimi K2', createdAt: daysAgo(20), finishedAt: daysAgo(20) },
+  { id: 'task_002', type: 'biography', targetName: '山村教师王桂芬', userName: '用户0001', userPhone: '13800000001', status: 'success', tokens: 39500, model: 'DeepSeek-V3', createdAt: daysAgo(15), finishedAt: daysAgo(15) },
+  { id: 'task_003', type: 'digital_person', targetName: '李华亭', userName: '用户0002', userPhone: '13900000002', status: 'success', tokens: 76800, model: '通义千问 Max', createdAt: daysAgo(12), finishedAt: daysAgo(12) },
+  { id: 'task_004', type: 'short_video', targetName: '周秀英纪念短视频', userName: '用户0004', userPhone: '13600000004', status: 'failed', tokens: 12400, model: '豆包 Pro', createdAt: daysAgo(8), finishedAt: daysAgo(8), failReason: '配音服务超时，请重试' },
+  { id: 'task_005', type: 'pdf', targetName: '我的母亲周秀英', userName: '用户0004', userPhone: '13600000004', status: 'success', tokens: 3200, model: 'Kimi K2', createdAt: daysAgo(7), finishedAt: daysAgo(7) },
+  { id: 'task_006', type: 'biography', targetName: '陈建国自传', userName: '用户0004', userPhone: '13600000004', status: 'running', tokens: 18600, model: 'Kimi K2', createdAt: daysAgo(1) },
+  { id: 'task_007', type: 'digital_person', targetName: '王桂芬', userName: '用户0001', userPhone: '13800000001', status: 'queued', tokens: 0, model: '通义千问 Max', createdAt: daysAgo(1) },
+  { id: 'task_008', type: 'short_video', targetName: '张明远创业故事短片', userName: '用户8000', userPhone: '13800138000', status: 'queued', tokens: 0, model: '豆包 Pro', createdAt: daysAgo(0) },
+  { id: 'task_009', type: 'pdf', targetName: '山村教师王桂芬', userName: '用户0001', userPhone: '13800000001', status: 'failed', tokens: 800, model: 'DeepSeek-V3', createdAt: daysAgo(3), finishedAt: daysAgo(3), failReason: '章节内容为空，排版失败' },
+  { id: 'task_010', type: 'biography', targetName: '赵德柱回忆录', userName: '用户0006', userPhone: '13400000006', status: 'running', tokens: 9800, model: 'DeepSeek-V3', createdAt: daysAgo(0) },
 ]
 
 export const defaultPromptTemplates: PromptTemplate[] = [

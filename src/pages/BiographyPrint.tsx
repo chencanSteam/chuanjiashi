@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Printer, Download, BookOpen, ShoppingBag } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
+import Annotate from '../components/annotation/Annotate';
 import './BiographyPrint.css';
 
 interface Archive {
@@ -134,12 +135,17 @@ export default function BiographyPrint() {
           <BookOpen size={18} /> 实体书排版预览
         </div>
         <div className="print-toolbar-actions">
+          <Annotate id="biography-print.print" inline>
           <button className="btn btn-outline" onClick={handlePrint}>
             <Printer size={14} /> 打印 / 另存为 PDF
           </button>
+          </Annotate>
+          <Annotate id="biography-print.download-pdf" inline>
           <button className="btn btn-primary" onClick={handleDownloadPdf} disabled={downloading}>
             <Download size={14} /> {downloading ? '生成中…' : '下载 PDF'}
           </button>
+          </Annotate>
+          <Annotate id="biography-print.order" inline>
           <button
             className="btn btn-outline"
             style={{ color: '#b8860b', borderColor: 'rgba(184,134,11,0.3)' }}
@@ -147,6 +153,7 @@ export default function BiographyPrint() {
           >
             <ShoppingBag size={14} /> 下单印刷实体书
           </button>
+          </Annotate>
         </div>
       </header>
 
@@ -160,6 +167,7 @@ export default function BiographyPrint() {
           </button>
         </div>
       ) : (
+        <Annotate id="biography-print.book">
         <div className="book-pages" ref={bookRef}>
           {/* 封面 */}
           <section className="book-page book-cover">
@@ -230,6 +238,7 @@ export default function BiographyPrint() {
             </div>
           </section>
         </div>
+        </Annotate>
       )}
     </div>
   );

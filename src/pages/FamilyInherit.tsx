@@ -2,6 +2,7 @@ import { ArrowLeft, FileText, Users, Landmark, Lock } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Modal from '../components/ui/Modal';
+import Annotate from '../components/annotation/Annotate';
 import { useToast } from '../hooks/useToast';
 import './FamilyInherit.css';
 
@@ -94,6 +95,7 @@ export default function FamilyInherit() {
         </div>
         <div className="card-body">
           <p className="inherit-desc">{desc}</p>
+          <Annotate id="family-inherit.config-detail">
           <div className="inherit-section">
             <h4>当前配置</h4>
             <div className="inherit-row-simple">
@@ -109,10 +111,13 @@ export default function FamilyInherit() {
               <strong>{config.scopes.join('、')}</strong>
             </div>
           </div>
+          </Annotate>
+          <Annotate id="family-inherit.actions">
           <div className="inherit-actions">
             <button className="btn btn-outline" onClick={() => navigate('/family', { state: { tab: 'inherit' } })}>返回继承中心</button>
             <button className="btn btn-primary" onClick={openModal}>修改配置</button>
           </div>
+          </Annotate>
         </div>
       </div>
 
@@ -127,6 +132,7 @@ export default function FamilyInherit() {
           </>
         }
       >
+        <Annotate id="family-inherit.edit-form">
         <div className="inherit-form-row">
           <label>继承人</label>
           <select
@@ -164,6 +170,7 @@ export default function FamilyInherit() {
             ))}
           </select>
         </div>
+        </Annotate>
       </Modal>
     </div>
   );

@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import Avatar from '../components/ui/Avatar';
 import { useToast } from '../hooks/useToast';
+import Annotate from '../components/annotation/Annotate';
 import './Genealogy.css';
 
 const tabs = [
@@ -142,10 +143,13 @@ export default function Genealogy() {
     <div className="genealogy-page">
       <header className="page-header"><h1 className="page-title">数字家谱</h1></header>
 
+      <Annotate id="genealogy.tabs">
       <div className="tabs">
         {tabs.map((t) => <button key={t.key} className={`tab ${activeTab === t.key ? 'active' : ''}`} onClick={() => setActiveTab(t.key)}>{t.label}</button>)}
       </div>
+      </Annotate>
 
+      <Annotate id="genealogy.stats">
       <div className="genealogy-stats-row">
         {stats.map((s, i) => (
           <div className="card genealogy-stat" key={i} onClick={() => {
@@ -161,9 +165,11 @@ export default function Genealogy() {
           </div>
         ))}
       </div>
+      </Annotate>
 
       {activeTab === 'tree' && (
         <div className="tree-layout">
+          <Annotate id="genealogy.search">
           <div className="card search-card">
             <div className="card-header"><h3 className="card-title">家谱检索</h3></div>
             <div className="card-body">
@@ -210,16 +216,19 @@ export default function Genealogy() {
               </div>
             </div>
           </div>
+          </Annotate>
 
           <div className={`card big-tree-card ${isFullscreen ? 'fullscreen' : ''}`}>
             <div className="card-header">
               <h3 className="card-title">家谱树 <span>（张氏家族）</span></h3>
+              <Annotate id="genealogy.tree-tools" inline>
               <div className="tree-tools">
                 <button className="icon-btn" onClick={zoomOut}><ZoomOut size={14} /></button>
                 <button className="icon-btn" onClick={zoomIn}><ZoomIn size={14} /></button>
                 <button className="icon-btn" onClick={toggleFullscreen}><Maximize2 size={14} /> {isFullscreen ? '退出' : '全屏'}</button>
                 <button className={`icon-btn ${showFilter ? 'active' : ''}`} onClick={() => setShowFilter((v) => !v)}><Filter size={14} /> 筛选</button>
               </div>
+              </Annotate>
             </div>
             {showFilter && (
               <div className="tree-filter-bar">
@@ -229,6 +238,7 @@ export default function Genealogy() {
                 <label><input type="checkbox" defaultChecked /> 已故</label>
               </div>
             )}
+            <Annotate id="genealogy.tree">
             <div className="card-body big-tree-body" style={{ transform: `scale(${scale})`, transformOrigin: 'top left' }}>
               {filteredGens.length === 0 && (
                 <div className="big-tree-empty">未找到匹配的成员，请调整检索条件</div>
@@ -263,6 +273,7 @@ export default function Genealogy() {
               )}
               <div className="add-member" onClick={addMember}>+ 添加成员</div>
             </div>
+            </Annotate>
           </div>
 
           <div className="card migration-card">
@@ -282,6 +293,7 @@ export default function Genealogy() {
             </div>
           </div>
 
+          <Annotate id="genealogy.pending">
           <div className="card pending-card">
             <div className="card-header"><h3 className="card-title">待补全成员</h3></div>
             <div className="card-body pending-body">
@@ -297,10 +309,12 @@ export default function Genealogy() {
               ))}
             </div>
           </div>
+          </Annotate>
         </div>
       )}
 
       {activeTab === 'table' && (
+        <Annotate id="genealogy.table-preview">
         <div className="card table-card">
           <div className="card-header"><h3 className="card-title">世系表预览</h3><button className="btn btn-outline" onClick={() => navigate('/genealogy/table')}>查看完整世系表 <ChevronRight size={14} /></button></div>
           <div className="card-body table-body">
@@ -310,9 +324,11 @@ export default function Genealogy() {
             </table>
           </div>
         </div>
+        </Annotate>
       )}
 
       {activeTab === 'export' && (
+        <Annotate id="genealogy.export">
         <div className="card export-genealogy-card">
           <div className="card-header"><h3 className="card-title">家谱输出</h3></div>
           <div className="card-body export-genealogy-body">
@@ -321,6 +337,7 @@ export default function Genealogy() {
             <div className="export-option"><Link size={24} color="#2D7A66" /><div><div className="export-title">分享链接</div><div className="export-desc">生成家谱分享链接，授权查看</div></div><button className="btn btn-outline" onClick={() => exportFile('分享链接')} disabled={exporting['分享链接']}>{exporting['分享链接'] ? '生成中…' : '生成链接'}</button></div>
           </div>
         </div>
+        </Annotate>
       )}
 
       {['migration', 'culture', 'collab'].includes(activeTab) && (

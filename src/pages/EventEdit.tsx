@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useState } from 'react';
 import { useToast } from '../hooks/useToast';
 import { downloadDataUrl } from '../utils/albumStorage';
+import Annotate from '../components/annotation/Annotate';
 import './EventEdit.css';
 
 interface ArchiveEvent {
@@ -130,9 +131,12 @@ export default function EventEdit() {
       <div className="card">
         <div className="card-header">
           <h3 className="card-title">事件信息</h3>
+          <Annotate id="event-edit.save" inline>
           <button className="btn btn-primary" onClick={saveEvent}><Save size={14} /> 保存</button>
+          </Annotate>
         </div>
         <div className="card-body event-edit-body">
+          <Annotate id="event-edit.form">
           <div className="event-edit-form">
             <div className="form-field form-field-year">
               <label><Calendar size={14} /> 开始年份</label>
@@ -161,6 +165,7 @@ export default function EventEdit() {
             </div>
             <div className="form-field form-field-full">
               <label><ImageIcon size={14} /> 附件与照片</label>
+              <Annotate id="event-edit.attachments">
               <div className="edit-attachments">
                 {attachments.map((att) => {
                   const isImage = att.mime.startsWith('image/');
@@ -202,13 +207,16 @@ export default function EventEdit() {
                   />
                 </label>
               </div>
+              </Annotate>
               {attachments.length === 0 && <div className="edit-attach-empty">暂无附件，点击「上传附件」添加（单个不超过 2MB）</div>}
             </div>
           </div>
+          </Annotate>
         </div>
       </div>
       {preview && (
         <div className="modal-overlay" onClick={() => setPreview(null)}>
+          <Annotate id="event-edit.preview">
           <div className="modal-content preview-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header"><h4>{preview.name}</h4><button className="modal-close" onClick={() => setPreview(null)}>关闭</button></div>
             <div className="modal-body preview-body">
@@ -220,6 +228,7 @@ export default function EventEdit() {
               )}
             </div>
           </div>
+          </Annotate>
         </div>
       )}
     </div>

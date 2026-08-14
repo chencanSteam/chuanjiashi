@@ -15,6 +15,7 @@ import { groupBuyApi } from '../api/groupBuy';
 import { useToast } from '../hooks/useToast';
 import { useAuth } from '../hooks/useAuth';
 import Modal from '../components/ui/Modal';
+import Annotate from '../components/annotation/Annotate';
 import type { GroupBuyActivity, GroupBuyRecord } from '../mocks/types';
 import './GroupBuy.css';
 
@@ -153,11 +154,14 @@ export default function GroupBuy() {
           <li>成团后随机抽取 1 人免单，退款原路返回</li>
           <li>{activity?.durationHours ?? 24} 小时内未成团，自动全额退款</li>
         </ul>
+        <Annotate id="group-buy.launch" inline>
         <button className="btn btn-accent group-buy-launch-btn" disabled={paying} onClick={handleLaunch}>
           <Users size={16} /> {paying ? '支付中…' : `发起拼团 ¥${activity?.price ?? 99}`}
         </button>
+        </Annotate>
       </div>
 
+      <Annotate id="group-buy.tabs" inline>
       <div className="group-buy-tabs">
         <button
           className={`group-buy-tab ${tab === 'ongoing' ? 'active' : ''}`}
@@ -172,6 +176,7 @@ export default function GroupBuy() {
           我的拼团
         </button>
       </div>
+      </Annotate>
 
       {loading ? (
         <div className="group-buy-loading">加载中…</div>
@@ -182,6 +187,7 @@ export default function GroupBuy() {
             <p>暂无进行中的拼团，发起一个吧</p>
           </div>
         ) : (
+          <Annotate id="group-buy.ongoing-card">
           <div className="group-buy-list">
             {ongoingRecords.map((r) => {
               const percent = Math.min(100, Math.round((r.currentCount / r.targetCount) * 100));
@@ -219,6 +225,7 @@ export default function GroupBuy() {
               );
             })}
           </div>
+          </Annotate>
         )
       ) : myRecords.length === 0 ? (
         <div className="group-buy-empty">
@@ -226,6 +233,7 @@ export default function GroupBuy() {
           <p>暂无拼团记录</p>
         </div>
       ) : (
+        <Annotate id="group-buy.my-record">
         <div className="group-buy-list">
           {myRecords.map((r) => {
             const isLauncher = myMockId === r.launcherId;
@@ -267,6 +275,7 @@ export default function GroupBuy() {
             );
           })}
         </div>
+        </Annotate>
       )}
 
       <div className="group-buy-anti-fraud">
@@ -277,6 +286,7 @@ export default function GroupBuy() {
         </p>
       </div>
 
+      <Annotate id="group-buy.share-modal">
       <Modal open={!!shareRecord} title="邀请好友参团" onClose={() => setShareRecord(null)}>
         {shareRecord && (
           <div className="group-buy-share">
@@ -290,6 +300,7 @@ export default function GroupBuy() {
           </div>
         )}
       </Modal>
+      </Annotate>
     </div>
   );
 }

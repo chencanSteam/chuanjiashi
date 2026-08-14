@@ -7,6 +7,7 @@ import {
   getPartnerTypeLabel,
 } from '../data/partnerData';
 import type { PartnerApplication, ApplicationStatus } from '../types/partner';
+import Annotate from '../components/annotation/Annotate';
 import './PartnerApplications.css';
 
 export default function PartnerApplications() {
@@ -53,6 +54,7 @@ export default function PartnerApplications() {
 
       <div className="card">
         <div className="card-header partner-app-header">
+          <Annotate id="admin-partner-applications.filter" inline>
           <div className="partner-app-filters">
             <div className="partner-app-search">
               <Search size={14} />
@@ -65,7 +67,9 @@ export default function PartnerApplications() {
               <option value="rejected">已拒绝</option>
             </select>
           </div>
+          </Annotate>
         </div>
+        <Annotate id="admin-partner-applications.list">
         <div className="card-body partner-app-body">
           {filtered.length === 0 ? (
             <div className="partner-app-empty">暂无申请记录</div>
@@ -94,6 +98,7 @@ export default function PartnerApplications() {
                     </div>
                   </div>
                   {a.status === 'pending' && (
+                    <Annotate id="admin-partner-applications.review" inline>
                     <div className="partner-app-actions">
                       <button className="btn btn-primary" onClick={() => handleProcess(a.id, 'approved')}>
                         <CheckCircle size={14} /> 通过
@@ -102,12 +107,14 @@ export default function PartnerApplications() {
                         <XCircle size={14} /> 拒绝
                       </button>
                     </div>
+                    </Annotate>
                   )}
                 </div>
               ))}
             </div>
           )}
         </div>
+        </Annotate>
       </div>
     </div>
   );

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ArrowLeft, Bell, Clock, Share2, CheckCircle2, X } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useToast } from '../hooks/useToast';
+import Annotate from '../components/annotation/Annotate';
 import './NoticeDetail.css';
 
 const notices = [
@@ -29,6 +30,7 @@ export default function NoticeDetail() {
       </header>
 
       <div className="card">
+        <Annotate id="notice-detail.notice-content">
         <div className="card-body notice-detail-body">
           <div className="notice-detail-header">
             <Bell size={24} color="#1B5E4B" />
@@ -39,16 +41,22 @@ export default function NoticeDetail() {
           </div>
           <div className="notice-detail-content">{notice.content}</div>
           <div className="notice-detail-actions">
+            <Annotate id="notice-detail.mark-read-btn" inline>
             <button className="btn btn-primary" onClick={() => { setRead(true); addToast('已标记为已读', 'success'); }} disabled={read}>
               <CheckCircle2 size={14} /> {read ? '已读' : '标记为已读'}
             </button>
+            </Annotate>
+            <Annotate id="notice-detail.share-btn" inline>
             <button className="btn btn-outline" onClick={() => setShowShare(true)}><Share2 size={14} /> 分享</button>
+            </Annotate>
           </div>
         </div>
+        </Annotate>
       </div>
 
       <div className="card">
         <div className="card-header"><h3 className="card-title">更多通知</h3></div>
+        <Annotate id="notice-detail.more-list">
         <div className="card-body">
           {notices.map((n, i) => (
             <div key={i} className="notice-detail-row" onClick={() => navigate(`/family/notice/${i}`)}>
@@ -60,6 +68,7 @@ export default function NoticeDetail() {
             </div>
           ))}
         </div>
+        </Annotate>
       </div>
 
       {showShare && (

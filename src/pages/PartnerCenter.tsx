@@ -50,6 +50,7 @@ import {
   getPartnerTypeLabel,
 } from '../data/partnerData';
 import type { CommissionRecord, Withdrawal, Partner, PartnerCustomer } from '../types/partner';
+import Annotate from '../components/annotation/Annotate';
 import './PartnerCenter.css';
 
 
@@ -109,6 +110,7 @@ export default function PartnerCenter() {
         <div className="card empty-state-card">
           <div className="card-body">
             <p>您还不是合伙人，提交申请并通过审核后即可开展业务。</p>
+            <Annotate id="partner-center.apply-entry" inline>
             <button
               className="btn btn-primary"
               style={{ marginTop: 16 }}
@@ -116,6 +118,7 @@ export default function PartnerCenter() {
             >
               <FileText size={14} /> 申请成为合伙人
             </button>
+            </Annotate>
             <Modal open={showApply} title="申请成为合伙人" onClose={() => setShowApply(false)}>
               <PartnerApplyForm onSuccess={() => { setShowApply(false); loadPartner(); }} />
             </Modal>
@@ -198,6 +201,7 @@ function DashboardTab({ partner }: { partner: Partner }) {
 
   return (
     <div className="partner-center-dashboard">
+      <Annotate id="partner-center.level-card">
       <div className="card partner-center-level-card" style={{ borderLeft: `4px solid ${typeConfig.color}` }}>
         <div className="partner-center-level-main">
           <div>
@@ -214,6 +218,7 @@ function DashboardTab({ partner }: { partner: Partner }) {
           ))}
         </div>
       </div>
+      </Annotate>
 
       <div className="partner-center-stats">
         <div className="card partner-center-stat"><Wallet size={20} color="#1B5E4B" /><div><div className="partner-center-stat-value">¥{summary.settled.toFixed(2)}</div><div className="partner-center-stat-label">可提现余额</div></div></div>
@@ -222,11 +227,13 @@ function DashboardTab({ partner }: { partner: Partner }) {
         <div className="card partner-center-stat"><Share2 size={20} color="#d97706" /><div><div className="partner-center-stat-value">{paidCustomers.length}</div><div className="partner-center-stat-label">已付费客户</div></div></div>
       </div>
 
+      <Annotate id="partner-center.local-share">
       <div className="partner-center-local-share">
         <div className="card partner-center-stat"><MapPin size={20} color="#0891b2" /><div><div className="partner-center-stat-value">{partner.regionName || '未划分区域'}</div><div className="partner-center-stat-label">负责属地</div></div></div>
         <div className="card partner-center-stat"><BarChart3 size={20} color="#1B5E4B" /><div><div className="partner-center-stat-value">¥{localGmv.toFixed(2)}</div><div className="partner-center-stat-label">属地 GMV</div></div></div>
         <div className="card partner-center-stat"><Wallet size={20} color="#d97706" /><div><div className="partner-center-stat-value">¥{localShare.toFixed(2)}</div><div className="partner-center-stat-label">属地分成金额</div></div></div>
       </div>
+      </Annotate>
 
       <div className="card">
         <div className="card-header"><h3 className="card-title"><BarChart3 size={16} /> GMV 分业务线统计</h3></div>
@@ -257,6 +264,7 @@ function DashboardTab({ partner }: { partner: Partner }) {
         </div>
       </div>
 
+      <Annotate id="partner-center.invite">
       <div className="card partner-center-invite">
         <div className="card-header"><h3 className="card-title"><Share2 size={16} /> 我的邀请</h3></div>
         <div className="card-body">
@@ -273,6 +281,7 @@ function DashboardTab({ partner }: { partner: Partner }) {
           <div className="partner-center-qr"><QrCode size={48} /><span>扫码访问邀请链接</span></div>
         </div>
       </div>
+      </Annotate>
     </div>
   );
 }
@@ -299,6 +308,7 @@ function CustomersTab({ partner }: { partner: Partner }) {
 
   return (
     <>
+      <Annotate id="partner-center.customers">
       <div className="card">
         <div className="card-header partner-center-list-header">
           <h3 className="card-title"><Users size={16} /> 我的客户</h3>
@@ -328,6 +338,7 @@ function CustomersTab({ partner }: { partner: Partner }) {
           )}
         </div>
       </div>
+      </Annotate>
 
       <Modal open={!!selectedCustomer} title="客户详情" onClose={() => setSelectedCustomer(null)}>
         {selectedCustomer && (
@@ -377,6 +388,7 @@ function EarningsTab({ partner }: { partner: Partner }) {
 
   return (
     <>
+      <Annotate id="partner-center.earnings">
       <div className="card">
         <div className="card-header partner-center-list-header">
           <h3 className="card-title"><TrendingUp size={16} /> 收益明细</h3>
@@ -411,6 +423,7 @@ function EarningsTab({ partner }: { partner: Partner }) {
           )}
         </div>
       </div>
+      </Annotate>
 
       <Modal open={!!selectedRecord} title="收益详情" onClose={() => setSelectedRecord(null)}>
         {selectedRecord && (
@@ -483,6 +496,7 @@ function WithdrawTab({ partner }: { partner: Partner }) {
   };
 
   return (
+    <Annotate id="partner-center.withdraw">
     <div className="partner-center-withdraw">
       <div className="card partner-center-balance-card">
         <div className="card-body">
@@ -529,6 +543,7 @@ function WithdrawTab({ partner }: { partner: Partner }) {
         </div>
       </div>
     </div>
+    </Annotate>
   );
 }
 
@@ -555,6 +570,7 @@ function AssessmentTab() {
   const gap = Math.max(0, data.gmvTarget - data.gmvCompleted);
 
   return (
+    <Annotate id="partner-center.assessment">
     <div className="partner-center-dashboard">
       <div className="card partner-center-level-card">
         <div className="partner-center-level-main">
@@ -644,6 +660,7 @@ function AssessmentTab() {
         </div>
       </div>
     </div>
+    </Annotate>
   );
 }
 

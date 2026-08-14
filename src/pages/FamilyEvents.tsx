@@ -1,5 +1,6 @@
 import { ArrowLeft, Calendar, MapPin } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import Annotate from '../components/annotation/Annotate';
 import './FamilyEvents.css';
 
 const events = [
@@ -14,12 +15,15 @@ export default function FamilyEvents() {
   return (
     <div className="detail-page family-events-page">
       <header className="page-header">
+        <Annotate id="family-events.back" inline>
         <button className="btn btn-ghost" onClick={() => navigate(-1)}>
           <ArrowLeft size={16} /> 返回
         </button>
+        </Annotate>
         <h1 className="page-title">活动提醒</h1>
       </header>
 
+      <Annotate id="family-events.event-list">
       <div className="card">
         <div className="card-header">
           <h3 className="card-title">全部活动</h3>
@@ -37,6 +41,7 @@ export default function FamilyEvents() {
           ))}
         </div>
       </div>
+      </Annotate>
     </div>
   );
 }

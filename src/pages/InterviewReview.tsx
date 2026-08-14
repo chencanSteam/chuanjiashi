@@ -21,6 +21,7 @@ import { generateInterviewTopics } from '../utils/interviewTopics';
 import { loadCollaborators, loadSupplementAnswers } from '../data/interviewCollaboration';
 import { familyApi } from '../api/family';
 import { syncReviewEventToTimeline } from '../utils/eventSync';
+import Annotate from '../components/annotation/Annotate';
 import './InterviewReview.css';
 
 interface Archive {
@@ -206,14 +207,17 @@ export default function InterviewReview() {
           <button className="btn btn-outline" onClick={() => navigate('/interview')}>
             返回采访
           </button>
+          <Annotate id="interview-review.generate-btn" inline>
           <button className="btn btn-primary" onClick={generateBiography}>
             <BookOpen size={14} /> 去生成传记
           </button>
+          </Annotate>
         </div>
       </header>
 
       <div className="review-layout">
         <div className="review-main">
+          <Annotate id="interview-review.summary-tabs">
           <div className="card summary-card">
             <div className="card-header summary-header">
               <h3 className="card-title">
@@ -315,7 +319,9 @@ export default function InterviewReview() {
               )}
             </div>
           </div>
+          </Annotate>
 
+          <Annotate id="interview-review.events">
           <div className="card events-card">
             <div className="card-header">
               <h3 className="card-title"><Calendar size={14} /> AI 抽取的人生事件</h3>
@@ -411,8 +417,10 @@ export default function InterviewReview() {
               ))}
             </div>
           </div>
+          </Annotate>
         </div>
 
+        <Annotate id="interview-review.side">
         <div className="review-side">
           <div className="card highlights-card">
             <div className="card-header">
@@ -460,6 +468,7 @@ export default function InterviewReview() {
             生成传记 <ChevronRight size={14} />
           </button>
         </div>
+        </Annotate>
       </div>
     </div>
   );

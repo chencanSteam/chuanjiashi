@@ -10,6 +10,7 @@ import { useToast } from '../hooks/useToast';
 import Modal from '../components/ui/Modal';
 import { biographerEarningsApi } from '../api/biographerEarnings';
 import type { BiographerSettlement, BiographerWithdrawal } from '../mocks/types';
+import Annotate from '../components/annotation/Annotate';
 import './BiographerEarnings.css';
 
 type EarningsTab = 'incomes' | 'withdrawals' | 'penalties';
@@ -93,11 +94,14 @@ export default function BiographerEarnings() {
           <h1 className="page-title">结算提现</h1>
           <p className="page-subtitle">订单收入由平台托管，服务完成后转入可结算金额</p>
         </div>
+        <Annotate id="biographer-earnings.withdraw-entry" inline>
         <button className="btn btn-primary" onClick={() => setShowWithdraw(true)}>
           <DollarSign size={14} /> 申请提现
         </button>
+        </Annotate>
       </header>
 
+      <Annotate id="biographer-earnings.stats">
       <div className="earnings-stats">
         <div className="card earnings-stat">
           <Clock size={20} color="#d97706" />
@@ -121,8 +125,10 @@ export default function BiographerEarnings() {
           </div>
         </div>
       </div>
+      </Annotate>
 
       <div className="card earnings-card">
+        <Annotate id="biographer-earnings.tabs" inline>
         <div className="earnings-tabs">
           {(Object.keys(tabLabels) as EarningsTab[]).map((t) => (
             <button
@@ -135,6 +141,7 @@ export default function BiographerEarnings() {
             </button>
           ))}
         </div>
+        </Annotate>
 
         <div className="earnings-list">
           {activeTab === 'incomes' &&
@@ -203,6 +210,7 @@ export default function BiographerEarnings() {
         </div>
       </div>
 
+      <Annotate id="biographer-earnings.withdraw-modal">
       <Modal
         open={showWithdraw}
         title="申请提现"
@@ -240,6 +248,7 @@ export default function BiographerEarnings() {
           </button>
         </div>
       </Modal>
+      </Annotate>
     </div>
   );
 }

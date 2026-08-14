@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { Mic, Archive, Users, BookOpen, Image, Settings, ChevronRight } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
+import Annotate from '../../components/annotation/Annotate';
 import './MobileHome.css';
 
 interface Archive {
@@ -40,13 +41,16 @@ export default function MobileHome() {
   return (
     <div className="mobile-home">
       <section className="mobile-home-hero">
+        <Annotate id="mobile-home.greeting">
         <div className="mobile-home-greeting">
           <h2>您好，{user?.name || user?.phone?.slice(-4) || '用户'}</h2>
           <p>记录家族记忆，传承家风文化</p>
         </div>
+        </Annotate>
       </section>
 
       {archive && (
+        <Annotate id="mobile-home.archive-card">
         <section className="mobile-home-card archive-card" onClick={() => navigate('/m/archive')}>
           <div className="archive-card-info">
             <h3>{archive.name}</h3>
@@ -55,10 +59,12 @@ export default function MobileHome() {
           </div>
           <ChevronRight size={20} color="#999" />
         </section>
+        </Annotate>
       )}
 
       <section className="mobile-home-section">
         <h3 className="section-title">快捷功能</h3>
+        <Annotate id="mobile-home.quick-actions">
         <div className="mobile-home-grid">
           {quickActions.map((action) => {
             const Icon = action.icon;
@@ -76,16 +82,19 @@ export default function MobileHome() {
             );
           })}
         </div>
+        </Annotate>
       </section>
 
       <section className="mobile-home-section">
         <h3 className="section-title">最近动态</h3>
+        <Annotate id="mobile-home.recent-activity">
         <div className="mobile-home-empty">
           <p>暂无新动态</p>
           <button className="btn btn-primary btn-sm" onClick={() => navigate('/m/interview')}>
             去采访
           </button>
         </div>
+        </Annotate>
       </section>
     </div>
   );

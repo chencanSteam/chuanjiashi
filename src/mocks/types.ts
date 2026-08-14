@@ -588,7 +588,7 @@ export interface AdminArchive {
 }
 
 /** AI 任务类型：biography 传记生成 / digital_person 数字人 / short_video 短视频 / pdf 排版导出 */
-export type AITaskType = 'biography' | 'digital_person' | 'short_video' | 'pdf' | 'qrcode'
+export type AITaskType = 'biography' | 'digital_person' | 'short_video' | 'pdf'
 export type AITaskStatus = 'queued' | 'running' | 'success' | 'failed'
 
 /** AI 生成任务 */
@@ -606,6 +606,8 @@ export interface AITask {
   status: AITaskStatus
   /** Token 消耗 */
   tokens: number
+  /** 使用的模型类型（如 Kimi K2 / DeepSeek-V3） */
+  model?: string
   /** 创建时间 */
   createdAt: string
   /** 完成时间 */

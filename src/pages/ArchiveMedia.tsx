@@ -3,6 +3,7 @@ import { ArrowLeft, Image, Play, FileText, Music, Plus, Download, Search, Trash2
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../hooks/useToast';
 import { generateImageDataUrl, generateVideoPoster, generateAudioUrl } from '../utils/mediaPlaceholder';
+import Annotate from '../components/annotation/Annotate';
 import './ArchiveMedia.css';
 
 const STORAGE_KEY_CURRENT_ARCHIVE = 'cj_current_archive_id';
@@ -160,13 +161,16 @@ export default function ArchiveMedia() {
         <div className="card-header">
           <h3 className="card-title">全部素材（{items.length}）</h3>
           {!isObserver && (
+            <Annotate id="archive-media.upload" inline>
             <label className="btn btn-primary">
               <Plus size={14} /> 上传素材
               <input type="file" hidden accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt" onChange={handleUpload} />
             </label>
+            </Annotate>
           )}
         </div>
         <div className="card-body">
+          <Annotate id="archive-media.filter-search">
           <div className="media-toolbar">
             <div className="media-search">
               <Search size={14} />
@@ -178,6 +182,7 @@ export default function ArchiveMedia() {
               ))}
             </div>
           </div>
+          </Annotate>
 
           {filteredItems.length === 0 ? (
             <div className="archive-media-empty">
@@ -191,6 +196,7 @@ export default function ArchiveMedia() {
               )}
             </div>
           ) : (
+            <Annotate id="archive-media.grid">
             <div className="archive-media-grid">
               {filteredItems.map((m) => (
                 <div className="archive-media-item" key={m.id} onClick={() => setPreview(m)}>
@@ -207,11 +213,13 @@ export default function ArchiveMedia() {
                 </div>
               ))}
             </div>
+            </Annotate>
           )}
         </div>
       </div>
       {preview && (
         <div className="modal-overlay" onClick={() => setPreview(null)}>
+          <Annotate id="archive-media.preview">
           <div className="modal-content preview-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header"><h4>{preview.title}</h4><button className="modal-close" onClick={() => setPreview(null)}>关闭</button></div>
             <div className="modal-body preview-body">
@@ -222,6 +230,7 @@ export default function ArchiveMedia() {
               <p>正在预览：{preview.title}</p>
             </div>
           </div>
+          </Annotate>
         </div>
       )}
     </div>

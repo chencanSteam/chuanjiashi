@@ -4,6 +4,7 @@ import { bookshelfApi, type BookReviewStatus } from '../api/bookshelf';
 import { biographyApi } from '../api/biography';
 import { useToast } from '../hooks/useToast';
 import Avatar from '../components/ui/Avatar';
+import Annotate from '../components/annotation/Annotate';
 import type { PublicBook, Biography } from '../mocks/types';
 import '../components/ui/Modal.css';
 import './BookReview.css';
@@ -111,6 +112,7 @@ export default function BookReview() {
         <h1 className="page-title">传记上架审核</h1>
       </header>
 
+      <Annotate id="book-review.stats">
       <div className="book-review-stats">
         <div className="card book-review-stat">
           <BookOpen size={20} color="#1B5E4B" />
@@ -141,9 +143,11 @@ export default function BookReview() {
           </div>
         </div>
       </div>
+      </Annotate>
 
       <div className="card book-review-list-card">
         <div className="card-header book-review-list-header">
+          <Annotate id="book-review.filters" inline>
           <div className="book-review-filters">
             <div className="book-review-search">
               <Search size={14} />
@@ -160,7 +164,9 @@ export default function BookReview() {
               ))}
             </select>
           </div>
+          </Annotate>
         </div>
+        <Annotate id="book-review.list">
         <div className="card-body book-review-list-body">
           {loading ? (
             <div className="book-review-empty">加载中…</div>
@@ -227,9 +233,11 @@ export default function BookReview() {
             </div>
           )}
         </div>
+        </Annotate>
       </div>
 
       {selectedBook && (
+        <Annotate id="book-review.detail">
         <div className="modal-overlay book-review-detail-overlay" onClick={() => setSelectedBook(null)}>
           <div className="modal-content book-review-detail-modal" onClick={(e) => e.stopPropagation()}>
             <button className="book-review-detail-close" onClick={() => setSelectedBook(null)}><XCircle size={18} /></button>
@@ -418,9 +426,11 @@ export default function BookReview() {
             </div>
           </div>
         </div>
+        </Annotate>
       )}
 
       {rejectingBook && (
+        <Annotate id="book-review.reject-modal">
         <div className="modal-overlay book-review-reject-overlay" onClick={() => setRejectingBook(null)}>
           <div className="modal-content book-review-reject-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
@@ -447,6 +457,7 @@ export default function BookReview() {
             </div>
           </div>
         </div>
+        </Annotate>
       )}
     </div>
   );

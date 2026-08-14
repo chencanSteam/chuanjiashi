@@ -1,0 +1,253 @@
+.outline-page {
+  padding: 24px;
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.outline-status {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.outline-status-left,
+.outline-status-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 13px;
+  color: #4b5563;
+}
+
+.outline-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.outline-badge.confirmed {
+  color: #1b5e4b;
+  background: rgba(27, 94, 75, 0.12);
+}
+
+.outline-badge.draft {
+  color: #b45309;
+  background: #fef3c7;
+}
+
+.outline-meta {
+  color: #9ca3af;
+  font-size: 12px;
+}
+
+.outline-warn {
+  color: #b45309;
+  font-weight: 600;
+}
+
+.outline-tip {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 13px;
+  color: #6b7280;
+  line-height: 1.7;
+  margin: 0 0 16px;
+}
+
+.outline-tip svg {
+  flex-shrink: 0;
+  margin-top: 4px;
+  color: #1b5e4b;
+}
+
+.outline-chapters {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.outline-chapter {
+  padding: 14px 18px;
+}
+
+.outline-chapter-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.outline-chapter-no {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1b5e4b;
+  font-variant-numeric: tabular-nums;
+}
+
+.outline-chapter-title {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1f2937;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 5px 8px;
+  background: transparent;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.outline-chapter-title:hover {
+  border-color: #e5e7eb;
+}
+
+.outline-chapter-title:focus {
+  outline: none;
+  border-color: #1b5e4b;
+  background: #fff;
+}
+
+.outline-chapter-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #fff;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.icon-btn:hover:not(:disabled) {
+  border-color: #1b5e4b;
+  color: #1b5e4b;
+}
+
+.icon-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.icon-btn.danger:hover:not(:disabled) {
+  border-color: #dc2626;
+  color: #dc2626;
+}
+
+.outline-chapter-summary {
+  width: 100%;
+  margin-top: 10px;
+  font-size: 13px;
+  color: #4b5563;
+  line-height: 1.6;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 8px 10px;
+  resize: vertical;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.outline-chapter-summary:focus {
+  outline: none;
+  border-color: #1b5e4b;
+}
+
+.outline-chapter-events {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.outline-event-empty {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.outline-event-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  color: #1b5e4b;
+  background: rgba(27, 94, 75, 0.08);
+  border: 1px solid rgba(27, 94, 75, 0.2);
+}
+
+.chip-x {
+  display: inline-flex;
+  border: none;
+  background: transparent;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 0;
+}
+
+.chip-x:hover {
+  color: #dc2626;
+}
+
+.outline-add-btn {
+  align-self: flex-start;
+}
+
+.outline-pool {
+  margin-top: 16px;
+}
+
+.outline-pool-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 7px 0;
+  border-bottom: 1px dashed #f3f4f6;
+  font-size: 13px;
+}
+
+.outline-pool-row:last-child {
+  border-bottom: none;
+}
+
+.outline-pool-year {
+  color: #9ca3af;
+  font-variant-numeric: tabular-nums;
+  min-width: 44px;
+}
+
+.outline-pool-title {
+  flex: 1;
+  color: #374151;
+}
+
+.outline-pool-row select {
+  font-size: 12px;
+  padding: 4px 8px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  color: #4b5563;
+  background: #fff;
+}
+
+.outline-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}

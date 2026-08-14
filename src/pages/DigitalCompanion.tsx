@@ -23,6 +23,7 @@ import { useToast } from '../hooks/useToast';
 import { loadJson, type ChapterData } from '../data/aiMock';
 import { familyApi } from '../api/family';
 import { getArchiveBasedDigitalAnswer } from '../utils/digitalAnswer';
+import Annotate from '../components/annotation/Annotate';
 import './DigitalCompanion.css';
 import { useNavigate } from 'react-router-dom';
 
@@ -254,10 +255,12 @@ export default function DigitalCompanion() {
     <div className="companion-page">
       <header className="page-header"><h1 className="page-title">数字陪伴</h1></header>
 
+      <Annotate id="digital-companion.disclaimer">
       <div className="companion-disclaimer-bar">
         <ShieldAlert size={13} />
         本数字人由 AI 基于生平资料生成，回复不代表本人真实意愿
       </div>
+      </Annotate>
 
       <div className="tabs">
         {tabs.map((t) => <button key={t.key} className={`tab ${activeTab === t.key ? 'active' : ''}`} onClick={() => setActiveTab(t.key)}>{t.label}</button>)}
@@ -265,6 +268,7 @@ export default function DigitalCompanion() {
 
       {activeTab === 'chat' && (
         <div className="chat-layout">
+          <Annotate id="digital-companion.contacts">
           <div className="card contacts-card">
             <div className="card-header"><h3 className="card-title">陪伴对象</h3></div>
             <div className="card-body contacts-body">
@@ -288,7 +292,9 @@ export default function DigitalCompanion() {
               )}
             </div>
           </div>
+          </Annotate>
 
+          <Annotate id="digital-companion.chat">
           <div className="card chat-window">
             <div className="chat-header">
               <div className="chat-header-left">
@@ -347,6 +353,7 @@ export default function DigitalCompanion() {
               <button className="send-btn" onClick={handleSend}><Send size={18} /></button>
             </div>
           </div>
+          </Annotate>
 
           <div className="card companion-insights">
             <div className="card-header"><h3 className="card-title">陪伴洞察</h3></div>
@@ -369,6 +376,7 @@ export default function DigitalCompanion() {
       )}
 
       {activeTab === 'schedule' && (
+        <Annotate id="digital-companion.schedule">
         <div className="card schedule-card">
           <div className="card-header">
             <h3 className="card-title">节日与纪念日提醒</h3>
@@ -395,6 +403,7 @@ export default function DigitalCompanion() {
             ))}
           </div>
         </div>
+        </Annotate>
       )}
 
       {activeTab === 'emotion' && (
@@ -426,6 +435,7 @@ export default function DigitalCompanion() {
       )}
 
       {activeTab === 'share' && (
+        <Annotate id="digital-companion.group-chat">
         <div className="card share-card">
           <div className="card-header"><h3 className="card-title">家庭群聊</h3>{!showInvite && <button className="btn btn-primary" onClick={() => setShowInvite(true)}>邀请成员</button>}</div>
           <div className="card-body share-body">
@@ -455,6 +465,7 @@ export default function DigitalCompanion() {
             </div>
           </div>
         </div>
+        </Annotate>
       )}
 
       {calling && (

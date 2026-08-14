@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Phone, Lock, ArrowRight, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/useToast';
+import Annotate from '../components/annotation/Annotate';
 import './Login.css';
 
 // 注册页：仅支持手机号 + 短信验证码注册
@@ -95,11 +96,14 @@ export default function Register() {
               value={code}
               onChange={(e) => setCode(e.target.value)}
             />
+            <Annotate id="register.send-code" inline>
             <button type="button" className="btn btn-outline code-btn" disabled={countdown > 0} onClick={handleSendCode}>
               {countdown > 0 ? `${countdown}s 后重发` : '获取验证码'}
             </button>
+            </Annotate>
           </div>
 
+          <Annotate id="register.agreement">
           <label className="login-agreement">
             <input
               type="checkbox"
@@ -108,15 +112,20 @@ export default function Register() {
             />
             <span>我已阅读并同意《用户协议》和《隐私协议》</span>
           </label>
+          </Annotate>
 
+          <Annotate id="register.submit">
           <button type="submit" className="btn btn-primary login-submit" disabled={submitting}>
             {submitting ? '注册中…' : '注册'} <ArrowRight size={16} />
           </button>
+          </Annotate>
         </form>
 
+        <Annotate id="register.back">
         <button type="button" className="btn btn-ghost login-back" onClick={() => navigate('/login')}>
           <ArrowLeft size={14} /> 返回登录
         </button>
+        </Annotate>
       </div>
     </div>
   );

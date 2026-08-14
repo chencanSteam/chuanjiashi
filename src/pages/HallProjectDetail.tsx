@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ArrowLeft, Landmark, Eye, Save, Send, Monitor, Share2, QrCode, Link as LinkIcon, ChevronRight, EyeOff } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useToast } from '../hooks/useToast';
+import Annotate from '../components/annotation/Annotate';
 import './HallProjectDetail.css';
 
 const moduleRouteMap: Record<string, string> = {
@@ -39,6 +40,7 @@ export default function HallProjectDetail() {
         <h1 className="page-title">{decodedName}</h1>
       </header>
 
+      <Annotate id="hall-project.info">
       <div className="card hall-project-hero">
         <div className="card-body">
           <div className="hall-project-header">
@@ -54,10 +56,12 @@ export default function HallProjectDetail() {
           <p className="hall-project-desc">{base.desc}</p>
         </div>
       </div>
+      </Annotate>
 
       <div className="card">
         <div className="card-header">
           <h3 className="card-title">页面模块</h3>
+          <Annotate id="hall-project.header-actions" inline>
           <div className="hall-project-actions">
             <button className="btn btn-outline" onClick={() => navigate('/family-hall/deploy')}><Eye size={14} /> 预览</button>
             <button className="btn btn-outline" onClick={() => { setSavedAt(new Date().toLocaleString()); addToast('草稿已保存', 'success'); }}><Save size={14} /> 保存{savedAt ? `于 ${savedAt.split(' ')[1]}` : ''}</button>
@@ -65,8 +69,10 @@ export default function HallProjectDetail() {
               <Send size={14} /> {status === '已发布' ? '已发布' : '发布'}
             </button>
           </div>
+          </Annotate>
         </div>
         <div className="card-body">
+          <Annotate id="hall-project.module-list">
           <div className="hall-modules">
             {base.modules.map((m) => (
               <div
@@ -96,11 +102,14 @@ export default function HallProjectDetail() {
               </div>
             ))}
           </div>
+          </Annotate>
+          <Annotate id="hall-project.deploy-entry">
           <div className="hall-deploy-actions">
             <button className="btn btn-outline" onClick={() => navigate('/family-hall/deploy')}><LinkIcon size={14} /> H5链接</button>
             <button className="btn btn-outline" onClick={() => navigate('/family-hall/deploy')}><QrCode size={14} /> 二维码</button>
             <button className="btn btn-outline" onClick={() => navigate('/family-hall/deploy')}><Share2 size={14} /> 分享海报</button>
           </div>
+          </Annotate>
         </div>
       </div>
     </div>

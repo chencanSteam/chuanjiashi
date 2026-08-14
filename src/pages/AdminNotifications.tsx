@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Bell, Send, Megaphone } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
+import Annotate from '../components/annotation/Annotate';
 import './AdminNotifications.css';
 
 interface NoticeRecord {
@@ -58,6 +59,7 @@ export default function AdminNotifications() {
         <p>向用户端发布系统公告与活动通知</p>
       </header>
 
+      <Annotate id="admin-notifications.compose">
       <div className="card an-compose-card">
         <div className="card-header">
           <h3 className="card-title"><Megaphone size={16} /> 发布新通知</h3>
@@ -104,7 +106,9 @@ export default function AdminNotifications() {
           </button>
         </div>
       </div>
+      </Annotate>
 
+      <Annotate id="admin-notifications.history">
       <div className="card an-list-card">
         <div className="card-header">
           <h3 className="card-title">历史通知</h3>
@@ -128,6 +132,7 @@ export default function AdminNotifications() {
           ))}
         </div>
       </div>
+      </Annotate>
     </div>
   );
 }

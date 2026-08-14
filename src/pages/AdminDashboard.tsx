@@ -31,6 +31,7 @@ import { bookshelfApi } from '../api/bookshelf';
 import { commissionApi } from '../api/commission';
 import { partnerApi } from '../api/partner';
 import type { Biographer, GroupBuyRecord, WithdrawalRecord, PartnerApplication } from '../mocks/types';
+import Annotate from '../components/annotation/Annotate';
 import './AdminDashboard.css';
 
 const GMV_STATUSES: AdminOrder['status'][] = ['paid', 'delivering', 'completed'];
@@ -110,6 +111,7 @@ export default function AdminDashboard() {
         <h1 className="page-title">平台总览</h1>
       </header>
 
+      <Annotate id="admin-dashboard.stats">
       <div className="ad-stats">
         {statCards.map((card) => (
           <div className="card ad-stat-card" key={card.label}>
@@ -121,8 +123,10 @@ export default function AdminDashboard() {
           </div>
         ))}
       </div>
+      </Annotate>
 
       <div className="ad-main">
+        <Annotate id="admin-dashboard.todo">
         <div className="card ad-todo-card">
           <div className="card-header">
             <h3 className="card-title"><ClipboardList size={16} /> 待办事项</h3>
@@ -144,7 +148,9 @@ export default function AdminDashboard() {
             ))}
           </div>
         </div>
+        </Annotate>
 
+        <Annotate id="admin-dashboard.trend">
         <div className="card ad-trend-card">
           <div className="card-header">
             <h3 className="card-title"><BarChart3 size={16} /> 近 6 个月 GMV / 订单趋势</h3>
@@ -164,6 +170,7 @@ export default function AdminDashboard() {
             </ResponsiveContainer>
           </div>
         </div>
+        </Annotate>
       </div>
     </div>
   );

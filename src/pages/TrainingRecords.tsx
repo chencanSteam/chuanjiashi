@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../hooks/useToast';
 import { ArrowLeft, Plus, Clock, Calendar, CheckCircle2, Loader2, Trash2, Play, Filter } from 'lucide-react';
+import Annotate from '../components/annotation/Annotate';
 import './TrainingRecords.css';
 
 const initialRecords = [
@@ -50,6 +51,7 @@ export default function TrainingRecords() {
         <h1 className="page-title">训练记录</h1>
       </header>
 
+      <Annotate id="training-records.summary">
       <div className="training-records-summary">
         <div className="card">
           <div className="card-body training-summary-body">
@@ -59,18 +61,24 @@ export default function TrainingRecords() {
           </div>
         </div>
       </div>
+      </Annotate>
 
       <div className="card">
         <div className="card-header">
           <h3 className="card-title">训练记录列表</h3>
+          <Annotate id="training-records.filter" inline>
           <div className="training-records-filter">
             <Filter size={14} />
             {filters.map((f) => (
               <button key={f} className={filter === f ? 'active' : ''} onClick={() => setFilter(f)}>{f}</button>
             ))}
           </div>
+          </Annotate>
+          <Annotate id="training-records.new-training" inline>
           <button className="btn btn-primary" onClick={startTraining} disabled={running !== null}><Plus size={14} /> {running !== null ? '训练中…' : '新建训练'}</button>
+          </Annotate>
         </div>
+        <Annotate id="training-records.record-list">
         <div className="card-body training-records-body">
           {filtered.map((r) => (
             <div className="training-record-card" key={r.id}>
@@ -106,6 +114,7 @@ export default function TrainingRecords() {
           ))}
           {filtered.length === 0 && <div className="training-records-empty">该分类下暂无训练记录</div>}
         </div>
+        </Annotate>
       </div>
     </div>
   );

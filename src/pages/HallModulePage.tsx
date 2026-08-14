@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useToast } from '../hooks/useToast';
+import Annotate from '../components/annotation/Annotate';
 import {
   ArrowLeft,
   Plus,
@@ -81,6 +82,7 @@ function RulesModule({ projectName }: { projectName: string }) {
   };
 
   return (
+    <Annotate id="hall-module.rules">
     <div className="hall-module-content">
       <div className="hall-module-toolbar">
         <button className="btn btn-primary" onClick={() => setShowAdd(true)}><Plus size={14} /> 新建家训</button>
@@ -121,6 +123,7 @@ function RulesModule({ projectName }: { projectName: string }) {
       </div>
       <div className="hall-module-hint">共 {rules.length} 条家训，将展示在家风馆「{projectName}」的家训家规模块。</div>
     </div>
+    </Annotate>
   );
 }
 
@@ -163,6 +166,7 @@ function StoriesModule({ projectName }: { projectName: string }) {
   };
 
   return (
+    <Annotate id="hall-module.stories">
     <div className="hall-module-content">
       <div className="hall-module-toolbar">
         <button className="btn btn-primary" onClick={() => setShowAdd(true)}><Plus size={14} /> 发布故事</button>
@@ -204,6 +208,7 @@ function StoriesModule({ projectName }: { projectName: string }) {
       </div>
       <div className="hall-module-hint">共 {stories.length} 个故事，将展示在家风馆「{projectName}」的家风故事模块。</div>
     </div>
+    </Annotate>
   );
 }
 
@@ -241,6 +246,7 @@ function CoursesModule({ projectName }: { projectName: string }) {
   };
 
   return (
+    <Annotate id="hall-module.courses">
     <div className="hall-module-content">
       <div className="hall-module-toolbar">
         <button className="btn btn-primary" onClick={() => setShowAdd(true)}><Plus size={14} /> 新建课程</button>
@@ -281,6 +287,7 @@ function CoursesModule({ projectName }: { projectName: string }) {
       </div>
       <div className="hall-module-hint">共 {courses.length} 门课程，将展示在家风馆「{projectName}」的家风课程模块。</div>
     </div>
+    </Annotate>
   );
 }
 
@@ -324,6 +331,7 @@ function ElectionModule({ projectName }: { projectName: string }) {
   const totalVotes = candidates.reduce((sum, c) => sum + c.votes, 0);
 
   return (
+    <Annotate id="hall-module.election">
     <div className="hall-module-content">
       <div className="hall-module-toolbar">
         <button className="btn btn-primary" onClick={() => setShowAdd(true)}><Plus size={14} /> 添加参评家庭</button>
@@ -369,6 +377,7 @@ function ElectionModule({ projectName }: { projectName: string }) {
       </div>
       <div className="hall-module-hint">排行榜实时更新，将展示在家风馆「{projectName}」的最美家庭模块。</div>
     </div>
+    </Annotate>
   );
 }
 
@@ -434,6 +443,7 @@ function MentorModule({ projectName }: { projectName: string }) {
           </div>
         </div>
       )}
+      <Annotate id="hall-module.mentor-test">
       <div className="hall-mentor-test">
         <h4><Sparkles size={16} /> 对话测试</h4>
         <div className="hall-mentor-input">
@@ -442,6 +452,8 @@ function MentorModule({ projectName }: { projectName: string }) {
         </div>
         {answer && <div className="hall-mentor-answer"><MessageCircle size={14} /> {answer}</div>}
       </div>
+      </Annotate>
+      <Annotate id="hall-module.mentor-qa">
       <div className="hall-qa-list">
         {qa.map((item) => (
           <div className="hall-qa-card" key={item.id}>
@@ -451,6 +463,7 @@ function MentorModule({ projectName }: { projectName: string }) {
           </div>
         ))}
       </div>
+      </Annotate>
       <div className="hall-module-hint">共 {qa.length} 条问答，将服务于家风馆「{projectName}」的 AI 家风导师。</div>
     </div>
   );
@@ -498,7 +511,9 @@ export default function HallModulePage() {
           </div>
         </div>
       </header>
+      <Annotate id="hall-module.router">
       <Content projectName={decodedName} />
+      </Annotate>
     </div>
   );
 }

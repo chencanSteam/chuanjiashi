@@ -7,6 +7,7 @@ import type {
   AgreementConfig,
   ComplianceAlert,
 } from '../mocks/types';
+import Annotate from '../components/annotation/Annotate';
 import './ComplianceRisk.css';
 
 const tabs = [
@@ -68,6 +69,7 @@ export default function ComplianceRisk() {
         <h1 className="page-title">合规风控</h1>
       </header>
 
+      <Annotate id="compliance-risk.tabs">
       <div className="tabs">
         {tabs.map((t) => (
           <button
@@ -79,10 +81,12 @@ export default function ComplianceRisk() {
           </button>
         ))}
       </div>
+      </Annotate>
 
       {activeTab === 'records' && (
         <div className="card">
           <div className="card-header compliance-header">
+            <Annotate id="compliance-risk.record-filters" inline>
             <div className="compliance-filters">
               <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as ComplianceRecordType | 'all')}>
                 <option value="all">全部类型</option>
@@ -100,7 +104,9 @@ export default function ComplianceRisk() {
                 <option value="revoked">已撤销</option>
               </select>
             </div>
+            </Annotate>
           </div>
+          <Annotate id="compliance-risk.record-list">
           <div className="card-body compliance-body">
             {records.length === 0 ? (
               <div className="compliance-empty">暂无授权记录</div>
@@ -131,10 +137,12 @@ export default function ComplianceRisk() {
               </div>
             )}
           </div>
+          </Annotate>
         </div>
       )}
 
       {activeTab === 'agreements' && (
+        <Annotate id="compliance-risk.agreements">
         <div className="card">
           <div className="card-header">
             <h3 className="card-title"><FileText size={16} /> 协议版本列表</h3>
@@ -171,9 +179,11 @@ export default function ComplianceRisk() {
             )}
           </div>
         </div>
+        </Annotate>
       )}
 
       {activeTab === 'alerts' && (
+        <Annotate id="compliance-risk.alerts">
         <>
           <div className="card compliance-tip-card">
             <div className="card-body compliance-tip-body">
@@ -225,6 +235,7 @@ export default function ComplianceRisk() {
             </div>
           </div>
         </>
+        </Annotate>
       )}
 
       {viewingAgreement && (

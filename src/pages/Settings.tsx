@@ -32,6 +32,7 @@ import { openGuide } from '../components/GuideTour';
 import { commissionApi } from '../api/commission';
 import type { CommissionRecord as MockCommissionRecord, WithdrawalRecord as MockWithdrawalRecord } from '../mocks/types';
 import type { UserReward, UserWithdrawal } from '../data/userInviteData';
+import Annotate from '../components/annotation/Annotate';
 import './Settings.css';
 
 const defaultQuota: AIQuota = {
@@ -158,7 +159,6 @@ export default function Settings() {
   const active = sidebarItems.some((item) => item.key === section) ? (section ?? 'account') : 'account';
 
   const [notifications, setNotifications] = useState(initialNotifications);
-  const [smsLogin, setSmsLogin] = useState(true);
   const [twoFactor, setTwoFactor] = useState(false);
   const [autoBackup, setAutoBackup] = useState(true);
   const [backupFreq, setBackupFreq] = useState('每天');
@@ -175,28 +175,6 @@ export default function Settings() {
       }));
     }
   }, [user]);
-  const [showPassword, setShowPassword] = useState(false);
-  const [passwordForm, setPasswordForm] = useState({ old: '', next: '', confirm: '' });
-  const [passwordError, setPasswordError] = useState('');
-
-  const handlePasswordSubmit = () => {
-    if (!passwordForm.old) {
-      setPasswordError('请输入当前密码');
-      return;
-    }
-    if (passwordForm.next.length < 6) {
-      setPasswordError('新密码长度不能少于 6 位');
-      return;
-    }
-    if (passwordForm.next !== passwordForm.confirm) {
-      setPasswordError('两次输入的新密码不一致');
-      return;
-    }
-    setPasswordForm({ old: '', next: '', confirm: '' });
-    setPasswordError('');
-    setShowPassword(false);
-    addToast('密码已修改', 'success');
-  };
   const [members, setMembers] = useState(familyMembers);
   const [showVisibility, setShowVisibility] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
@@ -293,6 +271,7 @@ export default function Settings() {
     <div className="settings-page">
       <div className="settings-content">
           {active === 'account' && (
+            <Annotate id="settings.account">
             <div className="card settings-card">
               <div className="card-header"><h3 className="card-title">账户信息</h3></div>
               <div className="card-body settings-body">
@@ -369,9 +348,11 @@ export default function Settings() {
                 </button>
               </div>
             </div>
+            </Annotate>
           )}
 
           {active === 'notification' && (
+            <Annotate id="settings.notification">
             <div className="card settings-card">
               <div className="card-header"><h3 className="card-title">通知设置</h3></div>
               <div className="card-body settings-body">
@@ -383,14 +364,15 @@ export default function Settings() {
                 ))}
               </div>
             </div>
+            </Annotate>
           )}
 
           {active === 'privacy' && (
+            <Annotate id="settings.privacy">
             <div className="card settings-card">
               <div className="card-header"><h3 className="card-title">隐私与安全</h3></div>
               <div className="card-body settings-body">
-                <div className="setting-row"><span>登录密码</span><button className="btn btn-outline" onClick={() => setShowPassword(true)}>修改</button></div>
-                <div className="setting-row"><span>手机验证码登录</span><div className={`toggle-switch ${smsLogin ? 'on' : ''}`} onClick={() => { setSmsLogin((v) => !v); addToast(`手机验证码登录已${!smsLogin ? '开启' : '关闭'}`, 'success'); }}></div></div>
+                <div className="setting-row"><span>登录方式</span><span style={{ color: '#6b7280', fontSize: 13 }}>短信验证码登录</span></div>
                 <div className="setting-row"><span>两步验证</span><div className={`toggle-switch ${twoFactor ? 'on' : ''}`} onClick={() => { setTwoFactor((v) => !v); addToast(`两步验证已${!twoFactor ? '开启' : '关闭'}`, 'success'); }}></div></div>
                 <div className="setting-row"><span>家庭成员可见范围</span><button className="btn btn-outline" onClick={() => setShowVisibility(true)}>管理</button></div>
                 <div className="danger-zone">
@@ -400,9 +382,11 @@ export default function Settings() {
                 </div>
               </div>
             </div>
+            </Annotate>
           )}
 
           {active === 'family' && (
+            <Annotate id="settings.family">
             <div className="card settings-card">
               <div className="card-header"><h3 className="card-title">家庭成员</h3><button className="btn btn-primary" onClick={() => { const name = window.prompt('请输入成员姓名'); if (name) setMembers((prev) => [...prev, { name, role: '成员', phone: '-', email: '-' }]); }}>添加成员</button></div>
               <div className="card-body settings-body">
@@ -418,9 +402,11 @@ export default function Settings() {
                 ))}
               </div>
             </div>
+            </Annotate>
           )}
 
           {active === 'storage' && (
+            <Annotate id="settings.storage">
             <div className="card settings-card">
               <div className="card-header"><h3 className="card-title">存储与备份</h3></div>
               <div className="card-body settings-body">
@@ -433,11 +419,17 @@ export default function Settings() {
                 <button className="btn btn-outline" onClick={handleBackup}>立即备份</button>
               </div>
             </div>
+            </Annotate>
           )}
 
-          {active === 'invite' && user && <MyInvite user={user} refresh={rewardsRefresh} onWithdraw={() => setRewardsRefresh((v) => v + 1)} />}
+          {active === 'invite' && user && (
+            <Annotate id="settings.invite">
+              <MyInvite user={user} refresh={rewardsRefresh} onWithdraw={() => setRewardsRefresh((v) => v + 1)} />
+            </Annotate>
+          )}
 
           {active === 'quota' && (
+            <Annotate id="settings.quota">
             <div className="card settings-card">
               <div className="card-header"><h3 className="card-title"><Sparkles size={16} /> AI 额度</h3></div>
               <div className="card-body settings-body">
@@ -482,9 +474,11 @@ export default function Settings() {
                 <button className="btn btn-primary save-btn" onClick={() => setShowUpgrade(true)}>升级套餐</button>
               </div>
             </div>
+            </Annotate>
           )}
 
           {active === 'help' && (
+            <Annotate id="settings.help">
             <div className="card settings-card">
               <div className="card-header"><h3 className="card-title">帮助与反馈</h3></div>
               <div className="card-body settings-body">
@@ -502,41 +496,9 @@ export default function Settings() {
                 </div>
               </div>
             </div>
+            </Annotate>
           )}
         </div>
-
-      {showPassword && (
-        <div className="modal-overlay" onClick={() => setShowPassword(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header"><h4>修改登录密码</h4><button className="modal-close" onClick={() => setShowPassword(false)}><X size={16} /></button></div>
-            <div className="modal-body">
-              <input
-                type="password"
-                placeholder="当前密码"
-                className="modal-input"
-                value={passwordForm.old}
-                onChange={(e) => setPasswordForm((prev) => ({ ...prev, old: e.target.value }))}
-              />
-              <input
-                type="password"
-                placeholder="新密码（不少于 6 位）"
-                className="modal-input"
-                value={passwordForm.next}
-                onChange={(e) => setPasswordForm((prev) => ({ ...prev, next: e.target.value }))}
-              />
-              <input
-                type="password"
-                placeholder="确认新密码"
-                className="modal-input"
-                value={passwordForm.confirm}
-                onChange={(e) => setPasswordForm((prev) => ({ ...prev, confirm: e.target.value }))}
-              />
-              {passwordError && <p style={{ color: '#ef4444', fontSize: 13, margin: '0 0 8px' }}>{passwordError}</p>}
-              <button className="btn btn-primary" onClick={handlePasswordSubmit}>确认修改</button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {showVisibility && (
         <div className="modal-overlay" onClick={() => setShowVisibility(false)}>

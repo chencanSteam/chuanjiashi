@@ -5,6 +5,7 @@ import { useToast } from '../hooks/useToast';
 import Avatar from '../components/ui/Avatar';
 import { familyApi } from '../api/family';
 import type { FamilyMember } from '../mocks/types';
+import Annotate from '../components/annotation/Annotate';
 import './FamilyMemberDetail.css';
 
 function getArchiveId() {
@@ -100,18 +101,21 @@ export default function FamilyMemberDetail() {
             </div>
           </div>
 
+          <Annotate id="family-member-detail.member-info">
           <div className="member-detail-info">
             <div className="info-row"><Phone size={14} /> <span>{data.phone || '-'}</span></div>
             <div className="info-row"><Mail size={14} /> <span>{data.email || '-'}</span></div>
             <div className="info-row"><MapPin size={14} /> <span>{data.location || '-'}</span></div>
             <div className="info-row"><Calendar size={14} /> <span>{data.birth || '-'}</span></div>
           </div>
+          </Annotate>
 
           <div className="member-detail-section">
             <h4><BookOpen size={14} /> 个人简介</h4>
             <p>{data.bio || '暂无简介'}</p>
           </div>
 
+          <Annotate id="family-member-detail.albums">
           <div className="member-detail-section">
             <h4><ImageIcon size={14} /> 相关相册</h4>
             <div className="detail-albums">
@@ -123,15 +127,19 @@ export default function FamilyMemberDetail() {
               ))}
             </div>
           </div>
+          </Annotate>
 
+          <Annotate id="family-member-detail.actions">
           <div className="member-detail-actions">
             <button className="btn btn-primary" onClick={() => setShowEdit(true)}><Users size={14} /> 编辑资料</button>
             <button className="btn btn-outline" onClick={() => navigate('/archive')}><Calendar size={14} /> 人生时间轴</button>
           </div>
+          </Annotate>
         </div>
       </div>
 
       {showEdit && (
+        <Annotate id="family-member-detail.edit-modal">
         <div className="modal-overlay" onClick={() => setShowEdit(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header"><h4>编辑 {decodedName} 的资料</h4><button className="modal-close" onClick={() => setShowEdit(false)}><X size={16} /></button></div>
@@ -153,6 +161,7 @@ export default function FamilyMemberDetail() {
             </div>
           </div>
         </div>
+        </Annotate>
       )}
     </div>
   );

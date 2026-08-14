@@ -1,5 +1,6 @@
 import { ArrowLeft, FileCheck, Clock, AlertCircle, Smile } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import Annotate from '../components/annotation/Annotate';
 import './GovernmentDashboard.css';
 
 const stats = [
@@ -21,12 +22,15 @@ export default function GovernmentDashboard() {
   return (
     <div className="detail-page government-dashboard-page">
       <header className="page-header">
+        <Annotate id="government-dashboard.back" inline>
         <button className="btn btn-ghost" onClick={() => navigate(-1)}>
           <ArrowLeft size={16} /> 返回
         </button>
+        </Annotate>
         <h1 className="page-title">政务数据看板</h1>
       </header>
 
+      <Annotate id="government-dashboard.stats">
       <div className="gov-stats">
         {stats.map((s, i) => (
           <div className="card gov-stat-card" key={i}>
@@ -40,7 +44,9 @@ export default function GovernmentDashboard() {
           </div>
         ))}
       </div>
+      </Annotate>
 
+      <Annotate id="government-dashboard.tasks">
       <div className="card">
         <div className="card-header">
           <h3 className="card-title">办理进度</h3>
@@ -57,6 +63,7 @@ export default function GovernmentDashboard() {
           ))}
         </div>
       </div>
+      </Annotate>
     </div>
   );
 }

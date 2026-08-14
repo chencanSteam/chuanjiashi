@@ -3,6 +3,7 @@ import { ArrowLeft, MapPin } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { familyApi } from '../api/family';
 import type { Place } from '../mocks/types';
+import Annotate from '../components/annotation/Annotate';
 import './ArchivePlaces.css';
 
 function getArchiveId() {
@@ -35,6 +36,7 @@ export default function ArchivePlaces() {
           <h3 className="card-title"><MapPin size={16} /> 人生足迹地图</h3>
         </div>
         <div className="card-body">
+          <Annotate id="archive-places.map">
           <div className="places-map">
             {places.map((p, i) => (
               <div className="place-pin" key={p.id} style={{ left: `${18 + (i % 5) * 16}%`, top: `${22 + (i % 3) * 20}%` }}>
@@ -43,6 +45,8 @@ export default function ArchivePlaces() {
               </div>
             ))}
           </div>
+          </Annotate>
+          <Annotate id="archive-places.list">
           <div className="places-list">
             {places.map((p) => (
               <div className="place-row" key={p.id}>
@@ -51,6 +55,7 @@ export default function ArchivePlaces() {
               </div>
             ))}
           </div>
+          </Annotate>
           {places.length === 0 && <div className="places-empty">暂无地点足迹，可去「人生档案 → 地点足迹」添加</div>}
         </div>
       </div>

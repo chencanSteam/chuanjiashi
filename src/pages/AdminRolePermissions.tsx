@@ -1,4 +1,5 @@
 import { Shield } from 'lucide-react';
+import Annotate from '../components/annotation/Annotate';
 import './AdminRolePermissions.css';
 
 // 通用角色权限管理：MVP 阶段仅作说明，多角色权限后续版本开放
@@ -10,6 +11,7 @@ export default function AdminRolePermissions() {
         <p>配置后台各角色可访问的功能模块</p>
       </header>
 
+      <Annotate id="admin-roles.placeholder">
       <div className="card rp-placeholder-card">
         <div className="card-body rp-placeholder">
           <Shield size={40} color="#1B5E4B" />
@@ -24,6 +26,7 @@ export default function AdminRolePermissions() {
           </p>
         </div>
       </div>
+      </Annotate>
     </div>
   );
 }

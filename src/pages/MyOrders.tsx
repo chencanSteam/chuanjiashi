@@ -28,6 +28,7 @@ import { biographerApi } from '../api/biographer';
 import type { Order, Biographer, BiographerOrder } from '../mocks/types';
 import { paymentApi } from '../api/payment';
 import { useToast } from '../hooks/useToast';
+import Annotate from '../components/annotation/Annotate';
 import './MyOrders.css';
 
 const statusOptions: Array<{ value: Order['status'] | 'all'; label: string }> = [
@@ -255,6 +256,7 @@ export default function MyOrders() {
         </button>
       </header>
 
+      <Annotate id="my-orders.stats">
       <div className="my-order-stats">
         <div className="card my-order-stat-card">
           <ClipboardList size={20} color="#1B5E4B" />
@@ -285,9 +287,11 @@ export default function MyOrders() {
           </div>
         </div>
       </div>
+      </Annotate>
 
       <div className="card my-order-list-card">
         <div className="card-header my-order-list-header">
+          <Annotate id="my-orders.filters" inline>
           <div className="my-order-filters">
             {!isBioType && (
               <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as Order['status'] | 'all')}>
@@ -302,7 +306,9 @@ export default function MyOrders() {
               ))}
             </select>
           </div>
+          </Annotate>
         </div>
+        <Annotate id="my-orders.order-list">
         <div className="card-body my-order-list-body">
           {loading ? (
             <div className="my-order-empty">加载中…</div>
@@ -430,9 +436,11 @@ export default function MyOrders() {
             </div>
           )}
         </div>
+        </Annotate>
       </div>
 
       {selected && (
+        <Annotate id="my-orders.detail-modal">
         <div className="modal-overlay" onClick={() => setSelected(null)}>
           <div className="modal-content my-order-detail-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
@@ -577,9 +585,11 @@ export default function MyOrders() {
             </div>
           </div>
         </div>
+        </Annotate>
       )}
 
       {reviewOrder && (
+        <Annotate id="my-orders.review-modal">
         <div className="modal-overlay" onClick={() => setReviewOrder(null)}>
           <div className="modal-content my-order-detail-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
@@ -610,9 +620,11 @@ export default function MyOrders() {
             </div>
           </div>
         </div>
+        </Annotate>
       )}
 
       {refundOrder && (
+        <Annotate id="my-orders.refund-modal">
         <div className="modal-overlay" onClick={() => setRefundOrder(null)}>
           <div className="modal-content my-order-detail-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
@@ -636,6 +648,7 @@ export default function MyOrders() {
             </div>
           </div>
         </div>
+        </Annotate>
       )}
     </div>
   );

@@ -18,6 +18,7 @@ import { orderApi } from '../api/order';
 import { paymentApi } from '../api/payment';
 import { useToast } from '../hooks/useToast';
 import { useAuth } from '../hooks/useAuth';
+import Annotate from '../components/annotation/Annotate';
 import type { ProductPackage, OrderAddress } from '../mocks/types';
 import './ProductDetail.css';
 
@@ -147,11 +148,13 @@ export default function ProductDetail() {
   if (!product) {
     return (
       <div className="product-detail-page">
+        <Annotate id="product-detail.not-found">
         <div className="product-detail-empty">
           <Package size={48} color="#d1d5db" />
           <p>商品不存在或已下架</p>
           <button className="btn btn-primary" onClick={() => navigate('/store')}>返回商城</button>
         </div>
+        </Annotate>
       </div>
     );
   }
@@ -189,9 +192,11 @@ export default function ProductDetail() {
             <span className="product-detail-sales">已售 {product.sales || 0}</span>
           </div>
           <div className="product-detail-actions">
+            <Annotate id="product-detail.buy-button" inline>
             <button className="btn btn-primary" onClick={() => setShowBuy(true)}>
               <ShoppingBag size={14} /> 立即购买
             </button>
+            </Annotate>
           </div>
         </div>
       </div>
@@ -205,6 +210,7 @@ export default function ProductDetail() {
         </div>
       </div>
 
+      <Annotate id="product-detail.reviews">
       <div className="product-detail-section">
         <div className="product-detail-reviews-header">
           <h3><MessageCircle size={16} /> 用户评价</h3>
@@ -259,8 +265,10 @@ export default function ProductDetail() {
           </div>
         )}
       </div>
+      </Annotate>
 
       {showBuy && (
+        <Annotate id="product-detail.buy-modal">
         <div className="modal-overlay" onClick={() => setShowBuy(false)}>
           <div className="modal-content product-detail-buy-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
@@ -310,6 +318,7 @@ export default function ProductDetail() {
             </div>
           </div>
         </div>
+        </Annotate>
       )}
     </div>
   );

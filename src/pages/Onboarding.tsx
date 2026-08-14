@@ -4,6 +4,7 @@ import { ArrowRight, ArrowLeft, Plus, Trash2, Mic, Sparkles, User } from 'lucide
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/useToast';
 import { archiveApi } from '../api/archive';
+import Annotate from '../components/annotation/Annotate';
 import './Onboarding.css';
 
 interface LifeStage {
@@ -194,6 +195,7 @@ export default function Onboarding() {
 
         <div className="onboarding-body">
           {step === 1 && (
+            <Annotate id="onboarding.basic-form">
             <div className="onboarding-step">
               <h2><User size={20} /> 第一步：填写基本信息</h2>
               <p className="step-desc">这些信息会用于生成采访提纲和人生档案。</p>
@@ -223,9 +225,11 @@ export default function Onboarding() {
                 </div>
               </div>
             </div>
+            </Annotate>
           )}
 
           {step === 2 && (
+            <Annotate id="onboarding.stages">
             <div className="onboarding-step">
               <h2><Sparkles size={20} /> 第二步：添加人生阶段</h2>
               <p className="step-desc">您经历的关键阶段会帮助 AI 生成更贴合的采访问题。</p>
@@ -249,9 +253,11 @@ export default function Onboarding() {
                 <Plus size={14} /> 添加一个人生阶段
               </button>
             </div>
+            </Annotate>
           )}
 
           {step === 3 && (
+            <Annotate id="onboarding.outline">
             <div className="onboarding-step">
               <h2><Mic size={20} /> 第三步：采访提纲</h2>
               <p className="step-desc">AI 已根据您提供的信息生成采访提纲，您可以在采访中随时调整。</p>
@@ -268,9 +274,11 @@ export default function Onboarding() {
                 ))}
               </div>
             </div>
+            </Annotate>
           )}
         </div>
 
+        <Annotate id="onboarding.start">
         <div className="onboarding-footer">
           {step > 1 && (
             <button className="btn btn-outline" onClick={back}>
@@ -287,6 +295,7 @@ export default function Onboarding() {
             </button>
           )}
         </div>
+        </Annotate>
       </div>
     </div>
   );

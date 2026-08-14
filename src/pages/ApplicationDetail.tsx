@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ArrowLeft, FileText, Clock, CheckCircle2, User, Calendar, Printer, Download, X } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useToast } from '../hooks/useToast';
+import Annotate from '../components/annotation/Annotate';
 import './ApplicationDetail.css';
 
 const appData: Record<string, { name: string; type: string; status: string; date: string; desc: string }> = {
@@ -28,6 +29,7 @@ export default function ApplicationDetail() {
       </header>
 
       <div className="card">
+        <Annotate id="application-detail.data">
         <div className="card-header">
           <div>
             <h3 className="card-title">{data.type}</h3>
@@ -35,6 +37,7 @@ export default function ApplicationDetail() {
           </div>
           <span className={`app-status ${data.status === '审核中' ? 'pending' : data.status === '待补充' ? 'need' : 'done'}`}>{data.status}</span>
         </div>
+        </Annotate>
         <div className="card-body app-detail-body">
           <div className="app-info-grid">
             <div className="app-info-item"><User size={14} /> 申请人：{data.name}</div>
@@ -45,13 +48,16 @@ export default function ApplicationDetail() {
 
           <div className="app-desc">{data.desc}</div>
 
+          <Annotate id="application-detail.timeline">
           <div className="app-timeline">
             <div className="timeline-step done"><div className="step-dot" /> 提交申请</div>
             <div className={`timeline-step ${data.status !== '待补充' ? 'done' : ''}`}><div className="step-dot" /> AI 智能核验</div>
             <div className={`timeline-step ${data.status === '已办结' ? 'done' : data.status === '审核中' ? 'active' : ''}`}><div className="step-dot" /> 人工复核</div>
             <div className={`timeline-step ${data.status === '已办结' ? 'done' : ''}`}><div className="step-dot" /> 结果下发</div>
           </div>
+          </Annotate>
 
+          <Annotate id="application-detail.actions" inline>
           <div className="app-detail-actions">
             <button className="btn btn-primary" onClick={() => setShowProof(true)}><FileText size={14} /> 查看证明</button>
             <button className="btn btn-outline" onClick={() => window.print()}><Printer size={14} /> 打印</button>
@@ -66,6 +72,7 @@ export default function ApplicationDetail() {
               addToast('证明已下载', 'success');
             }}><Download size={14} /> 下载</button>
           </div>
+          </Annotate>
         </div>
       </div>
 

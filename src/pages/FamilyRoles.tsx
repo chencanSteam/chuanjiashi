@@ -2,6 +2,7 @@ import { ArrowLeft, Shield } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Modal from '../components/ui/Modal';
+import Annotate from '../components/annotation/Annotate';
 import { useToast } from '../hooks/useToast';
 import './FamilyRoles.css';
 
@@ -92,7 +93,9 @@ export default function FamilyRoles() {
           <ArrowLeft size={16} /> 返回
         </button>
         <h1 className="page-title">角色权限</h1>
+        <Annotate id="family-roles.add-role" inline>
         <button className="btn btn-primary" onClick={openCreate}>+ 新增角色</button>
+        </Annotate>
       </header>
 
       <div className="card">
@@ -100,6 +103,7 @@ export default function FamilyRoles() {
           <h3 className="card-title"><Shield size={16} /> 角色列表</h3>
         </div>
         <div className="card-body">
+          <Annotate id="family-roles.roles-table">
           <table className="roles-table">
             <thead>
               <tr><th>角色</th><th>称谓</th><th>成员</th><th>权限范围</th><th>操作</th></tr>
@@ -111,11 +115,16 @@ export default function FamilyRoles() {
                   <td>{r.title}</td>
                   <td>{r.members.length > 0 ? r.members.join('、') : '—'}</td>
                   <td>{r.permissions}</td>
-                  <td><button className="btn btn-ghost btn-xs" onClick={() => openEdit(i)}>编辑</button></td>
+                  <td>
+                    <Annotate id="family-roles.edit" inline>
+                    <button className="btn btn-ghost btn-xs" onClick={() => openEdit(i)}>编辑</button>
+                    </Annotate>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          </Annotate>
         </div>
       </div>
 
@@ -130,6 +139,7 @@ export default function FamilyRoles() {
           </>
         }
       >
+        <Annotate id="family-roles.role-form">
         <div className="role-form-row">
           <label>角色名</label>
           <input
@@ -157,6 +167,7 @@ export default function FamilyRoles() {
             placeholder="如：成员管理、内容审核"
           />
         </div>
+        </Annotate>
       </Modal>
     </div>
   );

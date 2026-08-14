@@ -15,6 +15,7 @@ import {
   X,
 } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
+import Annotate from '../components/annotation/Annotate';
 import './PhotoRestore.css';
 
 type RestoreMode = 'enhance' | 'scratch' | 'colorize' | 'upscale';
@@ -517,6 +518,7 @@ export default function PhotoRestore() {
         <div className="photo-restore-main">
           {/* 上传区域 */}
           {!displayOriginal ? (
+            <Annotate id="photo-restore.upload">
             <div
               className={`card photo-restore-upload ${dragOver ? 'drag-over' : ''}`}
               onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
@@ -541,7 +543,9 @@ export default function PhotoRestore() {
                 </div>
               </div>
             </div>
+            </Annotate>
           ) : (
+            <Annotate id="photo-restore.preview">
             <div className="card photo-restore-preview">
               <div className="card-header">
                 <h3 className="card-title">修复预览</h3>
@@ -601,6 +605,7 @@ export default function PhotoRestore() {
                 )}
               </div>
             </div>
+            </Annotate>
           )}
 
           {/* 修复模式 */}
@@ -609,6 +614,7 @@ export default function PhotoRestore() {
               <h3 className="card-title">选择修复模式</h3>
             </div>
             <div className="card-body">
+              <Annotate id="photo-restore.mode">
               <div className="restore-modes">
                 {modes.map((m) => {
                   const Icon = m.icon;
@@ -627,7 +633,9 @@ export default function PhotoRestore() {
                   );
                 })}
               </div>
+              </Annotate>
 
+              <Annotate id="photo-restore.actions">
               <div className="restore-actions">
                 <button
                   className="btn btn-primary btn-lg"
@@ -652,12 +660,14 @@ export default function PhotoRestore() {
                   </>
                 )}
               </div>
+              </Annotate>
             </div>
           </div>
         </div>
 
         {/* 侧边栏：最近记录 */}
         <div className="photo-restore-sidebar">
+          <Annotate id="photo-restore.records">
           <div className="card">
             <div className="card-header">
               <h3 className="card-title"><History size={16} /> 修复记录</h3>
@@ -709,11 +719,13 @@ export default function PhotoRestore() {
               )}
             </div>
           </div>
+          </Annotate>
         </div>
       </div>
 
       {showSaveModal && (
         <div className="modal-overlay" onClick={() => setShowSaveModal(false)}>
+          <Annotate id="photo-restore.save-modal">
           <div className="modal-content photo-save-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>保存到人生档案</h3>
@@ -785,6 +797,7 @@ export default function PhotoRestore() {
               )}
             </div>
           </div>
+          </Annotate>
         </div>
       )}
     </div>

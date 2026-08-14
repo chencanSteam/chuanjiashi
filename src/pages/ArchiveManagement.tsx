@@ -13,6 +13,7 @@ import {
 import { useToast } from '../hooks/useToast';
 import { adminArchiveApi } from '../api/adminArchive';
 import type { AdminArchive } from '../mocks/types';
+import Annotate from '../components/annotation/Annotate';
 import './ArchiveManagement.css';
 
 const PRIVACY_LABELS: Record<AdminArchive['privacyStatus'], string> = {
@@ -64,6 +65,7 @@ export default function ArchiveManagement() {
 
       <div className="card am-list-card">
         <div className="card-header am-list-header">
+          <Annotate id="admin-archives.filters" inline>
           <div className="am-filters">
             <div className="am-search">
               <Search size={16} />
@@ -84,7 +86,9 @@ export default function ArchiveManagement() {
               <option value="public">公开</option>
             </select>
           </div>
+          </Annotate>
         </div>
+        <Annotate id="admin-archives.archive-list">
         <div className="card-body am-list-body">
           {archives.length === 0 ? (
             <div className="am-empty">暂无符合条件的档案</div>
@@ -137,9 +141,11 @@ export default function ArchiveManagement() {
             </div>
           )}
         </div>
+        </Annotate>
       </div>
 
       {detail && (
+        <Annotate id="admin-archives.detail-drawer">
         <div className="am-drawer-overlay" onClick={() => setDetail(null)}>
           <div className="am-drawer" onClick={(e) => e.stopPropagation()}>
             <div className="am-drawer-header">
@@ -175,6 +181,7 @@ export default function ArchiveManagement() {
             </div>
           </div>
         </div>
+        </Annotate>
       )}
     </div>
   );

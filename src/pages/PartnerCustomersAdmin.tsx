@@ -6,6 +6,7 @@ import {
   getPartnerTypeLabel,
 } from '../data/partnerData';
 import type { PartnerCustomer, Partner } from '../types/partner';
+import Annotate from '../components/annotation/Annotate';
 import './PartnerCustomersAdmin.css';
 
 export default function PartnerCustomersAdmin() {
@@ -73,6 +74,7 @@ export default function PartnerCustomersAdmin() {
       <div className="card partner-bind-card">
         <div className="card-header"><h3 className="card-title"><Link2 size={16} /> 手动绑定客户</h3></div>
         <div className="card-body">
+          <Annotate id="admin-partner-customers.bind-form" inline>
           <div className="partner-bind-form">
             <select value={bindPartnerId} onChange={(e) => setBindPartnerId(e.target.value)}>
               <option value="">选择合伙人</option>
@@ -82,14 +84,18 @@ export default function PartnerCustomersAdmin() {
             </select>
             <input type="text" placeholder="客户ID/手机号" value={newUserId} onChange={(e) => setNewUserId(e.target.value)} />
             <input type="text" placeholder="客户姓名（选填）" value={newUserName} onChange={(e) => setNewUserName(e.target.value)} />
+            <Annotate id="admin-partner-customers.bind-action" inline>
             <button className="btn btn-primary" onClick={handleBind}>绑定</button>
+            </Annotate>
           </div>
+          </Annotate>
         </div>
       </div>
 
       <div className="card">
         <div className="card-header partner-customers-admin-header">
           <h3 className="card-title"><Users size={16} /> 客户归属列表</h3>
+          <Annotate id="admin-partner-customers.filter" inline>
           <div className="partner-customers-admin-filters">
             <div className="partner-customers-admin-search">
               <Search size={14} />
@@ -102,7 +108,9 @@ export default function PartnerCustomersAdmin() {
               ))}
             </select>
           </div>
+          </Annotate>
         </div>
+        <Annotate id="admin-partner-customers.list">
         <div className="card-body partner-customers-admin-body">
           {filtered.length === 0 ? (
             <div className="partner-customers-admin-empty">暂无客户归属记录</div>
@@ -148,6 +156,7 @@ export default function PartnerCustomersAdmin() {
             </div>
           )}
         </div>
+        </Annotate>
       </div>
     </div>
   );

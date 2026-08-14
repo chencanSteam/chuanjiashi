@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { ClipboardList, CheckCircle, Clock, User, Phone, Mail, Star, Calendar } from 'lucide-react';
 import { biographerApi } from '../api/biographer';
 import type { Biographer as MockBiographer, BiographerOrder as MockBiographerOrder } from '../mocks/types';
+import Annotate from '../components/annotation/Annotate';
 import './PartnerCenter.css';
 
 export default function BiographerCenter() {
@@ -34,14 +35,17 @@ export default function BiographerCenter() {
       <header className="page-header"><h1 className="page-title">工作台</h1></header>
 
       <div className="partner-center-dashboard">
+        <Annotate id="biographer-center.stats">
         <div className="partner-center-stats">
           <div className="card partner-center-stat"><ClipboardList size={20} color="#1B5E4B" /><div><div className="partner-center-stat-value">{orders.length}</div><div className="partner-center-stat-label">全部订单</div></div></div>
           <div className="card partner-center-stat"><Clock size={20} color="#d97706" /><div><div className="partner-center-stat-value">{pending}</div><div className="partner-center-stat-label">待处理</div></div></div>
           <div className="card partner-center-stat"><Star size={20} color="#2563eb" /><div><div className="partner-center-stat-value">{inProgress}</div><div className="partner-center-stat-label">进行中</div></div></div>
           <div className="card partner-center-stat"><CheckCircle size={20} color="#7c3aed" /><div><div className="partner-center-stat-value">{completed}</div><div className="partner-center-stat-label">已完成</div></div></div>
         </div>
+        </Annotate>
 
         {biographer && (
+          <Annotate id="biographer-center.profile">
           <div className="card">
             <div className="card-header"><h3 className="card-title"><User size={16} /> 我的资料</h3></div>
             <div className="card-body">
@@ -61,6 +65,7 @@ export default function BiographerCenter() {
               </div>
             </div>
           </div>
+          </Annotate>
         )}
       </div>
     </div>

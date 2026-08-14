@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../hooks/useToast';
 import { ArrowLeft, Plus, ClipboardList, Send, BarChart3, Users, Trash2, X } from 'lucide-react';
+import Annotate from '../components/annotation/Annotate';
 import './FamilyAssessment.css';
 
 const initialAssessments = [
@@ -45,15 +46,19 @@ export default function FamilyAssessment() {
       <div className="card">
         <div className="card-header family-assessment-header">
           <h3 className="card-title">测评列表</h3>
+          <Annotate id="family-assessment.create-button" inline>
           <button className="btn btn-primary" onClick={() => setShowAdd(true)}><Plus size={14} /> 创建测评</button>
+          </Annotate>
         </div>
         <div className="card-body family-assessment-body">
           {showAdd && (
+            <Annotate id="family-assessment.create-form">
             <div className="family-assessment-add">
               <input type="text" placeholder="测评名称" value={title} onChange={(e) => setTitle(e.target.value)} />
               <button className="btn btn-primary" onClick={addAssessment}>创建</button>
               <button className="btn btn-ghost" onClick={() => setShowAdd(false)}>取消</button>
             </div>
+            </Annotate>
           )}
           {assessments.map((a) => (
             <div className="family-assessment-item" key={a.id}>
@@ -66,9 +71,15 @@ export default function FamilyAssessment() {
                 </div>
               </div>
               <div className="family-assessment-actions">
+                <Annotate id="family-assessment.publish" inline>
                 <button className="btn btn-primary" onClick={() => { setPublished((prev) => new Set(prev).add(a.id)); addToast('测评已发布', 'success'); }} disabled={published.has(a.id)}><Send size={13} /> {published.has(a.id) ? '已发布' : '发布'}</button>
+                </Annotate>
+                <Annotate id="family-assessment.stats" inline>
                 <button className="btn btn-outline" onClick={() => setStatsId(a.id)}><BarChart3 size={13} /> 统计</button>
+                </Annotate>
+                <Annotate id="family-assessment.delete" inline>
                 <button className="hall-item-delete" onClick={() => removeAssessment(a.id)}><Trash2 size={14} /></button>
+                </Annotate>
               </div>
             </div>
           ))}

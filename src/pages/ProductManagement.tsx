@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Plus, Edit2, Trash2, X, Package, ArrowDownToLine, ArrowUpFromLine } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 import { productApi } from '../api/product';
+import Annotate from '../components/annotation/Annotate';
 import type { ProductPackage, ProductType } from '../mocks/types';
 import './ProductManagement.css';
 
@@ -169,6 +170,8 @@ export default function ProductManagement() {
         <h1 className="page-title">产品套餐管理</h1>
       </header>
 
+      <Annotate id="product-management.groups">
+      <>
       {grouped.map((group) => (
         <div className="card product-mgmt-group" key={group.type}>
           <div className="card-header product-mgmt-group-header">
@@ -223,8 +226,11 @@ export default function ProductManagement() {
           </div>
         </div>
       ))}
+      </>
+      </Annotate>
 
       {showModal && (
+        <Annotate id="product-management.form">
         <div className="modal-overlay" onClick={closeModal}>
           <div className="modal-content product-mgmt-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
@@ -289,9 +295,11 @@ export default function ProductManagement() {
             </div>
           </div>
         </div>
+        </Annotate>
       )}
 
       {showDelete && (
+        <Annotate id="product-management.delete">
         <div className="modal-overlay" onClick={() => setShowDelete(null)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
@@ -307,6 +315,7 @@ export default function ProductManagement() {
             </div>
           </div>
         </div>
+        </Annotate>
       )}
     </div>
   );

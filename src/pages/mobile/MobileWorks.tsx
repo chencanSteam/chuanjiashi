@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { BookOpen, ChevronRight } from 'lucide-react';
 import Modal from '../../components/ui/Modal';
 import type { Biography } from '../../mocks/types';
+import Annotate from '../../components/annotation/Annotate';
 import './MobileWorks.css';
 
 function loadBiographies(): Biography[] {
@@ -46,6 +47,7 @@ export default function MobileWorks() {
           <span>完成 AI 采访后可生成传记</span>
         </div>
       ) : (
+        <Annotate id="mobile-works.work-list">
         <div className="mobile-works-list">
           {works.map((work) => (
             <div key={work.id} className="mobile-works-item" onClick={() => setSelected(work)}>
@@ -62,6 +64,7 @@ export default function MobileWorks() {
             </div>
           ))}
         </div>
+        </Annotate>
       )}
 
       <Modal
@@ -69,6 +72,7 @@ export default function MobileWorks() {
         title="作品详情"
         onClose={() => setSelected(null)}
         footer={
+          <Annotate id="mobile-works.view-biography" inline>
           <button
             className="mobile-modal-btn primary"
             onClick={() => {
@@ -78,9 +82,11 @@ export default function MobileWorks() {
           >
             查看传记
           </button>
+          </Annotate>
         }
       >
         {selected && (
+          <Annotate id="mobile-works.detail-modal">
           <div className="works-detail">
             <div className="works-detail-row">
               <span>作品名</span>
@@ -99,6 +105,7 @@ export default function MobileWorks() {
               <strong>{new Date(selected.createdAt).toLocaleString()}</strong>
             </div>
           </div>
+          </Annotate>
         )}
       </Modal>
     </div>

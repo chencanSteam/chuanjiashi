@@ -19,6 +19,7 @@ import { useToast } from '../hooks/useToast';
 import Modal from '../components/ui/Modal';
 import { loadJson, type ChapterData } from '../data/aiMock';
 import { buildEpub, downloadBlob, stripHtml } from '../utils/epub';
+import Annotate from '../components/annotation/Annotate';
 import './DigitalAssets.css';
 
 type GenState = 'idle' | 'generating' | 'done';
@@ -311,7 +312,8 @@ export default function DigitalAssets() {
           const Icon = card.icon;
           const state = genState[card.key] || 'idle';
           return (
-            <div className="digital-assets-card" key={card.key}>
+            <Annotate id={`digital-assets.${card.key}`} key={card.key}>
+            <div className="digital-assets-card">
               <div className="digital-assets-card-icon"><Icon size={28} /></div>
               <h3>{card.title}</h3>
               <p className="digital-assets-card-desc">{card.description}</p>
@@ -448,9 +450,11 @@ export default function DigitalAssets() {
                 </div>
               )}
             </div>
+            </Annotate>
           );
         })}
 
+        <Annotate id="digital-assets.evidence">
         <div className="digital-assets-card digital-assets-evidence">
           <div className="digital-assets-card-icon"><ShieldCheck size={28} /></div>
           <h3>区块链存证</h3>
@@ -479,6 +483,7 @@ export default function DigitalAssets() {
             <ShieldCheck size={14} /> 查看存证
           </button>
         </div>
+        </Annotate>
       </div>
 
       <Modal open={showEvidence} title="区块链存证信息" onClose={() => setShowEvidence(false)}>

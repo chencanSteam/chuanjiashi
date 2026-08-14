@@ -18,7 +18,6 @@ import {
   LogOut,
   ChevronRight,
   ChevronDown,
-  Briefcase,
   Share2,
   User,
   Bell as BellIcon,
@@ -26,8 +25,6 @@ import {
   Database,
   Sparkles,
   Wand2,
-  FileText,
-  PenLine,
   UserCheck,
   ClipboardList,
   ShoppingBag,
@@ -39,6 +36,7 @@ import Avatar from './ui/Avatar';
 import { useAuth } from '../hooks/useAuth';
 import { useVersion } from '../hooks/useVersion';
 import GuideTour, { openGuide } from './GuideTour';
+import AnnotationToggle from './annotation/AnnotationToggle';
 import './Layout.css';
 
 interface NavItem {
@@ -60,6 +58,7 @@ const homeNavItem: NavItem = { to: '/home', icon: LayoutDashboard, label: '首�
 // 「传记创作」组（MVP 版仅保留 AI智能采访、AI传记生成）
 const creationGroupItemsMVP: NavItem[] = [
   { to: '/interview', icon: Mic, label: 'AI智能采访' },
+  { to: '/polish', icon: Wand2, label: '传记润色' },
   { to: '/biography', icon: BookOpen, label: 'AI传记生成' },
 ];
 
@@ -172,9 +171,6 @@ export default function Layout() {
   const navigate = useNavigate();
   const displayName = user?.name || user?.phone || '用户';
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const isAdmin = user?.roles?.includes('admin') ?? false;
-  const isPartner = user?.roles?.includes('partner') ?? false;
-  const isBiographer = user?.roles?.includes('biographer') ?? false;
 
   // 顶栏消息通知
   const [notices, setNotices] = useState(initialNotices);
@@ -338,28 +334,6 @@ export default function Layout() {
                     <User size={14} /> 个人中心
                   </NavLink>
                   <div className="user-dropdown-divider" />
-                  {!isMVP && (
-                    isPartner ? (
-                      <NavLink to="/partner" className="user-dropdown-item">
-                        <Briefcase size={14} /> 合伙人中心
-                      </NavLink>
-                    ) : (
-                      <NavLink to="/partner/apply" className="user-dropdown-item">
-                        <FileText size={14} /> 申请成为合伙人
-                      </NavLink>
-                    )
-                  )}
-                  {isAdmin && (
-                    <NavLink to="/admin" className="user-dropdown-item">
-                      <ShieldIcon size={14} /> 管理后台
-                    </NavLink>
-                  )}
-                  {isBiographer && (
-                    <NavLink to="/biographer" className="user-dropdown-item">
-                      <PenLine size={14} /> 传记师工作台
-                    </NavLink>
-                  )}
-                  <div className="user-dropdown-divider" />
                   <button className="user-dropdown-item" onClick={handleLogout}>
                     <LogOut size={14} /> 退出登录
                   </button>
@@ -374,6 +348,7 @@ export default function Layout() {
         </main>
       </div>
       <GuideTour />
+      <AnnotationToggle />
     </div>
   );
 }

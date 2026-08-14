@@ -4,6 +4,7 @@ import { orderApi, type AdminOrder } from '../api/order';
 import { biographerApi } from '../api/biographer';
 import { useToast } from '../hooks/useToast';
 import type { BiographerOrder, Deliverable, OrderLogistics, ReviewStatus } from '../mocks/types';
+import Annotate from '../components/annotation/Annotate';
 import './OrderManagement.css';
 
 const typeOptions: Array<{ value: AdminOrder['type'] | 'all'; label: string }> = [
@@ -486,6 +487,7 @@ export default function OrderManagement() {
     if (!order.review) return null;
     const status = reviewStatusLabel[order.review.status || 'pending'];
     return (
+      <Annotate id="order-management.review-audit">
       <>
         <div className="order-detail-divider" />
         <div className="order-detail-section">
@@ -508,6 +510,7 @@ export default function OrderManagement() {
           )}
         </div>
       </>
+      </Annotate>
     );
   };
 
@@ -516,15 +519,18 @@ export default function OrderManagement() {
       <header className="page-header">
         <h1 className="page-title">订单管理</h1>
         <div style={{ display: 'flex', gap: 8 }}>
+          <Annotate id="order-management.supplement" inline>
           <button className="btn btn-primary" onClick={() => setSupplementModal(true)}>
             <Plus size={14} /> 手动补单
           </button>
+          </Annotate>
           <button className="btn btn-outline" onClick={loadOrders} disabled={loading}>
             <RefreshCw size={14} className={loading ? 'spin' : ''} /> 刷新
           </button>
         </div>
       </header>
 
+      <Annotate id="order-management.stats">
       <div className="order-stats">
         <div className="card order-stat-card">
           <ShoppingCart size={20} color="#1B5E4B" />
@@ -555,9 +561,11 @@ export default function OrderManagement() {
           </div>
         </div>
       </div>
+      </Annotate>
 
       <div className="card order-list-card">
         <div className="card-header order-list-header">
+          <Annotate id="order-management.filters" inline>
           <div className="order-filters">
             <div className="order-search">
               <Search size={14} />
@@ -579,8 +587,10 @@ export default function OrderManagement() {
               ))}
             </select>
           </div>
+          </Annotate>
         </div>
         {selectedIds.size > 0 && (
+          <Annotate id="order-management.batch">
           <div className="order-batch-bar">
             <span className="order-batch-count">已选 {selectedIds.size} 单</span>
             <div className="order-batch-actions">
@@ -597,6 +607,7 @@ export default function OrderManagement() {
               <button className="btn btn-ghost btn-sm" onClick={() => setSelectedIds(new Set())}>取消选择</button>
             </div>
           </div>
+          </Annotate>
         )}
         <div className="card-body order-list-body">
           {loading ? (
@@ -655,7 +666,9 @@ export default function OrderManagement() {
                       </span>
                     </div>
                     <div className="order-cell order-cell-time">{new Date(item.createdAt).toLocaleString()}</div>
-                    <div className="order-cell order-cell-action">{renderActionButtons(item)}</div>
+                    <div className="order-cell order-cell-action">
+                      <Annotate id="order-management.row-actions" inline>{renderActionButtons(item)}</Annotate>
+                    </div>
                   </div>
                 );
               })}
@@ -665,6 +678,7 @@ export default function OrderManagement() {
       </div>
 
       {selectedOrder && (
+        <Annotate id="order-management.detail">
         <div className="modal-overlay" onClick={() => { setSelectedOrder(null); setSelectedBiographerOrder(null); }}>
           <div className="modal-content order-detail-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
@@ -776,6 +790,7 @@ export default function OrderManagement() {
             </div>
           </div>
         </div>
+        </Annotate>
       )}
 
       {deliverModalOrder && (

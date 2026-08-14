@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../hooks/useToast';
 import { ArrowLeft, Sparkles, User, BookOpen, FileText, RefreshCw, Copy, Download, Save } from 'lucide-react';
+import Annotate from '../components/annotation/Annotate';
 import './AIRefine.css';
 
 const sources = [
@@ -158,6 +159,7 @@ export default function AIRefine() {
         <h1 className="page-title"><Sparkles size={20} /> AI家风提炼</h1>
       </header>
 
+      <Annotate id="ai-refine.source-select">
       <div className="card">
         <div className="card-header"><h3 className="card-title">选择素材来源</h3></div>
         <div className="card-body ai-refine-sources">
@@ -172,28 +174,34 @@ export default function AIRefine() {
           })}
         </div>
       </div>
+      </Annotate>
 
       {source === 'manual' && (
+        <Annotate id="ai-refine.manual-input">
         <div className="card">
           <div className="card-header"><h3 className="card-title">输入家风素材</h3></div>
           <div className="card-body">
             <textarea className="ai-refine-input" rows={5} placeholder="输入人物故事、家训、家族经历等素材…" value={input} onChange={(e) => setInput(e.target.value)} />
           </div>
         </div>
+        </Annotate>
       )}
 
+      <Annotate id="ai-refine.generate">
       <div className="card">
         <div className="card-header"><h3 className="card-title">提炼结果（可直接编辑）</h3></div>
         <div className="card-body ai-refine-result">
           {result ? (
             <>
               <textarea className="ai-refine-input ai-refine-output" rows={4} value={result} onChange={(e) => setResult(e.target.value)} />
+              <Annotate id="ai-refine.result-actions">
               <div className="ai-refine-actions">
                 <button className="btn btn-outline" onClick={copyResult}><Copy size={14} /> 复制</button>
                 <button className="btn btn-outline" onClick={downloadResult}><Download size={14} /> 下载</button>
                 <button className="btn btn-outline" onClick={saveResult}><Save size={14} /> 保存</button>
                 <button className="btn btn-primary" onClick={generate} disabled={generating}><RefreshCw size={14} className={generating ? 'spin' : ''} /> 重新提炼</button>
               </div>
+              </Annotate>
             </>
           ) : (
             <div className="ai-refine-placeholder">
@@ -204,8 +212,10 @@ export default function AIRefine() {
           )}
         </div>
       </div>
+      </Annotate>
 
       {saved.length > 0 && (
+        <Annotate id="ai-refine.saved-list">
         <div className="card">
           <div className="card-header"><h3 className="card-title">我的提炼（已保存 {saved.length} 条）</h3></div>
           <div className="card-body ai-refine-history">
@@ -221,15 +231,18 @@ export default function AIRefine() {
             ))}
           </div>
         </div>
+        </Annotate>
       )}
 
       {history.length > 0 && (
+        <Annotate id="ai-refine.history">
         <div className="card">
           <div className="card-header"><h3 className="card-title">历史提炼</h3></div>
           <div className="card-body ai-refine-history">
             {history.map((h, i) => <div key={i} className="ai-refine-history-item">{h}</div>)}
           </div>
         </div>
+        </Annotate>
       )}
     </div>
   );

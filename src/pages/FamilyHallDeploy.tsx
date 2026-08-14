@@ -2,6 +2,7 @@ import { ArrowLeft, Link, QrCode, Share2, Code, ShoppingBag, Crown } from 'lucid
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../hooks/useToast';
+import Annotate from '../components/annotation/Annotate';
 import './FamilyHallDeploy.css';
 
 const tabs = [
@@ -27,6 +28,7 @@ export default function FamilyHallDeploy() {
 
       <div className="card">
         <div className="card-header">
+          <Annotate id="hall-deploy.tabs" inline>
           <div className="deploy-tabs">
             {tabs.map(({ key, label, Icon }) => (
               <button
@@ -38,9 +40,11 @@ export default function FamilyHallDeploy() {
               </button>
             ))}
           </div>
+          </Annotate>
         </div>
         <div className="card-body deploy-body">
           {active === 'link' && (
+            <Annotate id="hall-deploy.link">
             <>
               <label className="deploy-label">家风馆访问链接</label>
               <div className="deploy-input-row">
@@ -48,8 +52,10 @@ export default function FamilyHallDeploy() {
                 <button className="btn btn-primary" onClick={() => { navigator.clipboard.writeText('https://chuanjiashi.cn/hall/张氏家风馆'); addToast('链接已复制', 'success'); }}>复制</button>
               </div>
             </>
+            </Annotate>
           )}
           {active === 'qrcode' && (
+            <Annotate id="hall-deploy.qrcode">
             <div className="deploy-qrcode">
               <QrCode size={120} />
               <div className="deploy-qrcode-tip">微信扫码访问家风馆</div>
@@ -61,8 +67,10 @@ export default function FamilyHallDeploy() {
                 </button>
               </div>
             </div>
+            </Annotate>
           )}
           {active === 'poster' && (
+            <Annotate id="hall-deploy.poster">
             <div className="deploy-poster">
               <div className="poster-preview">张氏家风馆<br />分享海报</div>
               <button className="btn btn-primary" onClick={() => {
@@ -76,8 +84,10 @@ export default function FamilyHallDeploy() {
                 addToast('海报已生成', 'success');
               }}>下载海报</button>
             </div>
+            </Annotate>
           )}
           {active === 'embed' && (
+            <Annotate id="hall-deploy.embed">
             <>
               <label className="deploy-label">嵌入代码</label>
               <textarea
@@ -88,6 +98,7 @@ export default function FamilyHallDeploy() {
               />
               <button className="btn btn-primary" onClick={() => { navigator.clipboard.writeText('<iframe src="https://chuanjiashi.cn/hall/张氏家风馆" width="100%" height="600"></iframe>'); addToast('代码已复制', 'success'); }}>复制代码</button>
             </>
+            </Annotate>
           )}
         </div>
       </div>

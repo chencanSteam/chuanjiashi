@@ -3,6 +3,7 @@ import { ArrowLeft, Image, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../hooks/useToast';
 import { loadAlbumPhotos, readFilesAsDataUrls, saveAlbumPhotos, type AlbumPhoto } from '../utils/albumStorage';
+import Annotate from '../components/annotation/Annotate';
 import './FamilyAlbums.css';
 
 const albums = [
@@ -41,13 +42,17 @@ export default function FamilyAlbums() {
   return (
     <div className="detail-page family-albums-page">
       <header className="page-header">
+        <Annotate id="family-albums.back-btn" inline>
         <button className="btn btn-ghost" onClick={() => navigate(-1)}>
           <ArrowLeft size={16} /> 返回
         </button>
+        </Annotate>
         <h1 className="page-title">家庭相册</h1>
+        <Annotate id="family-albums.upload-btn" inline>
         <button className="btn btn-primary" onClick={() => fileRef.current?.click()}>
           <Plus size={14} /> 上传照片
         </button>
+        </Annotate>
         <input
           ref={fileRef}
           type="file"
@@ -60,6 +65,7 @@ export default function FamilyAlbums() {
 
       <div className="card">
         <div className="card-body">
+          <Annotate id="family-albums.album-list">
           <div className="albums-grid">
             {albums.map((a, i) => {
               const photos = loadAlbumPhotos(a.title);
@@ -75,6 +81,7 @@ export default function FamilyAlbums() {
                 </div>
               );
             })}
+            <Annotate id="family-albums.uploaded-album">
             {uploaded.length > 0 && (
               <div className="albums-item" onClick={() => navigate(`/family/album/${encodeURIComponent(DEFAULT_UPLOAD_ALBUM)}`)}>
                 <div className="albums-thumb"><img src={uploaded[uploaded.length - 1].dataUrl} alt={DEFAULT_UPLOAD_ALBUM} /></div>
@@ -84,7 +91,9 @@ export default function FamilyAlbums() {
                 </div>
               </div>
             )}
+            </Annotate>
           </div>
+          </Annotate>
         </div>
       </div>
     </div>

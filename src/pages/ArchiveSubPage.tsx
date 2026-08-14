@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ArrowLeft, CheckCircle2, Clock, Users, Save } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useToast } from '../hooks/useToast';
+import Annotate from '../components/annotation/Annotate';
 import './ArchiveSubPage.css';
 
 const initialMeta: Record<string, { title: string; Icon: typeof Clock; items: { label: string; value?: number; role?: string }[] }> = {
@@ -52,6 +53,7 @@ export default function ArchiveSubPage() {
         <h1 className="page-title">{title}</h1>
       </header>
 
+      <Annotate id="archive-section.routing">
       <div className="card">
         <div className="card-header">
           <h3 className="card-title"><Icon size={16} /> {title}</h3>
@@ -62,34 +64,43 @@ export default function ArchiveSubPage() {
               {section === 'completeness' && (
                 <>
                   <span className="archive-sub-label">{item.label}</span>
+                  <Annotate id="archive-section.completeness" inline>
                   <input type="range" min={0} max={100} value={item.value} onChange={(e) => updateValue(i, parseInt(e.target.value, 10))} />
+                  </Annotate>
                   <span className="archive-sub-value">{item.value}%</span>
                 </>
               )}
               {section === 'events' && (
+                <Annotate id="archive-section.events" inline>
                 <button className="archive-sub-event" onClick={() => navigate(`/archive/event/${item.label.split(' ')[0]}/edit`)}>
                   <Clock size={14} /> {item.label}
                 </button>
+                </Annotate>
               )}
               {section === 'members' && (
                 <div className="archive-sub-member">
                   <span className="archive-sub-name">{item.label}</span>
+                  <Annotate id="archive-section.members" inline>
                   <select value={item.role} onChange={(e) => updateRole(i, e.target.value)}>
                     <option>家主</option>
                     <option>管理员</option>
                     <option>编辑者</option>
                     <option>观察者</option>
                   </select>
+                  </Annotate>
                   <button className="btn btn-ghost" onClick={() => navigate(`/family/members/${encodeURIComponent(item.label)}`)}>查看</button>
                 </div>
               )}
             </div>
           ))}
           {section === 'completeness' && (
+            <Annotate id="archive-section.save" inline>
             <button className="btn btn-primary" onClick={() => addToast('完整度已保存', 'success')}><Save size={14} /> 保存完整度</button>
+            </Annotate>
           )}
         </div>
       </div>
+      </Annotate>
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/useToast';
 import { useVersion } from '../hooks/useVersion';
 import Modal from '../components/ui/Modal';
+import Annotate from '../components/annotation/Annotate';
 import './Login.css';
 
 const DEMO_PHONE = '13800138000';
@@ -184,6 +185,7 @@ export default function Login() {
           </div>
         </div>
 
+        <Annotate id="login.version-switch">
         <div
           className={`login-version-switch ${isMVP ? 'on' : ''}`}
           title={isMVP ? '当前为 MVP 模式，仅开放用户端与管理后台；点击切换到完整版' : '当前为完整版，开放全部端口；点击切换到 MVP 模式'}
@@ -196,7 +198,9 @@ export default function Login() {
             onClick={() => setAppVersion(isMVP ? 'full' : 'mvp')}
           />
         </div>
+        </Annotate>
 
+        <Annotate id="login.portal-grid">
         <div className="portal-grid">
           <button type="button" className="portal-card" onClick={() => enterPortal(USER_PHONE, '/home', { name: '张明远' })}>
             <User size={24} />
@@ -230,9 +234,11 @@ export default function Login() {
             </button>
           )}
         </div>
+        </Annotate>
 
         <div className="login-divider">或</div>
 
+        <Annotate id="login.agreement">
         <label className="login-agreement">
           <input
             type="checkbox"
@@ -246,7 +252,9 @@ export default function Login() {
             <button type="button" className="login-agreement-link" onClick={() => setAgreement('privacy')}>《隐私协议》</button>
           </span>
         </label>
+        </Annotate>
 
+        <Annotate id="login.phone-login">
         {!showManual ? (
           <button type="button" className="btn btn-outline login-demo" onClick={() => setShowManual(true)}>
             手机号登录
@@ -282,10 +290,13 @@ export default function Login() {
             </div>
           </form>
         )}
+        </Annotate>
 
+        <Annotate id="login.wechat-login">
         <button type="button" className="btn login-wechat" onClick={handleWechatLogin}>
           <MessageCircle size={16} /> 微信授权登录
         </button>
+        </Annotate>
 
         <p className="login-hint">点击上方入口即可直接进入对应系统</p>
       </div>

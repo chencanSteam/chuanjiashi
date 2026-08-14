@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../hooks/useToast';
 import { ArrowLeft, Plus, BookOpen, Search, Trash2, Edit3, Wand2 } from 'lucide-react';
+import Annotate from '../components/annotation/Annotate';
 import './StoryLibrary.css';
 
 const initialStories = [
@@ -62,20 +63,26 @@ export default function StoryLibrary() {
 
       <div className="card">
         <div className="card-header story-library-header">
+          <Annotate id="story-library.search" inline>
           <div className="story-search">
             <Search size={14} />
             <input type="text" placeholder="搜索故事标题或作者" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
+          </Annotate>
+          <Annotate id="story-library.add-button" inline>
           <button className="btn btn-primary" onClick={() => setShowAdd(true)}><Plus size={14} /> 新增故事</button>
+          </Annotate>
         </div>
         <div className="card-body story-library-body">
           {showAdd && (
+            <Annotate id="story-library.add-form">
             <div className="story-add-row">
               <input type="text" placeholder="故事标题" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} />
               <input type="text" placeholder="作者" value={newAuthor} onChange={(e) => setNewAuthor(e.target.value)} />
               <button className="btn btn-primary" onClick={addStory}>添加</button>
               <button className="btn btn-ghost" onClick={() => setShowAdd(false)}>取消</button>
             </div>
+            </Annotate>
           )}
           {filtered.map((s) => (
             <div className="story-library-item" key={s.id}>
@@ -97,9 +104,15 @@ export default function StoryLibrary() {
                     </div>
                   </div>
                   <div className="story-library-actions">
+                    <Annotate id="story-library.polish" inline>
                     <button className="btn btn-outline" disabled={processing === s.id} onClick={() => polish(s.id)}><Wand2 size={13} /> {processing === s.id ? '润色中…' : 'AI润色'}</button>
+                    </Annotate>
+                    <Annotate id="story-library.edit" inline>
                     <button className="icon-btn" onClick={() => { setEditing(s.id); setEditTitle(s.title); setEditAuthor(s.author); }}><Edit3 size={14} /></button>
+                    </Annotate>
+                    <Annotate id="story-library.delete" inline>
                     <button className="hall-item-delete" onClick={() => removeStory(s.id)}><Trash2 size={14} /></button>
+                    </Annotate>
                   </div>
                 </>
               )}

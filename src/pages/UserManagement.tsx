@@ -9,6 +9,7 @@ import {
 import { useToast } from '../hooks/useToast';
 import { adminUserApi, type AdminUserDetail } from '../api/adminUser';
 import type { AdminUser } from '../mocks/types';
+import Annotate from '../components/annotation/Annotate';
 import './UserManagement.css';
 
 const REALNAME_STATUS_LABELS: Record<AdminUser['realNameStatus'], string> = {
@@ -78,6 +79,7 @@ function UserListTab({ addToast }: { addToast: AddToast }) {
     <>
       <div className="card um-list-card">
         <div className="card-header um-list-header">
+          <Annotate id="admin-users.filters" inline>
           <div className="um-filters">
             <div className="um-search">
               <Search size={16} />
@@ -107,7 +109,9 @@ function UserListTab({ addToast }: { addToast: AddToast }) {
               <option value="none">未认证</option>
             </select>
           </div>
+          </Annotate>
         </div>
+        <Annotate id="admin-users.user-list">
         <div className="card-body um-list-body">
           {users.length === 0 ? (
             <div className="um-empty">暂无符合条件的用户</div>
@@ -151,10 +155,12 @@ function UserListTab({ addToast }: { addToast: AddToast }) {
             </div>
           )}
         </div>
+        </Annotate>
       </div>
 
       {detail && (
         <div className="um-drawer-overlay" onClick={() => setDetail(null)}>
+          <Annotate id="admin-users.detail-drawer">
           <div className="um-drawer" onClick={(e) => e.stopPropagation()}>
             <div className="um-drawer-header">
               <h4>用户详情</h4>
@@ -172,11 +178,13 @@ function UserListTab({ addToast }: { addToast: AddToast }) {
               </div>
             </div>
           </div>
+          </Annotate>
         </div>
       )}
 
       {confirmUser && (
         <div className="modal-overlay" onClick={() => setConfirmUser(null)}>
+          <Annotate id="admin-users.status-confirm">
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h4>{confirmUser.status === 'active' ? '确认禁用' : '确认启用'}</h4>
@@ -199,6 +207,7 @@ function UserListTab({ addToast }: { addToast: AddToast }) {
               </div>
             </div>
           </div>
+          </Annotate>
         </div>
       )}
     </>

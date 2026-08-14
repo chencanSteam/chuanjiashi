@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ClipboardList, Phone, User, Calendar, MapPin, CheckCircle, Clock, ArrowRight, FileText, Send, Package, CreditCard } from 'lucide-react';
 import { biographerApi } from '../api/biographer';
 import type { BiographerOrder as MockBiographerOrder } from '../mocks/types';
+import Annotate from '../components/annotation/Annotate';
 import './BiographerOrders.css';
 
 const statusMap: Record<MockBiographerOrder['status'], { label: string; color: string }> = {
@@ -113,6 +114,7 @@ export default function BiographerOrders() {
     <div className="biographer-orders-page">
       <header className="page-header"><h1 className="page-title">我的订单</h1></header>
 
+      <Annotate id="biographer-orders.stats">
       <div className="bio-order-stats">
         <div className="card bio-order-stat-card">
           <ClipboardList size={20} color="#1B5E4B" />
@@ -143,6 +145,7 @@ export default function BiographerOrders() {
           </div>
         </div>
       </div>
+      </Annotate>
 
       <div className="card">
         <div className="card-header partner-center-list-header">
@@ -174,11 +177,14 @@ export default function BiographerOrders() {
                           </div>
                         )}
                       </div>
+                      <Annotate id="biographer-orders.order-status" inline>
                       <div className="bio-order-status">
                         <span style={{ color: statusMap[o.status].color, fontWeight: 600 }}>{statusMap[o.status].label}</span>
                       </div>
+                      </Annotate>
                     </div>
 
+                    <Annotate id="biographer-orders.progress">
                     <div className="bio-order-progress">
                       <div className="bio-order-progress-header">
                         <span>服务进度</span>
@@ -200,8 +206,10 @@ export default function BiographerOrders() {
                         })}
                       </div>
                     </div>
+                    </Annotate>
 
                     {nextAction && (
+                      <Annotate id="biographer-orders.next-action" inline>
                       <div className="bio-order-actions">
                         <button
                           className="btn btn-primary"
@@ -212,6 +220,7 @@ export default function BiographerOrders() {
                           <ArrowRight size={14} />
                         </button>
                       </div>
+                      </Annotate>
                     )}
                   </div>
                 );
@@ -222,6 +231,7 @@ export default function BiographerOrders() {
       </div>
 
       {actingOrder && (
+        <Annotate id="biographer-orders.schedule-modal">
         <div className="modal-overlay" onClick={() => setActingOrder(null)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
@@ -258,6 +268,7 @@ export default function BiographerOrders() {
             </div>
           </div>
         </div>
+        </Annotate>
       )}
     </div>
   );

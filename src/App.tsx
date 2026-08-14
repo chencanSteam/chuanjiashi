@@ -2,6 +2,7 @@ import { Suspense, lazy, type ReactNode } from 'react';
 import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ToastProvider } from './contexts/ToastProvider';
 import { AuthProvider } from './contexts/AuthContext';
+import AnnotationProvider from './components/annotation/AnnotationProvider';
 import ProtectedRoute from './components/ProtectedRoute';
 import RoleRoute from './components/RoleRoute';
 import Layout from './components/Layout';
@@ -22,6 +23,12 @@ function AdminMVPRedirect({ children }: { children: ReactNode }) {
   return isMVP ? <Navigate to="/admin/users" replace /> : <>{children}</>;
 }
 
+// 移动端不属于 MVP：MVP 模式下访问移动端一律回到用户端首页
+function MobileMVPRedirect({ children }: { children: ReactNode }) {
+  const { isMVP } = useVersion();
+  return isMVP ? <Navigate to="/home" replace /> : <>{children}</>;
+}
+
 // /login 重定向到 / 时保留查询参数（如邀请链接的 invite 参数）
 function LoginRedirect() {
   const { search } = useLocation();
@@ -35,6 +42,8 @@ const AIInterview = lazy(() => import('./pages/AIInterview'));
 const InterviewReview = lazy(() => import('./pages/InterviewReview'));
 const AIBiography = lazy(() => import('./pages/AIBiography'));
 const BiographyPrint = lazy(() => import('./pages/BiographyPrint'));
+const BiographyOutline = lazy(() => import('./pages/BiographyOutline'));
+const BiographyPolish = lazy(() => import('./pages/BiographyPolish'));
 const MyWorks = lazy(() => import('./pages/MyWorks'));
 const LifeArchive = lazy(() => import('./pages/LifeArchive'));
 const FamilySpace = lazy(() => import('./pages/FamilySpace'));
@@ -142,7 +151,8 @@ function App() {
   return (
     <ToastProvider>
       <AuthProvider>
-        <HashRouter>
+        <AnnotationProvider>
+          <HashRouter>
           <Suspense fallback={<PageFallback />}>
             <Routes>
               {/* 默认页：登录 */}
@@ -198,7 +208,7 @@ function App() {
                 <Route path="*" element={<AdminMVPRedirect><Navigate to="/admin/dashboard" replace /></AdminMVPRedirect>} />
               </Route>
 
-              <Route path="/m" element={<ProtectedRoute><MobileLayout /></ProtectedRoute>}>
+              <Route path="/m" element={<ProtectedRoute><MobileMVPRedirect><MobileLayout /></MobileMVPRedirect></ProtectedRoute>}>
                 <Route index element={<MobileHome />} />
                 <Route path="interview" element={<MobileInterview />} />
                 <Route path="archive" element={<MobileArchive />} />
@@ -214,6 +224,8 @@ function App() {
                 <Route path="interview" element={<AIInterview />} />
                 <Route path="interview-review" element={<InterviewReview />} />
                 <Route path="biography" element={<AIBiography />} />
+                <Route path="biography/outline" element={<BiographyOutline />} />
+                <Route path="polish" element={<BiographyPolish />} />
                 <Route path="biography/print" element={<BiographyPrint />} />
                 <Route path="my-works" element={<MVPRedirect><MyWorks /></MVPRedirect>} />
                 <Route path="group-buy" element={<MVPRedirect><GroupBuy /></MVPRedirect>} />
@@ -278,7 +290,8 @@ function App() {
               </Route>
             </Routes>
           </Suspense>
-        </HashRouter>
+          </HashRouter>
+        </AnnotationProvider>
       </AuthProvider>
     </ToastProvider>
   );

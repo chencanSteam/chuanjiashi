@@ -5,6 +5,7 @@ import { useToast } from '../hooks/useToast';
 import { biographerApi } from '../api/biographer';
 import { uploadFile } from '../api/client';
 import type { Biographer as MockBiographer } from '../mocks/types';
+import Annotate from '../components/annotation/Annotate';
 import './BiographerProfileEdit.css';
 
 export default function BiographerProfileEdit() {
@@ -110,6 +111,7 @@ export default function BiographerProfileEdit() {
         </button>
       </header>
 
+      <Annotate id="biographer-profile-edit.avatar">
       <div className="biographer-edit-section">
         <div className="biographer-edit-avatar">
           <div className="biographer-edit-avatar-preview">{avatarContent}</div>
@@ -128,7 +130,9 @@ export default function BiographerProfileEdit() {
           </div>
         </div>
       </div>
+      </Annotate>
 
+      <Annotate id="biographer-profile-edit.basic">
       <div className="biographer-edit-section">
         <h3 className="biographer-edit-section-title">基本信息</h3>
         <div className="biographer-edit-row">
@@ -179,7 +183,9 @@ export default function BiographerProfileEdit() {
           />
         </div>
       </div>
+      </Annotate>
 
+      <Annotate id="biographer-profile-edit.tags">
       <div className="biographer-edit-section">
         <h3 className="biographer-edit-section-title">专长领域</h3>
         <div className="biographer-edit-tags">
@@ -227,7 +233,9 @@ export default function BiographerProfileEdit() {
           <button className="btn btn-outline" onClick={() => addTag('tags', tagInput, setTagInput)}><Plus size={14} /></button>
         </div>
       </div>
+      </Annotate>
 
+      <Annotate id="biographer-profile-edit.services">
       <div className="biographer-edit-section">
         <h3 className="biographer-edit-section-title">服务套餐</h3>
         <div className="biographer-edit-list">
@@ -258,7 +266,9 @@ export default function BiographerProfileEdit() {
           </button>
         </div>
       </div>
+      </Annotate>
 
+      <Annotate id="biographer-profile-edit.cases">
       <div className="biographer-edit-section">
         <h3 className="biographer-edit-section-title">成功案例</h3>
         <div className="biographer-edit-list">
@@ -302,7 +312,9 @@ export default function BiographerProfileEdit() {
           }}
         />
       </div>
+      </Annotate>
 
+      <Annotate id="biographer-profile-edit.certificates">
       <div className="biographer-edit-section">
         <h3 className="biographer-edit-section-title">资质证明</h3>
         <div className="biographer-edit-certificates">
@@ -325,13 +337,16 @@ export default function BiographerProfileEdit() {
           />
         </div>
       </div>
+      </Annotate>
 
+      <Annotate id="biographer-profile-edit.save">
       <div className="biographer-edit-footer">
         <button className="btn btn-outline" onClick={() => navigate('/biographer')} disabled={saving}>取消</button>
         <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
           <Save size={14} /> {saving ? '保存中...' : '保存资料'}
         </button>
       </div>
+      </Annotate>
     </div>
   );
 }

@@ -28,6 +28,7 @@ import {
   Link,
   EyeOff,
 } from 'lucide-react';
+import Annotate from '../components/annotation/Annotate';
 import './AIFamilyHall.css';
 
 const stats = [
@@ -252,6 +253,7 @@ export default function AIFamilyHall() {
         </div>
       </header>
 
+      <Annotate id="family-hall.stats-row">
       <div className="hall-stats-row">
         {stats.map((s, i) => (
           <div className="card hall-stat" key={i} onClick={() => {
@@ -267,8 +269,10 @@ export default function AIFamilyHall() {
           </div>
         ))}
       </div>
+      </Annotate>
 
       <div className="hall-main-grid">
+        <Annotate id="family-hall.project-list">
         <div className="card project-list">
           <div className="card-header">
             <h3 className="card-title">馆馆项目列表</h3>
@@ -297,7 +301,9 @@ export default function AIFamilyHall() {
             <button className="view-all-projects" onClick={() => navigate('/family-hall/project/张氏家风馆')}>查看全部项目（{projectsList.length}）</button>
           </div>
         </div>
+        </Annotate>
 
+        <Annotate id="family-hall.hall-preview">
         <div className="card hall-preview">
           <div className="card-header">
             <h3 className="card-title">家风馆主页 <span>（可视化编辑 / 拖拽组件）</span></h3>
@@ -338,7 +344,9 @@ export default function AIFamilyHall() {
             </div>
           </div>
         </div>
+        </Annotate>
 
+        <Annotate id="family-hall.page-config">
         <div className="card config-card">
           <div className="card-header">
             <h3 className="card-title">页面配置</h3>
@@ -410,17 +418,21 @@ export default function AIFamilyHall() {
               </select>
             </div>
             <button className="btn btn-primary publish-btn" onClick={publishHall}>发布</button>
+            <Annotate id="family-hall.deploy-entry">
             <div className="deploy-actions">
               <button className="deploy-btn" onClick={deploy}><Link size={14} /> H5链接</button>
               <button className="deploy-btn" onClick={deploy}><QrCode size={14} /> 二维码</button>
               <button className="deploy-btn" onClick={deploy}><Monitor size={14} /> 嵌入官网</button>
               <button className="deploy-btn" onClick={deploy}><Share2 size={14} /> 分享海报</button>
             </div>
+            </Annotate>
           </div>
         </div>
+        </Annotate>
       </div>
 
       <div className="hall-bottom">
+        <Annotate id="family-hall.content-prod">
         <div className="card content-prod">
           <div className="card-header">
             <h3 className="card-title">内容生产</h3>
@@ -438,7 +450,9 @@ export default function AIFamilyHall() {
             ))}
           </div>
         </div>
+        </Annotate>
 
+        <Annotate id="family-hall.election-card">
         <div className="card election-card" onClick={() => navigate('/family-hall/activity')}>
           <div className="card-header">
             <h3 className="card-title">最美家庭评选 <span className="tag-active">进行中</span></h3>
@@ -464,6 +478,7 @@ export default function AIFamilyHall() {
             </div>
           </div>
         </div>
+        </Annotate>
       </div>
 
       <div className="hall-footer">
@@ -511,6 +526,7 @@ export default function AIFamilyHall() {
           </div>
         </div>
 
+        <Annotate id="family-hall.output-export">
         <div className="card output-card">
           <div className="card-header">
             <h3 className="card-title">成果输出口</h3>
@@ -522,6 +538,7 @@ export default function AIFamilyHall() {
             <button className="output-item" onClick={() => output('数据包导出')} disabled={outputing['数据包导出']}><Download size={18} /> {outputing['数据包导出'] ? '导出中…' : '数据包导出'}</button>
           </div>
         </div>
+        </Annotate>
       </div>
     </div>
   );

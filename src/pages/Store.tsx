@@ -7,6 +7,7 @@ import { paymentApi } from '../api/payment';
 import { archiveApi } from '../api/archive';
 import { useToast } from '../hooks/useToast';
 import { useAuth } from '../hooks/useAuth';
+import Annotate from '../components/annotation/Annotate';
 import type { ProductPackage, OrderAddress, Archive } from '../mocks/types';
 import './Store.css';
 
@@ -156,6 +157,7 @@ export default function Store() {
         <p className="store-subtitle">把家族记忆变成可触摸、可传承的珍贵礼物</p>
       </div>
 
+      <Annotate id="store.category-tabs">
       <div className="store-categories">
         {Object.entries(categoryMap).map(([key, { label, icon: Icon }]) => (
           <button
@@ -173,7 +175,9 @@ export default function Store() {
           <Package size={16} /> 实物商品
         </button>
       </div>
+      </Annotate>
 
+      <Annotate id="store.search-sort">
       <div className="store-toolbar">
         <div className="store-search">
           <Search size={14} />
@@ -191,7 +195,9 @@ export default function Store() {
           <option value="price_desc">价格从高到低</option>
         </select>
       </div>
+      </Annotate>
 
+      <Annotate id="store.product-list">
       <div className="store-products">
         {loading ? (
           <div className="store-empty">加载中…</div>
@@ -239,9 +245,11 @@ export default function Store() {
           })
         )}
       </div>
+      </Annotate>
 
       {selected && (
         <div className="modal-overlay" onClick={() => setSelected(null)}>
+          <Annotate id="store.order-modal">
           <div className="modal-content store-order-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h4>确认订单</h4>
@@ -350,6 +358,7 @@ export default function Store() {
               </button>
             </div>
           </div>
+          </Annotate>
         </div>
       )}
     </div>

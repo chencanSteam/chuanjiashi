@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { Image, Upload, Sparkles } from 'lucide-react';
 import { useToast } from '../../hooks/useToast';
+import Annotate from '../../components/annotation/Annotate';
 import './MobilePhotoRestore.css';
 
 function fileToDataUrl(file: File): Promise<string> {
@@ -86,6 +87,7 @@ export default function MobilePhotoRestore() {
       />
 
       {!originalUrl ? (
+        <Annotate id="mobile-photo-restore.upload">
         <div
           className="mobile-photo-restore-empty clickable"
           onClick={() => fileInputRef.current?.click()}
@@ -94,9 +96,11 @@ export default function MobilePhotoRestore() {
           <p>暂无修复记录</p>
           <span>点击上传照片即可开始修复</span>
         </div>
+        </Annotate>
       ) : (
         <div className="mobile-photo-restore-panel">
           {restoredUrl ? (
+            <Annotate id="mobile-photo-restore.compare">
             <div className="mobile-photo-compare">
               <div className="mobile-photo-compare-item">
                 <img src={originalUrl} alt="修复前" />
@@ -107,6 +111,7 @@ export default function MobilePhotoRestore() {
                 <span>修复后</span>
               </div>
             </div>
+            </Annotate>
           ) : (
             <div className="mobile-photo-preview">
               <img src={originalUrl} alt="待修复" />
@@ -125,8 +130,10 @@ export default function MobilePhotoRestore() {
             </div>
           )}
 
+          <Annotate id="mobile-photo-restore.result-actions">
           <div className="mobile-photo-actions">
             {!restoredUrl ? (
+              <Annotate id="mobile-photo-restore.start-restore" inline>
               <button
                 className="mobile-photo-btn primary"
                 onClick={startRestore}
@@ -135,6 +142,7 @@ export default function MobilePhotoRestore() {
                 <Sparkles size={16} />
                 {processing ? '修复中…' : '开始修复'}
               </button>
+              </Annotate>
             ) : (
               <button className="mobile-photo-btn primary" onClick={() => addToast('修复结果已保存', 'success')}>
                 保存修复结果
@@ -144,6 +152,7 @@ export default function MobilePhotoRestore() {
               重新上传
             </button>
           </div>
+          </Annotate>
         </div>
       )}
     </div>

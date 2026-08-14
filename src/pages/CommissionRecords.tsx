@@ -4,6 +4,7 @@ import { commissionApi } from '../api/commission';
 import { partnerApi } from '../api/partner';
 import { getCommissionStatusLabel } from '../data/partnerData';
 import { useToast } from '../hooks/useToast';
+import Annotate from '../components/annotation/Annotate';
 import type { CommissionRecord as MockCommissionRecord, CommissionRules } from '../mocks/types';
 import type { CommissionRecord, Partner } from '../types/partner';
 import './CommissionRecords.css';
@@ -136,6 +137,7 @@ export default function CommissionRecords() {
         <h1 className="page-title">分润管理</h1>
       </header>
 
+      <Annotate id="commission-records.tabs" inline>
       <div className="tabs">
         {tabs.map((t) => (
           <button
@@ -147,6 +149,7 @@ export default function CommissionRecords() {
           </button>
         ))}
       </div>
+      </Annotate>
 
       {activeTab === 'flow' && (
         <>
@@ -176,6 +179,7 @@ export default function CommissionRecords() {
 
           <div className="card">
             <div className="card-header commission-header">
+              <Annotate id="commission-records.flow-filter" inline>
               <div className="commission-filters">
                 <div className="commission-search">
                   <Search size={14} />
@@ -188,7 +192,9 @@ export default function CommissionRecords() {
                   ))}
                 </select>
               </div>
+              </Annotate>
             </div>
+            <Annotate id="commission-records.flow-table">
             <div className="card-body commission-body">
               {filtered.length === 0 ? (
                 <div className="commission-empty">暂无分润流水</div>
@@ -224,11 +230,13 @@ export default function CommissionRecords() {
                 </div>
               )}
             </div>
+            </Annotate>
           </div>
         </>
       )}
 
       {activeTab === 'rules' && (
+        <Annotate id="commission-records.rules-form">
         <div className="card">
           <div className="card-header">
             <h3 className="card-title"><Settings2 size={16} /> 分润规则配置</h3>
@@ -283,9 +291,11 @@ export default function CommissionRecords() {
             </button>
           </div>
         </div>
+        </Annotate>
       )}
 
       {activeTab === 'partner' && (
+        <Annotate id="commission-records.partner-shares">
         <div className="card">
           <div className="card-header">
             <h3 className="card-title"><Landmark size={16} /> 服务商分成核算</h3>
@@ -315,9 +325,11 @@ export default function CommissionRecords() {
             </div>
           </div>
         </div>
+        </Annotate>
       )}
 
       {activeTab === 'reconcile' && (
+        <Annotate id="commission-records.reconcile">
         <div className="card">
           <div className="card-header">
             <h3 className="card-title"><Receipt size={16} /> 月度对账</h3>
@@ -347,9 +359,11 @@ export default function CommissionRecords() {
             </div>
           </div>
         </div>
+        </Annotate>
       )}
 
       {activeTab === 'risk' && (
+        <Annotate id="commission-records.risk">
         <>
           <div className="card commission-risk-tip">
             <div className="card-body commission-risk-tip-body">
@@ -393,6 +407,7 @@ export default function CommissionRecords() {
             </div>
           </div>
         </>
+        </Annotate>
       )}
     </div>
   );

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { FileText, Search, ExternalLink, X } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
+import Annotate from '../components/annotation/Annotate';
 import './PolicyList.css';
 
 const policies = [
@@ -28,12 +29,15 @@ export default function PolicyList() {
       <div className="card">
         <div className="card-header">
           <h3 className="card-title">全部政策</h3>
+          <Annotate id="policy-list.search" inline>
           <div className="policy-search">
             <Search size={14} />
             <input type="text" placeholder="搜索政策名称" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
+          </Annotate>
         </div>
         <div className="card-body">
+          <Annotate id="policy-list.list">
           <div className="policy-list">
             {filtered.map((p, i) => (
               <div className="policy-list-item" key={i} onClick={() => setSelected(p)}>
@@ -47,10 +51,12 @@ export default function PolicyList() {
               </div>
             ))}
           </div>
+          </Annotate>
         </div>
       </div>
 
       {selected && (
+        <Annotate id="policy-list.detail">
         <div className="modal-overlay" onClick={() => setSelected(null)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header"><h4>{selected.title}</h4><button className="modal-close" onClick={() => setSelected(null)}><X size={16} /></button></div>
@@ -60,6 +66,7 @@ export default function PolicyList() {
             </div>
           </div>
         </div>
+        </Annotate>
       )}
     </div>
   );

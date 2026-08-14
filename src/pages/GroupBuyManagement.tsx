@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Settings2, Users, Gift, Undo2, Save, CheckCircle } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 import { groupBuyApi } from '../api/groupBuy';
+import Annotate from '../components/annotation/Annotate';
 import type { GroupBuyActivity, GroupBuyRecord, GroupBuyRules } from '../mocks/types';
 import './GroupBuyManagement.css';
 
@@ -99,6 +100,7 @@ export default function GroupBuyManagement() {
         <h1 className="page-title">拼团管理</h1>
       </header>
 
+      <Annotate id="group-buy-management.tabs" inline>
       <div className="tabs">
         {tabs.map((t) => (
           <button
@@ -110,8 +112,10 @@ export default function GroupBuyManagement() {
           </button>
         ))}
       </div>
+      </Annotate>
 
       {activeTab === 'rules' && (
+        <Annotate id="group-buy-management.rules">
         <div className="card">
           <div className="card-header">
             <h3 className="card-title"><Settings2 size={16} /> 拼团规则</h3>
@@ -206,9 +210,11 @@ export default function GroupBuyManagement() {
             </button>
           </div>
         </div>
+        </Annotate>
       )}
 
       {activeTab === 'orders' && (
+        <Annotate id="group-buy-management.orders">
         <div className="card">
           <div className="card-header">
             <h3 className="card-title"><Users size={16} /> 拼团订单</h3>
@@ -254,9 +260,11 @@ export default function GroupBuyManagement() {
             )}
           </div>
         </div>
+        </Annotate>
       )}
 
       {activeTab === 'free' && (
+        <Annotate id="group-buy-management.free">
         <div className="card">
           <div className="card-header">
             <h3 className="card-title"><Gift size={16} /> 免单记录</h3>
@@ -292,9 +300,11 @@ export default function GroupBuyManagement() {
             )}
           </div>
         </div>
+        </Annotate>
       )}
 
       {activeTab === 'refunds' && (
+        <Annotate id="group-buy-management.refunds">
         <div className="card">
           <div className="card-header">
             <h3 className="card-title"><Undo2 size={16} /> 未成团退款</h3>
@@ -337,6 +347,7 @@ export default function GroupBuyManagement() {
             )}
           </div>
         </div>
+        </Annotate>
       )}
     </div>
   );

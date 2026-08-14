@@ -3,6 +3,7 @@ import { ArrowLeft, Printer, Download, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../hooks/useToast';
 import Avatar from '../components/ui/Avatar';
+import Annotate from '../components/annotation/Annotate';
 import './GenealogyTable.css';
 
 const tableData = [
@@ -35,9 +36,11 @@ export default function GenealogyTable() {
   return (
     <div className="detail-page genealogy-table-page">
       <header className="page-header">
+        <Annotate id="genealogy-table.back" inline>
         <button className="btn btn-ghost" onClick={() => navigate(-1)}>
           <ArrowLeft size={16} /> 返回
         </button>
+        </Annotate>
         <h1 className="page-title">完整世系表</h1>
       </header>
 
@@ -45,11 +48,16 @@ export default function GenealogyTable() {
         <div className="card-header">
           <h3 className="card-title">张氏家族世系表</h3>
           <div className="table-actions">
+            <Annotate id="genealogy-table.search" inline>
             <div className="genealogy-search">
               <Search size={14} />
               <input type="text" placeholder="搜索姓名" value={search} onChange={(e) => setSearch(e.target.value)} />
             </div>
+            </Annotate>
+            <Annotate id="genealogy-table.print" inline>
             <button className="btn btn-outline" onClick={() => window.print()}><Printer size={14} /> 打印</button>
+            </Annotate>
+            <Annotate id="genealogy-table.export" inline>
             <button className="btn btn-outline" onClick={() => {
               const csv = [['世代', '姓名', '生卒年', '配偶', '子女数'].join(','), ...tableData.map((r) => r.join(','))].join('\n');
               const blob = new Blob([csv], { type: 'text/csv' });
@@ -61,8 +69,10 @@ export default function GenealogyTable() {
               URL.revokeObjectURL(url);
               addToast('世系表已导出', 'success');
             }}><Download size={14} /> 导出</button>
+            </Annotate>
           </div>
         </div>
+        <Annotate id="genealogy-table.table">
         <div className="card-body table-body">
           <table className="genealogy-table full-table">
             <thead><tr><th>世代</th><th>姓名</th><th>生卒年</th><th>配偶</th><th>子女数</th><th>状态</th></tr></thead>
@@ -80,6 +90,7 @@ export default function GenealogyTable() {
             </tbody>
           </table>
         </div>
+        </Annotate>
       </div>
     </div>
   );

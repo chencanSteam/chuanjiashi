@@ -3,6 +3,7 @@ import { Search, CreditCard, CheckCircle, XCircle, Clock, DollarSign } from 'luc
 import { useToast } from '../hooks/useToast';
 import { commissionApi } from '../api/commission';
 import { getWithdrawalStatusLabel } from '../data/partnerData';
+import Annotate from '../components/annotation/Annotate';
 import type { WithdrawalRecord as MockWithdrawalRecord } from '../mocks/types';
 import type { Withdrawal, WithdrawalStatus } from '../types/partner';
 import './WithdrawalManagement.css';
@@ -56,6 +57,7 @@ export default function WithdrawalManagement() {
         <h1 className="page-title">提现审核</h1>
       </header>
 
+      <Annotate id="withdrawal-management.stats">
       <div className="withdrawal-stats">
         <div className="card withdrawal-stat">
           <Clock size={20} color="#d97706" />
@@ -79,9 +81,11 @@ export default function WithdrawalManagement() {
           </div>
         </div>
       </div>
+      </Annotate>
 
       <div className="card">
         <div className="card-header withdrawal-header">
+          <Annotate id="withdrawal-management.filter" inline>
           <div className="withdrawal-filters">
             <div className="withdrawal-search">
               <Search size={14} />
@@ -95,7 +99,9 @@ export default function WithdrawalManagement() {
               <option value="rejected">已拒绝</option>
             </select>
           </div>
+          </Annotate>
         </div>
+        <Annotate id="withdrawal-management.list">
         <div className="card-body withdrawal-body">
           {filtered.length === 0 ? (
             <div className="withdrawal-empty">暂无提现记录</div>
@@ -112,6 +118,7 @@ export default function WithdrawalManagement() {
                     <div className="withdrawal-time">申请时间：{new Date(w.createdAt).toLocaleString()}</div>
                   </div>
                   {w.status === 'pending' && (
+                    <Annotate id="withdrawal-management.review" inline>
                     <div className="withdrawal-actions">
                       <button className="btn btn-primary" onClick={() => handleProcess(w.id, 'paid')}>
                         <CheckCircle size={14} /> 确认打款
@@ -120,12 +127,14 @@ export default function WithdrawalManagement() {
                         <XCircle size={14} /> 拒绝
                       </button>
                     </div>
+                    </Annotate>
                   )}
                 </div>
               ))}
             </div>
           )}
         </div>
+        </Annotate>
       </div>
     </div>
   );

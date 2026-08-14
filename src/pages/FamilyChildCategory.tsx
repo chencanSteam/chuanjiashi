@@ -1,5 +1,6 @@
 import { ArrowLeft, Baby, GraduationCap, Stethoscope, Music } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
+import Annotate from '../components/annotation/Annotate';
 import './FamilyChildCategory.css';
 
 const categoryMeta: Record<string, { label: string; Icon: typeof Baby; items: string[] }> = {
@@ -18,12 +19,15 @@ export default function FamilyChildCategory() {
   return (
     <div className="detail-page family-child-category-page">
       <header className="page-header">
+        <Annotate id="family-child-category.back" inline>
         <button className="btn btn-ghost" onClick={() => navigate('/family/child')}>
           <ArrowLeft size={16} /> 返回
         </button>
+        </Annotate>
         <h1 className="page-title">{label}</h1>
       </header>
 
+      <Annotate id="family-child-category.timeline">
       <div className="card">
         <div className="card-header">
           <h3 className="card-title"><Icon size={16} /> {label}</h3>
@@ -42,6 +46,7 @@ export default function FamilyChildCategory() {
           </div>
         </div>
       </div>
+      </Annotate>
     </div>
   );
 }

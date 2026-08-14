@@ -1,6 +1,7 @@
 import { ArrowLeft, Heart } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Annotate from '../components/annotation/Annotate';
 import './FamilyStories.css';
 
 const stories = [
@@ -25,14 +26,17 @@ export default function FamilyStories() {
   return (
     <div className="detail-page family-stories-page">
       <header className="page-header">
+        <Annotate id="family-stories.back-btn" inline>
         <button className="btn btn-ghost" onClick={() => navigate(-1)}>
           <ArrowLeft size={16} /> 返回
         </button>
+        </Annotate>
         <h1 className="page-title">家庭故事共创</h1>
       </header>
 
       <div className="card">
         <div className="card-header">
+          <Annotate id="family-stories.filter-tabs">
           <div className="story-filters">
             {filters.map((f) => (
               <button
@@ -44,7 +48,9 @@ export default function FamilyStories() {
               </button>
             ))}
           </div>
+          </Annotate>
         </div>
+        <Annotate id="family-stories.story-list">
         <div className="card-body">
           {filtered.map((s, i) => (
             <div
@@ -56,6 +62,7 @@ export default function FamilyStories() {
                 <div className="story-list-title">{s.title} <span className="story-tag">{s.tag}</span></div>
                 <div className="story-list-meta">{s.author} · {s.date} · 👁 {s.views}</div>
               </div>
+              <Annotate id="family-stories.like-btn" inline>
               <button
                 className={`story-like ${liked.has(s.title) ? 'liked' : ''}`}
                 onClick={(e) => {
@@ -70,9 +77,11 @@ export default function FamilyStories() {
               >
                 <Heart size={14} /> {s.likes + (liked.has(s.title) ? 1 : 0)}
               </button>
+              </Annotate>
             </div>
           ))}
         </div>
+        </Annotate>
       </div>
     </div>
   );

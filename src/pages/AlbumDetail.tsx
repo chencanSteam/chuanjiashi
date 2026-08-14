@@ -3,6 +3,7 @@ import { ArrowLeft, Image, Download, Share2, Plus, X } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useToast } from '../hooks/useToast';
 import { downloadDataUrl, loadAlbumPhotos, readFilesAsDataUrls, saveAlbumPhotos, type AlbumPhoto } from '../utils/albumStorage';
+import Annotate from '../components/annotation/Annotate';
 import './AlbumDetail.css';
 
 const albumMeta: Record<string, { count: string; date: string; desc: string }> = {
@@ -68,17 +69,24 @@ export default function AlbumDetail() {
 
       <div className="card">
         <div className="card-header">
+          <Annotate id="album-detail.album-meta">
           <div>
             <h3 className="card-title">{decodedTitle}</h3>
             <div className="album-meta">{photoCount} · {meta.date}</div>
           </div>
+          </Annotate>
           <div className="album-actions">
+            <Annotate id="album-detail.share-btn" inline>
             <button className="btn btn-outline" onClick={() => setShowShare(true)}><Share2 size={14} /> 分享</button>
+            </Annotate>
+            <Annotate id="album-detail.upload-btn" inline>
             <button className="btn btn-primary" onClick={() => setShowUpload(true)}><Plus size={14} /> 上传</button>
+            </Annotate>
           </div>
         </div>
         <div className="card-body">
           <p className="album-desc">{meta.desc}</p>
+          <Annotate id="album-detail.photo-grid">
           <div className="album-photo-grid">
             {photos.map((p) => (
               <div className="album-photo-card" key={p.id} onClick={() => setPreviewPhoto(p)}>
@@ -96,6 +104,7 @@ export default function AlbumDetail() {
               </div>
             ))}
           </div>
+          </Annotate>
         </div>
       </div>
 

@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { CheckCircle, Package, FileText, ArrowRight, ShoppingBag, Copy } from 'lucide-react';
 import { orderApi } from '../api/order';
 import { useToast } from '../hooks/useToast';
+import Annotate from '../components/annotation/Annotate';
 import type { Order } from '../mocks/types';
 import './OrderSuccess.css';
 
@@ -40,6 +41,7 @@ export default function OrderSuccess() {
         {loading ? (
           <div className="order-success-loading">加载订单信息…</div>
         ) : order ? (
+          <Annotate id="order-success.order-info">
           <div className="order-success-info">
             <div className="order-success-row">
               <span>订单号</span>
@@ -63,6 +65,7 @@ export default function OrderSuccess() {
               <span className="order-success-status">已支付，等待商家履约</span>
             </div>
           </div>
+          </Annotate>
         ) : (
           <div className="order-success-info">
             <div className="order-success-row">
@@ -72,6 +75,7 @@ export default function OrderSuccess() {
           </div>
         )}
 
+        <Annotate id="order-success.tips">
         <div className="order-success-tips">
           {needsAddress ? (
             <>
@@ -85,7 +89,9 @@ export default function OrderSuccess() {
             </>
           )}
         </div>
+        </Annotate>
 
+        <Annotate id="order-success.actions" inline>
         <div className="order-success-actions">
           <button className="btn btn-primary" onClick={() => navigate('/my-orders')}>
             查看我的订单 <ArrowRight size={14} />
@@ -94,6 +100,7 @@ export default function OrderSuccess() {
             <ShoppingBag size={14} /> 继续逛逛
           </button>
         </div>
+        </Annotate>
       </div>
     </div>
   );

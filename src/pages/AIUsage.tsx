@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { quotaApi, type QuotaSummary } from '../api/quota';
 import { useToast } from '../hooks/useToast';
+import Annotate from '../components/annotation/Annotate';
 import './AIUsage.css';
 
 function formatTokens(n: number): string {
@@ -109,6 +110,7 @@ export default function AIUsage() {
         </div>
       ) : (
         <>
+          <Annotate id="ai-usage.overview">
           <div className="ai-usage-overview card">
             <div className="ai-usage-overview-icon">
               <Cpu size={28} color="#fff" />
@@ -123,7 +125,9 @@ export default function AIUsage() {
               <span>较上周 +18.2%</span>
             </div>
           </div>
+          </Annotate>
 
+          <Annotate id="ai-usage.stat-cards">
           <div className="ai-usage-stats">
             {statCards.map((card) => (
               <div className="card ai-usage-stat-card" key={card.label}>
@@ -138,7 +142,9 @@ export default function AIUsage() {
               </div>
             ))}
           </div>
+          </Annotate>
 
+          <Annotate id="ai-usage.user-rank">
           <div className="card ai-usage-detail-card">
             <div className="card-header ai-usage-detail-header">
               <h3 className="ai-usage-detail-title">用户 Token 使用排行</h3>
@@ -185,6 +191,7 @@ export default function AIUsage() {
               )}
             </div>
           </div>
+          </Annotate>
         </>
       )}
     </div>

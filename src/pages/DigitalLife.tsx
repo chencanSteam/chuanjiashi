@@ -34,6 +34,7 @@ import {
   recommendedQuestions,
 } from '../data/aiMock';
 import { getArchiveBasedDigitalAnswer } from '../utils/digitalAnswer';
+import Annotate from '../components/annotation/Annotate';
 import './DigitalLife.css';
 
 const stats = [
@@ -626,11 +627,14 @@ export default function DigitalLife() {
           <button className="btn btn-outline" style={{ color: '#b8860b', borderColor: 'rgba(184,134,11,0.3)' }} onClick={() => navigate('/store?category=digital_person')}>
             <Crown size={14} /> 升级陪伴版
           </button>
+          <Annotate id="digital-life.create-wizard" inline>
           <button className="btn btn-primary" onClick={openWizard}><Plus size={14} /> 创建数字亲人</button>
+          </Annotate>
           <button className="btn btn-outline" onClick={() => navigate('/settings/help')}>使用指南</button>
         </div>
       </header>
 
+      <Annotate id="digital-life.stats">
       <div className="digital-stats-row">
         {stats.map((s, i) => {
           const statPaths = ['/digital-person', '/digital-person', '/digital-person/training-records', '/digital-person', '/government'];
@@ -649,6 +653,7 @@ export default function DigitalLife() {
           );
         })}
       </div>
+      </Annotate>
 
       {relativesList.length === 0 ? (
         <div className="empty-state">
@@ -665,6 +670,7 @@ export default function DigitalLife() {
           </div>
 
           <div className="digital-main">
+            <Annotate id="digital-life.relatives">
             <div className="card relatives-card">
               <div className="card-header">
                 <h3 className="card-title">我的数字亲人</h3>
@@ -685,8 +691,10 @@ export default function DigitalLife() {
                 <button className="view-all-rel" onClick={() => navigate('/digital-person')}>查看全部（{relativesList.length}）</button>
               </div>
             </div>
+            </Annotate>
 
             {activeTab === 'clone' && activeRelative && (
+              <Annotate id="digital-life.clone">
               <div className="card clone-card">
                 <div className="card-header">
                   <h3 className="card-title">形象与声音克隆</h3>
@@ -742,9 +750,11 @@ export default function DigitalLife() {
                   </div>
                 </div>
               </div>
+              </Annotate>
             )}
 
             {activeTab === 'chat' && (
+              <Annotate id="digital-life.chat">
               <div className="card chat-panel">
                 <div className="card-header"><h3 className="card-title">实时对话</h3></div>
                 <div className="card-body chat-history">
@@ -771,9 +781,11 @@ export default function DigitalLife() {
                   <button className="btn btn-primary" onClick={() => sendChat()}>发送</button>
                 </div>
               </div>
+              </Annotate>
             )}
 
             {activeTab === 'memory' && (
+              <Annotate id="digital-life.memory-inject">
               <div className="card memory-panel">
                 <div className="card-header"><h3 className="card-title">记忆注入</h3></div>
                 <div className="card-body memory-inject">
@@ -791,6 +803,7 @@ export default function DigitalLife() {
                   <button className="btn btn-primary" onClick={startInject} disabled={injecting}>{injecting ? '注入中…' : '开始记忆注入'}</button>
                 </div>
               </div>
+              </Annotate>
             )}
 
             {activeTab === 'chat' ? (
@@ -843,6 +856,7 @@ export default function DigitalLife() {
                 </div>
               </div>
             ) : (
+              <Annotate id="digital-life.training">
               <div className="card training-card">
                 <div className="card-header">
                   <h3 className="card-title">人格训练参数</h3>
@@ -868,6 +882,7 @@ export default function DigitalLife() {
                   </div>
                 </div>
               </div>
+              </Annotate>
             )}
           </div>
 
@@ -935,6 +950,7 @@ export default function DigitalLife() {
               </div>
             </div>
 
+            <Annotate id="digital-life.inheritance">
             <div className="card inheritance-card">
               <div className="card-header">
                 <h3 className="card-title">数字遗产与继承设置</h3>
@@ -955,6 +971,7 @@ export default function DigitalLife() {
                 <button className="btn btn-outline preview-btn" onClick={() => setShowPreview((v) => !v)}><Eye size={14} /> {showPreview ? '关闭' : '查看'}继承预览</button>
               </div>
             </div>
+            </Annotate>
           </div>
         </>
       )}

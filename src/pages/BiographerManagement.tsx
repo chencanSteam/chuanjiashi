@@ -26,6 +26,7 @@ import { getStatusLabel } from '../data/biographerData';
 import type { Biographer as MockBiographer, BiographerDepositRecord, BiographerPenaltyRecord } from '../mocks/types';
 import type { Biographer, BiographerFormData, BiographerStatus } from '../types/biographer';
 import BiographerProfile from './BiographerProfile';
+import Annotate from '../components/annotation/Annotate';
 import './BiographerManagement.css';
 
 const emptyForm: BiographerFormData = {
@@ -296,9 +297,11 @@ export default function BiographerManagement() {
       <header className="page-header">
         <h1 className="page-title">传记师管理</h1>
         {activeTab === 'list' && (
+          <Annotate id="admin-biographers.add-biographer" inline>
           <button className="btn btn-primary" onClick={openCreate}>
             <Plus size={16} /> 新增传记师
           </button>
+          </Annotate>
         )}
         {activeTab === 'penalties' && (
           <button className="btn btn-primary" onClick={() => setShowPenaltyModal(true)}>
@@ -307,6 +310,7 @@ export default function BiographerManagement() {
         )}
       </header>
 
+      <Annotate id="admin-biographers.tabs">
       <div className="tabs">
         {bioTabs.map((t) => (
           <button
@@ -318,6 +322,7 @@ export default function BiographerManagement() {
           </button>
         ))}
       </div>
+      </Annotate>
 
       {activeTab === 'list' && (
       <>
@@ -354,6 +359,7 @@ export default function BiographerManagement() {
 
       <div className="card bio-list-card">
         <div className="card-header bio-list-header">
+          <Annotate id="admin-biographers.list-filter">
           <div className="bio-filters">
             <div className="bio-search">
               <Search size={16} />
@@ -371,11 +377,13 @@ export default function BiographerManagement() {
               <option value="inactive">已停用</option>
             </select>
           </div>
+          </Annotate>
         </div>
         <div className="card-body bio-list-body">
           {filtered.length === 0 ? (
             <div className="bio-empty">暂无符合条件的传记师</div>
           ) : (
+            <Annotate id="admin-biographers.list-table">
             <div className="bio-table">
               <div className="bio-row bio-header">
                 <div className="bio-cell bio-cell-name">传记师</div>
@@ -445,6 +453,7 @@ export default function BiographerManagement() {
                 </div>
               ))}
             </div>
+            </Annotate>
           )}
         </div>
       </div>
@@ -452,6 +461,7 @@ export default function BiographerManagement() {
       )}
 
       {activeTab === 'deposits' && (
+        <Annotate id="admin-biographers.deposit-table">
         <div className="card bio-list-card">
           <div className="card-body bio-list-body">
             {deposits.length === 0 ? (
@@ -496,9 +506,11 @@ export default function BiographerManagement() {
             )}
           </div>
         </div>
+        </Annotate>
       )}
 
       {activeTab === 'penalties' && (
+        <Annotate id="admin-biographers.penalty-table">
         <div className="card bio-list-card">
           <div className="card-body bio-list-body">
             {penalties.length === 0 ? (
@@ -540,9 +552,11 @@ export default function BiographerManagement() {
             )}
           </div>
         </div>
+        </Annotate>
       )}
 
       {showPenaltyModal && (
+        <Annotate id="admin-biographers.penalty-form">
         <div className="modal-overlay" onClick={() => setShowPenaltyModal(false)}>
           <div className="modal-content bio-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
@@ -612,9 +626,11 @@ export default function BiographerManagement() {
             </div>
           </div>
         </div>
+        </Annotate>
       )}
 
       {showModal && (
+        <Annotate id="admin-biographers.biographer-form">
         <div className="modal-overlay" onClick={closeModal}>
           <div className="modal-content bio-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
@@ -718,6 +734,7 @@ export default function BiographerManagement() {
             </div>
           </div>
         </div>
+        </Annotate>
       )}
 
       {showDelete && (

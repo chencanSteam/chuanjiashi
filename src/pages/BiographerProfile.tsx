@@ -6,6 +6,7 @@ import { paymentApi } from '../api/payment';
 import { useToast } from '../hooks/useToast';
 import { useAuth } from '../hooks/useAuth';
 import type { Biographer as MockBiographer, BiographerReview, BiographerService, BiographerBookingForm } from '../mocks/types';
+import Annotate from '../components/annotation/Annotate';
 import './BiographerProfile.css';
 
 interface BiographerProfileProps {
@@ -139,6 +140,7 @@ export default function BiographerProfile({ biographerId, embedded, onClose, onB
   return (
     <div className="biographer-profile-page">
       <div className="biographer-profile-cover" />
+      <Annotate id="biographer-profile.header">
       <div className="biographer-profile-header-card">
         {!embedded && (
           <button
@@ -197,6 +199,7 @@ export default function BiographerProfile({ biographerId, embedded, onClose, onB
           ))}
         </div>
 
+        <Annotate id="biographer-profile.actions" inline>
         <div className="biographer-profile-actions">
           {onBookService && biographer.services && biographer.services.length > 0 && (
             <button
@@ -213,7 +216,9 @@ export default function BiographerProfile({ biographerId, embedded, onClose, onB
           )}
           <button className="btn btn-outline" onClick={() => setShowConsult(true)}>在线咨询</button>
         </div>
+        </Annotate>
       </div>
+      </Annotate>
 
       <div className="biographer-profile-stats">
         {statCards.map((s) => (
@@ -243,6 +248,7 @@ export default function BiographerProfile({ biographerId, embedded, onClose, onB
       </div>
 
       {biographer.services && biographer.services.length > 0 && (
+        <Annotate id="biographer-profile.services">
         <div className="biographer-profile-section">
           <h3 className="biographer-profile-section-title"><BookOpen size={18} /> 服务套餐</h3>
           <div className="biographer-profile-services">
@@ -300,6 +306,7 @@ export default function BiographerProfile({ biographerId, embedded, onClose, onB
             </div>
           </div>
         </div>
+        </Annotate>
       )}
 
       {biographer.cases && biographer.cases.length > 0 && (
@@ -321,6 +328,7 @@ export default function BiographerProfile({ biographerId, embedded, onClose, onB
         </div>
       )}
 
+      <Annotate id="biographer-profile.reviews">
       <div className="biographer-profile-section">
         <h3 className="biographer-profile-section-title"><Star size={18} /> 客户评价</h3>
         <div className="biographer-profile-rating-summary">
@@ -370,6 +378,7 @@ export default function BiographerProfile({ biographerId, embedded, onClose, onB
           )}
         </div>
       </div>
+      </Annotate>
 
       {biographer.certificates && biographer.certificates.length > 0 && (
         <div className="biographer-profile-section">
@@ -412,6 +421,7 @@ export default function BiographerProfile({ biographerId, embedded, onClose, onB
       </div>
 
       {bookingService && (
+        <Annotate id="biographer-profile.booking-modal">
         <div className="modal-overlay" onClick={() => setBookingService(null)}>
           <div className="modal-content biographer-booking-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
@@ -502,8 +512,10 @@ export default function BiographerProfile({ biographerId, embedded, onClose, onB
             </div>
           </div>
         </div>
+        </Annotate>
       )}
       {showConsult && (
+        <Annotate id="biographer-profile.consult">
         <div className="modal-overlay" onClick={() => setShowConsult(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
@@ -547,6 +559,7 @@ export default function BiographerProfile({ biographerId, embedded, onClose, onB
             </div>
           </div>
         </div>
+        </Annotate>
       )}
     </div>
   );

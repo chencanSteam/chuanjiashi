@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../hooks/useToast';
 import { ArrowLeft, Download, Printer, FileText, TrendingUp, Award, Activity } from 'lucide-react';
+import Annotate from '../components/annotation/Annotate';
 import './TrainingReport.css';
 
 const metrics = [
@@ -49,13 +50,16 @@ export default function TrainingReport() {
       <header className="page-header">
         <button className="btn btn-ghost" onClick={() => navigate('/digital-person')}><ArrowLeft size={16} /> 返回</button>
         <h1 className="page-title">训练报告</h1>
+        <Annotate id="training-report.actions" inline>
         <div className="page-actions">
           <button className="btn btn-outline" onClick={() => window.print()}><Printer size={14} /> 打印</button>
           <button className="btn btn-primary" onClick={downloadReport} disabled={downloading}><Download size={14} /> {downloading ? '生成中…' : '下载报告'}</button>
         </div>
+        </Annotate>
       </header>
 
       <div className="training-report-grid">
+        <Annotate id="training-report.overall">
         <div className="card training-overall-card">
           <div className="card-body training-overall-body">
             <div className="training-overall-score">
@@ -70,7 +74,9 @@ export default function TrainingReport() {
             </div>
           </div>
         </div>
+        </Annotate>
 
+        <Annotate id="training-report.metrics">
         <div className="card">
           <div className="card-header"><h3 className="card-title"><Activity size={16} /> 能力维度</h3></div>
           <div className="card-body training-metrics-body">
@@ -83,7 +89,9 @@ export default function TrainingReport() {
             ))}
           </div>
         </div>
+        </Annotate>
 
+        <Annotate id="training-report.trend">
         <div className="card">
           <div className="card-header"><h3 className="card-title"><TrendingUp size={16} /> 训练趋势</h3></div>
           <div className="card-body training-trend-body">
@@ -103,7 +111,9 @@ export default function TrainingReport() {
             </div>
           </div>
         </div>
+        </Annotate>
 
+        <Annotate id="training-report.summary">
         <div className="card">
           <div className="card-header"><h3 className="card-title"><FileText size={16} /> 训练总结</h3></div>
           <div className="card-body training-summary-text">
@@ -113,6 +123,7 @@ export default function TrainingReport() {
             <p>4. 建议下一训练周期重点加强一致性测试与情感记忆。</p>
           </div>
         </div>
+        </Annotate>
       </div>
     </div>
   );

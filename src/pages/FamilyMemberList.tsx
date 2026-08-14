@@ -5,6 +5,7 @@ import { useToast } from '../hooks/useToast';
 import Avatar from '../components/ui/Avatar';
 import { familyApi } from '../api/family';
 import type { FamilyMember } from '../mocks/types';
+import Annotate from '../components/annotation/Annotate';
 import './FamilyMemberList.css';
 
 function getArchiveId() {
@@ -59,7 +60,7 @@ export default function FamilyMemberList() {
       <div className="card">
         <div className="card-header">
           <h3 className="card-title">全部成员</h3>
-          {!showAdd && <button className="btn btn-primary" onClick={() => setShowAdd(true)}>+ 添加成员</button>}
+          {!showAdd && <Annotate id="family-members.add-member" inline><button className="btn btn-primary" onClick={() => setShowAdd(true)}>+ 添加成员</button></Annotate>}
         </div>
         <div className="card-body">
           {showAdd && (
@@ -69,10 +70,13 @@ export default function FamilyMemberList() {
               <button onClick={() => { setShowAdd(false); setNewName(''); }}>取消</button>
             </div>
           )}
+          <Annotate id="family-members.search">
           <div className="member-search">
             <Search size={14} />
             <input type="text" placeholder="搜索成员姓名" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
+          </Annotate>
+          <Annotate id="family-members.member-grid">
           <div className="member-list-grid">
             {filteredMembers.map((m) => (
               <div
@@ -92,11 +96,14 @@ export default function FamilyMemberList() {
               </div>
             ))}
           </div>
+          </Annotate>
+          <Annotate id="family-members.bottom-actions">
           <div className="member-list-actions">
             <button className="btn btn-outline" onClick={() => navigate('/family/members/张明远')}><Users size={14} /> 家庭成员资料</button>
             <button className="btn btn-outline" onClick={() => navigate('/family/relations')}><Clock size={14} /> 关系维护</button>
             <button className="btn btn-outline" onClick={() => navigate('/family/roles')}><BookOpen size={14} /> 角色权限</button>
           </div>
+          </Annotate>
         </div>
       </div>
     </div>

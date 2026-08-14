@@ -1,6 +1,7 @@
 import { ArrowLeft, Baby, GraduationCap, Stethoscope, Music } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Avatar from '../components/ui/Avatar';
+import Annotate from '../components/annotation/Annotate';
 import './FamilyChild.css';
 
 const children = [
@@ -28,6 +29,7 @@ export default function FamilyChild() {
         <h1 className="page-title">亲子成长档案</h1>
       </header>
 
+      <Annotate id="family-child.child-cards">
       <div className="child-cards">
         {children.map((c, i) => (
           <div className="card child-summary-card" key={i}>
@@ -41,6 +43,7 @@ export default function FamilyChild() {
               </div>
             </div>
             <div className="card-body">
+              <Annotate id="family-child.category-entry">
               <div className="child-cat-grid">
                 {categories.map(({ key, label, Icon }) => (
                   <button
@@ -53,10 +56,12 @@ export default function FamilyChild() {
                   </button>
                 ))}
               </div>
+              </Annotate>
             </div>
           </div>
         ))}
       </div>
+      </Annotate>
     </div>
   );
 }

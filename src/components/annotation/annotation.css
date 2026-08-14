@@ -1,0 +1,173 @@
+/* ===== 逻辑标注模式（产品演示用，后台逻辑标注层） ===== */
+
+/* 标注点包裹容器：flex 撑满以保持卡片在 grid/flex 布局中的原始表现 */
+.annotate-wrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  align-self: stretch;
+  outline: 1.5px dashed rgba(184, 134, 11, 0.55);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+.annotate-wrap > *:not(.annotate-badge) {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* 行内元素（按钮、下拉框）的包裹：不抢占主轴空间 */
+.annotate-wrap.inline {
+  display: inline-flex;
+  flex-direction: row;
+  flex: 0 0 auto;
+  align-self: auto;
+}
+
+.annotate-wrap.inline > *:not(.annotate-badge) {
+  flex: 0 0 auto;
+}
+
+/* 编号圆点 */
+.annotate-badge {
+  position: absolute;
+  top: -9px;
+  right: -9px;
+  z-index: 90;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: none;
+  padding: 0;
+  line-height: 1;
+  cursor: pointer;
+  background: linear-gradient(135deg, #b8860b, #d4a84b);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  transition: transform 0.15s ease;
+}
+
+.annotate-badge:hover {
+  transform: scale(1.18);
+}
+
+.annotate-wrap.open {
+  outline-color: rgba(45, 90, 74, 0.8);
+}
+
+.annotate-wrap.open .annotate-badge {
+  background: #2d5a4a;
+}
+
+/* 逻辑说明气泡（portal 到 body，固定定位，避免被卡片 overflow 裁剪） */
+.annotate-popover {
+  position: fixed;
+  z-index: 1000;
+  background: #fff;
+  border: 1px solid #e6d9b8;
+  border-left: 3px solid #b8860b;
+  border-radius: 8px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
+  padding: 12px 14px;
+  cursor: default;
+}
+
+.annotate-popover-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.annotate-popover-no {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #b8860b, #d4a84b);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.annotate-popover-target {
+  font-size: 13px;
+  font-weight: 600;
+  color: #2d5a4a;
+}
+
+.annotate-popover-page {
+  margin-left: auto;
+  font-size: 11px;
+  color: #a08b55;
+}
+
+.annotate-popover-logic {
+  font-size: 12.5px;
+  line-height: 1.75;
+  color: #444;
+  white-space: pre-line;
+  text-align: left;
+}
+
+/* 右下角浮动开关 */
+.annotation-toggle {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 16px;
+  border-radius: 999px;
+  border: 1px solid #d4a84b;
+  background: #fff;
+  color: #8a6508;
+  font-size: 13px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.annotation-toggle:hover {
+  background: #faf3e0;
+}
+
+.annotation-toggle.on {
+  background: linear-gradient(135deg, #b8860b, #d4a84b);
+  border-color: transparent;
+  color: #fff;
+}
+
+.annotation-toggle.on:hover {
+  background: linear-gradient(135deg, #a67609, #c99a3c);
+}
+
+.annotation-toggle-count {
+  font-size: 11px;
+  opacity: 0.9;
+  border-left: 1px solid rgba(255, 255, 255, 0.45);
+  padding-left: 8px;
+}
+
+/* 移动端：开关浮在底部 tab 栏上方 */
+@media (max-width: 900px) {
+  .annotation-toggle {
+    right: 12px;
+    bottom: 72px;
+    padding: 7px 12px;
+    font-size: 12px;
+  }
+}

@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import Avatar from './ui/Avatar';
 import { useAuth } from '../hooks/useAuth';
+import AnnotationToggle from './annotation/AnnotationToggle';
 import './Layout.css';
 
 interface NavItem {
@@ -109,6 +110,7 @@ export default function BiographerLayout() {
           <Outlet />
         </main>
       </div>
+      <AnnotationToggle />
     </div>
   );
 }

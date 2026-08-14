@@ -25,6 +25,7 @@ import Avatar from '../components/ui/Avatar';
 import { useToast } from '../hooks/useToast';
 import { generateImageDataUrl } from '../utils/mediaPlaceholder';
 import { loadAlbumPhotos, readFilesAsDataUrls, saveAlbumPhotos, type AlbumPhoto } from '../utils/albumStorage';
+import Annotate from '../components/annotation/Annotate';
 import './FamilySpace.css';
 
 const tabs = [
@@ -232,11 +233,13 @@ export default function FamilySpace() {
         </div>
       </header>
 
+      <Annotate id="family-space.tabs">
       <div className="tabs">
         {tabs.map((t) => (
           <button key={t.key} className={`tab ${activeTab === t.key ? 'active' : ''}`} onClick={() => setActiveTab(t.key)}>{t.label}</button>
         ))}
       </div>
+      </Annotate>
 
       {activeTab === 'space' && (
         <>
@@ -281,6 +284,7 @@ export default function FamilySpace() {
           </div>
 
           <div className="family-grid">
+            <Annotate id="family-space.member-card">
             <div className="card member-card">
               <div className="card-header">
                 <h3 className="card-title">家庭成员（{filteredMembers.length}人）</h3>
@@ -310,7 +314,9 @@ export default function FamilySpace() {
                 </div>
               </div>
             </div>
+            </Annotate>
 
+            <Annotate id="family-space.tree-card">
             <div className="card tree-card">
               <div className="card-header">
                 <h3 className="card-title">家谱树 <span>（五代同堂）</span></h3>
@@ -361,8 +367,10 @@ export default function FamilySpace() {
                 )}
               </div>
             </div>
+            </Annotate>
 
             <div className="family-right">
+              <Annotate id="family-space.calendar-card">
               <div className="card calendar-card">
                 <div className="card-header">
                   <h3 className="card-title">家庭日历</h3>
@@ -467,6 +475,7 @@ export default function FamilySpace() {
                   )}
                 </div>
               </div>
+              </Annotate>
 
               <div className="card events-card">
                 <div className="card-header">
@@ -541,6 +550,7 @@ export default function FamilySpace() {
               </div>
             </div>
 
+            <Annotate id="family-space.story-card">
             <div className="card story-card">
               <div className="card-header">
                 <h3 className="card-title">家庭故事共创</h3>
@@ -566,6 +576,7 @@ export default function FamilySpace() {
                 <button className="create-story" onClick={() => setActiveTab('story')}>+ 创建新故事</button>
               </div>
             </div>
+            </Annotate>
 
             <div className="card child-card">
               <div className="card-header">
@@ -667,6 +678,7 @@ export default function FamilySpace() {
       )}
 
       {activeTab === 'album' && (
+        <Annotate id="family-space.album-upload">
         <div className="card album-page-card">
           <div className="card-header">
             <h3 className="card-title">家庭相册</h3>
@@ -699,6 +711,7 @@ export default function FamilySpace() {
             </div>
           </div>
         </div>
+        </Annotate>
       )}
 
       {photoPreview && (
@@ -714,6 +727,7 @@ export default function FamilySpace() {
       )}
 
       {activeTab === 'story' && (
+        <Annotate id="family-space.story-create">
         <div className="card story-page-card">
           <div className="card-header">
             <h3 className="card-title">家庭故事共创</h3>
@@ -743,6 +757,7 @@ export default function FamilySpace() {
             ))}
           </div>
         </div>
+        </Annotate>
       )}
 
       {activeTab === 'child' && (

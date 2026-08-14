@@ -1,5 +1,6 @@
-import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { Outlet, NavLink, useLocation } from 'react-router-dom';
 import { Home, Mic, Archive, Users, User } from 'lucide-react';
+import AnnotationToggle from './annotation/AnnotationToggle';
 import './MobileLayout.css';
 
 const tabs = [
@@ -12,7 +13,6 @@ const tabs = [
 
 function MobileHeader() {
   const location = useLocation();
-  const navigate = useNavigate();
   const titleMap: Record<string, string> = {
     '/m': '传家世',
     '/m/interview': 'AI 智能采访',
@@ -23,23 +23,10 @@ function MobileHeader() {
     '/m/photo-restore': '照片修复',
   };
   const title = titleMap[location.pathname] || '传家世';
-  const isHome = location.pathname === '/m';
 
   return (
     <header className="mobile-header">
-      {isHome ? (
-        <div className="mobile-header-placeholder" />
-      ) : (
-        <button
-          className="mobile-header-back"
-          onClick={() => navigate(-1)}
-          aria-label="返回"
-        >
-          ←
-        </button>
-      )}
       <h1 className="mobile-header-title">{title}</h1>
-      <div className="mobile-header-placeholder" />
     </header>
   );
 }
@@ -69,6 +56,7 @@ export default function MobileLayout() {
           );
         })}
       </nav>
+      <AnnotationToggle />
     </div>
   );
 }

@@ -31,6 +31,7 @@ import { groupBuyApi } from '../api/groupBuy';
 import { loadJson, type ChapterData } from '../data/aiMock';
 import { generateInterviewTopics } from '../utils/interviewTopics';
 import type { PublicBook } from '../mocks/types';
+import Annotate from '../components/annotation/Annotate';
 import './Home.css';
 
 interface TodoItem {
@@ -378,6 +379,7 @@ export default function Home() {
       </header>
 
       {!archiveExists && (
+        <Annotate id="home.empty-hero">
         <section className="home-hero home-hero-empty">
           <div className="hero-copy">
             <h2>开启您的第一份人生传记</h2>
@@ -388,8 +390,10 @@ export default function Home() {
             </div>
           </div>
         </section>
+        </Annotate>
       )}
 
+      <Annotate id="home.start-interview">
       <section className="home-hero">
         <div className="hero-copy">
           <h2>用 AI 记录人生故事，<br />传承家风温度</h2>
@@ -503,8 +507,10 @@ export default function Home() {
           </svg>
         </div>
       </section>
+      </Annotate>
 
       {pendingInvites.length > 0 && (
+        <Annotate id="home.collab-invites">
         <section className="home-collab">
           <div className="surface-header">
             <h3><Users size={16} /> 协作邀请</h3>
@@ -529,9 +535,11 @@ export default function Home() {
             ))}
           </div>
         </section>
+        </Annotate>
       )}
 
       {collabArchives.length > 0 && (
+        <Annotate id="home.collab-archives">
         <section className="home-collab">
           <div className="surface-header">
             <h3><Users size={16} /> 我协助的传记</h3>
@@ -556,6 +564,7 @@ export default function Home() {
             ))}
           </div>
         </section>
+        </Annotate>
       )}
 
       {!isMVP && (<>
@@ -638,6 +647,7 @@ export default function Home() {
         </div>
       </section>
 
+      <Annotate id="home.hot-books">
       <section className="home-hot-books">
         <div className="surface-header">
           <h3><Flame size={16} /> 热门传记推荐</h3>
@@ -665,6 +675,7 @@ export default function Home() {
           </div>
         )}
       </section>
+      </Annotate>
 
       <section className="home-cases">
         <div className="surface-header">
@@ -686,6 +697,7 @@ export default function Home() {
       </>)}
 
       <section className="workspace">
+        <Annotate id="home.activities">
         <div className="surface activity-surface">
           <div className="surface-header">
             <h3>最近动态</h3>
@@ -707,7 +719,9 @@ export default function Home() {
             )}
           </div>
         </div>
+        </Annotate>
 
+        <Annotate id="home.todo-list">
         <div className="surface todo-surface">
           <div className="surface-header">
             <h3>待办事项</h3>
@@ -730,8 +744,10 @@ export default function Home() {
             )}
           </div>
         </div>
+        </Annotate>
       </section>
 
+      <Annotate id="home.basic-info-modal">
       <Modal
         open={showBasicModal}
         title={basicStep === 1 ? '完善基础信息' : '选择人生标签'}
@@ -854,6 +870,7 @@ export default function Home() {
           </div>
         )}
       </Modal>
+      </Annotate>
     </div>
   );
 }

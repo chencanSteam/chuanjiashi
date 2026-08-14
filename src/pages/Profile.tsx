@@ -17,6 +17,7 @@ import Modal from '../components/ui/Modal';
 import { useAuth } from '../hooks/useAuth';
 import { useVersion } from '../hooks/useVersion';
 import { useToast } from '../hooks/useToast';
+import Annotate from '../components/annotation/Annotate';
 import './Profile.css';
 
 interface SecurityInfo {
@@ -161,6 +162,7 @@ export default function Profile() {
 
   return (
     <div className="profile-page">
+      <Annotate id="profile.hero">
       <div className="profile-hero card">
         <div className="profile-hero-main">
           <Avatar name={displayName} size={72} />
@@ -180,9 +182,11 @@ export default function Profile() {
           </div>
         </div>
       </div>
+      </Annotate>
 
       <div className="card profile-menu-card">
         <div className="profile-section-title">账号与安全</div>
+        <Annotate id="profile.realname">
         <div className="profile-menu-item" onClick={() => !security.realName && setShowRealname(true)}>
           <div className="profile-menu-icon"><ShieldCheck size={18} /></div>
           <div className="profile-menu-info">
@@ -197,6 +201,8 @@ export default function Profile() {
             <span className="profile-bind-status">去实名 <ChevronRight size={14} /></span>
           )}
         </div>
+        </Annotate>
+        <Annotate id="profile.wechat">
         <div className="profile-menu-item" onClick={toggleWechat}>
           <div className="profile-menu-icon"><MessageCircle size={18} /></div>
           <div className="profile-menu-info">
@@ -207,6 +213,8 @@ export default function Profile() {
             {security.wechatBound ? '已绑定' : '去绑定'} <ChevronRight size={14} />
           </span>
         </div>
+        </Annotate>
+        <Annotate id="profile.phone-change">
         <div className="profile-menu-item" onClick={() => setShowPhone(true)}>
           <div className="profile-menu-icon"><Phone size={18} /></div>
           <div className="profile-menu-info">
@@ -215,9 +223,11 @@ export default function Profile() {
           </div>
           <span className="profile-bind-status">更换 <ChevronRight size={14} /></span>
         </div>
+        </Annotate>
       </div>
 
       {!isMVP && (
+        <Annotate id="profile.menu-list">
         <div className="card profile-menu-card">
           {menuItems.map((item) => (
             <div className="profile-menu-item" key={item.to} onClick={() => navigate(item.to)}>
@@ -230,11 +240,14 @@ export default function Profile() {
             </div>
           ))}
         </div>
+        </Annotate>
       )}
 
+      <Annotate id="profile.logout">
       <button className="btn btn-outline profile-logout" onClick={handleLogout}>
         <LogOut size={14} /> 退出登录
       </button>
+      </Annotate>
 
       <Modal
         open={showRealname}

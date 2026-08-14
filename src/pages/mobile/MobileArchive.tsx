@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Calendar, MapPin, Briefcase, Clock } from 'lucide-react';
-import type { TimelineEvent } from '../../mocks/types';
+import { loadStoredEventsForArchive, type StoredTimelineEventData } from '../../utils/timelineSample';
+import Annotate from '../../components/annotation/Annotate';
 import './MobileArchive.css';
 
 interface Archive {
@@ -24,36 +25,36 @@ function loadCurrentArchive(): Archive | null {
   }
 }
 
-function loadTimelineEvents(archiveId: string): TimelineEvent[] {
-  try {
-    const raw = localStorage.getItem('cj_mock_timeline');
-    if (!raw) return [];
-    const events: TimelineEvent[] = JSON.parse(raw);
-    return events.filter((e) => e.archiveId === archiveId).sort((a, b) => a.year - b.year);
-  } catch {
-    return [];
-  }
+function formatYear(event: StoredTimelineEventData): string {
+  return event.endYear && event.endYear !== event.year
+    ? `${event.year} - ${event.endYear}`
+    : event.year;
 }
 
 export default function MobileArchive() {
   const archive = loadCurrentArchive();
   const archiveId = archive?.id || 'default';
-  const [events, setEvents] = useState<TimelineEvent[]>([]);
+  const [events, setEvents] = useState<StoredTimelineEventData[]>([]);
 
   useEffect(() => {
-    setEvents(loadTimelineEvents(archiveId));
+    // 与 Web 端人生档案同源：cj_events_* 存储，默认档案回退到张明远样例数据
+    const list = loadStoredEventsForArchive(archiveId);
+    setEvents(list.slice().sort((a, b) => Number(a.year) - Number(b.year)));
   }, [archiveId]);
 
   if (!archive) {
     return (
+      <Annotate id="mobile-archive.no-archive">
       <div className="mobile-archive-empty">
         <p>暂无档案</p>
       </div>
+      </Annotate>
     );
   }
 
   return (
     <div className="mobile-archive">
+      <Annotate id="mobile-archive.profile-card">
       <section className="mobile-archive-card profile-card">
         <div className="profile-avatar">
           {archive.name.charAt(0)}
@@ -66,28 +67,33 @@ export default function MobileArchive() {
           <span><Clock size={14} /> {archive.gender || '未知'}</span>
         </div>
       </section>
+      </Annotate>
 
       <section className="mobile-archive-section">
         <h3 className="section-title">人生时间轴</h3>
         {events.length === 0 ? (
+          <Annotate id="mobile-archive.no-events" inline>
           <div className="mobile-archive-empty">
             <p>还没有记录</p>
           </div>
+          </Annotate>
         ) : (
+          <Annotate id="mobile-archive.timeline">
           <div className="mobile-timeline">
-            {events.map((event) => (
-              <div key={event.id} className="mobile-timeline-item">
+            {events.map((event, i) => (
+              <div key={`${event.year}-${event.title}-${i}`} className="mobile-timeline-item">
                 <div className="timeline-dot" />
                 <div className="timeline-content">
-                  <div className="timeline-year">{event.year}</div>
+                  <div className="timeline-year">{formatYear(event)}</div>
                   <div className="timeline-title">{event.title}</div>
-                  {event.description && (
-                    <div className="timeline-desc">{event.description}</div>
+                  {event.desc && (
+                    <div className="timeline-desc">{event.desc}</div>
                   )}
                 </div>
               </div>
             ))}
           </div>
+          </Annotate>
         )}
       </section>
     </div>

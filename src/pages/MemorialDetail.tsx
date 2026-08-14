@@ -3,6 +3,7 @@ import { ArrowLeft, Landmark, Flower2, Image as ImageIcon, BookOpen, Music, X, P
 import { useNavigate, useParams } from 'react-router-dom';
 import { useToast } from '../hooks/useToast';
 import Avatar from '../components/ui/Avatar';
+import Annotate from '../components/annotation/Annotate';
 import './MemorialDetail.css';
 
 const memorialData: Record<string, { years: string; title: string; bio: string }> = {
@@ -88,6 +89,7 @@ export default function MemorialDetail() {
         <h1 className="page-title">数字纪念馆</h1>
       </header>
 
+      <Annotate id="memorial-detail.hero">
       <div className="card memorial-hero-card">
         <div className="card-body memorial-hero-body">
           <div className="memorial-hero-art"><Landmark size={48} color="#1B5E4B" /></div>
@@ -101,11 +103,13 @@ export default function MemorialDetail() {
           </div>
         </div>
       </div>
+      </Annotate>
 
       <div className="card">
         <div className="card-header"><h3 className="card-title">生平简介</h3></div>
         <div className="card-body memorial-detail-body">
           <p className="memorial-bio">{data.bio}</p>
+          <Annotate id="memorial-detail.photos">
           <div className="memorial-section">
             <h4><ImageIcon size={14} /> 纪念影像</h4>
             <div className="memorial-photos">
@@ -116,6 +120,8 @@ export default function MemorialDetail() {
               ))}
             </div>
           </div>
+          </Annotate>
+          <Annotate id="memorial-detail.articles">
           <div className="memorial-section">
             <h4><BookOpen size={14} /> 纪念文章</h4>
             <div className="memorial-articles">
@@ -129,14 +135,18 @@ export default function MemorialDetail() {
               </div>
             </div>
           </div>
+          </Annotate>
+          <Annotate id="memorial-detail.actions">
           <div className="memorial-actions">
             <button className="btn btn-primary" onClick={() => { setFlowers((c) => c + 1); addToast(`已向 ${decodedName} 献花`, 'success'); }}><Flower2 size={14} /> 献花缅怀（{flowers}）</button>
             <button className="btn btn-outline" onClick={toggleMusic}>{playing ? <Pause size={14} /> : <Music size={14} />} {playing ? '暂停音乐' : '纪念音乐'}</button>
           </div>
+          </Annotate>
         </div>
       </div>
 
       {preview && (
+        <Annotate id="memorial-detail.preview">
         <div className="modal-overlay" onClick={() => setPreview(null)}>
           <div className="modal-content memorial-preview" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header"><h4>{preview.title}</h4><button className="modal-close" onClick={() => setPreview(null)}><X size={16} /></button></div>
@@ -149,6 +159,7 @@ export default function MemorialDetail() {
             </div>
           </div>
         </div>
+        </Annotate>
       )}
     </div>
   );

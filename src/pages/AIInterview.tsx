@@ -41,6 +41,7 @@ import {
 } from '../data/aiMock';
 import { generateInterviewTopics, saveCustomTopic, removeTopicForArchive } from '../utils/interviewTopics';
 import { syncReviewEventToTimeline } from '../utils/eventSync';
+import Annotate from '../components/annotation/Annotate';
 import './AIInterview.css';
 
 interface Archive {
@@ -123,43 +124,41 @@ export default function AIInterview() {
   const archiveId = archive?.id || 'default';
   const subjectName = archive?.name || '张家声';
 
-  // 档案传主与当前账号昵称一致 → 本人（回答自己的传记）；其他档案一律为协助模式（回答计入补充素材）
+  // 当前账号在该档案的协作者名单中 → 协助模式（回答计入补充素材）；否则为创建人（档案由本账号创建）
   const collaboratorRecord = loadCollaborators(archiveId).find((c) => c.name === user?.name);
-  const isOwnArchive = subjectName === user?.name;
-  const myCollaborator: RespondentInfo | null = isOwnArchive
-    ? null
-    : {
-        id: collaboratorRecord?.id || `self_${user?.phone || 'anon'}`,
+  const myCollaborator: RespondentInfo | null = collaboratorRecord
+    ? {
+        id: collaboratorRecord.id,
         name: user?.name || '协作人',
-        relation: collaboratorRecord?.relation || '协作人',
+        relation: collaboratorRecord.relation || '协作人',
         isSubject: false,
-      };
+      }
+    : null;
   const currentRespondent: RespondentInfo = myCollaborator ?? {
     id: 'subject',
     name: subjectName,
-    relation: '本人',
+    relation: '创建人',
     isSubject: true,
   };
   const isSubjectMode = currentRespondent.isSubject;
 
-  // 每个回答者独立抽题与进度：AI 按各自对话生成问题，本人与协助者的问题互不相同
+  // 每个回答者独立抽题与进度：AI 按各自对话生成问题，创建人与协助者的问题互不相同
   const respondentSuffix = myCollaborator ? `_${myCollaborator.id}` : '';
   const interviewTopics = generateInterviewTopics(archive, archiveId);
 
-  // 本人=回答自己的传记；协作者=协助传主的传记
+  // 创建人=主导本传记的采访；协作者=协助传主的传记
   const respondentLabel = (r: RespondentInfo) =>
-    r.isSubject ? `${r.name} · 本人（回答自己的传记）` : `${r.name} · ${r.relation}（协助${subjectName}的传记）`;
+    r.isSubject ? `${r.name} · 创建人（主导本传记的采访）` : `${r.name} · ${r.relation}（协助${subjectName}的传记）`;
 
-  // 传记选择：自己的传记显示本人，其他传记一律显示协助；切换后重载页面以载入对应档案数据
+  // 传记选择：本账号创建的传记显示创建人，被邀请协助的传记显示协助；切换后重载页面以载入对应档案数据
   const allArchives = useMemo(() => loadJson<Archive[]>('cj_archives', []), []);
   const archiveOptions = allArchives.map((a) => {
     const collab = loadCollaborators(a.id).find((c) => c.name === user?.name);
     return {
       id: a.id,
-      label:
-        a.name === user?.name
-          ? `${a.name} 的传记 · 本人`
-          : `${a.name} 的传记 · 协助（我是${collab?.relation || '协作人'}）`,
+      label: collab
+        ? `${a.name} 的传记 · 协助（我是${collab.relation || '协作人'}）`
+        : `${a.name} 的传记 · 创建人`,
     };
   });
   const handleSwitchArchive = (id: string) => {
@@ -227,7 +226,7 @@ export default function AIInterview() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [archiveId, invitesRefresh, collaborators]
   );
-  // 本人视角：在主题区切换查看某位协助人的问答
+  // 创建人视角：在主题区切换查看某位协助人的问答
   const [viewRespondentId, setViewRespondentId] = useState<'subject' | string>('subject');
 
   const voiceTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -358,7 +357,7 @@ export default function AIInterview() {
     });
   }, [isSubjectMode, collaborators, currentTopic, supplementAnswers, archive, archiveId]);
 
-  // 切换主题后，若当前查看的协助者在该主题下没有回答，自动切回本人
+  // 切换主题后，若当前查看的协助者在该主题下没有回答，自动切回创建人
   useEffect(() => {
     if (viewRespondentId !== 'subject' && !topicCollaborators.some((c) => c.id === viewRespondentId)) {
       setViewRespondentId('subject');
@@ -685,7 +684,7 @@ export default function AIInterview() {
     setActiveFollowUpIndex(null);
     setFollowUpAnswer('');
 
-    // 本人回答追问后，AI 可继续衍生新问题（仍受每题 3 次追问上限约束）
+    // 创建人回答追问后，AI 可继续衍生新问题（仍受每题 3 次追问上限约束）
     if (currentRespondent.isSubject) {
       generateFollowUps(currentQuestion.id, 1);
       // 对话流收尾：没有更多待答追问时，自动进入下一道主问题
@@ -766,6 +765,7 @@ export default function AIInterview() {
       <header className="page-header interview-header">
         <h1 className="page-title">AI智能采访</h1>
         <div className="interview-header-actions">
+          <Annotate id="interview.archive-switch" inline>
           <div className="archive-switch-row header-switch">
             <span className="respondent-label">选择传记</span>
             <select value={archiveId} onChange={(e) => handleSwitchArchive(e.target.value)}>
@@ -774,10 +774,13 @@ export default function AIInterview() {
               ))}
             </select>
           </div>
+          </Annotate>
           {isSubjectMode && (
+            <Annotate id="interview.end-interview" inline>
             <button className="btn btn-primary end-interview-btn" onClick={endInterview}>
               <FolderOpen size={14} /> 结束采访并整理
             </button>
+            </Annotate>
           )}
         </div>
       </header>
@@ -796,6 +799,7 @@ export default function AIInterview() {
                 </div>
               </div>
             </div>
+            <Annotate id="interview.respondent">
             <div className="respondent-bar">
               <div className="respondent-select">
                 <span className="respondent-label">当前回答者</span>
@@ -812,6 +816,7 @@ export default function AIInterview() {
                 </>
               )}
             </div>
+            </Annotate>
             {!isSubjectMode && (
               <div className="collab-mode-tip">
                 你正在协助 {subjectName} 的传记采访，你的回答会作为补充素材，不影响采访进度。
@@ -827,6 +832,7 @@ export default function AIInterview() {
             <h3 className="card-title">采访主题</h3>
             <span className="card-extra">{interviewTopics.length} 个主题</span>
           </div>
+          <Annotate id="interview.topic-list">
           <div className="card-body topic-body">
             {viewedTopics.map((topic, ti) => {
               const active = ti === session.currentTopicIndex;
@@ -858,6 +864,8 @@ export default function AIInterview() {
               );
             })}
           </div>
+          </Annotate>
+          <Annotate id="interview.custom-topic">
           <div className="custom-topic-section">
             {!showCustomTopic ? (
               <button className="btn btn-outline btn-sm custom-topic-add" onClick={() => setShowCustomTopic(true)}>
@@ -884,8 +892,10 @@ export default function AIInterview() {
               </div>
             )}
           </div>
+          </Annotate>
         </div>
 
+        <Annotate id="interview.chat">
         <div className="card chat-card">
           <div className="card-header">
             <h3 className="card-title">
@@ -897,7 +907,7 @@ export default function AIInterview() {
                 value={viewRespondentId}
                 onChange={(e) => setViewRespondentId(e.target.value)}
               >
-                <option value="subject">本人回答</option>
+                <option value="subject">创建人回答</option>
                 {topicCollaborators.map((c) => (
                   <option key={c.id} value={c.id}>{c.name}（{c.relation}）的补充</option>
                 ))}
@@ -915,7 +925,7 @@ export default function AIInterview() {
                 </button>
               </div>
             ) : !viewingCollaborator ? (
-              // 本人模式：中间只显示 AI 当前正在问的问题，历史见右侧对话记录
+              // 创建人模式：中间只显示 AI 当前正在问的问题，历史见右侧对话记录
               <div className="chat-question-stage">
                 <Avatar name="AI" size={72} />
                 <div className="chat-question-name">AI 采访官</div>
@@ -993,8 +1003,10 @@ export default function AIInterview() {
             </div>
           )}
         </div>
+        </Annotate>
 
         <div className="interview-right">
+          <Annotate id="interview.transcript">
           <div className="card transcript-card">
             <div className="card-header">
               <h3 className="card-title"><BookOpen size={14} /> 对话记录</h3>
@@ -1021,14 +1033,17 @@ export default function AIInterview() {
               )}
             </div>
           </div>
+          </Annotate>
 
           {quota && quota.interviewQuestion.used >= quota.interviewQuestion.total && (
+            <Annotate id="interview.quota-alert" inline>
             <div className="card alert-card">
               <div className="card-body alert-body">
                 <AlertCircle size={18} />
                 <span>AI采访问题额度已用完，整理已有素材即可生成传记。</span>
               </div>
             </div>
+            </Annotate>
           )}
         </div>
       </div>

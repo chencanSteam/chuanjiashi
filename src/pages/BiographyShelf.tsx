@@ -18,6 +18,7 @@ import {
   Send,
 } from 'lucide-react';
 import { bookshelfApi } from '../api/bookshelf';
+import Annotate from '../components/annotation/Annotate';
 import { useToast } from '../hooks/useToast';
 import { useAuth } from '../hooks/useAuth';
 import type { PublicBook, BookComment } from '../mocks/types';
@@ -237,6 +238,7 @@ export default function BiographyShelf() {
                 <span>¥{book.price.toFixed(2)}</span>
               )}
             </div>
+            <Annotate id="biography-shelf.detail-actions" inline>
             <div className="biography-shelf-actions">
               <button className="btn btn-outline" onClick={() => handleLike(book.id)}>
                 <Heart size={14} /> {book.likes}
@@ -248,9 +250,11 @@ export default function BiographyShelf() {
                 <Share2 size={14} /> 分享
               </button>
             </div>
+            </Annotate>
           </div>
         </div>
 
+        <Annotate id="biography-shelf.reader-unlock">
         <div className="biography-shelf-content">
           <h2 className="biography-shelf-section-title">
             {canReadFull ? <Unlock size={16} /> : <Lock size={16} />}
@@ -270,7 +274,9 @@ export default function BiographyShelf() {
             </div>
           )}
         </div>
+        </Annotate>
 
+        <Annotate id="biography-shelf.comments">
         <div className="biography-shelf-comments">
           <h2 className="biography-shelf-section-title">
             <MessageSquare size={16} /> 读者评论（{comments.length}）
@@ -308,6 +314,7 @@ export default function BiographyShelf() {
             </div>
           )}
         </div>
+        </Annotate>
       </div>
     );
   }
@@ -319,6 +326,7 @@ export default function BiographyShelf() {
         <p>记录平凡生命中的不凡故事，致敬每一段值得被铭记的人生。</p>
       </header>
 
+      <Annotate id="biography-shelf.search" inline>
       <div className="biography-shelf-toolbar">
         <div className="biography-shelf-search">
           <Search size={14} />
@@ -330,7 +338,9 @@ export default function BiographyShelf() {
           />
         </div>
       </div>
+      </Annotate>
 
+      <Annotate id="biography-shelf.categories" inline>
       <div className="biography-shelf-categories">
         {categories.map((c) => (
           <button
@@ -342,8 +352,10 @@ export default function BiographyShelf() {
           </button>
         ))}
       </div>
+      </Annotate>
 
       {!loading && hotBooks.length > 0 && (
+        <Annotate id="biography-shelf.hot-rank">
         <section className="biography-shelf-rank">
           <h2 className="biography-shelf-rank-title"><Flame size={16} /> 热度榜单</h2>
           <div className="biography-shelf-rank-list">
@@ -363,6 +375,7 @@ export default function BiographyShelf() {
             ))}
           </div>
         </section>
+        </Annotate>
       )}
 
       {loading ? (
@@ -373,6 +386,7 @@ export default function BiographyShelf() {
           <p>暂无符合条件的传记</p>
         </div>
       ) : (
+        <Annotate id="biography-shelf.book-cards">
         <div className="biography-shelf-grid">
           {filtered.map((b) => (
             <div className="biography-shelf-card" key={b.id} onClick={() => navigate(`/biography-shelf/${b.id}`)}>
@@ -412,6 +426,7 @@ export default function BiographyShelf() {
             </div>
           ))}
         </div>
+        </Annotate>
       )}
     </div>
   );

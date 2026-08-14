@@ -230,18 +230,19 @@ export interface CollaboratingArchive {
   invited: boolean;
 }
 
-// 除传主是本人的档案外，其余档案当前账号都以协作身份参与
+// 当前账号在协作者名单中的档案 → 以协作身份参与；不在名单中的档案均为本账号创建（创建人）
 export function findCollaboratingArchives(userName: string): CollaboratingArchive[] {
   const archives = loadJson<{ id: string; name: string }[]>('cj_archives', []);
   return archives
-    .filter((a) => a.name !== userName)
     .map((a) => {
       const collab = loadCollaborators(a.id).find((c) => c.name === userName);
+      if (!collab) return null;
       return {
         archiveId: a.id,
         archiveName: a.name,
-        relation: collab?.relation || '协作人',
-        invited: !!collab,
+        relation: collab.relation || '协作人',
+        invited: true,
       };
-    });
+    })
+    .filter((a): a is CollaboratingArchive => a !== null);
 }

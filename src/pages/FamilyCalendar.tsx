@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ArrowLeft, ChevronRight, Plus, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../hooks/useToast';
+import Annotate from '../components/annotation/Annotate';
 import './FamilyCalendar.css';
 
 const calTypes = ['聚会', '节日', '生日', '纪念日', '其他'];
@@ -69,6 +70,7 @@ export default function FamilyCalendar() {
       <div className="card">
         <div className="card-header">
           <h3 className="card-title">{monthLabel}</h3>
+          <Annotate id="family-calendar.month-nav" inline>
           <div className="calendar-nav">
             <button className="btn btn-ghost" onClick={prevMonth}>
               <ChevronRight size={14} className="cal-nav-arrow left" />
@@ -77,8 +79,10 @@ export default function FamilyCalendar() {
               <ChevronRight size={14} />
             </button>
           </div>
+          </Annotate>
         </div>
         <div className="card-body">
+          <Annotate id="family-calendar.grid">
           <div className="fcal-grid">
             {['一','二','三','四','五','六','日'].map((d) => (
               <div className="fcal-weekday" key={d}>{d}</div>
@@ -102,7 +106,9 @@ export default function FamilyCalendar() {
               );
             })}
           </div>
+          </Annotate>
 
+          <Annotate id="family-calendar.event-list">
           <div className="fcal-events">
             {events.map((e, i) => (
               <div className={`fcal-event ${selectedDay === e.day ? 'active' : ''}`} key={i} onClick={() => setSelectedDay(e.day)}>
@@ -123,7 +129,9 @@ export default function FamilyCalendar() {
               </div>
             ))}
           </div>
+          </Annotate>
 
+          <Annotate id="family-calendar.add-form">
           {!showForm ? (
             <button className="btn btn-outline fcal-add-btn" onClick={() => setShowForm(true)}>
               <Plus size={14} /> 添加日程
@@ -157,6 +165,7 @@ export default function FamilyCalendar() {
               </div>
             </form>
           )}
+          </Annotate>
         </div>
       </div>
     </div>

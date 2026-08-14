@@ -3,6 +3,7 @@ import { ArrowLeft, Eye, Heart, Share2, MessageCircle, ThumbsUp, Send } from 'lu
 import { useNavigate, useParams } from 'react-router-dom';
 import { useToast } from '../hooks/useToast';
 import Avatar from '../components/ui/Avatar';
+import Annotate from '../components/annotation/Annotate';
 import './StoryDetail.css';
 
 const storyData: Record<string, { tag: string; author: string; views: number; likes: number; content: string; date: string }> = {
@@ -105,10 +106,12 @@ export default function StoryDetail() {
             </div>
           </div>
 
+          <Annotate id="story-detail.story-content">
           <div className="story-detail-content">
             <p>{story.content}</p>
             <p>家族故事不仅是个人记忆的留存，更是家风传承的载体。通过文字、照片与音视频的记录，我们得以跨越时空，与先辈对话，并将这份精神财富传递给下一代。</p>
           </div>
+          </Annotate>
 
           <div className="story-detail-stats">
             <span><Eye size={14} /> {story.views}</span>
@@ -117,6 +120,7 @@ export default function StoryDetail() {
           </div>
 
           <div className="story-detail-actions">
+            <Annotate id="story-detail.like-btn" inline>
             <button className={`btn ${liked ? 'btn-outline' : 'btn-primary'}`} onClick={() => {
               setLiked((v) => !v);
               setLikeCount((c) => liked ? c - 1 : c + 1);
@@ -124,10 +128,15 @@ export default function StoryDetail() {
             }}>
               <ThumbsUp size={14} /> {liked ? '已点赞' : '点赞'}
             </button>
+            </Annotate>
+            <Annotate id="story-detail.share-btn" inline>
             <button className="btn btn-outline" onClick={() => { navigator.clipboard.writeText(window.location.href); addToast('分享链接已复制', 'success'); }}><Share2 size={14} /> 分享</button>
+            </Annotate>
             <button className="btn btn-outline" onClick={() => setShowComment((v) => !v)}><MessageCircle size={14} /> 评论</button>
           </div>
 
+          <Annotate id="story-detail.comment-area">
+          <>
           {showComment && (
             <div className="story-comment-box">
               <input
@@ -155,6 +164,8 @@ export default function StoryDetail() {
               </div>
             ))}
           </div>
+          </>
+          </Annotate>
         </div>
       </div>
     </div>

@@ -20,6 +20,7 @@ import {
   getPartnerStatusLabel,
 } from '../data/partnerData';
 import Avatar from '../components/ui/Avatar';
+import Annotate from '../components/annotation/Annotate';
 import type { Partner, PartnerFormData, PartnerType, PartnerStatus } from '../types/partner';
 import type {
   PartnerFeeRecord,
@@ -307,12 +308,15 @@ export default function PartnerManagement() {
       <header className="page-header">
         <h1 className="page-title">合伙人管理</h1>
         {activeTab === 'list' && (
+          <Annotate id="admin-partners.add-partner" inline>
           <button className="btn btn-primary" onClick={openCreate}>
             <Plus size={16} /> 新增合伙人
           </button>
+          </Annotate>
         )}
       </header>
 
+      <Annotate id="admin-partners.tabs" inline>
       <div className="tabs">
         {partnerTabs.map((t) => (
           <button
@@ -324,6 +328,7 @@ export default function PartnerManagement() {
           </button>
         ))}
       </div>
+      </Annotate>
 
       {activeTab === 'list' && (
       <>
@@ -337,6 +342,7 @@ export default function PartnerManagement() {
 
       <div className="card">
         <div className="card-header partner-mgmt-header">
+          <Annotate id="admin-partners.list-filter" inline>
           <div className="partner-mgmt-filters">
             <div className="partner-mgmt-search">
               <Search size={14} />
@@ -350,7 +356,9 @@ export default function PartnerManagement() {
               <option value="inviter">邀请码合伙人</option>
             </select>
           </div>
+          </Annotate>
         </div>
+        <Annotate id="admin-partners.list-table">
         <div className="card-body partner-mgmt-body">
           {filtered.length === 0 ? (
             <div className="partner-mgmt-empty">暂无合伙人</div>
@@ -395,11 +403,13 @@ export default function PartnerManagement() {
             </div>
           )}
         </div>
+        </Annotate>
       </div>
       </>
       )}
 
       {activeTab === 'fees' && (
+        <Annotate id="admin-partners.fee-table">
         <div className="card">
           <div className="card-body partner-mgmt-body">
             {fees.length === 0 ? (
@@ -435,9 +445,11 @@ export default function PartnerManagement() {
             )}
           </div>
         </div>
+        </Annotate>
       )}
 
       {activeTab === 'share' && (
+        <Annotate id="admin-partners.share-config">
         <div className="card">
           <div className="card-body partner-mgmt-body">
             {shareConfigs.length === 0 ? (
@@ -471,9 +483,11 @@ export default function PartnerManagement() {
             )}
           </div>
         </div>
+        </Annotate>
       )}
 
       {activeTab === 'reward' && (
+        <Annotate id="admin-partners.reward-config">
         <div className="card">
           <div className="card-body partner-mgmt-body">
             {rewardConfigs.length === 0 ? (
@@ -508,6 +522,7 @@ export default function PartnerManagement() {
             )}
           </div>
         </div>
+        </Annotate>
       )}
 
       {activeTab === 'assessment' && (
@@ -607,6 +622,7 @@ export default function PartnerManagement() {
       )}
 
       {showModal && (
+        <Annotate id="admin-partners.partner-form">
         <div className="modal-overlay" onClick={closeModal}>
           <div className="modal-content partner-mgmt-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
@@ -672,6 +688,7 @@ export default function PartnerManagement() {
             </div>
           </div>
         </div>
+        </Annotate>
       )}
 
       {showDelete && (

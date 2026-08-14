@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Users, Heart, BookOpen, Calendar, Image, ChevronRight } from 'lucide-react';
+import Annotate from '../../components/annotation/Annotate';
 import './MobileFamily.css';
 
 const modules = [
@@ -52,13 +53,16 @@ export default function MobileFamily() {
 
   return (
     <div className="mobile-family">
+      <Annotate id="mobile-family.hero">
       <section className="mobile-family-hero">
         <h2>张氏家庭</h2>
         <p>传承优良家风，共建和谐家庭</p>
       </section>
+      </Annotate>
 
       <section className="mobile-family-section">
         <h3 className="section-title">家庭模块</h3>
+        <Annotate id="mobile-family.module-list">
         <div className="mobile-family-list">
           {modules.map((m) => {
             const Icon = m.icon;
@@ -83,21 +87,26 @@ export default function MobileFamily() {
                   />
                 </div>
                 {isOpen && (
+                  <Annotate id="mobile-family.module-detail">
                   <div className="family-item-detail">
                     <ModuleDetail moduleKey={m.key} />
                   </div>
+                  </Annotate>
                 )}
               </div>
             );
           })}
         </div>
+        </Annotate>
       </section>
 
       <section className="mobile-family-section">
         <h3 className="section-title">家庭动态</h3>
+        <Annotate id="mobile-family.activity">
         <div className="mobile-family-empty">
           <p>暂无动态</p>
         </div>
+        </Annotate>
       </section>
     </div>
   );

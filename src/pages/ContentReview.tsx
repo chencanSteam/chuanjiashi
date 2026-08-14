@@ -14,6 +14,7 @@ import { useToast } from '../hooks/useToast';
 import { bookshelfApi } from '../api/bookshelf';
 import { contentReviewApi } from '../api/contentReview';
 import type { PublicBook, MediaReviewItem, ContentReport } from '../mocks/types';
+import Annotate from '../components/annotation/Annotate';
 import './ContentReview.css';
 
 const tabs = [
@@ -119,6 +120,7 @@ export default function ContentReview() {
         <h1 className="page-title">内容审核</h1>
       </header>
 
+      <Annotate id="content-review.tabs">
       <div className="tabs">
         {tabs.map((t) => (
           <button
@@ -130,8 +132,10 @@ export default function ContentReview() {
           </button>
         ))}
       </div>
+      </Annotate>
 
       {activeTab === 'books' && (
+        <Annotate id="content-review.book-review">
         <div className="card">
           <div className="card-header">
             <h3 className="card-title"><BookOpen size={16} /> 待审核公开传记</h3>
@@ -166,9 +170,11 @@ export default function ContentReview() {
             )}
           </div>
         </div>
+        </Annotate>
       )}
 
       {activeTab === 'media' && (
+        <Annotate id="content-review.media-review">
         <div className="card">
           <div className="card-header">
             <h3 className="card-title"><ImageIcon size={16} /> 图片/音频素材审核</h3>
@@ -207,9 +213,11 @@ export default function ContentReview() {
             )}
           </div>
         </div>
+        </Annotate>
       )}
 
       {activeTab === 'sensitive' && (
+        <Annotate id="content-review.sensitive-hits">
         <div className="card">
           <div className="card-header">
             <h3 className="card-title"><ShieldAlert size={16} /> 敏感词命中记录</h3>
@@ -235,9 +243,11 @@ export default function ContentReview() {
             </div>
           </div>
         </div>
+        </Annotate>
       )}
 
       {activeTab === 'reports' && (
+        <Annotate id="content-review.report-process">
         <div className="card">
           <div className="card-header">
             <h3 className="card-title"><Flag size={16} /> 举报管理</h3>
@@ -271,9 +281,11 @@ export default function ContentReview() {
             </div>
           </div>
         </div>
+        </Annotate>
       )}
 
       {activeTab === 'offshelf' && (
+        <Annotate id="content-review.offshelf-restore">
         <div className="card">
           <div className="card-header">
             <h3 className="card-title"><ArchiveX size={16} /> 已下架内容</h3>
@@ -302,6 +314,7 @@ export default function ContentReview() {
             )}
           </div>
         </div>
+        </Annotate>
       )}
     </div>
   );

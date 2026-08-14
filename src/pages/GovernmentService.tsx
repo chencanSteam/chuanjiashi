@@ -15,6 +15,7 @@ import {
   Download,
 } from 'lucide-react';
 import Avatar from '../components/ui/Avatar';
+import Annotate from '../components/annotation/Annotate';
 import './GovernmentService.css';
 
 const tabs = [
@@ -100,6 +101,7 @@ export default function GovernmentService() {
 
       {activeTab === 'overview' && (
         <>
+          <Annotate id="government.stats">
           <div className="gov-stats-row">
             {stats.map((s, i) => (
               <div className="card gov-stat" key={i} onClick={() => navigate('/government/dashboard')}>
@@ -112,8 +114,10 @@ export default function GovernmentService() {
               </div>
             ))}
           </div>
+          </Annotate>
 
           <div className="gov-layout">
+            <Annotate id="government.services">
             <div className="card services-card">
               <div className="card-header"><h3 className="card-title">常用政务服务</h3></div>
               <div className="card-body services-body">
@@ -129,7 +133,9 @@ export default function GovernmentService() {
                 ))}
               </div>
             </div>
+            </Annotate>
 
+            <Annotate id="government.tasks">
             <div className="card task-card">
               <div className="card-header"><h3 className="card-title">我的办理</h3><button className="btn btn-outline" onClick={() => navigate('/government/application/ZJ-20260618-001')}>查看全部</button></div>
               <div className="card-body task-body">
@@ -145,6 +151,7 @@ export default function GovernmentService() {
                 ))}
               </div>
             </div>
+            </Annotate>
 
             <div className="card guide-card">
               <div className="card-header"><h3 className="card-title">办事指南</h3></div>
@@ -194,10 +201,13 @@ export default function GovernmentService() {
       {activeTab === 'certificate' && (
         <div className="cert-layout">
           <div className="card cert-list">
+            <Annotate id="government.cert-apply">
             <div className="card-header">
               <h3 className="card-title">我的证明</h3>
               {!showApplyInput && <button className="btn btn-primary" onClick={() => setShowApplyInput(true)}>申请证明</button>}
             </div>
+            </Annotate>
+            <Annotate id="government.cert-list">
             <div className="card-body cert-list-body">
               {showApplyInput && (
                 <div className="apply-row">
@@ -228,8 +238,10 @@ export default function GovernmentService() {
                 </div>
               ))}
             </div>
+            </Annotate>
           </div>
 
+          <Annotate id="government.cert-preview">
           <div className="card cert-preview">
             <div className="card-header"><h3 className="card-title">证明预览</h3><button className="btn btn-outline" onClick={() => window.print()}><Printer size={14} /> 打印</button></div>
             <div className="card-body cert-preview-body">
@@ -244,10 +256,12 @@ export default function GovernmentService() {
               </div>
             </div>
           </div>
+          </Annotate>
         </div>
       )}
 
       {activeTab === 'inherit' && (
+        <Annotate id="government.inherit">
         <div className="card inherit-card">
           <div className="card-header"><h3 className="card-title">档案继承管理</h3><button className="btn btn-primary" onClick={() => { const h = window.prompt('请输入继承人姓名'); if (h) addToast(`已添加继承人：${h}`, 'success'); }}>新增继承人</button></div>
           <div className="card-body inherit-body">
@@ -269,6 +283,7 @@ export default function GovernmentService() {
             </div>
           </div>
         </div>
+        </Annotate>
       )}
 
       {viewHeir && (
@@ -287,6 +302,7 @@ export default function GovernmentService() {
       )}
 
       {activeTab === 'audit' && (
+        <Annotate id="government.audit">
         <div className="card audit-card">
           <div className="card-header"><h3 className="card-title">信息核验</h3></div>
           <div className="card-body audit-body">
@@ -299,6 +315,7 @@ export default function GovernmentService() {
             </div>
           </div>
         </div>
+        </Annotate>
       )}
 
       {activeTab === 'guide' && (

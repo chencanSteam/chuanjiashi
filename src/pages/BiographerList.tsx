@@ -5,6 +5,7 @@ import { paymentApi } from '../api/payment';
 import { useToast } from '../hooks/useToast';
 import Avatar from '../components/ui/Avatar';
 import BiographerProfile from './BiographerProfile';
+import Annotate from '../components/annotation/Annotate';
 import type { Biographer, BiographerService, BiographerBookingForm } from '../mocks/types';
 import './BiographerList.css';
 
@@ -83,6 +84,7 @@ export default function BiographerList() {
       </div>
 
       <div className="card biographer-list-filters">
+        <Annotate id="biographer-list.search" inline>
         <div className="biographer-list-search">
           <Search size={16} />
           <input
@@ -92,6 +94,8 @@ export default function BiographerList() {
             onChange={(e) => setKeyword(e.target.value)}
           />
         </div>
+        </Annotate>
+        <Annotate id="biographer-list.filters" inline>
         <div className="biographer-list-filter-groups">
           <div className="biographer-list-filter-group">
             <Filter size={14} />
@@ -110,8 +114,10 @@ export default function BiographerList() {
             </select>
           </div>
         </div>
+        </Annotate>
       </div>
 
+      <Annotate id="biographer-list.card">
       <div className="biographer-list-results">
         {loading ? (
           <div className="biographer-list-empty">加载中…</div>
@@ -197,8 +203,10 @@ export default function BiographerList() {
           </>
         )}
       </div>
+      </Annotate>
 
       {selected && (
+        <Annotate id="biographer-list.booking">
         <div className="modal-overlay biographer-list-modal-overlay" onClick={() => setSelected(null)}>
           <div className="biographer-list-modal" onClick={(e) => e.stopPropagation()}>
             <BiographerProfile
@@ -215,6 +223,7 @@ export default function BiographerList() {
             )}
           </div>
         </div>
+        </Annotate>
       )}
     </div>
   );

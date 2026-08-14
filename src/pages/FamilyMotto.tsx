@@ -1,6 +1,7 @@
 import { ArrowLeft, Save } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Annotate from '../components/annotation/Annotate';
 import { useToast } from '../hooks/useToast';
 import './FamilyMotto.css';
 
@@ -36,18 +37,22 @@ export default function FamilyMotto() {
           <h3 className="card-title">家训内容</h3>
         </div>
         <div className="card-body">
+          <Annotate id="family-motto.editor">
           <textarea
             className="motto-textarea"
             rows={4}
             value={motto}
             onChange={(e) => setMotto(e.target.value)}
           />
+          </Annotate>
+          <Annotate id="family-motto.actions">
           <div className="motto-actions">
             <button className="btn btn-outline" onClick={() => navigate(-1)}>取消</button>
             <button className="btn btn-primary" onClick={handleSave}>
               <Save size={14} /> 保存
             </button>
           </div>
+          </Annotate>
         </div>
       </div>
     </div>

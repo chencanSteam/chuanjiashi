@@ -20,6 +20,12 @@ import {
   DollarSign,
   RefreshCw,
   Copy,
+  Pencil,
+  Check,
+  ChevronUp,
+  ChevronDown,
+  Plus,
+  Trash2,
 } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 import { useVersion } from '../hooks/useVersion';
@@ -33,6 +39,9 @@ import { quotaApi } from '../api/quota';
 import { generateImageDataUrl, generateVideoPoster, generateAudioUrl } from '../utils/mediaPlaceholder';
 import { generateInterviewTopics } from '../utils/interviewTopics';
 import { biographyChapterTitles, loadJson, saveJson, type ChapterData } from '../data/aiMock';
+import { composeOutlineChapterContent, loadConfirmedOutline } from '../utils/biographyOutline';
+import { loadTimelineEvents } from '../utils/eventSync';
+import Annotate from '../components/annotation/Annotate';
 import './AIBiography.css';
 
 interface Archive {
@@ -60,8 +69,10 @@ function loadCurrentArchive(): Archive | null {
   }
 }
 
-function initChapters(): ChapterData[] {
-  return biographyChapterTitles.map((title) => ({
+function initChapters(archiveId: string): ChapterData[] {
+  const outline = loadConfirmedOutline(archiveId);
+  const titles = outline ? outline.chapters.map((c) => c.title) : biographyChapterTitles;
+  return titles.map((title) => ({
     title,
     materials: title === '前言' || title === '后记' ? 2 : 5,
     status: 'notGenerated',
@@ -189,6 +200,9 @@ export default function AIBiography() {
 
   const [showLowMaterial, setShowLowMaterial] = useState(false);
 
+  // 已确认的传记大纲（草稿或未确认的大纲不影响生成）
+  const confirmedOutline = useMemo(() => loadConfirmedOutline(archiveId), [archiveId]);
+
   // 选择传记：档案可以帮别人建，传记也可以帮别人生成；切换后重载页面载入对应档案数据
   const archiveOptions = useMemo(
     () => loadJson<Archive[]>('cj_archives', []).map((a) => ({ id: a.id, label: `${a.name} 的传记` })),
@@ -200,9 +214,27 @@ export default function AIBiography() {
     window.location.reload();
   };
 
-  const [chapters, setChapters] = useState<ChapterData[]>(() =>
-    loadJson<ChapterData[]>(`cj_biography_chapters_${archiveId}`, initChapters())
-  );
+  const [chapters, setChapters] = useState<ChapterData[]>(() => {
+    const saved = loadJson<ChapterData[]>(`cj_biography_chapters_${archiveId}`, initChapters(archiveId));
+    const outline = loadConfirmedOutline(archiveId);
+    if (!outline) return saved;
+    // 目录已被人工编辑过且大纲未升版时，以人工目录为准
+    const savedOutlineV = loadJson<number>(`cj_biography_chapters_outline_v_${archiveId}`, -1);
+    if (savedOutlineV === outline.version) return saved;
+    // 大纲升版：按新大纲重建章节结构，同名章节保留已生成的内容与状态
+    return outline.chapters.map((oc) => {
+      const existing = saved.find((c) => c.title === oc.title);
+      return (
+        existing || {
+          title: oc.title,
+          materials: oc.title === '前言' || oc.title === '后记' ? 2 : 5,
+          status: 'notGenerated' as const,
+          updatedAt: null,
+          content: '',
+        }
+      );
+    });
+  });
   const [activeIndex, setActiveIndex] = useState(0);
   const [generating, setGenerating] = useState(false);
   const [exporting, setExporting] = useState<Record<string, boolean>>({});
@@ -258,6 +290,7 @@ export default function AIBiography() {
 
   useEffect(() => {
     saveJson(`cj_biography_chapters_${archiveId}`, chapters);
+    saveJson(`cj_biography_chapters_outline_v_${archiveId}`, loadConfirmedOutline(archiveId)?.version ?? -1);
   }, [chapters, archiveId]);
 
   const generatedCount = chapters.filter((c) => c.status !== 'notGenerated').length;
@@ -270,6 +303,32 @@ export default function AIBiography() {
 
   const updateChapter = (index: number, patch: Partial<ChapterData>) => {
     setChapters((prev) => prev.map((c, i) => (i === index ? { ...c, ...patch } : c)));
+  };
+
+  // 章节目录编辑：改名、排序、增删，直接作用于章节目录
+  const [treeEditing, setTreeEditing] = useState(false);
+
+  const moveChapterItem = (index: number, delta: -1 | 1) => {
+    const target = index + delta;
+    if (target < 0 || target >= chapters.length) return;
+    setChapters((prev) => {
+      const next = [...prev];
+      [next[index], next[target]] = [next[target], next[index]];
+      return next;
+    });
+    setActiveIndex((prev) => (prev === index ? target : prev === target ? index : prev));
+  };
+
+  const removeChapterItem = (index: number) => {
+    setChapters((prev) => prev.filter((_, i) => i !== index));
+    setActiveIndex((prev) => Math.max(0, prev > index ? prev - 1 : prev === index ? 0 : prev));
+  };
+
+  const addChapterItem = () => {
+    setChapters((prev) => [
+      ...prev,
+      { title: '新章节', materials: 0, status: 'notGenerated' as const, updatedAt: null, content: '' },
+    ]);
   };
 
   const handleEditorInput = () => {
@@ -340,6 +399,35 @@ export default function AIBiography() {
 
     try {
       const isFirstGenerate = chapters.every((c) => c.status === 'notGenerated');
+      if (confirmedOutline) {
+        // 大纲模式：按已确认的章节结构与关联素材组装正文，不走 mock 接口
+        const events = loadTimelineEvents(archiveId);
+        const now = new Date().toLocaleString('zh-CN');
+        const buildContent = (title: string) => {
+          const oc = confirmedOutline.chapters.find((c) => c.title === title);
+          return oc ? composeOutlineChapterContent(subjectName, oc, events) : '';
+        };
+        await new Promise((r) => setTimeout(r, 800));
+        if (isFirstGenerate) {
+          setChapters(
+            chapters.map((c) => ({
+              ...c,
+              content: buildContent(c.title),
+              status: 'generated' as const,
+              updatedAt: now,
+            }))
+          );
+          addToast(`已按大纲 v${confirmedOutline.version} 生成全部章节（${styleLabel} · ${wordCountLabel}）`, 'success');
+        } else {
+          updateChapter(activeIndex, {
+            status: 'generated',
+            content: buildContent(activeChapter.title),
+            updatedAt: now,
+          });
+          addToast(`「${activeChapter.title}」已按大纲 v${confirmedOutline.version} 与${styleLabel}文风重新生成`, 'success');
+        }
+        return;
+      }
       if (isFirstGenerate) {
         const biography = await biographyApi.generate(archiveId, biographyStyle, wordCountLevel);
         setChapters(
@@ -538,6 +626,7 @@ export default function AIBiography() {
       <header className="page-header biography-header">
         <h1 className="page-title">AI传记生成</h1>
         <div className="page-actions">
+          <Annotate id="biography.archive-switch" inline>
           <div className="archive-switch-row biography-archive-switch">
             <span className="biography-switch-label">选择传记</span>
             <select value={archiveId} onChange={(e) => handleSwitchArchive(e.target.value)}>
@@ -546,9 +635,15 @@ export default function AIBiography() {
               ))}
             </select>
           </div>
+          </Annotate>
+          <button className="btn btn-outline" onClick={() => navigate('/biography/outline')}>
+            <Sparkles size={14} /> 传记大纲
+          </button>
+          <Annotate id="biography.import" inline>
           <button className="btn btn-outline" onClick={() => setShowImportModal(true)}>
             <Upload size={14} /> 导入已有传记
           </button>
+          </Annotate>
           {!isMVP && (
             <>
               <button className="btn btn-outline" onClick={() => navigate('/archive')}>
@@ -559,46 +654,90 @@ export default function AIBiography() {
               </button>
             </>
           )}
+          <Annotate id="biography.save-works" inline>
           <button className="btn btn-primary" onClick={saveToMyWorks}>
             <BookOpen size={14} /> 保存到我的传记
           </button>
+          </Annotate>
           {!isMVP && (
+            <Annotate id="biography.simulate-pay" inline>
             <button className="btn btn-accent" onClick={simulatePayment}>
               <DollarSign size={14} /> 模拟支付 ¥99
             </button>
+            </Annotate>
           )}
         </div>
       </header>
 
       <div className="biography-main">
+        <Annotate id="biography.chapter-tree">
         <div className="card chapter-tree">
-          <div className="card-header">
+          <div className="card-header chapter-tree-header">
             <h3 className="card-title">章节目录</h3>
+            <button
+              className="chapter-edit-toggle"
+              title={treeEditing ? '完成编辑' : '编辑目录'}
+              onClick={() => setTreeEditing((v) => !v)}
+            >
+              {treeEditing ? <Check size={14} /> : <Pencil size={14} />}
+              {treeEditing ? '完成' : '编辑'}
+            </button>
           </div>
           <div className="card-body chapter-tree-body">
-            {chapters.map((chapter, i) => (
-              <div
-                className={`chapter-item ${activeIndex === i ? 'active' : ''}`}
-                key={chapter.title}
-                onClick={() => selectChapter(i)}
-              >
-                <div className="chapter-item-left">
-                  <BookOpen size={16} />
-                  <span>{chapter.title}</span>
+            {chapters.map((chapter, i) =>
+              treeEditing ? (
+                <div className="chapter-item editing" key={`${chapter.title}-${i}`}>
+                  <input
+                    className="chapter-edit-input"
+                    value={chapter.title}
+                    onChange={(e) => updateChapter(i, { title: e.target.value })}
+                  />
+                  <div className="chapter-edit-actions">
+                    <button className="chapter-icon-btn" title="上移" disabled={i === 0} onClick={() => moveChapterItem(i, -1)}>
+                      <ChevronUp size={13} />
+                    </button>
+                    <button className="chapter-icon-btn" title="下移" disabled={i === chapters.length - 1} onClick={() => moveChapterItem(i, 1)}>
+                      <ChevronDown size={13} />
+                    </button>
+                    <button className="chapter-icon-btn danger" title="删除" onClick={() => removeChapterItem(i)}>
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
                 </div>
-                <div className="chapter-item-right">
-                  {statusBadge(chapter.status)}
-                  <ChevronRight size={14} className="chapter-arrow" />
+              ) : (
+                <div
+                  className={`chapter-item ${activeIndex === i ? 'active' : ''}`}
+                  key={`${chapter.title}-${i}`}
+                  onClick={() => selectChapter(i)}
+                >
+                  <div className="chapter-item-left">
+                    <BookOpen size={16} />
+                    <span>{chapter.title}</span>
+                  </div>
+                  <div className="chapter-item-right">
+                    {statusBadge(chapter.status)}
+                    <ChevronRight size={14} className="chapter-arrow" />
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            )}
+            {treeEditing && (
+              <button className="btn btn-outline chapter-add-btn" onClick={addChapterItem}>
+                <Plus size={13} /> 添加章节
+              </button>
+            )}
           </div>
           <div className="chapter-progress">
             <div className="progress-text">完成度 {Math.round((generatedCount / chapters.length) * 100)}%</div>
             <div className="progress-bar"><div className="progress-fill" style={{ width: `${(generatedCount / chapters.length) * 100}%` }} /></div>
+            {confirmedOutline && (
+              <div className="progress-text">大纲 v{confirmedOutline.version} · 已确认</div>
+            )}
           </div>
         </div>
+        </Annotate>
 
+        <Annotate id="biography.editor">
         <div className="card editor-card">
           <div className="card-header">
             <h3 className="card-title">{activeChapter.title}</h3>
@@ -650,8 +789,10 @@ export default function AIBiography() {
             {generating && <span className="generating-hint">AI 生成中…</span>}
           </div>
         </div>
+        </Annotate>
 
         <div className="biography-side">
+          <Annotate id="biography.materials-settings">
           <div className="card settings-card">
             <div className="card-header">
               <h3 className="card-title"><BookOpen size={14} /> 本章参考素材</h3>
@@ -736,6 +877,7 @@ export default function AIBiography() {
               </div>
             </div>
           </div>
+          </Annotate>
 
           {!isMVP && (
           <div className="card export-card">
@@ -778,6 +920,7 @@ export default function AIBiography() {
       </div>
 
       {!isMVP && (
+      <Annotate id="biography.derived">
       <div className="card derived-card">
         <div className="card-header">
           <h3 className="card-title"><Sparkles size={14} /> 衍生内容</h3>
@@ -817,6 +960,7 @@ export default function AIBiography() {
           </div>
         </div>
       </div>
+      </Annotate>
       )}
 
       {preview && (

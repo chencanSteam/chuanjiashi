@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ArrowLeft, FileText, Plus, Download, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../hooks/useToast';
+import Annotate from '../components/annotation/Annotate';
 import './GenealogyDocuments.css';
 
 const documents = [
@@ -32,18 +33,23 @@ export default function GenealogyDocuments() {
       <div className="card">
         <div className="card-header">
           <h3 className="card-title">全部文献</h3>
+          <Annotate id="genealogy-documents.upload" inline>
           <label className="btn btn-primary">
             <Plus size={14} /> 上传文献
             <input type="file" hidden onChange={() => addToast('文献上传成功', 'success')} />
           </label>
+          </Annotate>
         </div>
         <div className="card-body">
           <div className="documents-toolbar">
+            <Annotate id="genealogy-documents.search" inline>
             <div className="documents-search">
               <Search size={14} />
               <input type="text" placeholder="搜索文献名称" value={search} onChange={(e) => setSearch(e.target.value)} />
             </div>
+            </Annotate>
           </div>
+          <Annotate id="genealogy-documents.list">
           <div className="documents-list">
             {filtered.map((d, i) => (
               <div className="document-item" key={i} onClick={() => setPreview(d)}>
@@ -52,6 +58,7 @@ export default function GenealogyDocuments() {
                   <div className="document-title">{d.title}</div>
                   <div className="document-meta">{d.year} · 修谱人：{d.editor} · {d.pages}</div>
                 </div>
+                <Annotate id="genealogy-documents.download" inline>
                 <button className="btn btn-outline" onClick={(e) => {
                   e.stopPropagation();
                   const blob = new Blob([`${d.title}\n${d.year}\n修谱人：${d.editor}\n页数：${d.pages}`], { type: 'text/plain' });
@@ -63,9 +70,11 @@ export default function GenealogyDocuments() {
                   URL.revokeObjectURL(url);
                   addToast('文献已下载', 'success');
                 }}><Download size={14} /> 下载</button>
+                </Annotate>
               </div>
             ))}
           </div>
+          </Annotate>
         </div>
       </div>
       {preview && (

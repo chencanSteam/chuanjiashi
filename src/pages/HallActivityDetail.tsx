@@ -3,6 +3,7 @@ import { ArrowLeft, Trophy, Vote, Calendar, Share2, ChevronRight, X } from 'luci
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../hooks/useToast';
 import Avatar from '../components/ui/Avatar';
+import Annotate from '../components/annotation/Annotate';
 import './HallActivityDetail.css';
 
 const candidates = [
@@ -127,20 +128,25 @@ export default function HallActivityDetail() {
             <div><strong>20</strong><span>入围家庭</span></div>
           </div>
           <div className="activity-progress-bar"><div className="activity-progress-fill" /></div>
+          <Annotate id="hall-activity.stages">
           <div className="activity-stages">
             <span>报名阶段<br />04.20-05.10</span>
             <span className="active">投票阶段<br />05.11-06.10</span>
             <span>评审阶段<br />06.11-06.25</span>
             <span>结果公示<br />06.26-06.30</span>
           </div>
+          </Annotate>
         </div>
       </div>
 
       <div className="card">
         <div className="card-header">
           <h3 className="card-title">投票榜单</h3>
+          <Annotate id="hall-activity.share" inline>
           <button className="btn btn-outline" onClick={() => setShowShare(true)}><Share2 size={14} /> 分享</button>
+          </Annotate>
         </div>
+        <Annotate id="hall-activity.rank">
         <div className="card-body activity-rank-body">
           {(showAllRank ? voteList : voteList.slice(0, 5)).map((c, i) => (
             <div className="activity-rank-item" key={i}>
@@ -151,19 +157,23 @@ export default function HallActivityDetail() {
                 <div className="rank-bar"><div className="rank-fill" style={{ width: `${(c.votes / Math.max(...voteList.map((x) => x.votes))) * 100}%` }} /></div>
               </div>
               <div className="rank-votes"><Vote size={14} /> {c.votes}</div>
+              <Annotate id="hall-activity.vote" inline>
               <button className={`btn ${voted.has(c.name) ? 'btn-outline' : 'btn-primary'}`} disabled={voted.has(c.name)} onClick={(e) => {
                 e.stopPropagation();
                 setVoteList((prev) => prev.map((x) => x.name === c.name ? { ...x, votes: x.votes + 1 } : x).sort((a, b) => b.votes - a.votes));
                 setVoted((prev) => new Set(prev).add(c.name));
                 addToast(`已投票给 ${c.name}`, 'success');
               }}>{voted.has(c.name) ? '已投票' : '投票'}</button>
+              </Annotate>
             </div>
           ))}
           <button className="view-all-rank" onClick={() => setShowAllRank((v) => !v)}>{showAllRank ? '收起榜单' : '查看完整榜单'} <ChevronRight size={14} className={showAllRank ? 'rotate' : ''} /></button>
         </div>
+        </Annotate>
       </div>
       {showShare && (
         <div className="modal-overlay" onClick={() => setShowShare(false)}>
+          <Annotate id="hall-activity.share-modal">
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header"><h4>分享活动</h4><button className="modal-close" onClick={() => setShowShare(false)}><X size={16} /></button></div>
             <div className="modal-body share-modal-body">
@@ -172,10 +182,12 @@ export default function HallActivityDetail() {
               <button className="share-option" onClick={() => { setShowShare(false); setShowWechat(true); }}>微信分享</button>
             </div>
           </div>
+          </Annotate>
         </div>
       )}
       {showWechat && (
         <div className="modal-overlay" onClick={() => setShowWechat(false)}>
+          <Annotate id="hall-activity.wechat-modal">
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header"><h4>微信分享</h4><button className="modal-close" onClick={() => setShowWechat(false)}><X size={16} /></button></div>
             <div className="modal-body share-modal-body">
@@ -192,6 +204,7 @@ export default function HallActivityDetail() {
               <p style={{ fontSize: 12, color: '#9ca3af', margin: '12px 0 0' }}>提示：小程序/公众号内可直接调起微信分享面板，当前为 Web 版手动分享。</p>
             </div>
           </div>
+          </Annotate>
         </div>
       )}
     </div>

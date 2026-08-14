@@ -3,6 +3,7 @@ import { ArrowLeft, Calendar, MapPin, Users, CheckCircle2, Clock, Bell } from 'l
 import { useNavigate, useParams } from 'react-router-dom';
 import { useToast } from '../hooks/useToast';
 import Avatar from '../components/ui/Avatar';
+import Annotate from '../components/annotation/Annotate';
 import './EventDetail.css';
 
 const eventData: Record<string, { date: string; loc: string; status: string; desc: string; attendees: string[] }> = {
@@ -41,6 +42,7 @@ export default function EventDetail() {
       </header>
 
       <div className="card">
+        <Annotate id="family-event-detail.event-info">
         <div className="card-header">
           <div>
             <h3 className="card-title">{decodedTitle}</h3>
@@ -51,9 +53,11 @@ export default function EventDetail() {
           </div>
           <span className={`event-detail-status ${event.status === '进行中' ? 'active' : event.status === '已结束' ? 'ended' : ''}`}>{event.status}</span>
         </div>
+        </Annotate>
         <div className="card-body event-detail-body">
           <div className="event-detail-desc">{event.desc}</div>
 
+          <Annotate id="family-event-detail.attendees">
           <div className="event-detail-section">
             <h4><Users size={14} /> 参与成员</h4>
             <div className="event-attendees">
@@ -65,6 +69,7 @@ export default function EventDetail() {
               ))}
             </div>
           </div>
+          </Annotate>
 
           <div className="event-detail-section">
             <h4><CheckCircle2 size={14} /> 活动议程</h4>
@@ -77,12 +82,16 @@ export default function EventDetail() {
           </div>
 
           <div className="event-detail-actions">
+            <Annotate id="family-event-detail.join-btn" inline>
             <button className="btn btn-primary" onClick={() => { setJoined(true); addToast('报名成功', 'success'); }} disabled={joined}>
               <CheckCircle2 size={14} /> {joined ? '已报名' : '报名参加'}
             </button>
+            </Annotate>
+            <Annotate id="family-event-detail.remind-btn" inline>
             <button className="btn btn-outline" onClick={() => { setReminded(true); addToast('提醒已设置', 'success'); }} disabled={reminded}>
               <Bell size={14} /> {reminded ? '已设置提醒' : '设置提醒'}
             </button>
+            </Annotate>
           </div>
         </div>
       </div>

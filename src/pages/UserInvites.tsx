@@ -29,6 +29,7 @@ function mapWithdrawalToUserWithdrawal(w: MockWithdrawalRecord): UserWithdrawal 
 import { Search, Users, TrendingUp, CreditCard, CheckCircle, XCircle, Clock } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 import { commissionApi } from '../api/commission';
+import Annotate from '../components/annotation/Annotate';
 import type { CommissionRecord as MockCommissionRecord, WithdrawalRecord as MockWithdrawalRecord } from '../mocks/types';
 import type { UserReward, UserWithdrawal } from '../data/userInviteData';
 import './UserInvites.css';
@@ -96,6 +97,7 @@ export default function UserInvites() {
         <h1 className="page-title">用户邀请奖励</h1>
       </header>
 
+      <Annotate id="user-invites.stats">
       <div className="user-invite-stats">
         <div className="card user-invite-stat">
           <TrendingUp size={20} color="#1B5E4B" />
@@ -126,7 +128,9 @@ export default function UserInvites() {
           </div>
         </div>
       </div>
+      </Annotate>
 
+      <Annotate id="user-invites.rewards">
       <div className="card">
         <div className="card-header user-invite-header">
           <h3 className="card-title">奖励流水</h3>
@@ -162,7 +166,9 @@ export default function UserInvites() {
           )}
         </div>
       </div>
+      </Annotate>
 
+      <Annotate id="user-invites.withdrawals">
       <div className="card" style={{ marginTop: 20 }}>
         <div className="card-header"><h3 className="card-title">用户提现审核</h3></div>
         <div className="card-body user-invite-body">
@@ -192,6 +198,7 @@ export default function UserInvites() {
           )}
         </div>
       </div>
+      </Annotate>
     </div>
   );
 }

@@ -5,26 +5,27 @@
   background: #f6f7f9;
 }
 
+/* 桌面浏览器中按手机尺寸居中展示（真实手机访问时仍全屏） */
+@media (min-width: 481px) {
+  .mobile-layout {
+    max-width: 400px;
+    height: min(850px, calc(100vh - 48px));
+    margin: 24px auto;
+    border: 1px solid #e5e7eb;
+    border-radius: 28px;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.18);
+    overflow: hidden;
+  }
+}
+
 .mobile-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   padding: 12px 16px;
   background: #fff;
   border-bottom: 1px solid #eee;
   flex-shrink: 0;
-}
-
-.mobile-header-back {
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  border: none;
-  font-size: 20px;
-  color: #333;
 }
 
 .mobile-header-title {
@@ -32,10 +33,6 @@
   font-weight: 600;
   color: #111;
   margin: 0;
-}
-
-.mobile-header-placeholder {
-  width: 32px;
 }
 
 .mobile-layout-content {
