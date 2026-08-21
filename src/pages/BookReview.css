@@ -423,6 +423,12 @@
   font-weight: 600;
 }
 
+.book-review-detail-tag-stage {
+  color: #b8860b;
+  background: rgba(184, 134, 11, 0.08);
+  border-color: rgba(184, 134, 11, 0.2);
+}
+
 .book-review-detail-stats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

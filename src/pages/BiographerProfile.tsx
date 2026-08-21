@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { MapPin, Star, Award, Phone, Mail, BookOpen, Image, CheckCircle, MessageCircle, Calendar, Briefcase, Edit2, ArrowLeft, X, ShoppingCart, ThumbsUp, Users, User, Clock, FileText, Home } from 'lucide-react';
+import { MapPin, Star, Award, Phone, Mail, BookOpen, Image, CheckCircle, MessageCircle, Calendar, Briefcase, Edit2, ArrowLeft, X, ThumbsUp, Users, User, Clock, FileText, Home } from 'lucide-react';
 import { biographerApi } from '../api/biographer';
 import { paymentApi } from '../api/payment';
 import { useToast } from '../hooks/useToast';
@@ -25,6 +25,17 @@ const emptyBookingForm: BiographerBookingForm = {
   remark: '',
 };
 
+/** 证书条目是图片地址时按图渲染，否则按证书名称渲染占位卡片 */
+function isImageUrl(cert: string): boolean {
+  return /^(https?:|data:|blob:|\/)/.test(cert);
+}
+
+/** 未下单时隐藏中间四位，如 139****9001 */
+function maskPhone(phone?: string): string {
+  if (!phone) return '暂未公开';
+  return phone.length > 7 ? `${phone.slice(0, 3)}****${phone.slice(-4)}` : phone;
+}
+
 export default function BiographerProfile({ biographerId, embedded, onClose, onBookService }: BiographerProfileProps) {
   const navigate = useNavigate();
   const { addToast } = useToast();
@@ -33,38 +44,50 @@ export default function BiographerProfile({ biographerId, embedded, onClose, onB
   const { user } = useAuth();
   const [biographer, setBiographer] = useState<MockBiographer | null>(null);
   const [reviews, setReviews] = useState<BiographerReview[]>([]);
+  const [contactUnlocked, setContactUnlocked] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const [bookingService, setBookingService] = useState<BiographerService | null>(null);
   const [bookingForm, setBookingForm] = useState<BiographerBookingForm>(emptyBookingForm);
   const [bookingSubmitting, setBookingSubmitting] = useState(false);
 
-  // 在线咨询弹窗
-  const [showConsult, setShowConsult] = useState(false);
-  const [consultInput, setConsultInput] = useState('');
-  const [consultMessages, setConsultMessages] = useState<{ from: 'me' | 'biographer'; text: string }[]>([]);
+  // 留言咨询弹窗
+  const [showMessage, setShowMessage] = useState(false);
+  const [messageForm, setMessageForm] = useState({ name: '', phone: '', content: '' });
 
-  const handleConsultSend = () => {
-    const text = consultInput.trim();
-    if (!text) return;
-    setConsultMessages((prev) => [
-      ...prev,
-      { from: 'me', text },
-      { from: 'biographer', text: '传记师稍后会联系您' },
-    ]);
-    setConsultInput('');
-    addToast('消息已发送，传记师稍后会联系您', 'success');
+  const openMessage = () => {
+    setMessageForm((prev) => ({ ...prev, phone: prev.phone || user?.phone || '' }));
+    setShowMessage(true);
+  };
+
+  const handleMessageSubmit = () => {
+    if (!messageForm.name.trim() || !messageForm.phone.trim() || !messageForm.content.trim()) {
+      addToast('请填写称呼、联系电话和留言内容', 'error');
+      return;
+    }
+    addToast('留言已提交，传记师会尽快与您联系', 'success');
+    setMessageForm({ name: '', phone: '', content: '' });
+    setShowMessage(false);
   };
 
   const isOwnProfile = !id || (biographer && user?.phone === biographer.phone);
 
+  const recommendedIndex = useMemo(() => {
+    const services = biographer?.services;
+    if (!services || services.length === 0) return -1;
+    const sorted = [...services].sort((a, b) => a.price - b.price);
+    return services.findIndex((s) => s.id === sorted[Math.floor(sorted.length / 2)]?.id);
+  }, [biographer?.services]);
+
   useEffect(() => {
     const fetchBio = id ? biographerApi.get(id) : biographerApi.me();
     const fetchReviews = id ? biographerApi.getReviews(id) : Promise.resolve([]);
-    Promise.all([fetchBio, fetchReviews])
-      .then(([bio, revs]) => {
+    const fetchContactAccess = id ? biographerApi.getContactAccess(id) : Promise.resolve({ unlocked: true });
+    Promise.all([fetchBio, fetchReviews, fetchContactAccess])
+      .then(([bio, revs, contactAccess]) => {
         setBiographer(bio);
         setReviews(revs as BiographerReview[]);
+        setContactUnlocked(contactAccess.unlocked);
         if (user?.phone && !bookingForm.contactPhone) {
           setBookingForm((prev) => ({ ...prev, contactPhone: user.phone || '' }));
         }
@@ -72,6 +95,7 @@ export default function BiographerProfile({ biographerId, embedded, onClose, onB
       .catch(() => {
         setBiographer(null);
         setReviews([]);
+        setContactUnlocked(false);
       })
       .finally(() => setLoading(false));
   }, [id, user?.phone]);
@@ -92,16 +116,11 @@ export default function BiographerProfile({ biographerId, embedded, onClose, onB
 
   const statCards = [
     { value: `${biographer.experience || 0}`, label: '从业年限' },
+    { value: `${biographer.completedOrders ?? 0}`, label: '完成订单' },
     { value: `${biographer.reviewCount || 0}`, label: '累计评价' },
     { value: `${(biographer.rating || 5).toFixed(1)}`, label: '用户评分' },
     { value: `${Math.round((biographer.rating || 5) / 5 * 100)}%`, label: '好评率' },
   ];
-
-  const recommendedIndex = useMemo(() => {
-    if (!biographer.services || biographer.services.length === 0) return -1;
-    const sorted = [...biographer.services].sort((a, b) => a.price - b.price);
-    return biographer.services.findIndex((s) => s.id === sorted[Math.floor(sorted.length / 2)]?.id);
-  }, [biographer.services]);
 
   const handleBookClick = (service: BiographerService) => {
     setBookingService(service);
@@ -145,7 +164,7 @@ export default function BiographerProfile({ biographerId, embedded, onClose, onB
         {!embedded && (
           <button
             className="btn btn-outline"
-            style={{ position: 'absolute', top: 16, left: 16, padding: '6px 12px', fontSize: 13 }}
+            style={{ position: 'absolute', top: -71, left: 16, padding: '6px 12px', fontSize: 13 }}
             onClick={() => navigate(-1)}
           >
             <ArrowLeft size={14} /> 返回
@@ -154,7 +173,7 @@ export default function BiographerProfile({ biographerId, embedded, onClose, onB
         {embedded && onClose && (
           <button
             className="btn btn-outline"
-            style={{ position: 'absolute', top: 16, right: 16, padding: '6px', width: 32, height: 32 }}
+            style={{ position: 'absolute', top: -71, right: 16, padding: '6px', width: 32, height: 32 }}
             onClick={onClose}
             aria-label="关闭"
           >
@@ -170,53 +189,29 @@ export default function BiographerProfile({ biographerId, embedded, onClose, onB
             <Edit2 size={14} /> 编辑资料
           </button>
         )}
-        <div className="biographer-profile-avatar-wrap">
-          <div className="biographer-profile-avatar">{avatarContent}</div>
-          <div className={`biographer-profile-verified ${biographer.certificationLevel || 'standard'}`}>
-            {biographer.certificationLevel === 'gold' && <Award size={18} />}
-            {biographer.certificationLevel === 'silver' && <Star size={18} />}
-            {biographer.certificationLevel === 'standard' && <CheckCircle size={18} />}
+        <div className="biographer-profile-header-main">
+          <div className="biographer-profile-avatar-wrap">
+            <div className="biographer-profile-avatar">{avatarContent}</div>
+          </div>
+          <div className="biographer-profile-header-info">
+            <div>
+              <div className="biographer-profile-name-row">
+                <div className="biographer-profile-name">{biographer.name}</div>
+                <div className="biographer-profile-rating">
+                  <Star size={14} fill="currentColor" /> {(biographer.rating || 5).toFixed(1)} 分
+                </div>
+              </div>
+              <div className="biographer-profile-title">{biographer.city || '全国'}服务</div>
+            </div>
+            <Annotate id="biographer-profile.actions" inline>
+            <div className="biographer-profile-actions">
+              <button className="btn btn-primary" onClick={openMessage}>
+                <MessageCircle size={16} /> 留言咨询
+              </button>
+            </div>
+            </Annotate>
           </div>
         </div>
-
-        <div className="biographer-profile-name-row">
-          <div>
-            <div className="biographer-profile-name">{biographer.name}</div>
-            <div className="biographer-profile-title">{biographer.title || '专业传记师'} · {biographer.city || '全国'}服务</div>
-          </div>
-          <div className={`biographer-profile-rating ${biographer.certificationLevel || 'standard'}`}>
-            <Star size={14} fill="currentColor" /> {(biographer.rating || 5).toFixed(1)} ·
-            {biographer.certificationLevel === 'gold' ? ' 金牌认证' : biographer.certificationLevel === 'silver' ? ' 银牌认证' : ' 平台认证'}
-          </div>
-        </div>
-
-        <div className="biographer-profile-tags">
-          {biographer.tags?.map((tag) => (
-            <span key={tag} className="biographer-profile-tag">{tag}</span>
-          ))}
-          {!biographer.tags?.length && biographer.specialties?.map((s) => (
-            <span key={s} className="biographer-profile-tag">{s}</span>
-          ))}
-        </div>
-
-        <Annotate id="biographer-profile.actions" inline>
-        <div className="biographer-profile-actions">
-          {onBookService && biographer.services && biographer.services.length > 0 && (
-            <button
-              className="btn btn-primary"
-              onClick={() => handleBookClick(biographer.services![recommendedIndex >= 0 ? recommendedIndex : 0])}
-            >
-              <ShoppingCart size={16} /> 立即预约
-            </button>
-          )}
-          {!onBookService && (
-            <button className="btn btn-primary" onClick={() => navigate('/biographers')}>
-              <ShoppingCart size={16} /> 立即预约
-            </button>
-          )}
-          <button className="btn btn-outline" onClick={() => setShowConsult(true)}>在线咨询</button>
-        </div>
-        </Annotate>
       </div>
       </Annotate>
 
@@ -381,16 +376,25 @@ export default function BiographerProfile({ biographerId, embedded, onClose, onB
       </Annotate>
 
       {biographer.certificates && biographer.certificates.length > 0 && (
+        <Annotate id="biographer-profile.certificates">
         <div className="biographer-profile-section">
-          <h3 className="biographer-profile-section-title"><Award size={18} /> 资质证明</h3>
+          <h3 className="biographer-profile-section-title"><Award size={18} /> 荣誉证书</h3>
           <div className="biographer-profile-certificates">
-            {biographer.certificates.map((url, idx) => (
-              <div key={idx} className="biographer-profile-certificate">
-                {url ? <img src={url} alt="资质证明" /> : <Award size={28} />}
+            {biographer.certificates.map((cert, idx) => (
+              <div key={idx} className={`biographer-profile-certificate ${isImageUrl(cert) ? '' : 'named'}`}>
+                {isImageUrl(cert) ? (
+                  <img src={cert} alt={cert} />
+                ) : (
+                  <>
+                    <Award size={26} />
+                    <span className="biographer-profile-certificate-name">{cert}</span>
+                  </>
+                )}
               </div>
             ))}
           </div>
         </div>
+        </Annotate>
       )}
 
       <div className="biographer-profile-section">
@@ -400,7 +404,12 @@ export default function BiographerProfile({ biographerId, embedded, onClose, onB
             <div className="biographer-profile-meta-item"><Award size={16} /> {biographer.education}</div>
           )}
           <div className="biographer-profile-meta-item"><Calendar size={16} /> 从业 {biographer.experience || 0} 年</div>
-          <div className="biographer-profile-meta-item"><Phone size={16} /> {biographer.phone}</div>
+          <div className="biographer-profile-meta-item">
+            <Phone size={16} /> {isOwnProfile || contactUnlocked ? biographer.phone : maskPhone(biographer.phone)}
+            {!isOwnProfile && !contactUnlocked && (
+              <span className="biographer-profile-phone-tip">下单套餐后可见完整号码</span>
+            )}
+          </div>
           {biographer.email && <div className="biographer-profile-meta-item"><Mail size={16} /> {biographer.email}</div>}
         </div>
       </div>
@@ -514,48 +523,52 @@ export default function BiographerProfile({ biographerId, embedded, onClose, onB
         </div>
         </Annotate>
       )}
-      {showConsult && (
-        <Annotate id="biographer-profile.consult">
-        <div className="modal-overlay" onClick={() => setShowConsult(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+      {showMessage && (
+        <Annotate id="biographer-profile.message">
+        <div className="modal-overlay" onClick={() => setShowMessage(false)}>
+          <div className="modal-content biographer-message-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h4>在线咨询 · {biographer.name}</h4>
-              <button className="modal-close" onClick={() => setShowConsult(false)}><X size={16} /></button>
+              <h4>留言咨询 · {biographer.name}</h4>
+              <button className="modal-close" onClick={() => setShowMessage(false)}><X size={16} /></button>
             </div>
             <div className="modal-body">
-              <div style={{ maxHeight: 240, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
-                {consultMessages.length === 0 && (
-                  <p style={{ color: '#6b7280', fontSize: 13 }}>您好，向 {biographer.name} 描述您的传记需求，传记师稍后会联系您。</p>
-                )}
-                {consultMessages.map((m, i) => (
-                  <div
-                    key={i}
-                    style={{
-                      alignSelf: m.from === 'me' ? 'flex-end' : 'flex-start',
-                      maxWidth: '80%',
-                      padding: '8px 12px',
-                      borderRadius: 10,
-                      fontSize: 13,
-                      lineHeight: 1.5,
-                      background: m.from === 'me' ? '#1B5E4B' : '#f3f4f6',
-                      color: m.from === 'me' ? '#fff' : '#1f2937',
-                    }}
-                  >
-                    {m.text}
-                  </div>
-                ))}
-              </div>
-              <div style={{ display: 'flex', gap: 8 }}>
+              <p style={{ color: '#6b7280', fontSize: 13, margin: '0 0 12px' }}>
+                留下您的需求和联系方式，传记师会尽快与您联系。
+              </p>
+              <div className="form-row">
+                <label><User size={12} /> 您的称呼</label>
                 <input
                   type="text"
-                  style={{ flex: 1, padding: '8px 12px', border: '1px solid #e5e7eb', borderRadius: 8, fontSize: 13 }}
-                  placeholder="输入咨询内容…"
-                  value={consultInput}
-                  onChange={(e) => setConsultInput(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') handleConsultSend(); }}
+                  value={messageForm.name}
+                  onChange={(e) => setMessageForm((prev) => ({ ...prev, name: e.target.value }))}
+                  placeholder="例如：张女士"
                 />
-                <button className="btn btn-primary" onClick={handleConsultSend}>发送</button>
               </div>
+              <div className="form-row">
+                <label><Phone size={12} /> 联系电话</label>
+                <input
+                  type="text"
+                  value={messageForm.phone}
+                  onChange={(e) => setMessageForm((prev) => ({ ...prev, phone: e.target.value }))}
+                  placeholder="用于传记师与您联系"
+                />
+              </div>
+              <div className="form-row">
+                <label><FileText size={12} /> 留言内容</label>
+                <textarea
+                  rows={4}
+                  value={messageForm.content}
+                  onChange={(e) => setMessageForm((prev) => ({ ...prev, content: e.target.value }))}
+                  placeholder="例如：想给父亲整理一本传记，老人今年 80 岁，住在杭州……"
+                />
+              </div>
+              <button
+                className="btn btn-primary"
+                style={{ width: '100%', marginTop: 8 }}
+                onClick={handleMessageSubmit}
+              >
+                提交留言
+              </button>
             </div>
           </div>
         </div>

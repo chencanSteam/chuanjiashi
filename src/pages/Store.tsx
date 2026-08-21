@@ -7,6 +7,7 @@ import { paymentApi } from '../api/payment';
 import { archiveApi } from '../api/archive';
 import { useToast } from '../hooks/useToast';
 import { useAuth } from '../hooks/useAuth';
+import { useVersion } from '../hooks/useVersion';
 import Annotate from '../components/annotation/Annotate';
 import type { ProductPackage, OrderAddress, Archive } from '../mocks/types';
 import './Store.css';
@@ -20,6 +21,9 @@ const categoryMap: Record<string, { label: string; icon: typeof Package }> = {
   digital_person: { label: '数字人', icon: UserCircle2 },
   video: { label: '纪念视频', icon: Video },
 };
+
+/** V1.0 不展示的商品类型（衍生品 / 二维码 / 数字人 / 纪念视频），完整版恢复 */
+const V1_HIDDEN_TYPES = ['derivative', 'qrcode', 'digital_person', 'video'];
 
 const needsAddress = (type: string) => ['book', 'derivative'].includes(type);
 
@@ -36,10 +40,12 @@ export default function Store() {
   const navigate = useNavigate();
   const { addToast } = useToast();
   const { user } = useAuth();
+  const { isV1 } = useVersion();
   const [searchParams, setSearchParams] = useSearchParams();
   const [products, setProducts] = useState<ProductPackage[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<ProductPackage | null>(null);
+  const [quantity, setQuantity] = useState(1);
   const [address, setAddress] = useState<OrderAddress>(emptyAddress);
   const [remark, setRemark] = useState('');
   const [paying, setPaying] = useState(false);
@@ -89,11 +95,11 @@ export default function Store() {
   }, [archiveId]);
 
   const filtered = useMemo(() => {
-    let list = products;
+    let list = isV1 ? products.filter((p) => !V1_HIDDEN_TYPES.includes(p.type)) : products;
     if (activeCategory === 'physical') {
-      list = products.filter((p) => needsAddress(p.type));
+      list = list.filter((p) => needsAddress(p.type));
     } else if (activeCategory !== 'all') {
-      list = products.filter((p) => p.type === activeCategory);
+      list = list.filter((p) => p.type === activeCategory);
     }
     if (keyword.trim()) {
       const q = keyword.trim().toLowerCase();
@@ -102,7 +108,7 @@ export default function Store() {
     if (sort === 'price_asc') list = [...list].sort((a, b) => a.price - b.price);
     if (sort === 'price_desc') list = [...list].sort((a, b) => b.price - a.price);
     return list;
-  }, [products, activeCategory, keyword, sort]);
+  }, [products, activeCategory, keyword, sort, isV1]);
 
   const handleBuy = async () => {
     if (!selected) return;
@@ -121,7 +127,8 @@ export default function Store() {
         type: selected.type,
         productId: selected.id,
         productName: selected.name,
-        amount: selected.price,
+        amount: selected.price * quantity,
+        quantity,
         archiveId,
         sku: selected.name,
         remark,
@@ -159,7 +166,9 @@ export default function Store() {
 
       <Annotate id="store.category-tabs">
       <div className="store-categories">
-        {Object.entries(categoryMap).map(([key, { label, icon: Icon }]) => (
+        {Object.entries(categoryMap)
+          .filter(([key]) => !isV1 || !V1_HIDDEN_TYPES.includes(key))
+          .map(([key, { label, icon: Icon }]) => (
           <button
             key={key}
             className={`store-category ${activeCategory === key ? 'active' : ''}`}
@@ -236,7 +245,7 @@ export default function Store() {
                     <strong>¥{p.price}</strong>
                     {p.originalPrice && <del>¥{p.originalPrice}</del>}
                   </div>
-                  <button className="store-product-btn" onClick={(e) => { e.stopPropagation(); setSelected(p); }}>
+                  <button className="store-product-btn" onClick={(e) => { e.stopPropagation(); setQuantity(1); setSelected(p); }}>
                     立即购买
                   </button>
                 </div>
@@ -273,6 +282,18 @@ export default function Store() {
                 <div className="store-order-archive">
                   <strong>关联档案：</strong>{linkedArchive.name}
                   <span className="store-order-archive-type">{linkedArchive.type === 'self' ? '本人' : linkedArchive.relation || '亲友'}</span>
+                </div>
+              )}
+
+              {selected.type === 'book' && (
+                <div className="store-order-quantity">
+                  <span className="store-order-quantity-label">购买份数</span>
+                  <div className="store-order-quantity-stepper">
+                    <button type="button" disabled={quantity <= 1} onClick={() => setQuantity((q) => Math.max(1, q - 1))}>−</button>
+                    <span>{quantity} 份</span>
+                    <button type="button" disabled={quantity >= 99} onClick={() => setQuantity((q) => Math.min(99, q + 1))}>＋</button>
+                  </div>
+                  <span className="store-order-quantity-total">小计 ¥{(selected.price * quantity).toLocaleString()}</span>
                 </div>
               )}
 
@@ -354,7 +375,7 @@ export default function Store() {
                 disabled={paying}
                 onClick={handleBuy}
               >
-                <CreditCard size={14} /> {paying ? '支付中…' : `微信支付 ¥${selected.price.toLocaleString()}`}
+                <CreditCard size={14} /> {paying ? '支付中…' : `微信支付 ¥${(selected.price * quantity).toLocaleString()}`}
               </button>
             </div>
           </div>

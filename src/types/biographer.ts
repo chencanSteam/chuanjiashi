@@ -37,6 +37,8 @@ export interface Biographer {
   certificationLevel?: BiographerCertificationLevel;
   rating?: number;
   reviewCount?: number;
+  /** 已完成订单数（主页数据条展示） */
+  completedOrders?: number;
   createdAt: string;
   updatedAt?: string;
 }
@@ -61,4 +63,6 @@ export interface BiographerFormData {
   certificationLevel?: BiographerCertificationLevel;
   rating?: number;
   reviewCount?: number;
+  /** 已完成订单数（主页数据条展示） */
+  completedOrders?: number;
 }

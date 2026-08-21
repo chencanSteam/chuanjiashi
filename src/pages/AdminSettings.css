@@ -109,6 +109,134 @@
   cursor: pointer;
 }
 
+.admin-refund-reasons-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.admin-refund-reasons-desc {
+  margin: 4px 0 0;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.admin-refund-reasons-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-refund-reason-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.admin-refund-reason-row:last-child {
+  border-bottom: 0;
+}
+
+.admin-refund-reason-order {
+  width: 24px;
+  color: var(--text-muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.admin-refund-reason-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.admin-refund-reason-label {
+  color: var(--text);
+  font-size: 13px;
+}
+
+.admin-refund-reason-system,
+.admin-refund-reason-status {
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.admin-refund-reason-system {
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+}
+
+.admin-refund-reason-status.enabled {
+  background: rgba(27, 94, 75, 0.1);
+  color: var(--primary);
+}
+
+.admin-refund-reason-status.disabled {
+  background: #f3f4f6;
+  color: var(--text-muted);
+}
+
+.admin-refund-reason-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.admin-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  background: var(--card-bg);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.admin-icon-btn:hover:not(:disabled) {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.admin-icon-btn.danger:hover:not(:disabled) {
+  border-color: #ef4444;
+  color: #ef4444;
+}
+
+.admin-icon-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
+.admin-refund-toggle {
+  min-width: 42px;
+  padding: 5px 8px;
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  background: var(--card-bg);
+  color: var(--text-muted);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.admin-refund-toggle.on {
+  border-color: rgba(27, 94, 75, 0.25);
+  color: var(--primary);
+}
+
+.admin-refund-reason-modal {
+  max-width: 420px;
+}
+
 @media (max-width: 960px) {
   .admin-settings-table {
     min-width: unset;
@@ -123,5 +251,15 @@
 
   .admin-settings-header-row {
     display: none;
+  }
+
+  .admin-refund-reason-row {
+    flex-wrap: wrap;
+    padding: 12px;
+  }
+
+  .admin-refund-reason-actions {
+    width: 100%;
+    justify-content: flex-end;
   }
 }

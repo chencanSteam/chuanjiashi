@@ -5,7 +5,7 @@
 
 /* 顶部封面 */
 .biographer-profile-cover {
-  height: 180px;
+  height: 110px;
   border-radius: 20px 20px 0 0;
   background: linear-gradient(135deg, #1B5E4B 0%, #2D7A66 50%, #4a9b82 100%);
   position: relative;
@@ -29,24 +29,41 @@
   position: relative;
 }
 
+.biographer-profile-header-main {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.biographer-profile-header-info {
+  flex: 1;
+  min-width: 240px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 20px;
+  flex-wrap: wrap;
+}
+
 .biographer-profile-avatar-wrap {
   position: relative;
-  width: 130px;
-  height: 130px;
-  margin-top: -65px;
-  margin-bottom: 16px;
+  width: 104px;
+  height: 104px;
+  margin-top: -52px;
+  flex: 0 0 auto;
 }
 
 .biographer-profile-avatar {
-  width: 130px;
-  height: 130px;
+  width: 104px;
+  height: 104px;
   border-radius: 50%;
   border: 5px solid #fff;
   background: #f0f2f1;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 52px;
+  font-size: 42px;
   color: #1B5E4B;
   overflow: hidden;
   box-shadow: 0 6px 20px rgba(0,0,0,0.1);
@@ -75,14 +92,13 @@
 
 .biographer-profile-name-row {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
+  align-items: center;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
 .biographer-profile-name {
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 800;
   color: #1f2937;
 }
@@ -124,19 +140,18 @@
 .biographer-profile-actions {
   display: flex;
   gap: 10px;
-  margin-top: 20px;
 }
 
 .biographer-profile-actions .btn {
-  flex: 1;
+  flex: 0 0 auto;
   justify-content: center;
-  padding: 12px;
+  padding: 11px 26px;
 }
 
 /* 数据条 */
 .biographer-profile-stats {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 12px;
   margin-bottom: 20px;
 }
@@ -666,4 +681,96 @@
 
 .biographer-profile-meta-item svg {
   color: #1B5E4B;
+}
+
+/* 命名证书占位卡（无图片时按证书名称展示） */
+.biographer-profile-certificate.named {
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: linear-gradient(145deg, #fdf8ee, #f5ead7);
+  border-color: #e3d3b3;
+  color: #8b6f47;
+  text-align: center;
+}
+
+.biographer-profile-certificate-name {
+  font-size: 12px;
+  line-height: 1.5;
+  color: #6b5637;
+  font-weight: 600;
+}
+
+@media (max-width: 720px) {
+  .biographer-profile-stats {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* 预约 / 留言弹窗的表单项样式（与传记师管理后台的表单风格统一） */
+.biographer-booking-modal .form-row,
+.biographer-message-modal .form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.biographer-booking-modal .form-row:last-of-type,
+.biographer-message-modal .form-row:last-of-type {
+  margin-bottom: 0;
+}
+
+.biographer-booking-modal .form-row label,
+.biographer-message-modal .form-row label {
+  font-size: 13px;
+  color: var(--text-secondary, #4b5563);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.biographer-booking-modal .form-row input,
+.biographer-booking-modal .form-row select,
+.biographer-booking-modal .form-row textarea,
+.biographer-message-modal .form-row input,
+.biographer-message-modal .form-row select,
+.biographer-message-modal .form-row textarea {
+  box-sizing: border-box;
+  width: 100%;
+  border: 1px solid var(--border-light, #e8e4dd);
+  border-radius: var(--radius, 8px);
+  padding: 9px 12px;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--text, #2c2824);
+  background: var(--card-bg, #fff);
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.biographer-booking-modal .form-row input:focus,
+.biographer-booking-modal .form-row select:focus,
+.biographer-booking-modal .form-row textarea:focus,
+.biographer-message-modal .form-row input:focus,
+.biographer-message-modal .form-row select:focus,
+.biographer-message-modal .form-row textarea:focus {
+  border-color: var(--primary-light, #1b5e4b);
+}
+
+.biographer-booking-modal .form-row textarea,
+.biographer-message-modal .form-row textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+/* 电话未解锁提示 */
+.biographer-profile-phone-tip {
+  margin-left: 6px;
+  font-size: 11px;
+  color: #b8860b;
+  background: #fff8e1;
+  border-radius: 10px;
+  padding: 2px 8px;
 }

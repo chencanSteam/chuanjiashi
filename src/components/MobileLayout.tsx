@@ -1,13 +1,15 @@
 import { Outlet, NavLink, useLocation } from 'react-router-dom';
 import { Home, Mic, Archive, Users, User } from 'lucide-react';
+import { useVersion } from '../hooks/useVersion';
 import AnnotationToggle from './annotation/AnnotationToggle';
 import './MobileLayout.css';
 
+// 「家庭」为 V1.2 功能，V1.0 模式下隐藏
 const tabs = [
   { path: '/m', label: '首页', icon: Home },
   { path: '/m/interview', label: '采访', icon: Mic },
   { path: '/m/archive', label: '档案', icon: Archive },
-  { path: '/m/family', label: '家庭', icon: Users },
+  { path: '/m/family', label: '家庭', icon: Users, fullOnly: true },
   { path: '/m/profile', label: '我的', icon: User },
 ];
 
@@ -32,6 +34,8 @@ function MobileHeader() {
 }
 
 export default function MobileLayout() {
+  const { isV1 } = useVersion();
+  const visibleTabs = tabs.filter((tab) => !tab.fullOnly || !isV1);
   return (
     <div className="mobile-layout">
       <MobileHeader />
@@ -39,7 +43,7 @@ export default function MobileLayout() {
         <Outlet />
       </main>
       <nav className="mobile-tab-bar">
-        {tabs.map((tab) => {
+        {visibleTabs.map((tab) => {
           const Icon = tab.icon;
           return (
             <NavLink

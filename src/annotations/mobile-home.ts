@@ -10,29 +10,34 @@ export const mobileHomeAnnotations: PageAnnotations = {
   route: '/m',
   items: [
     {
-      id: 'mobile-home.greeting',
-      target: '问候区',
-      logic: `① 用户名取自登录态（useAuth）：优先显示姓名，无姓名时显示手机号后 4 位，都为空时兜底「用户」。
-② 未登录访问时由路由守卫拦截，本页不处理登录跳转。`,
+      id: 'mobile-home.profile-header',
+      target: '档案头部',
+      logic: `① 展示当前档案（cj_current_archive_id + cj_archives）：头像取传主姓名首字；档案名为下拉选择器，可切换本账号全部档案，切换后写入 cj_current_archive_id 并刷新页面。
+② 右侧加号进入 /onboarding 创建新的人生档案；创建完成后新档案成为当前展示档案。
+③ 点击头像区域进人生档案页（/m/archive）。`,
     },
     {
-      id: 'mobile-home.archive-card',
-      target: '当前传记档案卡片',
-      logic: `① 读取 localStorage「cj_current_archive_id」拿到当前档案 id，再从「cj_archives」列表中匹配出档案信息。
-② 没有当前档案（或数据解析失败）时整张卡片不渲染。
-③ 点击卡片跳转「人生档案」页（/m/archive）。`,
+      id: 'mobile-home.interview-cta',
+      target: '今日讲述（采访主行动区）',
+      logic: `① 「开始讲述」「文字回答」均跳转 AI 采访页（/m/interview），正式版分别对应语音与文字两种回答方式。`,
     },
     {
-      id: 'mobile-home.quick-actions',
-      target: '快捷功能宫格',
-      logic: `① 六个入口为固定配置：AI 采访（/m/interview）、人生档案（/m/archive）、家庭空间（/m/family）、传记作品（/m/works）、照片修复（/m/photo-restore）、设置（/m/profile）。
-② 点击直接路由跳转，无权限区分；正式版可按账号角色/开通功能控制显隐。`,
+      id: 'mobile-home.story-list',
+      target: '人生轴（横向卡片）',
+      logic: `① 数据为时间轴事件（loadStoredEventsForArchive，与人生档案页同源），按年份升序取前 4 个；卡片显示图片占位符（generateImageDataUrl）+ 时间段（有 endYear 显示 xxxx-xxxx年）+ 主题。
+② 区块无标题栏，卡片横向滚动展示；点击卡片或末尾「更多故事 · 待记录」卡均跳转人生档案页（/m/archive）。`,
     },
     {
-      id: 'mobile-home.recent-activity',
-      target: '最近动态',
-      logic: `① 当前为固定空态（暂无新动态），正式版应聚合该账号下的采访进度、传记生成、家庭动态等事件流。
-② 空态下展示「去采访」引导按钮，点击跳转 AI 采访页（/m/interview）。`,
+      id: 'mobile-home.memory-biography',
+      target: '珍贵记忆 / 我的传记双卡',
+      logic: `① 珍贵记忆：取媒体库（cj_media_*）中 image 类型前 3 张做照片堆叠，显示照片总数，点击进人生档案页。
+② 我的传记：书封展示《{传主}传》，章节数取已生成章节（cj_biography_chapters_* 中非 notGenerated）；点击跳 Web 端传记页（/biography）阅读编辑。`,
+    },
+    {
+      id: 'mobile-home.goods',
+      target: '传记服务',
+      logic: `① 三张服务卡为固定配置：传记实体书跳转传家商城（/store），传记编写跳转传记编写页（/biography），找传记师跳转传记师列表（/biographers）。
+② 卡片只保留服务名称和简短说明，不展示区块介绍文案、查看全部和「去看看」按钮。`,
     },
   ],
 };

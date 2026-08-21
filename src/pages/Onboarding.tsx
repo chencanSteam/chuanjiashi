@@ -1,9 +1,10 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowRight, ArrowLeft, Plus, Trash2, Mic, Sparkles, User } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { ArrowRight, ArrowLeft, Plus, Trash2, Mic, Sparkles, User, FolderOpen, ChevronRight } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/useToast';
 import { archiveApi } from '../api/archive';
+import Avatar from '../components/ui/Avatar';
 import Annotate from '../components/annotation/Annotate';
 import './Onboarding.css';
 
@@ -24,7 +25,22 @@ interface OutlineGroup {
   items: OutlineItem[];
 }
 
-function loadArchives(): unknown[] {
+/** 档案选择项（合并 mock 档案与旧版 localStorage 档案） */
+interface ArchiveOption {
+  id: string;
+  name: string;
+  birthYear: string;
+  origin: string;
+}
+
+interface LegacyArchive {
+  id: string;
+  name: string;
+  birthYear?: string;
+  origin?: string;
+}
+
+function loadArchives(): LegacyArchive[] {
   try {
     const raw = localStorage.getItem('cj_archives');
     if (raw) return JSON.parse(raw);
@@ -95,10 +111,13 @@ function generateOutline(basic: { name: string; occupation: string; origin: stri
 
 export default function Onboarding() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { addToast } = useToast();
   const { user, setNewUser } = useAuth();
 
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(0);
+  const [checkingArchives, setCheckingArchives] = useState(true);
+  const [archiveOptions, setArchiveOptions] = useState<ArchiveOption[]>([]);
   const [name, setName] = useState(user?.name || '');
   const [gender, setGender] = useState<'男' | '女'>('男');
   const [birthYear, setBirthYear] = useState('');
@@ -108,6 +127,50 @@ export default function Onboarding() {
   const [outline, setOutline] = useState<OutlineGroup[]>([]);
 
   const basic = { name, occupation, origin, birthYear };
+
+  // 进入页面时加载已有人生档案：有档案则先选择（第 0 步），没有则直接进入新建流程
+  useEffect(() => {
+    const load = async () => {
+      const merged = new Map<string, ArchiveOption>();
+      try {
+        const list = await archiveApi.list();
+        list.forEach((a) => {
+          merged.set(a.id, {
+            id: a.id,
+            name: a.name,
+            birthYear: (a.birthDate || '').split('-')[0] || '',
+            origin: a.birthPlace || '',
+          });
+        });
+      } catch {
+        // 接口失败时仅使用本地旧档案
+      }
+      loadArchives().forEach((a) => {
+        if (!merged.has(a.id)) {
+          merged.set(a.id, { id: a.id, name: a.name, birthYear: a.birthYear || '', origin: a.origin || '' });
+        }
+      });
+      const options = Array.from(merged.values());
+      setArchiveOptions(options);
+      setStep(options.length > 0 ? 0 : 1);
+      setCheckingArchives(false);
+    };
+    load();
+  }, []);
+
+  const selectArchive = (option: ArchiveOption) => {
+    localStorage.setItem('cj_current_archive_id', option.id);
+    setNewUser(false);
+    addToast(`已选择「${option.name}」的人生档案`, 'success');
+    const returnTo = (location.state as { from?: string } | null)?.from;
+    if (returnTo) {
+      navigate(returnTo, { replace: true });
+    } else if (localStorage.getItem(`cj_biography_${option.id}`) || localStorage.getItem(`cj_biography_chapters_${option.id}`)) {
+      navigate('/biography', { replace: true });
+    } else {
+      navigate('/interview', { replace: true });
+    }
+  };
 
   const canGoStep2 = name.trim() && birthYear.trim();
 
@@ -141,7 +204,8 @@ export default function Onboarding() {
   };
 
   const back = () => {
-    if (step > 1) setStep(step - 1);
+    if (step === 1 && archiveOptions.length > 0) setStep(0);
+    else if (step > 1) setStep(step - 1);
   };
 
   const startInterview = async () => {
@@ -167,7 +231,8 @@ export default function Onboarding() {
       localStorage.setItem(`cj_interview_outline_${archive.id}`, JSON.stringify(outline));
       setNewUser(false);
       addToast('档案已创建，开始 AI 采访', 'success');
-      navigate('/interview', { replace: true });
+      const returnTo = (location.state as { from?: string } | null)?.from;
+      navigate(returnTo || '/interview', { replace: true });
     } catch (err: any) {
       addToast(err.message || '创建档案失败', 'error');
     }
@@ -175,6 +240,9 @@ export default function Onboarding() {
 
   return (
     <div className="onboarding-page">
+      <button type="button" className="onboarding-exit" onClick={() => navigate('/my-works')}>
+        <ArrowLeft size={15} /> 返回我的传记
+      </button>
       <div className="onboarding-card">
         <div className="onboarding-header">
           <div className="onboarding-brand">
@@ -184,16 +252,53 @@ export default function Onboarding() {
               <p className="onboarding-subtitle">只需几步，即可用 AI 记录人生故事</p>
             </div>
           </div>
-          <div className="onboarding-steps">
-            <div className={`step-dot ${step >= 1 ? 'active' : ''}`}>1</div>
-            <div className="step-line" />
-            <div className={`step-dot ${step >= 2 ? 'active' : ''}`}>2</div>
-            <div className="step-line" />
-            <div className={`step-dot ${step >= 3 ? 'active' : ''}`}>3</div>
-          </div>
+          {step > 0 && (
+            <div className="onboarding-steps">
+              <div className={`step-dot ${step >= 1 ? 'active' : ''}`}>1</div>
+              <div className="step-line" />
+              <div className={`step-dot ${step >= 2 ? 'active' : ''}`}>2</div>
+              <div className="step-line" />
+              <div className={`step-dot ${step >= 3 ? 'active' : ''}`}>3</div>
+            </div>
+          )}
         </div>
 
         <div className="onboarding-body">
+          {checkingArchives && (
+            <div className="onboarding-step">
+              <p className="step-desc">正在读取人生档案…</p>
+            </div>
+          )}
+
+          {!checkingArchives && step === 0 && (
+            <div className="onboarding-step">
+              <h2><FolderOpen size={20} /> 选择人生档案</h2>
+              <p className="step-desc">您已有人生档案，请选择要为谁创作传记，或新建一份档案。</p>
+              <div className="archive-select-list">
+                {archiveOptions.map((option) => (
+                  <button type="button" className="archive-select-card" key={option.id} onClick={() => selectArchive(option)}>
+                    <Avatar name={option.name} size={44} />
+                    <div className="archive-select-info">
+                      <div className="archive-select-name">{option.name}</div>
+                      <div className="archive-select-meta">
+                        {[option.birthYear && `${option.birthYear} 年生`, option.origin].filter(Boolean).join(' · ') || '人生档案'}
+                      </div>
+                    </div>
+                    <ChevronRight size={16} className="archive-select-arrow" />
+                  </button>
+                ))}
+                <button type="button" className="archive-select-card archive-select-new" onClick={() => setStep(1)}>
+                  <div className="archive-select-new-icon"><Plus size={20} /></div>
+                  <div className="archive-select-info">
+                    <div className="archive-select-name">新建人生档案</div>
+                    <div className="archive-select-meta">为另一位家人创建档案</div>
+                  </div>
+                  <ChevronRight size={16} className="archive-select-arrow" />
+                </button>
+              </div>
+            </div>
+          )}
+
           {step === 1 && (
             <Annotate id="onboarding.basic-form">
             <div className="onboarding-step">
@@ -279,8 +384,9 @@ export default function Onboarding() {
         </div>
 
         <Annotate id="onboarding.start">
+        {step > 0 && (
         <div className="onboarding-footer">
-          {step > 1 && (
+          {(step > 1 || archiveOptions.length > 0) && (
             <button className="btn btn-outline" onClick={back}>
               <ArrowLeft size={14} /> 上一步
             </button>
@@ -295,6 +401,7 @@ export default function Onboarding() {
             </button>
           )}
         </div>
+        )}
         </Annotate>
       </div>
     </div>

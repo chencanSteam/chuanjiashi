@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Printer, Download, BookOpen, ShoppingBag } from 'lucide-react';
+import { Printer, Download, BookOpen, ShoppingBag } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 import Annotate from '../components/annotation/Annotate';
 import './BiographyPrint.css';
@@ -128,9 +128,6 @@ export default function BiographyPrint() {
   return (
     <div className="biography-print-page">
       <header className="print-toolbar no-print">
-        <button className="btn btn-ghost" onClick={() => navigate('/biography')}>
-          <ArrowLeft size={16} /> 返回编辑
-        </button>
         <div className="print-toolbar-title">
           <BookOpen size={18} /> 实体书排版预览
         </div>

@@ -7,6 +7,8 @@ import { digitalPersonHandlers } from './api/digitalPerson'
 import { uploadHandlers } from './api/upload'
 import { productHandlers } from './api/product'
 import { orderHandlers } from './api/order'
+import { refundReasonHandlers } from './api/refundReasons'
+import { dictionaryHandlers } from './api/dictionary'
 import { paymentHandlers } from './api/payment'
 import { groupBuyHandlers } from './api/groupBuy'
 import { commissionHandlers } from './api/commission'
@@ -32,6 +34,8 @@ export const handlers = [
   ...uploadHandlers,
   ...productHandlers,
   ...orderHandlers,
+  ...refundReasonHandlers,
+  ...dictionaryHandlers,
   ...paymentHandlers,
   ...groupBuyHandlers,
   ...commissionHandlers,

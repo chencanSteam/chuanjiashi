@@ -1,13 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Mic, FolderOpen, Trash2, User, Plus, ChevronRight, UploadCloud, Globe } from 'lucide-react';
+import { BookOpen, Mic, Trash2, User, Plus, ChevronRight, UploadCloud } from 'lucide-react';
 import Avatar from '../components/ui/Avatar';
 import { useToast } from '../hooks/useToast';
 import { archiveApi } from '../api/archive';
-import { bookshelfApi } from '../api/bookshelf';
 import PublishBookModal from '../components/PublishBookModal';
-import PublishLicenseModal, { type LicenseSettings } from '../components/PublishLicenseModal';
-import type { PublicBook } from '../mocks/types';
+import { getWorkStatus, type WorkStatus } from '../utils/works';
 import Annotate from '../components/annotation/Annotate';
 import './MyWorks.css';
 
@@ -20,8 +18,6 @@ interface Archive {
   occupation: string;
   tags?: string[];
 }
-
-type WorkStatus = '未开始' | '待采访' | '采集中' | '已生成传记' | '已同步档案';
 
 interface WorkItem extends Archive {
   status: WorkStatus;
@@ -42,59 +38,12 @@ function extractYear(date?: string): string {
   return date.split('-')[0] || '';
 }
 
-function hasKey(key: string): boolean {
-  try {
-    const raw = localStorage.getItem(key);
-    if (!raw) return false;
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed.length > 0 : !!parsed;
-  } catch {
-    return false;
-  }
-}
-
-function getStatus(archiveId: string): WorkStatus {
-  if (hasKey(`cj_events_${archiveId}`)) return '已同步档案';
-  if (hasKey(`cj_biography_${archiveId}`)) return '已生成传记';
-  if (hasKey(`cj_interview_transcript_${archiveId}`)) return '采集中';
-  if (hasKey(`cj_interview_outline_${archiveId}`)) return '待采访';
-  return '未开始';
-}
-
 function getStatusClass(status: WorkStatus): string {
-  switch (status) {
-    case '已同步档案':
-      return 'success';
-    case '已生成传记':
-      return 'primary';
-    case '采集中':
-      return 'warning';
-    case '待采访':
-      return 'info';
-    default:
-      return 'muted';
-  }
+  return status === '已完成' ? 'success' : 'warning';
 }
 
-/** mock 创作者收益（按作品 id 生成稳定伪随机数据） */
-function mockEarnings(id: string) {
-  let hash = 0;
-  for (const ch of id) hash = (hash * 31 + ch.charCodeAt(0)) % 9973;
-  const sold = (hash % 180) + 6;
-  const price = [9.9, 19.9, 29.9][hash % 3];
-  return { sold, price, total: sold * price };
-}
-
-function loadLicenses(items: WorkItem[]): Record<string, boolean> {
-  const map: Record<string, boolean> = {};
-  items.forEach((w) => {
-    map[w.id] = localStorage.getItem(`cj_work_license_${w.id}`) === 'public';
-  });
-  return map;
-}
-
-function loadLicenseSettings(items: WorkItem[]): Record<string, LicenseSettings> {
-  const map: Record<string, LicenseSettings> = {};
+function loadLicenseSettings(items: WorkItem[]): Record<string, { isFree: boolean; price: number; trialWords: number }> {
+  const map: Record<string, { isFree: boolean; price: number; trialWords: number }> = {};
   items.forEach((w) => {
     try {
       const raw = localStorage.getItem(`cj_work_license_settings_${w.id}`);
@@ -106,15 +55,21 @@ function loadLicenseSettings(items: WorkItem[]): Record<string, LicenseSettings>
   return map;
 }
 
+/** mock 创作者收益（按作品 id 生成稳定伪随机数据） */
+function mockEarnings(id: string) {
+  let hash = 0;
+  for (const ch of id) hash = (hash * 31 + ch.charCodeAt(0)) % 9973;
+  const sold = (hash % 180) + 6;
+  const price = [9.9, 19.9, 29.9][hash % 3];
+  return { sold, price, total: sold * price };
+}
+
 export default function MyWorks() {
   const navigate = useNavigate();
   const { addToast } = useToast();
   const [works, setWorks] = useState<WorkItem[]>([]);
   const [publishingWork, setPublishingWork] = useState<WorkItem | null>(null);
-  const [licenses, setLicenses] = useState<Record<string, boolean>>({});
-  const [licenseSettings, setLicenseSettings] = useState<Record<string, LicenseSettings>>({});
-  const [licenseWork, setLicenseWork] = useState<WorkItem | null>(null);
-  const [licenseSubmitting, setLicenseSubmitting] = useState(false);
+  const [licenseSettings, setLicenseSettings] = useState<Record<string, { isFree: boolean; price: number; trialWords: number }>>({});
 
   useEffect(() => {
     const load = async () => {
@@ -135,15 +90,13 @@ export default function MyWorks() {
         legacyArchives.forEach((a) => {
           if (!mergedMap.has(a.id)) mergedMap.set(a.id, a);
         });
-        const items = Array.from(mergedMap.values()).map((a) => ({ ...a, status: getStatus(a.id) }));
+        const items = Array.from(mergedMap.values()).map((a) => ({ ...a, status: getWorkStatus(a.id) }));
         setWorks(items);
-        setLicenses(loadLicenses(items));
         setLicenseSettings(loadLicenseSettings(items));
       } catch {
         const legacyArchives = loadLegacyArchives();
-        const items = legacyArchives.map((a) => ({ ...a, status: getStatus(a.id) }));
+        const items = legacyArchives.map((a) => ({ ...a, status: getWorkStatus(a.id) }));
         setWorks(items);
-        setLicenses(loadLicenses(items));
         setLicenseSettings(loadLicenseSettings(items));
       } finally {
         // ignore
@@ -151,58 +104,6 @@ export default function MyWorks() {
     };
     load();
   }, []);
-
-  const toggleLicense = (work: WorkItem) => {
-    if (licenses[work.id]) {
-      // 关闭授权：维持现有下架申请逻辑
-      setLicenses((prev) => ({ ...prev, [work.id]: false }));
-      localStorage.setItem(`cj_work_license_${work.id}`, 'off');
-      addToast('下架申请已提交，审核通过后将从书架移除', 'success');
-      return;
-    }
-    // 打开授权：先弹出「公开到书架」设置弹窗
-    setLicenseWork(work);
-  };
-
-  const handleLicenseConfirm = async (settings: LicenseSettings) => {
-    const work = licenseWork;
-    if (!work) return;
-    setLicenseSubmitting(true);
-    try {
-      let existing: PublicBook | undefined;
-      try {
-        const mine = await bookshelfApi.myList();
-        existing = mine.find((b) => b.archiveId === work.id);
-      } catch {
-        existing = undefined;
-      }
-      await bookshelfApi.publish(existing?.id || `book_${work.id}`, {
-        archiveId: work.id,
-        title: existing?.title || `${work.name}的传记`,
-        author: existing?.author || '本人/家属整理',
-        intro: existing?.intro || `记录${work.name}的人生故事与家风传承。`,
-        category: existing?.category || '其他',
-        isFree: settings.isFree,
-        price: settings.isFree ? 0 : settings.price,
-        trialWords: settings.trialWords,
-      });
-      setLicenses((prev) => ({ ...prev, [work.id]: true }));
-      localStorage.setItem(`cj_work_license_${work.id}`, 'public');
-      setLicenseSettings((prev) => ({ ...prev, [work.id]: settings }));
-      localStorage.setItem(`cj_work_license_settings_${work.id}`, JSON.stringify(settings));
-      addToast(
-        licenses[work.id]
-          ? '授权设置已更新，重新提交审核'
-          : `《${work.name}的传记》已提交公开申请，审核通过后将展示到传记书架`,
-        'success'
-      );
-      setLicenseWork(null);
-    } catch (err) {
-      addToast(err instanceof Error ? err.message : '提交失败，请稍后再试', 'error');
-    } finally {
-      setLicenseSubmitting(false);
-    }
-  };
 
   const deleteWork = (id: string) => {
     if (!window.confirm('确定要删除该作品及关联数据吗？此操作不可恢复。')) return;
@@ -216,6 +117,9 @@ export default function MyWorks() {
     localStorage.removeItem(`cj_biography_${id}`);
     localStorage.removeItem(`cj_interview_outline_${id}`);
     localStorage.removeItem(`cj_interview_transcript_${id}`);
+    localStorage.removeItem(`cj_interview_transcript_mobile_${id}`);
+    localStorage.removeItem(`cj_interview_session_${id}`);
+    localStorage.removeItem(`cj_interview_answers_${id}`);
     localStorage.removeItem(`cj_interview_notes_${id}`);
     localStorage.removeItem(`cj_biography_comments_${id}`);
     localStorage.removeItem(`cj_biography_likes_${id}`);
@@ -228,18 +132,17 @@ export default function MyWorks() {
 
   const openWork = (work: WorkItem) => {
     localStorage.setItem('cj_current_archive_id', work.id);
-    if (work.status === '未开始' || work.status === '待采访') {
-      navigate('/interview');
-    } else if (work.status === '采集中' || work.status === '已生成传记') {
+    if (work.status === '已完成') {
+      navigate('/biography/print');
+    } else if (localStorage.getItem(`cj_biography_${work.id}`) || localStorage.getItem(`cj_biography_chapters_${work.id}`)) {
+      // 已有传记成品或章节草稿：回到传记编辑器，而不是重新采访
       navigate('/biography');
     } else {
-      navigate('/archive');
+      navigate('/interview');
     }
   };
 
-  const canPublish = (work: WorkItem) => {
-    return work.status === '已生成传记' || work.status === '已同步档案';
-  };
+  const canPublish = (work: WorkItem) => work.status === '已完成';
 
   return (
     <div className="my-works-page">
@@ -276,9 +179,6 @@ export default function MyWorks() {
                   <Avatar name={work.name} size={48} />
                   <div className="work-info">
                     <div className="work-name">{work.name}的传记</div>
-                    <div className="work-meta">
-                      {work.birthYear} 年生 · {work.origin} · {work.occupation}
-                    </div>
                     <span className={`work-status ${getStatusClass(work.status)}`}>{work.status}</span>
                   </div>
                 </div>
@@ -304,56 +204,23 @@ export default function MyWorks() {
                     </div>
                   </div>
                   </Annotate>
-                  <Annotate id="my-works.license">
-                  <div className="work-license">
-                    <span className="work-license-label"><Globe size={13} /> 公开授权</span>
-                    <button
-                      type="button"
-                      role="switch"
-                      aria-checked={!!licenses[work.id]}
-                      className={`work-switch ${licenses[work.id] ? 'on' : ''}`}
-                      onClick={() => toggleLicense(work)}
-                    >
-                      <span className="work-switch-dot" />
-                    </button>
-                    <span className={`work-license-status ${licenses[work.id] ? 'on' : ''}`}>
-                      {licenses[work.id] ? '已公开到书架' : '未公开'}
-                    </span>
-                  </div>
-                  </Annotate>
-                  {licenses[work.id] && (
+                  {work.status === '已完成' && setting && (
                     <div className="work-license-detail">
-                      <span>
-                        {setting?.isFree ? '免费公开' : `售价 ¥${(setting?.price ?? 0).toFixed(2)}`}
-                        {' · '}试看 {setting?.trialWords ?? 1000} 字
-                      </span>
-                      <button
-                        className="btn btn-outline btn-sm"
-                        onClick={() => setLicenseWork(work)}
-                      >
-                        授权设置
-                      </button>
+                      <span>{setting.isFree ? '免费公开' : `售价 ¥${setting.price.toFixed(2)}`} · 试看 {setting.trialWords} 字</span>
                     </div>
                   )}
                 </div>
                 <Annotate id="my-works.work-actions">
                 <div className="work-actions">
-                  <button className="btn btn-outline btn-sm" onClick={() => openWork(work)}>
-                    {work.status === '未开始' || work.status === '待采访' ? (
-                      <>
-                        <Mic size={14} /> 继续采访
-                      </>
-                    ) : work.status === '已同步档案' ? (
-                      <>
-                        <FolderOpen size={14} /> 查看档案
-                      </>
-                    ) : (
-                      <>
-                        <BookOpen size={14} /> 编辑传记
-                      </>
-                    )}
-                    <ChevronRight size={14} />
-                  </button>
+                  {work.status === '进行中' ? (
+                    <button className="btn btn-primary btn-sm" onClick={() => openWork(work)}>
+                      <Mic size={14} /> 继续完成 <ChevronRight size={14} />
+                    </button>
+                  ) : (
+                    <button className="btn btn-outline btn-sm" onClick={() => openWork(work)}>
+                      <BookOpen size={14} /> 查看传记
+                    </button>
+                  )}
                   {canPublish(work) && (
                     <>
                       <button className="btn btn-outline btn-sm work-publish" onClick={() => setPublishingWork(work)}>
@@ -381,18 +248,6 @@ export default function MyWorks() {
             );
           })}
         </div>
-      )}
-
-      {licenseWork && (
-        <PublishLicenseModal
-          key={licenseWork.id}
-          open
-          workName={licenseWork.name}
-          initial={licenseSettings[licenseWork.id]}
-          submitting={licenseSubmitting}
-          onClose={() => setLicenseWork(null)}
-          onConfirm={handleLicenseConfirm}
-        />
       )}
 
       {publishingWork && (

@@ -56,6 +56,16 @@ interface Archive {
   completion?: number;
 }
 
+interface BiographyVersion {
+  id: string;
+  versionNumber: number;
+  label: string;
+  createdAt: string;
+  chapters: ChapterData[];
+  style: BiographyStyle;
+  wordCountLevel: WordCountLevel;
+}
+
 function loadCurrentArchive(): Archive | null {
   try {
     const currentId = localStorage.getItem('cj_current_archive_id');
@@ -184,10 +194,20 @@ function buildDerivedVariants(tab: DerivedTab, name: string, birthYear: string):
 export default function AIBiography() {
   const navigate = useNavigate();
   const { addToast } = useToast();
-  const { isMVP } = useVersion();
+  const { isV1 } = useVersion();
   const archive = useMemo(() => loadCurrentArchive(), []);
   const archiveId = archive?.id || 'default';
   const subjectName = archive?.name || '张明远';
+  const isFinalized = (() => {
+    try {
+      const raw = localStorage.getItem(`cj_biography_${archiveId}`);
+      if (!raw) return false;
+      const snapshot = JSON.parse(raw) as { status?: string; completedAt?: string; chapters?: Array<{ content?: string }> };
+      return snapshot.status === 'final' || !!snapshot.completedAt;
+    } catch {
+      return false;
+    }
+  })();
 
   // 资料完整度：优先取档案 completion，否则按采访已答比例计算
   const completionPercent = useMemo(() => {
@@ -237,6 +257,12 @@ export default function AIBiography() {
   });
   const [activeIndex, setActiveIndex] = useState(0);
   const [generating, setGenerating] = useState(false);
+  const [versions, setVersions] = useState<BiographyVersion[]>(() => loadJson<BiographyVersion[]>(`cj_biography_versions_${archiveId}`, []));
+  const [showVersions, setShowVersions] = useState(false);
+  const [versionLabel, setVersionLabel] = useState('');
+  const [saveVersionOpen, setSaveVersionOpen] = useState(false);
+  const [activeVersionId, setActiveVersionId] = useState<string | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [exporting, setExporting] = useState<Record<string, boolean>>({});
   const archiveMediaItems = useMemo(() => loadArchiveMediaItems(archiveId), [archiveId]);
   const { user } = useAuth();
@@ -293,6 +319,10 @@ export default function AIBiography() {
     saveJson(`cj_biography_chapters_outline_v_${archiveId}`, loadConfirmedOutline(archiveId)?.version ?? -1);
   }, [chapters, archiveId]);
 
+  useEffect(() => {
+    saveJson(`cj_biography_versions_${archiveId}`, versions);
+  }, [versions, archiveId]);
+
   const generatedCount = chapters.filter((c) => c.status !== 'notGenerated').length;
 
   const statusBadge = (status: ChapterData['status']) => {
@@ -302,6 +332,10 @@ export default function AIBiography() {
   };
 
   const updateChapter = (index: number, patch: Partial<ChapterData>) => {
+    if (isFinalized) {
+      addToast('传记已完成，无法再次编辑', 'error');
+      return;
+    }
     setChapters((prev) => prev.map((c, i) => (i === index ? { ...c, ...patch } : c)));
   };
 
@@ -309,6 +343,7 @@ export default function AIBiography() {
   const [treeEditing, setTreeEditing] = useState(false);
 
   const moveChapterItem = (index: number, delta: -1 | 1) => {
+    if (isFinalized) return;
     const target = index + delta;
     if (target < 0 || target >= chapters.length) return;
     setChapters((prev) => {
@@ -320,11 +355,13 @@ export default function AIBiography() {
   };
 
   const removeChapterItem = (index: number) => {
+    if (isFinalized) return;
     setChapters((prev) => prev.filter((_, i) => i !== index));
     setActiveIndex((prev) => Math.max(0, prev > index ? prev - 1 : prev === index ? 0 : prev));
   };
 
   const addChapterItem = () => {
+    if (isFinalized) return;
     setChapters((prev) => [
       ...prev,
       { title: '新章节', materials: 0, status: 'notGenerated' as const, updatedAt: null, content: '' },
@@ -492,17 +529,74 @@ export default function AIBiography() {
     addToast('本章内容已保存', 'success');
   };
 
-  const saveToMyWorks = () => {
+  const saveVersion = () => {
+    const now = new Date();
+    const versionNumber = versions.reduce((max, version) => Math.max(max, version.versionNumber), 0) + 1;
+    const version: BiographyVersion = {
+      id: `bv_${Date.now()}_${versionNumber}`,
+      versionNumber,
+      label: versionLabel.trim(),
+      createdAt: now.toISOString(),
+      chapters: chapters.map((chapter) => ({ ...chapter })),
+      style: biographyStyle,
+      wordCountLevel,
+    };
+    setVersions((prev) => [...prev, version]);
+    setActiveVersionId(version.id);
+    setVersionLabel('');
+    setSaveVersionOpen(false);
+    addToast(`已保存为${version.label}`, 'success');
+  };
+
+  const restoreVersion = (version: BiographyVersion) => {
+    if (!window.confirm(`切换到“${version.label}”会覆盖当前未保存的修改，是否继续？`)) return;
+    setChapters(version.chapters.map((chapter) => ({ ...chapter })));
+    setBiographyStyle(version.style);
+    setWordCountLevel(version.wordCountLevel);
+    setActiveIndex(0);
+    setActiveVersionId(version.id);
+    setShowVersions(false);
+    addToast(`已切换到${version.label}，可继续修改`, 'success');
+  };
+
+  const deleteVersion = (version: BiographyVersion) => {
+    if (!window.confirm(`确定删除“${version.label}”吗？历史版本删除后无法恢复。`)) return;
+    setVersions((prev) => prev.filter((item) => item.id !== version.id));
+    if (activeVersionId === version.id) setActiveVersionId(null);
+    addToast('历史版本已删除', 'success');
+  };
+
+  const previewChapters = versions.find((version) => version.id === activeVersionId)?.chapters || chapters;
+
+  const saveToMyWorks = async () => {
+    if (isFinalized) {
+      addToast('传记已完成，无法再次编辑', 'info');
+      navigate('/my-works');
+      return;
+    }
+    if (!chapters.some((chapter) => chapter.content.trim())) {
+      addToast('请先生成或填写传记内容', 'error');
+      return;
+    }
+    // mock 定稿接口仅覆盖「在线生成」路径；大纲/导入等本地路径没有对应记录，
+    // 失败时不阻塞完成流程，以本地快照为准
+    try {
+      await biographyApi.finalize(archiveId);
+    } catch {
+      // ignore
+    }
     localStorage.setItem(
       `cj_biography_${archiveId}`,
       JSON.stringify({
         title: `${subjectName}传记`,
         author: 'AI 整理',
         createdAt: new Date().toLocaleString('zh-CN'),
+        completedAt: new Date().toISOString(),
+        status: 'final',
         chapters: chapters.map((c) => ({ title: c.title, content: c.content })),
       })
     );
-    addToast('传记已保存至「我的传记」', 'success');
+    addToast('传记已完成并保存', 'success');
     navigate('/my-works');
   };
 
@@ -636,36 +730,36 @@ export default function AIBiography() {
             </select>
           </div>
           </Annotate>
-          <button className="btn btn-outline" onClick={() => navigate('/biography/outline')}>
-            <Sparkles size={14} /> 传记大纲
-          </button>
-          <Annotate id="biography.import" inline>
-          <button className="btn btn-outline" onClick={() => setShowImportModal(true)}>
-            <Upload size={14} /> 导入已有传记
-          </button>
-          </Annotate>
-          {!isMVP && (
-            <>
-              <button className="btn btn-outline" onClick={() => navigate('/archive')}>
-                <FolderOpen size={14} /> 完善人生档案
-              </button>
-              <button className="btn btn-outline" onClick={() => navigate('/interview-review')}>
-                <FileText size={14} /> 查看采访整理
-              </button>
-            </>
-          )}
-          <Annotate id="biography.save-works" inline>
-          <button className="btn btn-primary" onClick={saveToMyWorks}>
-            <BookOpen size={14} /> 保存到我的传记
-          </button>
-          </Annotate>
-          {!isMVP && (
-            <Annotate id="biography.simulate-pay" inline>
-            <button className="btn btn-accent" onClick={simulatePayment}>
-              <DollarSign size={14} /> 模拟支付 ¥99
+          {!isFinalized && <button className="btn btn-outline" onClick={() => setShowVersions(true)}>
+            <RefreshCw size={14} /> 历史版本{versions.length ? ` (${versions.length})` : ''}
+          </button>}
+          {!isFinalized && (
+            <button className="btn btn-primary" onClick={() => setSaveVersionOpen(true)}>
+              <Save size={14} /> 保存版本
             </button>
-            </Annotate>
           )}
+          {isFinalized && <span className="biography-readonly-notice">已完成 · 只读</span>}
+          <button className="btn btn-outline" onClick={() => setPreviewOpen(true)}>
+            <BookOpen size={14} /> 查看传记
+          </button>
+          <button className="btn btn-outline" onClick={() => navigate('/archive')}>
+            <FolderOpen size={14} /> 完善人生档案
+          </button>
+          <button className="btn btn-outline" onClick={() => navigate('/interview-review')}>
+            <FileText size={14} /> 查看采访整理
+          </button>
+          <Annotate id="biography.save-works" inline>
+          {!isFinalized && (
+            <button className="btn btn-primary" onClick={saveToMyWorks}>
+              <BookOpen size={14} /> 完成传记
+            </button>
+          )}
+          </Annotate>
+          <Annotate id="biography.simulate-pay" inline>
+          <button className="btn btn-accent" onClick={simulatePayment}>
+            <DollarSign size={14} /> 模拟支付 ¥99
+          </button>
+          </Annotate>
         </div>
       </header>
 
@@ -674,14 +768,14 @@ export default function AIBiography() {
         <div className="card chapter-tree">
           <div className="card-header chapter-tree-header">
             <h3 className="card-title">章节目录</h3>
-            <button
+            {!isFinalized && <button
               className="chapter-edit-toggle"
               title={treeEditing ? '完成编辑' : '编辑目录'}
               onClick={() => setTreeEditing((v) => !v)}
             >
               {treeEditing ? <Check size={14} /> : <Pencil size={14} />}
               {treeEditing ? '完成' : '编辑'}
-            </button>
+            </button>}
           </div>
           <div className="card-body chapter-tree-body">
             {chapters.map((chapter, i) =>
@@ -756,8 +850,8 @@ export default function AIBiography() {
             ) : (
               <div
                 ref={editorRef}
-                className="chapter-editor"
-                contentEditable
+                className={`chapter-editor ${isFinalized ? 'readonly' : ''}`}
+                contentEditable={!isFinalized}
                 suppressContentEditableWarning
                 onInput={handleEditorInput}
                 onBlur={handleEditorInput}
@@ -767,25 +861,27 @@ export default function AIBiography() {
             )}
           </div>
           <div className="editor-toolbar">
-            <button className="btn btn-primary" onClick={handleGenerate} disabled={generating}>
+            {!isFinalized && <button className="btn btn-primary" onClick={handleGenerate} disabled={generating}>
               <Sparkles size={14} /> {activeChapter.status === 'notGenerated' ? '生成本章' : '重新生成本章'}
-            </button>
-            <button className="btn btn-outline" onClick={handlePolish} disabled={generating || activeChapter.status === 'notGenerated'}>
+            </button>}
+            {!isFinalized && <button className="btn btn-outline" onClick={handlePolish} disabled={generating || activeChapter.status === 'notGenerated'}>
               <Wand2 size={14} /> 润色本章
-            </button>
-            <button className="btn btn-outline" onClick={handleInsertImage}>
+            </button>}
+            {!isFinalized && <button className="btn btn-outline" onClick={handleInsertImage}>
               <Image size={14} /> 插入图片
-            </button>
-            <input
-              ref={imageInputRef}
-              type="file"
-              accept="image/*"
-              style={{ display: 'none' }}
-              onChange={handleImageFileChange}
-            />
-            <button className="btn btn-outline" onClick={saveDraft} disabled={!activeChapter.content.trim()}>
-              <Save size={14} /> 保存本章
-            </button>
+            </button>}
+            {!isFinalized && <>
+              <input
+                ref={imageInputRef}
+                type="file"
+                accept="image/*"
+                style={{ display: 'none' }}
+                onChange={handleImageFileChange}
+              />
+              <button className="btn btn-outline" onClick={saveDraft} disabled={!activeChapter.content.trim()}>
+                <Save size={14} /> 保存本章
+              </button>
+            </>}
             {generating && <span className="generating-hint">AI 生成中…</span>}
           </div>
         </div>
@@ -879,7 +975,6 @@ export default function AIBiography() {
           </div>
           </Annotate>
 
-          {!isMVP && (
           <div className="card export-card">
             <div className="card-header">
               <h3 className="card-title"><Download size={14} /> 导出</h3>
@@ -896,9 +991,8 @@ export default function AIBiography() {
               </button>
             </div>
           </div>
-          )}
 
-          {!isMVP && (
+          {!isV1 && (
             <div className="card quick-gen-card">
               <div className="card-header">
                 <h3 className="card-title">快捷生成</h3>
@@ -919,7 +1013,7 @@ export default function AIBiography() {
         </div>
       </div>
 
-      {!isMVP && (
+      {!isV1 && (
       <Annotate id="biography.derived">
       <div className="card derived-card">
         <div className="card-header">
@@ -988,6 +1082,52 @@ export default function AIBiography() {
           </div>
         </div>
       )}
+
+      <Modal open={saveVersionOpen} title="保存当前版本" onClose={() => setSaveVersionOpen(false)} footer={
+        <div className="version-modal-actions">
+          <button className="btn btn-outline" onClick={() => setSaveVersionOpen(false)}>取消</button>
+          <button className="btn btn-primary" onClick={saveVersion}>保存版本</button>
+        </div>
+      }>
+        <div className="version-save-form">
+          <label htmlFor="biography-version-label">版本名称（可选）</label>
+          <input id="biography-version-label" value={versionLabel} onChange={(event) => setVersionLabel(event.target.value)} placeholder="如：完成初稿、补充童年章节（可不填）" autoFocus />
+          <p>系统将自动按顺序命名为 V{versions.length + 1}，也可以补充本次版本描述。将保存当前全部 {chapters.length} 个章节。</p>
+        </div>
+      </Modal>
+
+      <Modal open={showVersions} title="历史版本" onClose={() => setShowVersions(false)}>
+        <div className="biography-version-list">
+          {versions.length === 0 ? (
+            <div className="biography-version-empty"><RefreshCw size={30} /><p>还没有保存过版本</p><span>点击“保存版本”创建第一个可回溯版本。</span></div>
+          ) : versions.slice().reverse().map((version) => (
+            <div className={`biography-version-item ${activeVersionId === version.id ? 'active' : ''}`} key={version.id}>
+              <div className="biography-version-main">
+                <div className="biography-version-title"><strong>V{version.versionNumber}</strong>{version.label && <span>{version.label}</span>}{activeVersionId === version.id && <em>当前版本</em>}</div>
+                <small>{new Date(version.createdAt).toLocaleString('zh-CN')} · {version.chapters.length} 章</small>
+              </div>
+              <div className="biography-version-actions">
+                <button className="btn btn-outline btn-sm" onClick={() => restoreVersion(version)}>继续编辑</button>
+                <button className="icon-btn" title="删除版本" onClick={() => deleteVersion(version)}><Trash2 size={14} /></button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </Modal>
+
+      <Modal className="biography-preview-modal" open={previewOpen} title={`《${subjectName}传记》预览`} onClose={() => setPreviewOpen(false)}>
+        <div className="biography-preview">
+          <div className="biography-preview-cover"><BookOpen size={36} /><h2>{subjectName}传记</h2><span>{activeVersionId ? versions.find((version) => version.id === activeVersionId)?.label : '当前编辑版本'}</span></div>
+          <div className="biography-preview-content">
+            {previewChapters.length === 0 ? <p className="biography-preview-empty">暂无章节内容</p> : previewChapters.map((chapter, index) => (
+              <article key={`${chapter.title}-${index}`}>
+                <h3>第 {index + 1} 章　{chapter.title}</h3>
+                {chapter.content ? <div dangerouslySetInnerHTML={{ __html: chapter.content }} /> : <p className="biography-preview-empty">本章暂无内容</p>}
+              </article>
+            ))}
+          </div>
+        </div>
+      </Modal>
 
       <Modal
         open={showLowMaterial}

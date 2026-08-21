@@ -17,6 +17,8 @@ export const orderApi = {
   adminDeliver: (id: string, logistics: OrderLogistics) => api.put<AdminOrder>(`/api/admin/orders/${id}/deliver`, { logistics }),
   adminAddDeliverable: (id: string, deliverable: Deliverable) => api.put<AdminOrder>(`/api/admin/orders/${id}/deliverable`, { deliverable }),
   adminAuditReview: (id: string, status: ReviewStatus) => api.put<AdminOrder>(`/api/admin/orders/${id}/review`, { status }),
+  adminApproveRefund: (id: string) => api.post<AdminOrder>(`/api/admin/orders/${id}/refund/approve`),
+  adminRejectRefund: (id: string, rejectionReason: string) => api.post<AdminOrder>(`/api/admin/orders/${id}/refund/reject`, { rejectionReason }),
   review: (id: string, review: OrderReview) => api.post<Order>(`/api/orders/${id}/review`, review),
   refund: (id: string, data: RefundRequest) => api.post<Order>(`/api/orders/${id}/refund`, data),
 }

@@ -1,136 +1,464 @@
 .mobile-profile {
+  min-height: 100%;
   padding: 16px;
   padding-bottom: 24px;
+  background: #f6f1e7;
+  color: #3a3227;
+}
+
+.mobile-profile-header,
+.mobile-profile-section {
+  border: 1px solid #ece3d0;
+  border-radius: 16px;
+  background: #fffdf8;
+  box-shadow: 0 2px 8px rgba(90, 70, 40, 0.06);
 }
 
 .mobile-profile-header {
-  background: #fff;
-  border-radius: 16px;
-  padding: 32px 16px;
+  margin-bottom: 14px;
+  padding: 24px 16px 20px;
   text-align: center;
-  margin-bottom: 16px;
 }
 
 .profile-avatar.large {
-  width: 80px;
-  height: 80px;
-  font-size: 32px;
-  margin: 0 auto 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 76px;
+  height: 76px;
+  margin: 0 auto 12px;
+  border: 2px solid #fffdf8;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #8b6f47, #a8875a);
+  box-shadow: 0 2px 7px rgba(90, 70, 40, 0.2);
+  color: #fff;
+  font-size: 30px;
+  font-weight: 600;
+}
+
+.profile-name {
+  margin: 0;
+  color: #3a3227;
+  font-family: 'Songti SC', 'STSong', 'SimSun', serif;
+  font-size: 20px;
 }
 
 .profile-phone {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  color: #888;
-  margin-top: 8px;
+  gap: 5px;
+  margin-top: 7px;
+  color: #8a7f6a;
+  font-size: 12px;
 }
 
 .mobile-profile-section {
-  background: #fff;
-  border-radius: 12px;
-  margin-bottom: 16px;
+  margin-bottom: 14px;
   overflow: hidden;
+}
+
+.mobile-profile-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 16px 8px;
+  color: #3a3227;
+  font-family: 'Songti SC', 'STSong', 'SimSun', serif;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.mobile-profile-section-heading button {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  border: none;
+  background: transparent;
+  color: #8b6f47;
+  padding: 2px 0;
+  font: inherit;
+  font-family: var(--font-family-sans);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.mobile-profile-archive-list {
+  display: grid;
+  gap: 8px;
+  padding: 0 10px 11px;
+}
+
+.mobile-profile-archive-item,
+.mobile-profile-empty-row {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #eee1ca;
+  border-radius: 11px;
+  background: #faf3e5;
+  color: #3a3227;
+  padding: 10px;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.mobile-profile-archive-item > svg {
+  color: #b9a68b;
+  flex-shrink: 0;
+}
+
+.mobile-profile-archive-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #94764b, #b39162);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.mobile-profile-archive-info {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+  flex: 1;
+}
+
+.mobile-profile-archive-info strong,
+.mobile-profile-archive-info small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mobile-profile-archive-info strong {
+  font-size: 13px;
+}
+
+.mobile-profile-archive-info small {
+  color: #a89372;
+  font-size: 11px;
+}
+
+.mobile-profile-empty-row {
+  justify-content: center;
+  margin: 0 10px 11px;
+  width: calc(100% - 20px);
+  border-style: dashed;
+  color: #8b6f47;
+  font-size: 13px;
 }
 
 .mobile-profile-item {
   display: flex;
+  width: 100%;
   align-items: center;
-  gap: 12px;
-  padding: 14px 16px;
-  border-bottom: 1px solid #f5f5f5;
-  color: #333;
+  gap: 11px;
+  border: none;
+  border-bottom: 1px solid #f0e8d9;
+  background: transparent;
+  color: #3a3227;
+  padding: 12px 15px;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
 }
 
 .mobile-profile-item:last-child {
   border-bottom: none;
 }
 
-.profile-item-label {
+.mobile-profile-item > svg {
+  color: #bdac92;
+  flex-shrink: 0;
+}
+
+.mobile-profile-item-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: #f4ead5;
+  color: #8b6f47;
+  flex-shrink: 0;
+}
+
+.mobile-profile-item-icon.shop { background: #f7e8cf; color: #b47125; }
+.mobile-profile-item-icon.order { background: #e8f1ec; color: #47765c; }
+.mobile-profile-item-icon.address { background: #e8f0f5; color: #517da0; }
+.mobile-profile-item-icon.aftersale { background: #f8e8e4; color: #b35c4c; }
+.mobile-profile-item-icon.invite { background: #efe8f7; color: #8060a4; }
+.mobile-profile-item-icon.notification { background: #f7edd5; color: #b8860b; }
+.mobile-profile-item-icon.contact { background: #e7f1ed; color: #4b7d67; }
+.mobile-profile-item-icon.feedback { background: #eaf0f8; color: #557ca1; }
+.mobile-profile-item-icon.about { background: #f1ede5; color: #83735e; }
+
+.profile-item-content {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
   flex: 1;
-  font-size: 15px;
+}
+
+.profile-item-content strong {
+  color: #3a3227;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.profile-item-content small {
+  overflow: hidden;
+  color: #a89372;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .mobile-logout-btn {
-  width: 100%;
   display: flex;
+  width: 100%;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 14px;
-  background: #fff;
-  border: none;
+  border: 1px solid #ecd8d2;
   border-radius: 12px;
-  color: #ef4444;
-  font-size: 15px;
+  background: #fffdf8;
+  color: #b45a48;
+  padding: 13px;
+  font: inherit;
+  font-size: 14px;
   font-weight: 500;
+  cursor: pointer;
 }
 
 .mobile-modal-row {
   margin-bottom: 14px;
 }
 
-.mobile-modal-row label {
-  display: block;
+.mobile-modal-row label,
+.mobile-address-form label,
+.mobile-feedback-form label {
+  display: grid;
+  gap: 6px;
+  color: #6b5f4a;
   font-size: 13px;
-  color: #666;
-  margin-bottom: 6px;
 }
 
-.mobile-modal-row input {
-  width: 100%;
+.mobile-modal-row input,
+.mobile-address-form input,
+.mobile-feedback-form textarea {
   box-sizing: border-box;
-  padding: 10px 12px;
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  font-size: 14px;
+  width: 100%;
+  border: 1px solid #e3d7bd;
+  border-radius: 9px;
   outline: none;
+  background: #fffdf8;
+  color: #3a3227;
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 14px;
 }
 
-.mobile-modal-row input:focus {
-  border-color: #1b5e4b;
+.mobile-feedback-form textarea {
+  resize: vertical;
+}
+
+.mobile-modal-row input:focus,
+.mobile-address-form input:focus,
+.mobile-feedback-form textarea:focus {
+  border-color: #8b6f47;
 }
 
 .mobile-modal-static {
-  font-size: 14px;
-  color: #111;
+  border-radius: 9px;
+  background: #f7efe1;
+  color: #6b5f4a;
   padding: 10px 12px;
-  background: #f7f8f7;
-  border-radius: 10px;
+  font-size: 14px;
 }
 
 .mobile-modal-btn {
+  border: 1px solid #d8c6a5;
+  border-radius: 9px;
+  background: #fffdf8;
+  color: #6b5f4a;
   padding: 9px 18px;
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  background: #fff;
-  color: #333;
+  font: inherit;
   font-size: 14px;
+  cursor: pointer;
 }
 
 .mobile-modal-btn.primary {
-  background: #1b5e4b;
-  border-color: #1b5e4b;
+  border-color: #8b6f47;
+  background: #8b6f47;
   color: #fff;
 }
 
 .mobile-modal-privacy p {
   margin: 0 0 10px;
+  color: #6b5f4a;
   font-size: 13px;
-  color: #4b5563;
   line-height: 1.7;
 }
 
-.mobile-modal-avatar-row {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 16px;
+.mobile-address-form,
+.mobile-feedback-form {
+  display: grid;
+  gap: 12px;
 }
 
-.mobile-modal-avatar-hint {
+.mobile-invite-content {
+  display: grid;
+  gap: 12px;
+}
+
+.mobile-invite-code {
+  display: grid;
+  gap: 6px;
+  border: 1px solid #eadbbe;
+  border-radius: 12px;
+  background: #faf3e5;
+  padding: 14px;
+}
+
+.mobile-invite-code span,
+.mobile-invite-list small {
+  color: #a89372;
   font-size: 12px;
-  color: #999;
+}
+
+.mobile-invite-code strong {
+  color: #8b6f47;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 21px;
+  letter-spacing: 2px;
+}
+
+.mobile-invite-code button,
+.mobile-invite-link {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid #d8c6a5;
+  border-radius: 8px;
+  background: #fffdf8;
+  color: #8b6f47;
+  padding: 6px 9px;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.mobile-invite-link {
+  width: 100%;
+  justify-content: center;
+}
+
+.mobile-invite-list h4 {
+  margin: 2px 0 6px;
+  color: #3a3227;
+  font-size: 14px;
+}
+
+.mobile-invite-list > div {
+  display: grid;
+  gap: 2px;
+  border-top: 1px solid #f0e8d9;
+  padding: 9px 0;
+}
+
+.mobile-invite-list > div span {
+  color: #3a3227;
+  font-size: 13px;
+}
+
+.mobile-invite-list p {
+  margin: 0;
+  color: #a89372;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.mobile-account-options {
+  display: grid;
+}
+
+.mobile-account-options button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: none;
+  border-bottom: 1px solid #f0e8d9;
+  background: transparent;
+  color: #6b5f4a;
+  padding: 13px 0;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.mobile-account-options button:last-child {
+  border-bottom: none;
+}
+
+.mobile-account-options button span {
+  flex: 1;
+  color: #3a3227;
+}
+
+.mobile-account-options button > svg:last-child {
+  color: #b9a68b;
+}
+
+.mobile-simple-content {
+  display: grid;
+  justify-items: center;
+  gap: 9px;
+  color: #8b6f47;
+  text-align: center;
+}
+
+.mobile-simple-content h4 {
+  margin: 0;
+  color: #3a3227;
+  font-size: 17px;
+}
+
+.mobile-simple-content p {
+  margin: 0;
+  color: #6b5f4a;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.mobile-simple-content strong {
+  color: #8b6f47;
+  font-size: 14px;
+}
+
+.mobile-simple-content > span {
+  color: #a89372;
+  font-size: 11px;
+}
+
+.mobile-about-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 54px;
+  height: 54px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #8b6f47, #b39162);
+  color: #fff;
+  font-family: 'Songti SC', 'STSong', 'SimSun', serif;
+  font-size: 27px;
 }

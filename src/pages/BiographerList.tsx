@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Search, MapPin, Star, Filter, User, CheckCircle, Award, Medal } from 'lucide-react';
+import { Search, MapPin, Star, User, ArrowUpDown } from 'lucide-react';
 import { biographerApi } from '../api/biographer';
 import { paymentApi } from '../api/payment';
 import { useToast } from '../hooks/useToast';
@@ -9,11 +9,22 @@ import Annotate from '../components/annotation/Annotate';
 import type { Biographer, BiographerService, BiographerBookingForm } from '../mocks/types';
 import './BiographerList.css';
 
-const SPECIALTIES = ['全部', '家族传记', '企业家传记', '口述历史', '个人回忆录', '家风传承', '实体书制作'];
 const CITIES = ['全部', '杭州', '上海', '北京', '广州', '深圳', '南京', '苏州', '成都'];
+
+const SORT_OPTIONS = [
+  { key: 'default', label: '综合排序' },
+  { key: 'rating', label: '评分从高到低' },
+  { key: 'priceAsc', label: '价格从低到高' },
+  { key: 'priceDesc', label: '价格从高到低' },
+];
 
 function formatPrice(price: number): string {
   return `¥${price.toLocaleString()}`;
+}
+
+/** 卡片价格口径：取全部服务最低价；无服务（价格面议）在价格排序中排最后 */
+function getMinPrice(b: Biographer): number {
+  return b.services?.length ? Math.min(...b.services.map((s) => s.price)) : Number.MAX_SAFE_INTEGER;
 }
 
 export default function BiographerList() {
@@ -21,8 +32,8 @@ export default function BiographerList() {
   const [biographers, setBiographers] = useState<Biographer[]>([]);
   const [loading, setLoading] = useState(true);
   const [keyword, setKeyword] = useState('');
-  const [specialty, setSpecialty] = useState('全部');
   const [city, setCity] = useState('全部');
+  const [sort, setSort] = useState('default');
   const [selected, setSelected] = useState<Biographer | null>(null);
   const [booking, setBooking] = useState(false);
 
@@ -40,24 +51,25 @@ export default function BiographerList() {
     if (city !== '全部') {
       list = list.filter((b) => b.city?.includes(city) || b.serviceAreas?.includes(city));
     }
-    if (specialty !== '全部') {
-      list = list.filter(
-        (b) => b.specialties?.includes(specialty) || b.tags?.includes(specialty)
-      );
-    }
     if (keyword.trim()) {
       const lower = keyword.toLowerCase();
       list = list.filter(
         (b) =>
           b.name.toLowerCase().includes(lower) ||
-          b.title?.toLowerCase().includes(lower) ||
           b.city?.toLowerCase().includes(lower) ||
           b.specialties?.some((s) => s.toLowerCase().includes(lower)) ||
           b.tags?.some((t) => t.toLowerCase().includes(lower))
       );
     }
+    if (sort === 'rating') {
+      list = [...list].sort((a, b) => (b.rating || 5) - (a.rating || 5));
+    } else if (sort === 'priceAsc') {
+      list = [...list].sort((a, b) => getMinPrice(a) - getMinPrice(b));
+    } else if (sort === 'priceDesc') {
+      list = [...list].sort((a, b) => getMinPrice(b) - getMinPrice(a));
+    }
     return list;
-  }, [biographers, city, specialty, keyword]);
+  }, [biographers, city, keyword, sort]);
 
   const handleBook = async (service: BiographerService, formData: BiographerBookingForm) => {
     if (!selected) return;
@@ -98,18 +110,18 @@ export default function BiographerList() {
         <Annotate id="biographer-list.filters" inline>
         <div className="biographer-list-filter-groups">
           <div className="biographer-list-filter-group">
-            <Filter size={14} />
-            <select value={specialty} onChange={(e) => setSpecialty(e.target.value)}>
-              {SPECIALTIES.map((s) => (
-                <option key={s} value={s}>{s}</option>
-              ))}
-            </select>
-          </div>
-          <div className="biographer-list-filter-group">
             <MapPin size={14} />
             <select value={city} onChange={(e) => setCity(e.target.value)}>
               {CITIES.map((c) => (
                 <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
+          <div className="biographer-list-filter-group">
+            <ArrowUpDown size={14} />
+            <select value={sort} onChange={(e) => setSort(e.target.value)} aria-label="排序方式">
+              {SORT_OPTIONS.map((option) => (
+                <option key={option.key} value={option.key}>{option.label}</option>
               ))}
             </select>
           </div>
@@ -142,23 +154,9 @@ export default function BiographerList() {
                       <div className="biographer-list-card-meta">
                         <div className="biographer-list-card-name-row">
                           <span className="biographer-list-card-name">{b.name}</span>
-                          <span className={`biographer-list-card-badge ${b.certificationLevel || 'standard'}`}>
-                            {b.certificationLevel === 'gold' && <Award size={12} />}
-                            {b.certificationLevel === 'silver' && <Medal size={12} />}
-                            {b.certificationLevel === 'standard' && <CheckCircle size={12} />}
-                            {b.certificationLevel === 'gold' ? '金牌认证' : b.certificationLevel === 'silver' ? '银牌认证' : '平台认证'}
-                          </span>
                         </div>
                         <div className="biographer-list-card-title">
-                          {b.title || '专业传记师'} · {b.city || '全国'} · {(b.rating || 5).toFixed(1)} 分
-                        </div>
-                        <div className="biographer-list-card-tags">
-                          {b.tags?.slice(0, 3).map((tag) => (
-                            <span key={tag} className="biographer-list-card-tag">{tag}</span>
-                          ))}
-                          {!b.tags?.length && b.specialties?.slice(0, 3).map((s) => (
-                            <span key={s} className="biographer-list-card-tag">{s}</span>
-                          ))}
+                          {b.city || '全国'} · {(b.rating || 5).toFixed(1)} 分
                         </div>
                       </div>
                     </div>
@@ -191,11 +189,6 @@ export default function BiographerList() {
                         查看详情
                       </button>
                     </div>
-                    {b.status === 'approved' && (
-                      <div className={`biographer-list-card-verified ${b.certificationLevel || 'standard'}`}>
-                        <CheckCircle size={12} /> {b.certificationLevel === 'gold' ? '金牌认证' : b.certificationLevel === 'silver' ? '银牌认证' : '平台认证'}
-                      </div>
-                    )}
                   </div>
                 );
               })}

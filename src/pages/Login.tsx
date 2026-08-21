@@ -64,7 +64,7 @@ export default function Login() {
   const [searchParams] = useSearchParams();
   const { addToast } = useToast();
   const { login, addRole, isAuthenticated } = useAuth();
-  const { isMVP, setAppVersion } = useVersion();
+  const { isV1, setAppVersion } = useVersion();
 
   const [phone, setPhone] = useState(DEMO_PHONE);
   const [code, setCode] = useState('');
@@ -187,15 +187,15 @@ export default function Login() {
 
         <Annotate id="login.version-switch">
         <div
-          className={`login-version-switch ${isMVP ? 'on' : ''}`}
-          title={isMVP ? '当前为 MVP 模式，仅开放用户端与管理后台；点击切换到完整版' : '当前为完整版，开放全部端口；点击切换到 MVP 模式'}
+          className={`login-version-switch ${isV1 ? 'on' : ''}`}
+          title={isV1 ? '当前为 V1.0 版本，开放用户端、传记师端、移动端与管理后台；点击切换到完整版' : '当前为完整版，开放全部端口；点击切换到 V1.0 版本'}
         >
-          <span className="version-switch-label">{isMVP ? 'MVP 模式' : '完整版'}</span>
+          <span className="version-switch-label">{isV1 ? 'V1.0 版本' : '完整版'}</span>
           <div
             className="version-switch-toggle"
             role="switch"
-            aria-checked={isMVP}
-            onClick={() => setAppVersion(isMVP ? 'full' : 'mvp')}
+            aria-checked={isV1}
+            onClick={() => setAppVersion(isV1 ? 'full' : 'v1.0')}
           />
         </div>
         </Annotate>
@@ -207,7 +207,7 @@ export default function Login() {
             <span className="portal-name">用户端</span>
             <span className="portal-desc">体验 AI 采访、传记、人生档案</span>
           </button>
-          {!isMVP && (
+          {!isV1 && (
             <button type="button" className="portal-card partner" onClick={() => enterPortal(USER_PHONE, '/partner', { addPartnerRole: true })}>
               <Briefcase size={24} />
               <span className="portal-name">合伙人中心</span>
@@ -219,20 +219,16 @@ export default function Login() {
             <span className="portal-name">管理后台</span>
             <span className="portal-desc">合伙人、传记师、分润审核</span>
           </button>
-          {!isMVP && (
-            <button type="button" className="portal-card biographer" onClick={() => enterPortal(DEMO_PHONE, '/biographer', { addBiographerRole: true })}>
-              <PenLine size={24} />
-              <span className="portal-name">传记师端</span>
-              <span className="portal-desc">订单管理、传记服务</span>
-            </button>
-          )}
-          {!isMVP && (
-            <button type="button" className="portal-card mobile" onClick={() => enterPortal(USER_PHONE, '/m')}>
-              <Smartphone size={24} />
-              <span className="portal-name">移动端</span>
-              <span className="portal-desc">手机 AI 智能采访</span>
-            </button>
-          )}
+          <button type="button" className="portal-card biographer" onClick={() => enterPortal(DEMO_PHONE, '/biographer', { addBiographerRole: true })}>
+            <PenLine size={24} />
+            <span className="portal-name">传记师端</span>
+            <span className="portal-desc">订单管理、传记服务</span>
+          </button>
+          <button type="button" className="portal-card mobile" onClick={() => enterPortal(USER_PHONE, '/m')}>
+            <Smartphone size={24} />
+            <span className="portal-name">移动端</span>
+            <span className="portal-desc">手机 AI 智能采访</span>
+          </button>
         </div>
         </Annotate>
 

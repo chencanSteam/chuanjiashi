@@ -1,101 +1,191 @@
+import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mic, Archive, Users, BookOpen, Image, Settings, ChevronRight } from 'lucide-react';
-import { useAuth } from '../../hooks/useAuth';
+import { Mic, PenLine, ChevronRight, Plus, BookOpen, UserSearch, PlusCircle } from 'lucide-react';
+import { loadStoredEventsForArchive } from '../../utils/timelineSample';
+import { generateImageDataUrl } from '../../utils/mediaPlaceholder';
+import type { ChapterData } from '../../data/aiMock';
 import Annotate from '../../components/annotation/Annotate';
+import { loadLegacyArchives, resolveCurrentArchiveId, setCurrentArchiveId } from '../../utils/mobileArchives';
 import './MobileHome.css';
 
-interface Archive {
+interface MediaItem {
   id: string;
-  name: string;
-  birthYear: string;
-  origin: string;
-  occupation: string;
+  title: string;
+  date: string;
+  type: 'image' | 'video' | 'audio' | 'doc';
+  stage?: string;
 }
 
-function loadCurrentArchive(): Archive | null {
+function loadJson<T>(key: string, fallback: T): T {
   try {
-    const currentId = localStorage.getItem('cj_current_archive_id');
-    if (!currentId) return null;
-    const raw = localStorage.getItem('cj_archives');
-    if (!raw) return null;
-    return JSON.parse(raw).find((a: Archive) => a.id === currentId) || null;
+    const raw = localStorage.getItem(key);
+    if (!raw) return fallback;
+    return JSON.parse(raw) as T;
   } catch {
-    return null;
+    return fallback;
   }
 }
 
-const quickActions = [
-  { label: 'AI 采访', path: '/m/interview', icon: Mic, color: '#1b5e4b' },
-  { label: '人生档案', path: '/m/archive', icon: Archive, color: '#b8860b' },
-  { label: '家庭空间', path: '/m/family', icon: Users, color: '#8b5cf6' },
-  { label: '传记作品', path: '/m/works', icon: BookOpen, color: '#0ea5e9' },
-  { label: '照片修复', path: '/m/photo-restore', icon: Image, color: '#f59e0b' },
-  { label: '设置', path: '/m/profile', icon: Settings, color: '#64748b' },
+const SERVICES = [
+  { title: '传记实体书', desc: '精装典藏 · 传世之作', icon: BookOpen, path: '/store' },
+  { title: '传记编写', desc: 'AI 生成 · 记录人生故事', icon: PenLine, path: '/biography' },
+  { title: '找传记师', desc: '专业服务 · 一对一记录', icon: UserSearch, path: '/biographers' },
 ];
 
 export default function MobileHome() {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const archive = loadCurrentArchive();
+  const allArchives = useMemo(() => loadLegacyArchives(), []);
+  const archiveId = resolveCurrentArchiveId(allArchives);
+  const archive = allArchives.find((item) => item.id === archiveId) || null;
+
+  // 档案关联数据（与 Web 端同一组存储 key）
+  const events = useMemo(
+    () => (archiveId ? loadStoredEventsForArchive(archiveId).slice().sort((a, b) => Number(a.year) - Number(b.year)) : []),
+    [archiveId]
+  );
+  const media = useMemo(() => loadJson<MediaItem[]>(`cj_media_${archiveId}`, []), [archiveId]);
+  const photos = useMemo(() => media.filter((m) => m.type === 'image'), [media]);
+  const chapters = useMemo(() => loadJson<ChapterData[]>(`cj_biography_chapters_${archiveId}`, []), [archiveId]);
+  const generatedChapters = chapters.filter((c) => c.status !== 'notGenerated').length;
+
+  // 切换档案：写入当前档案 id 后重载，让所有按档案 id 读取的模块同步更新
+  const handleSwitchArchive = (id: string) => {
+    if (!id || id === archiveId) return;
+    setCurrentArchiveId(id);
+    window.location.reload();
+  };
+
+  if (!archive) {
+    return (
+      <div className="mobile-home">
+        <div className="mh-empty">
+          <p>还没有人生档案</p>
+          <button className="mh-btn-primary" onClick={() => navigate('/onboarding', { state: { from: '/m' } })}>创建人生档案</button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mobile-home">
-      <section className="mobile-home-hero">
-        <Annotate id="mobile-home.greeting">
-        <div className="mobile-home-greeting">
-          <h2>您好，{user?.name || user?.phone?.slice(-4) || '用户'}</h2>
-          <p>记录家族记忆，传承家风文化</p>
-        </div>
-        </Annotate>
-      </section>
-
-      {archive && (
-        <Annotate id="mobile-home.archive-card">
-        <section className="mobile-home-card archive-card" onClick={() => navigate('/m/archive')}>
-          <div className="archive-card-info">
-            <h3>{archive.name}</h3>
-            <p>{archive.birthYear} 年 · {archive.origin}</p>
-            <p className="archive-occupation">{archive.occupation}</p>
+      {/* 档案头部 */}
+      <Annotate id="mobile-home.profile-header">
+      <header className="mh-profile" onClick={() => navigate('/m/archive')}>
+        <div className="mh-avatar">{archive.name.charAt(0)}</div>
+        <div className="mh-profile-info">
+          <div className="mh-profile-name" onClick={(e) => e.stopPropagation()}>
+            <select
+              className="mh-archive-select"
+              value={archiveId}
+              onChange={(e) => handleSwitchArchive(e.target.value)}
+              aria-label="选择人生档案"
+            >
+              {allArchives.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name}的人生档案
+                </option>
+              ))}
+            </select>
+            <button className="mh-add-archive" type="button" onClick={() => navigate('/onboarding', { state: { from: '/m' } })} title="创建新的人生档案">
+              <PlusCircle size={18} />
+            </button>
           </div>
-          <ChevronRight size={20} color="#999" />
-        </section>
-        </Annotate>
-      )}
-
-      <section className="mobile-home-section">
-        <h3 className="section-title">快捷功能</h3>
-        <Annotate id="mobile-home.quick-actions">
-        <div className="mobile-home-grid">
-          {quickActions.map((action) => {
-            const Icon = action.icon;
-            return (
-              <button
-                key={action.label}
-                className="mobile-home-grid-item"
-                onClick={() => navigate(action.path)}
-              >
-                <div className="grid-icon" style={{ background: `${action.color}15`, color: action.color }}>
-                  <Icon size={24} />
-                </div>
-                <span>{action.label}</span>
-              </button>
-            );
-          })}
         </div>
-        </Annotate>
-      </section>
+      </header>
+      </Annotate>
 
-      <section className="mobile-home-section">
-        <h3 className="section-title">最近动态</h3>
-        <Annotate id="mobile-home.recent-activity">
-        <div className="mobile-home-empty">
-          <p>暂无新动态</p>
-          <button className="btn btn-primary btn-sm" onClick={() => navigate('/m/interview')}>
-            去采访
+      {/* 今日讲述 */}
+      <Annotate id="mobile-home.interview-cta">
+      <section className="mh-hero">
+        <h2 className="mh-hero-title">今天，继续讲讲你的故事</h2>
+        <div className="mh-hero-actions">
+          <button className="mh-btn-primary" onClick={() => navigate('/m/interview')}>
+            <Mic size={16} /> 开始讲述
+          </button>
+          <button className="mh-btn-outline" onClick={() => navigate('/m/interview')}>
+            <PenLine size={16} /> 文字回答
           </button>
         </div>
-        </Annotate>
       </section>
+      </Annotate>
+
+      {/* 我的故事 */}
+      <Annotate id="mobile-home.story-list">
+      <section className="mh-section">
+        <div className="mh-story-scroll">
+          {events.slice(0, 4).map((e, i) => (
+            <div className="mh-story-card" key={`${e.year}-${i}`} onClick={() => navigate('/m/archive')}>
+              <img src={generateImageDataUrl(e.title)} alt={e.title} />
+              <div className="mh-story-body">
+                <div className="mh-story-year">
+                  {e.endYear && e.endYear !== e.year ? `${e.year}-${e.endYear}年` : `${e.year}年`}
+                </div>
+                <div className="mh-story-title">{e.title}</div>
+              </div>
+            </div>
+          ))}
+          <div className="mh-story-more" onClick={() => navigate('/m/archive')}>
+            <Plus size={22} />
+            <span>更多故事</span>
+            <em>待记录</em>
+          </div>
+        </div>
+      </section>
+      </Annotate>
+
+      {/* 珍贵记忆 / 我的传记 */}
+      <Annotate id="mobile-home.memory-biography">
+      <div className="mh-duo">
+        <section className="mh-mini-card" onClick={() => navigate('/m/archive')}>
+          <div className="mh-mini-head">
+            <h3>珍贵记忆</h3>
+            <span className="mh-link">全部照片 <ChevronRight size={12} /></span>
+          </div>
+          <div className="mh-photo-stack">
+            {(photos.length > 0 ? photos.slice(0, 3) : [{ id: 'ph', title: '珍贵记忆' } as MediaItem]).map((p, i) => (
+              <img key={p.id} src={generateImageDataUrl(p.title)} alt={p.title} style={{ transform: `rotate(${(i - 1) * 6}deg)` }} />
+            ))}
+          </div>
+          <p className="mh-mini-desc">{photos.length} 张照片</p>
+        </section>
+        <section className="mh-mini-card" onClick={() => navigate('/biography')}>
+          <div className="mh-mini-head">
+            <h3>我的传记</h3>
+            <span className="mh-link">查看详情 <ChevronRight size={12} /></span>
+          </div>
+          <div className="mh-book-cover">
+            <span>《{archive.name}传》</span>
+          </div>
+          <p className="mh-mini-desc">{generatedChapters} 章</p>
+        </section>
+      </div>
+      </Annotate>
+
+      {/* 传承好物 */}
+      <Annotate id="mobile-home.goods">
+      <section className="mh-section">
+        <div className="mh-section-head">
+          <h3>传记服务</h3>
+        </div>
+        <div className="mh-goods-grid">
+          {SERVICES.map((service) => (
+            <button
+              className="mh-goods-card"
+              key={service.title}
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                navigate(service.path);
+              }}
+            >
+              <div className="mh-goods-cover"><service.icon size={28} /></div>
+              <div className="mh-goods-title">{service.title}</div>
+              <div className="mh-goods-desc">{service.desc}</div>
+            </button>
+          ))}
+        </div>
+      </section>
+      </Annotate>
     </div>
   );
 }

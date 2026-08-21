@@ -1,5 +1,5 @@
 import { http, type HttpHandler } from 'msw'
-import { success, unauthorized, notFound } from '../utils/response'
+import { success, fail, unauthorized, notFound } from '../utils/response'
 import { getItem, setItem, generateId, storeKeys } from '../utils/store'
 import type { Biography, BiographyChapter, InterviewSession, Archive } from '../types'
 
@@ -130,6 +130,7 @@ export const biographyHandlers: HttpHandler[] = [
     if (!userId) return unauthorized()
     const biography = findBiography(params.archiveId as string)
     if (!biography) return notFound('传记不存在')
+    if (biography.status === 'final') return fail('传记已完成，不能继续编辑')
     const body = await request.json() as Partial<BiographyChapter>
     const chapter = biography.chapters.find(c => c.id === params.chapterId)
     if (!chapter) return notFound('章节不存在')
@@ -144,6 +145,7 @@ export const biographyHandlers: HttpHandler[] = [
     if (!userId) return unauthorized()
     const biography = findBiography(params.archiveId as string)
     if (!biography) return notFound('传记不存在')
+    if (biography.status === 'final') return fail('传记已完成，不能继续编辑')
     const key = params.chapterIdOrTitle as string
     const chapter = biography.chapters.find(c => c.id === key || c.title === key)
     if (!chapter) return notFound('章节不存在')

@@ -326,6 +326,65 @@
   color: var(--text-muted);
 }
 
+/* 购买份数 */
+.store-order-quantity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.store-order-quantity-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #4b5563;
+}
+
+.store-order-quantity-stepper {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid #e8e4dd;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.store-order-quantity-stepper button {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: #fff;
+  font-size: 16px;
+  color: #1b5e4b;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.store-order-quantity-stepper button:hover:not(:disabled) {
+  background: rgba(27, 94, 75, 0.06);
+}
+
+.store-order-quantity-stepper button:disabled {
+  color: #c9c4bb;
+  cursor: not-allowed;
+}
+
+.store-order-quantity-stepper span {
+  min-width: 56px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--text);
+  border-left: 1px solid #e8e4dd;
+  border-right: 1px solid #e8e4dd;
+  line-height: 32px;
+}
+
+.store-order-quantity-total {
+  margin-left: auto;
+  font-size: 13px;
+  color: #b8860b;
+  font-weight: 600;
+}
+
 .store-order-address {
   margin-bottom: 16px;
 }
@@ -365,4 +424,60 @@
   .store-category {
     flex-shrink: 0;
   }
+}
+
+/* 确认订单弹窗表单项（与商品详情页统一风格） */
+.store-order-modal .form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.store-order-modal .form-row:last-of-type {
+  margin-bottom: 0;
+}
+
+.store-order-modal .form-row label {
+  font-size: 13px;
+  color: #4b5563;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.store-order-modal .form-row input,
+.store-order-modal .form-row select,
+.store-order-modal .form-row textarea {
+  box-sizing: border-box;
+  width: 100%;
+  border: 1px solid #e8e4dd;
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 14px;
+  font-family: inherit;
+  color: #2c2824;
+  background: #fff;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.store-order-modal .form-row input:focus,
+.store-order-modal .form-row select:focus,
+.store-order-modal .form-row textarea:focus {
+  border-color: #1b5e4b;
+}
+
+.store-order-modal .form-row textarea {
+  resize: vertical;
+  min-height: 64px;
+}
+
+.store-order-modal .store-address-row .form-row {
+  margin-bottom: 0;
+}
+
+.store-order-modal .store-address-row {
+  margin-bottom: 16px;
 }

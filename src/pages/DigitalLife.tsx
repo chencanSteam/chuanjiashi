@@ -160,7 +160,7 @@ function saveJson(key: string, value: unknown) {
 export default function DigitalLife() {
   const { addToast } = useToast();
   const navigate = useNavigate();
-  const { isMVP } = useVersion();
+  const { isV1 } = useVersion();
   const [activeTab, setActiveTab] = useState('clone');
   const [activeRel, setActiveRel] = useState<number>(() => {
     const savedRelatives = loadJson<Relative[]>(LS_KEYS.relatives, defaultRelatives);
@@ -638,9 +638,9 @@ export default function DigitalLife() {
       <div className="digital-stats-row">
         {stats.map((s, i) => {
           const statPaths = ['/digital-person', '/digital-person', '/digital-person/training-records', '/digital-person', '/government'];
-          // MVP 模式下训练记录与政务服务未开放，点击统计卡统一回到数字人首页（与训练记录按钮的处理一致）
+          // V1.0 模式下训练记录与政务服务未开放，点击统计卡统一回到数字人首页（与训练记录按钮的处理一致）
           const mvpBlocked = statPaths[i] === '/government' || statPaths[i] === '/digital-person/training-records';
-          const target = isMVP && mvpBlocked ? '/digital-person' : statPaths[i];
+          const target = isV1 && mvpBlocked ? '/digital-person' : statPaths[i];
           return (
             <div className="card digital-stat" key={i} onClick={() => navigate(target)}>
               <div className="card-body">
@@ -860,7 +860,7 @@ export default function DigitalLife() {
               <div className="card training-card">
                 <div className="card-header">
                   <h3 className="card-title">人格训练参数</h3>
-                  {!isMVP && <button className="btn btn-ghost" onClick={() => navigate('/digital-person/training-records')}>训练记录</button>}
+                  {!isV1 && <button className="btn btn-ghost" onClick={() => navigate('/digital-person/training-records')}>训练记录</button>}
                 </div>
                 <div className="card-body training-body">
                   {trainingValues.map((p, i) => (
@@ -878,7 +878,7 @@ export default function DigitalLife() {
                   ))}
                   <div className="training-actions">
                     <button className="btn btn-primary train-btn" onClick={startTraining}>开始训练</button>
-                    {!isMVP && <button className="btn btn-outline" onClick={() => navigate('/digital-person/training-report')}>训练报告</button>}
+                    {!isV1 && <button className="btn btn-outline" onClick={() => navigate('/digital-person/training-report')}>训练报告</button>}
                   </div>
                 </div>
               </div>
@@ -954,11 +954,11 @@ export default function DigitalLife() {
             <div className="card inheritance-card">
               <div className="card-header">
                 <h3 className="card-title">数字遗产与继承设置</h3>
-                {!isMVP && <button className="btn btn-ghost" onClick={() => navigate('/government')}>管理继承方案</button>}
+                {!isV1 && <button className="btn btn-ghost" onClick={() => navigate('/government')}>管理继承方案</button>}
               </div>
               <div className="card-body inheritance-body">
                 {inheritanceItems.map((item, i) => (
-                  <div className="inherit-row" key={i} onClick={() => !isMVP && navigate('/government')}>
+                  <div className="inherit-row" key={i} onClick={() => !isV1 && navigate('/government')}>
                     <div className="inherit-icon"><item.icon size={18} color="#1B5E4B" /></div>
                     <div className="inherit-main">
                       <div className="inherit-label">{item.label}</div>

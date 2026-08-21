@@ -2,7 +2,7 @@
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background: #f6f7f9;
+  background: #f6f1e7;
 }
 
 /* 桌面浏览器中按手机尺寸居中展示（真实手机访问时仍全屏） */
@@ -39,6 +39,7 @@
   flex: 1;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  background: #f6f1e7;
 }
 
 .mobile-tab-bar {

@@ -34,6 +34,8 @@ import type {
   PartnerShareConfig,
   PartnerRewardConfig,
   PartnerAssessmentRecord,
+  RefundReasonOption,
+  DictionaryItem,
 } from '../types'
 
 export const demoUser: User = {
@@ -87,6 +89,44 @@ export const materialCategories = [
   '事业',
   '荣誉',
   '其他',
+]
+
+export const defaultRefundReasonOptions: RefundReasonOption[] = [
+  { id: 'refund_reason_mismatch', label: '商品或服务与描述不符', enabled: true, order: 1, createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' },
+  { id: 'refund_reason_delivery', label: '交付周期不符合预期', enabled: true, order: 2, createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' },
+  { id: 'refund_reason_duplicate', label: '重复购买', enabled: true, order: 3, createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' },
+  { id: 'refund_reason_price', label: '价格或权益问题', enabled: true, order: 4, createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' },
+  { id: 'refund_reason_unneeded', label: '暂时不需要了', enabled: true, order: 5, createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' },
+  { id: 'refund_reason_other', label: '其他', enabled: true, order: 6, isOther: true, createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z' },
+]
+
+const DICT_SEED_TIME = '2026-01-01T00:00:00.000Z'
+
+function dictSeed(type: DictionaryItem['type'], labels: string[]): DictionaryItem[] {
+  return labels.map((label, index) => ({
+    id: `dict_${type}_${index + 1}`,
+    type,
+    label,
+    enabled: true,
+    order: index + 1,
+    createdAt: DICT_SEED_TIME,
+    updatedAt: DICT_SEED_TIME,
+  }))
+}
+
+/** 数据字典默认值：上架传记的职业标签 / 人生阶段标签 */
+export const defaultDictionaryItems: DictionaryItem[] = [
+  ...dictSeed('book_occupation', [
+    '企业家', '教师', '医生', '军人', '农民', '工人', '工程师', '艺术家',
+    '科学家', '公务员', '律师', '会计', '厨师', '手艺人', '自由职业', '其他',
+  ]),
+  ...dictSeed('book_life_stage', [
+    '童年成长', '求学岁月', '军旅生涯', '事业奋斗', '创业之路',
+    '婚姻家庭', '为人父母', '退休生活', '人生感悟', '家风传承',
+  ]),
+  ...dictSeed('sensitive_words', [
+    '诈骗', '赌博', '色情', '暴力', '传销', '毒品', '枪支', '洗钱',
+  ]),
 ]
 
 export const defaultProducts: ProductPackage[] = [
@@ -224,7 +264,7 @@ export const defaultBiographers: Biographer[] = [
     experience: 10,
     serviceAreas: ['杭州', '上海', '南京', '苏州'],
     education: '浙江大学中文系硕士',
-    certificates: [],
+    certificates: ['浙江省作家协会会员证', '高级传记师职业资格证书', '省家族文化研究会理事聘书'],
     tags: ['金牌传记师', '家族史专家', '上门采访', '实体书制作'],
     services: [
       { id: 'svc_001', name: '基础采访套餐', price: 1999, description: '2 次深度采访 + 5000 字传记' },
@@ -238,6 +278,7 @@ export const defaultBiographers: Biographer[] = [
     certificationLevel: 'gold',
     rating: 4.9,
     reviewCount: 128,
+    completedOrders: 236,
     deposit: 1000,
     createdAt: new Date().toISOString(),
   },
@@ -253,7 +294,7 @@ export const defaultBiographers: Biographer[] = [
     experience: 8,
     serviceAreas: ['上海', '杭州', '苏州'],
     education: '复旦大学新闻系本科',
-    certificates: [],
+    certificates: ['出版专业技术人员职业资格证（中级编辑）', '上海市作家协会会员证'],
     tags: ['资深编辑', '女性视角', '温情细腻', '老照片修复'],
     services: [
       { id: 'svc_003', name: '回忆录短篇版', price: 1299, description: '1 次采访 + 3000 字精编传记' },
@@ -267,6 +308,7 @@ export const defaultBiographers: Biographer[] = [
     certificationLevel: 'gold',
     rating: 4.8,
     reviewCount: 96,
+    completedOrders: 158,
     deposit: 800,
     createdAt: new Date().toISOString(),
   },
@@ -282,7 +324,7 @@ export const defaultBiographers: Biographer[] = [
     experience: 12,
     serviceAreas: ['北京', '深圳', '广州'],
     education: '北京大学光华管理学院 MBA',
-    certificates: [],
+    certificates: ['新闻采编人员从业资格证', '中国传记文学学会会员证'],
     tags: ['财经背景', '创业访谈', '商业传记', '高端定制'],
     services: [
       { id: 'svc_005', name: '企业家专访套餐', price: 8999, description: '3 次深度专访 + 5 万字传记 + 商业案例提炼' },
@@ -296,6 +338,7 @@ export const defaultBiographers: Biographer[] = [
     certificationLevel: 'silver',
     rating: 4.7,
     reviewCount: 64,
+    completedOrders: 87,
     deposit: 2000,
     createdAt: new Date().toISOString(),
   },
@@ -311,7 +354,7 @@ export const defaultBiographers: Biographer[] = [
     experience: 6,
     serviceAreas: ['成都', '重庆', '西安'],
     education: '四川师范大学影视传媒学院',
-    certificates: [],
+    certificates: ['四川省电影电视艺术家协会会员证', '口述历史采集专项培训结业证书'],
     tags: ['影像记录', '纪录片风格', '方言采访', '乡村记忆'],
     services: [
       { id: 'svc_007', name: '影像传记套餐', price: 2999, description: '2 次视频采访 + 5000 字文字传记 + 3 分钟短片' },
@@ -325,10 +368,55 @@ export const defaultBiographers: Biographer[] = [
     certificationLevel: 'silver',
     rating: 4.6,
     reviewCount: 52,
+    completedOrders: 63,
     deposit: 600,
     createdAt: new Date().toISOString(),
   },
 ]
+
+/** 商品详情页的演示评价池：无真实评价时按商品类型回退展示 */
+export interface ProductReviewSeed {
+  userName: string
+  rating: number
+  content: string
+}
+
+export const defaultProductReviewsByType: Record<string, ProductReviewSeed[]> = {
+  biography: [
+    { userName: '刘女士', rating: 5, content: 'AI 采访就像聊天一样，母亲说着说着就回忆起很多细节，生成的传记很感人，家里人都抢着看。' },
+    { userName: '周先生', rating: 5, content: '操作比想象中简单，采访完自动成稿，导出 PDF 后找打印店印了两本，效果很好。' },
+    { userName: '吴女士', rating: 4, content: '章节结构合理，润色功能也实用，个别句子还需要自己再改一改，整体很满意。' },
+    { userName: '郑先生', rating: 5, content: '给爷爷做的传记，一周就完成了初稿，效率高，内容也扎实，值得推荐给朋友。' },
+  ],
+  book: [
+    { userName: '张先生', rating: 5, content: '书收到很惊喜，纸张手感好，父亲的传记印出来很正式，老人看了特别高兴。' },
+    { userName: '李女士', rating: 5, content: '排版很专业，封面设计雅致，作为金婚礼物送给长辈，全家都很满意。' },
+    { userName: '王先生', rating: 4, content: '整体不错，印刷清晰、装订结实，就是快递稍慢了一天，内容排版值得肯定。' },
+    { userName: '陈女士', rating: 5, content: '锁线装订翻阅平整，摊开不回弹，收藏和送人都很合适。' },
+  ],
+  digital_person: [
+    { userName: '孙女士', rating: 5, content: '和父亲的数字人对话，语气很像本人，孩子特别喜欢听"爷爷"讲过去的故事。' },
+    { userName: '钱先生', rating: 5, content: '知识库构建很细致，问答都是传记里的真实经历，感觉像留住了父亲的声音。' },
+    { userName: '冯女士', rating: 4, content: '文字对话很流畅，偶尔有答非所问的情况，希望后续支持语音对话。' },
+  ],
+  video: [
+    { userName: '何先生', rating: 5, content: '60 秒的短片在家族聚会播放，配乐和字幕都很到位，好几位长辈看红了眼眶。' },
+    { userName: '高女士', rating: 5, content: '脚本自动从传记里提取，配音自然，导出高清视频很方便。' },
+    { userName: '罗先生', rating: 4, content: '成片效果不错，就是背景音乐选择再多一些就更好了。' },
+  ],
+  qrcode: [
+    { userName: '梁女士', rating: 5, content: '二维码印在书签上，扫一扫就能听到老人的故事，家里人都说这个形式很新颖。' },
+    { userName: '宋先生', rating: 4, content: '生成和下载都很顺利，高清图打印出来清晰，希望样式模板再多几个。' },
+  ],
+  derivative: [
+    { userName: '许女士', rating: 5, content: '做工比预期好，把家风家训印在日常物件上，孩子每天都能看见，很有意义。' },
+    { userName: '邓先生', rating: 4, content: '包装仔细，实物和图片一致，发货速度可以接受。' },
+  ],
+  default: [
+    { userName: '王女士', rating: 5, content: '整体体验不错，符合预期，推荐给有需要的朋友。' },
+    { userName: '李先生', rating: 4, content: '性价比可以，细节还有提升空间，会继续关注。' },
+  ],
+}
 
 export const defaultReviews: BiographerReview[] = [
   {

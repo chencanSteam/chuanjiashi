@@ -1,15 +1,41 @@
 import { http, type HttpHandler } from 'msw'
 import { success, fail, unauthorized, notFound } from '../utils/response'
 import { getItem, setItem, generateId, storeKeys } from '../utils/store'
-import type { Order, OrderStatus, User, Deliverable, OrderLogistics, OrderReview, RefundRequest, ReviewStatus } from '../types'
+import { defaultProductReviewsByType } from '../data/seed'
+import { getRefundReasonOptions } from './refundReasons'
+import type { Order, OrderStatus, User, Deliverable, OrderLogistics, OrderReview, RefundRequest, ReviewStatus, ProductPackage } from '../types'
 
 function getCurrentUserId(): string | null {
   const user = getItem<{ id: string } | null>(storeKeys.currentUser, null)
   return user?.id || null
 }
 
+function normalizeRefundOrder(order: Order): boolean {
+  if (order.status === 'refunded' && !order.refundRequest) {
+    order.refundRequest = {
+      reason: '历史退款记录',
+      reasonOptionLabel: '历史退款记录',
+      status: 'completed',
+      createdAt: order.updatedAt,
+      processedAt: order.updatedAt,
+      processorId: 'legacy',
+    }
+    return true
+  }
+  if (order.refundRequest && !order.refundRequest.status) {
+    order.refundRequest.status = order.status === 'refunded' ? 'completed' : 'pending'
+    return true
+  }
+  return false
+}
+
+function normalizeRefundOrders(orders: Order[]): Order[] {
+  if (orders.some(normalizeRefundOrder)) setItem(storeKeys.orders, orders)
+  return orders
+}
+
 export function findOrder(orderId: string): Order | undefined {
-  const orders = getItem<Order[]>(storeKeys.orders, [])
+  const orders = normalizeRefundOrders(getItem<Order[]>(storeKeys.orders, []))
   return orders.find((o) => o.id === orderId)
 }
 
@@ -32,6 +58,7 @@ export function createOrder(userId: string, data: Partial<Order>): Order {
     productId: data.productId || '',
     productName: data.productName || '未知商品',
     amount: data.amount || 0,
+    quantity: data.quantity ?? 1,
     sku: data.sku,
     remark: data.remark,
     address: data.address,
@@ -45,7 +72,7 @@ export function createOrder(userId: string, data: Partial<Order>): Order {
 }
 
 export function closeExpiredOrders(): Order[] {
-  const orders = getItem<Order[]>(storeKeys.orders, [])
+  const orders = normalizeRefundOrders(getItem<Order[]>(storeKeys.orders, []))
   const now = new Date().toISOString()
   let changed = false
   orders.forEach((o) => {
@@ -161,6 +188,7 @@ export const orderHandlers: HttpHandler[] = [
     const order = findOrder(params.id as string)
     if (!order || order.userId !== userId) return notFound('订单不存在')
     const { status } = (await request.json()) as { status: OrderStatus }
+    if (status === 'refunded') return fail('请通过退款审核操作完成退款')
     order.status = status
     order.updatedAt = new Date().toISOString()
     if (status === 'paid') order.payTime = new Date().toISOString()
@@ -207,6 +235,7 @@ export const orderHandlers: HttpHandler[] = [
     const order = findOrder(params.id as string)
     if (!order) return notFound('订单不存在')
     const { status } = (await request.json()) as { status: OrderStatus }
+    if (status === 'refunded') return fail('请通过退款审核操作完成退款')
     order.status = status
     order.updatedAt = new Date().toISOString()
     if (status === 'paid' && !order.payTime) order.payTime = new Date().toISOString()
@@ -263,11 +292,55 @@ export const orderHandlers: HttpHandler[] = [
     if (!order || order.userId !== userId) return notFound('订单不存在')
     if (['pending_pay', 'refunded', 'closed'].includes(order.status)) return fail('当前订单状态不支持退款')
     const data = (await request.json()) as RefundRequest
-    order.refundRequest = { ...data, createdAt: new Date().toISOString() }
-    order.status = 'refunded'
+    if (order.refundRequest?.status === 'pending' || order.refundRequest?.status === 'completed' || order.status === 'refunded') return fail('当前订单已有退款申请')
+    if (!data.reasonOptionId) return fail('请选择退款原因')
+    const reason = getRefundReasonOptions(true).find((item) => item.id === data.reasonOptionId)
+    if (!reason) return fail('退款原因已失效，请重新选择')
+    const customReason = data.customReason?.trim()
+    if (reason.isOther && !customReason) return fail('请填写其他退款原因')
+    if (customReason && customReason.length > 500) return fail('退款原因不能超过 500 个字')
+    order.refundRequest = {
+      reason: reason.label,
+      reasonOptionId: reason.id,
+      reasonOptionLabel: reason.label,
+      customReason: reason.isOther ? customReason : undefined,
+      status: 'pending',
+      createdAt: new Date().toISOString(),
+    }
     order.updatedAt = new Date().toISOString()
     saveOrder(order)
-    return success(order, '退款申请已处理')
+    return success(order, '退款申请已提交，等待平台审核')
+  }),
+
+  http.post('/api/admin/orders/:id/refund/approve', async ({ params }) => {
+    const userId = getCurrentUserId()
+    if (!userId) return unauthorized()
+    const order = findOrder(params.id as string)
+    if (!order) return notFound('订单不存在')
+    if (!order.refundRequest || order.refundRequest.status !== 'pending') return fail('当前没有待审核的退款申请')
+    const now = new Date().toISOString()
+    order.refundRequest = { ...order.refundRequest, status: 'completed', processedAt: now, processorId: userId, rejectionReason: undefined }
+    order.status = 'refunded'
+    order.updatedAt = now
+    saveOrder(order)
+    return success({ ...order, ...getOrderUserInfo(order) }, '退款审核通过，退款已完成')
+  }),
+
+  http.post('/api/admin/orders/:id/refund/reject', async ({ request, params }) => {
+    const userId = getCurrentUserId()
+    if (!userId) return unauthorized()
+    const order = findOrder(params.id as string)
+    if (!order) return notFound('订单不存在')
+    if (!order.refundRequest || order.refundRequest.status !== 'pending') return fail('当前没有待审核的退款申请')
+    const { rejectionReason } = (await request.json()) as { rejectionReason?: string }
+    const reasonText = rejectionReason?.trim()
+    if (!reasonText) return fail('请填写驳回原因')
+    if (reasonText.length > 500) return fail('驳回原因不能超过 500 个字')
+    const now = new Date().toISOString()
+    order.refundRequest = { ...order.refundRequest, status: 'rejected', processedAt: now, processorId: userId, rejectionReason: reasonText }
+    order.updatedAt = now
+    saveOrder(order)
+    return success({ ...order, ...getOrderUserInfo(order) }, '退款申请已驳回')
   }),
 
   http.put('/api/admin/orders/:id/review', async ({ request, params }) => {
@@ -298,6 +371,22 @@ export const orderHandlers: HttpHandler[] = [
         content: o.review!.content,
         createdAt: o.review!.createdAt,
       }))
-    return success(reviews)
+    if (reviews.length > 0) return success(reviews)
+    // 无真实评价时，按商品类型回退到预置演示评价
+    const products = getItem<ProductPackage[]>(storeKeys.products, [])
+    const product = products.find((p) => p.id === productId)
+    const pool = defaultProductReviewsByType[product?.type || ''] || defaultProductReviewsByType.default
+    return success(
+      pool.map((r, i) => ({
+        id: `seed_review_${productId}_${i}`,
+        orderId: '',
+        userName: r.userName,
+        productId,
+        productName: product?.name || '',
+        rating: r.rating,
+        content: r.content,
+        createdAt: new Date(Date.now() - (i + 2) * 9 * 24 * 60 * 60 * 1000).toISOString(),
+      }))
+    )
   }),
 ]

@@ -29,6 +29,7 @@ import { bookshelfApi } from '../api/bookshelf';
 import { orderApi } from '../api/order';
 import { groupBuyApi } from '../api/groupBuy';
 import { loadJson, type ChapterData } from '../data/aiMock';
+import { loadRecentActivities, type ActivityItem } from '../utils/activities';
 import { generateInterviewTopics } from '../utils/interviewTopics';
 import type { PublicBook } from '../mocks/types';
 import Annotate from '../components/annotation/Annotate';
@@ -39,28 +40,6 @@ interface TodoItem {
   desc: string;
   count: number;
   path: string;
-}
-
-interface ActivityItem {
-  user: string;
-  action: string;
-  time: string;
-  type: string;
-  ts: number;
-}
-
-function formatRelativeTime(ts: number): string {
-  const diff = Date.now() - ts;
-  if (diff < 60 * 1000) return '刚刚';
-  if (diff < 60 * 60 * 1000) return `${Math.floor(diff / 60000)} 分钟前`;
-  if (diff < 24 * 60 * 60 * 1000) return `${Math.floor(diff / 3600000)} 小时前`;
-  return `${Math.floor(diff / 86400000)} 天前`;
-}
-
-function parseChapterTime(updatedAt: string | null): number {
-  if (!updatedAt) return 0;
-  const ts = new Date(updatedAt).getTime();
-  return Number.isNaN(ts) ? 0 : ts;
 }
 
 function hasArchives(): boolean {
@@ -113,7 +92,7 @@ function saveArchive(archive: Archive) {
 
 export default function Home() {
   const navigate = useNavigate();
-  const { isMVP } = useVersion();
+  const { isV1 } = useVersion();
   const { user } = useAuth();
   const archiveExists = useMemo(() => hasArchives(), []);
   // 当前账号被邀请协助的传记（协作者入口，按昵称匹配）
@@ -226,43 +205,12 @@ export default function Home() {
         });
       }
       setTodos(nextTodos);
-
-      const nextActivities: ActivityItem[] = [];
-      archives.forEach((a) => {
-        const ts = a.createdAt ? new Date(a.createdAt).getTime() : NaN;
-        if (!Number.isNaN(ts)) {
-          nextActivities.push({ user: '我', action: `创建了「${a.name}」的人生档案`, time: formatRelativeTime(ts), type: '档案创建', ts });
-        }
-        const chapters = loadJson<ChapterData[]>(`cj_biography_chapters_${a.id}`, []);
-        const generated = chapters.filter((c) => c.status !== 'notGenerated' && c.updatedAt);
-        if (generated.length > 0) {
-          const latest = generated.reduce((m, c) => Math.max(m, parseChapterTime(c.updatedAt)), 0);
-          if (latest > 0) {
-            nextActivities.push({
-              user: '系统',
-              action: `已为「${a.name}」生成 ${generated.length} 个传记章节`,
-              time: formatRelativeTime(latest),
-              type: '传记生成完成',
-              ts: latest,
-            });
-          }
-        }
-      });
-      orders.forEach((o) => {
-        const ts = new Date(o.createdAt).getTime();
-        if (!Number.isNaN(ts)) {
-          nextActivities.push({
-            user: '我',
-            action: `提交了订单「${o.productName}」（¥${o.amount.toFixed(2)}）`,
-            time: formatRelativeTime(ts),
-            type: o.status === 'pending_pay' ? '订单待支付' : '订单已支付',
-            ts,
-          });
-        }
-      });
-      nextActivities.sort((a, b) => b.ts - a.ts);
-      setActivities(nextActivities.slice(0, 6));
     });
+  }, []);
+
+  // 最近动态：与移动端首页共用同一聚合逻辑（utils/activities.ts）
+  useEffect(() => {
+    loadRecentActivities(6).then(setActivities);
   }, []);
 
   // 热门传记推荐：从公开书架拉取，按浏览量 + 点赞数排序取前 4 本
@@ -386,7 +334,7 @@ export default function Home() {
             <p>通过 AI 采访，把人生故事、家风记忆永久保存下来。</p>
             <div className="hero-actions">
               <button className="btn btn-primary" onClick={() => navigate('/onboarding')}><Mic size={16} /> 新建传记</button>
-              {!isMVP && <button className="btn btn-hero-secondary" onClick={() => navigate('/family')}><Users size={16} /> 进入家庭空间</button>}
+              {!isV1 && <button className="btn btn-hero-secondary" onClick={() => navigate('/family')}><Users size={16} /> 进入家庭空间</button>}
             </div>
           </div>
         </section>
@@ -400,7 +348,7 @@ export default function Home() {
           <p>AI数字人生 · 家庭记忆沉淀 · 家风传承 · 数字陪伴</p>
           <div className="hero-actions">
             <button className="btn btn-primary" onClick={handleStartInterview}><Mic size={16} /> 开始智能采访</button>
-            {!isMVP && <button className="btn btn-hero-secondary" onClick={() => navigate('/family')}><Users size={16} /> 进入家庭空间</button>}
+            {!isV1 && <button className="btn btn-hero-secondary" onClick={() => navigate('/family')}><Users size={16} /> 进入家庭空间</button>}
           </div>
         </div>
         <div className="hero-visual" aria-hidden>
@@ -567,7 +515,6 @@ export default function Home() {
         </Annotate>
       )}
 
-      {!isMVP && (<>
       <section className="home-services">
         <div className="service-card" onClick={() => navigate('/store')}>
           <div className="service-icon" style={{ background: 'rgba(184,134,11,0.1)', color: '#b8860b' }}><ShoppingBag size={22} /></div>
@@ -577,7 +524,7 @@ export default function Home() {
           </div>
           <ArrowRight size={16} className="service-arrow" />
         </div>
-        {!isMVP && (
+        {!isV1 && (
           <>
             <div className="service-card" onClick={() => navigate('/family-hall')}>
               <div className="service-icon" style={{ background: 'rgba(45,90,74,0.1)', color: '#2d5a4a' }}><TreePine size={22} /></div>
@@ -597,6 +544,7 @@ export default function Home() {
             </div>
           </>
         )}
+        {!isV1 && (
         <div className="service-card" onClick={() => navigate('/family')}>
           <div className="service-icon" style={{ background: 'rgba(217,119,6,0.1)', color: '#d97706' }}><Users size={22} /></div>
           <div className="service-info">
@@ -605,6 +553,8 @@ export default function Home() {
           </div>
           <ArrowRight size={16} className="service-arrow" />
         </div>
+        )}
+        {!isV1 && (
         <div className="service-card" onClick={() => navigate('/museum')}>
           <div className="service-icon" style={{ background: 'rgba(124,58,237,0.1)', color: '#7c3aed' }}><Landmark size={22} /></div>
           <div className="service-info">
@@ -613,6 +563,7 @@ export default function Home() {
           </div>
           <ArrowRight size={16} className="service-arrow" />
         </div>
+        )}
         <div className="service-card" onClick={() => navigate('/biography-shelf')}>
           <div className="service-icon" style={{ background: 'rgba(2,132,199,0.1)', color: '#0284c7' }}><LibraryBig size={22} /></div>
           <div className="service-info">
@@ -621,6 +572,7 @@ export default function Home() {
           </div>
           <ArrowRight size={16} className="service-arrow" />
         </div>
+        {!isV1 && (
         <div className="service-card" onClick={() => navigate('/group-buy')}>
           <div className="service-icon" style={{ background: 'rgba(220,38,38,0.1)', color: '#dc2626' }}><BadgePercent size={22} /></div>
           <div className="service-info">
@@ -629,6 +581,7 @@ export default function Home() {
           </div>
           <ArrowRight size={16} className="service-arrow" />
         </div>
+        )}
         <div className="service-card" onClick={() => navigate('/biographers')}>
           <div className="service-icon" style={{ background: 'rgba(13,148,136,0.1)', color: '#0d9488' }}><UserSearch size={22} /></div>
           <div className="service-info">
@@ -682,7 +635,7 @@ export default function Home() {
           <h3>平台案例展示</h3>
         </div>
         <div className="home-cases-grid">
-          {platformCases.map((c) => (
+          {platformCases.filter((c) => !isV1 || c.path === '/biography-shelf').map((c) => (
             <div className="service-card" key={c.title} onClick={() => navigate(c.path)}>
               <div className="service-icon" style={{ background: c.bg, color: c.color }}><c.icon size={22} /></div>
               <div className="service-info">
@@ -694,14 +647,13 @@ export default function Home() {
           ))}
         </div>
       </section>
-      </>)}
 
       <section className="workspace">
         <Annotate id="home.activities">
         <div className="surface activity-surface">
           <div className="surface-header">
             <h3>最近动态</h3>
-            {!isMVP && <button className="btn btn-ghost" onClick={() => navigate('/family/events')}>查看全部</button>}
+            {!isV1 && <button className="btn btn-ghost" onClick={() => navigate('/family/events')}>查看全部</button>}
           </div>
           <div className="activity-list">
             {activities.length === 0 ? (

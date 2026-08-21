@@ -1,11 +1,12 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ArrowRight,
-  BookOpen,
   CheckCircle2,
   Circle,
   Download,
   FileText,
+  History,
+  Pencil,
   Plus,
   RotateCcw,
   Save,
@@ -19,6 +20,7 @@ import { quotaApi } from '../api/quota';
 import { loadJson, saveJson } from '../data/aiMock';
 import { readDocumentText, splitIntoChapters } from '../utils/documentImport';
 import Annotate from '../components/annotation/Annotate';
+import Modal from '../components/ui/Modal';
 import './BiographyPolish.css';
 
 interface PolishChapter {
@@ -34,15 +36,18 @@ interface PolishDoc {
   chapters: PolishChapter[];
 }
 
+interface PolishVersion {
+  id: string;
+  versionNumber: number;
+  label: string;
+  createdAt: string;
+  docName: string;
+  chapters: PolishChapter[];
+}
+
 interface Archive {
   id: string;
   name: string;
-}
-
-interface TextSelection {
-  start: number;
-  end: number;
-  text: string;
 }
 
 function loadCurrentArchive(): Archive | null {
@@ -106,18 +111,34 @@ export default function BiographyPolish() {
   const archiveId = archive?.id || 'default';
   const archiveName = archive?.name || '张明远';
   const storageKey = `cj_polish_doc_${archiveId}`;
+  const versionsKey = `cj_polish_versions_${archiveId}`;
 
   const [doc, setDoc] = useState<PolishDoc | null>(() => loadJson<PolishDoc | null>(storageKey, null));
   const [activeIndex, setActiveIndex] = useState(0);
   const [style, setStyle] = useState('warm');
   const [polishing, setPolishing] = useState(false);
   const [pasteText, setPasteText] = useState('');
-  const [selection, setSelection] = useState<TextSelection>({ start: 0, end: 0, text: '' });
+  const [editingTitleIndex, setEditingTitleIndex] = useState<number | null>(null);
+  const [versions, setVersions] = useState<PolishVersion[]>(() => loadJson<PolishVersion[]>(versionsKey, []));
+  const [showVersions, setShowVersions] = useState(false);
+  const [versionLabel, setVersionLabel] = useState('');
+  const [saveVersionOpen, setSaveVersionOpen] = useState(false);
+  const [activeVersionId, setActiveVersionId] = useState<string | null>(null);
+
+  useEffect(() => {
+    saveJson(versionsKey, versions);
+  }, [versions, versionsKey]);
+
+  // 文档有任何变动（上传、分章、润色、编辑）即自动保存，下次进入直接恢复到未完成的进度
+  useEffect(() => {
+    if (doc) saveJson(storageKey, doc);
+  }, [doc, storageKey]);
+
+  const versionDisplayName = (version: PolishVersion) =>
+    `V${version.versionNumber}${version.label ? `「${version.label}」` : ''}`;
 
   const chapters = doc?.chapters ?? [];
   const activeChapter = chapters[activeIndex] ?? null;
-  const isUnsplitText = chapters.length === 1 && chapters[0]?.title === '全文';
-
   const loadText = (text: string, docName: string) => {
     const parsed = splitIntoChapters(text);
     if (parsed.length === 0) {
@@ -136,6 +157,7 @@ export default function BiographyPolish() {
       })),
     });
     setActiveIndex(0);
+    setActiveVersionId(null);
     addToast(
       isSingleUnsplitChapter
         ? '文字已放入“全文”，暂时没有找到明显的章节标题，您可以手动新增章节'
@@ -187,7 +209,6 @@ export default function BiographyPolish() {
         : prev
     );
     setActiveIndex(newIndex);
-    setSelection({ start: 0, end: 0, text: '' });
     addToast('已新增一个空白章节，请填写章节名称和内容', 'success');
   };
 
@@ -214,7 +235,6 @@ export default function BiographyPolish() {
     setActiveIndex((currentIndex) =>
       currentIndex > index ? currentIndex - 1 : Math.min(currentIndex, nextChapters.length - 1)
     );
-    setSelection({ start: 0, end: 0, text: '' });
     addToast(`已删除“${title}”`, 'success');
   };
 
@@ -250,73 +270,6 @@ export default function BiographyPolish() {
     }, 900);
   };
 
-  const polishSelection = async () => {
-    const chapter = chapters[activeIndex];
-    const selectedText = selection.text;
-    if (!chapter || !selectedText.trim()) {
-      addToast('请先在正文中拖动选中一段文字', 'info');
-      return;
-    }
-    if (!(await consumeQuota())) return;
-    const styleLabel = POLISH_STYLES.find((item) => item.key === style)?.label || '温情叙事';
-    const { start, end } = selection;
-    setPolishing(true);
-    setTimeout(() => {
-      const { result, changes } = mockPolish(selectedText);
-      setDoc((prev) =>
-        prev
-          ? {
-              ...prev,
-              updatedAt: new Date().toLocaleString('zh-CN'),
-              chapters: prev.chapters.map((item, index) =>
-                index === activeIndex
-                  ? {
-                      ...item,
-                      content: item.content.slice(0, start) + result + item.content.slice(end),
-                      status: 'polished',
-                    }
-                  : item
-              ),
-            }
-          : prev
-      );
-      setSelection({ start: 0, end: 0, text: '' });
-      setPolishing(false);
-      addToast(
-        changes > 0
-          ? `选中的内容已完成${styleLabel}润色，优化了 ${changes} 处表达`
-          : '选中的文字已经比较顺了，暂时没有改动',
-        'success'
-      );
-    }, 900);
-  };
-
-  const polishAll = async () => {
-    if (chapters.length === 0) return;
-    if (!(await consumeQuota())) return;
-    const styleLabel = POLISH_STYLES.find((item) => item.key === style)?.label || '温情叙事';
-    setPolishing(true);
-    setTimeout(() => {
-      let total = 0;
-      setDoc((prev) =>
-        prev
-          ? {
-              ...prev,
-              updatedAt: new Date().toLocaleString('zh-CN'),
-              chapters: prev.chapters.map((chapter) => {
-                if (!chapter.content.trim()) return chapter;
-                const { result, changes } = mockPolish(chapter.content);
-                total += changes;
-                return { ...chapter, content: result, status: 'polished' };
-              }),
-            }
-          : prev
-      );
-      setPolishing(false);
-      addToast(`全文已完成${styleLabel}润色，共优化 ${total} 处表达`, 'success');
-    }, 1500);
-  };
-
   const restoreOriginal = (index: number) => {
     const chapter = chapters[index];
     if (!chapter) return;
@@ -330,11 +283,51 @@ export default function BiographyPolish() {
     addToast('当前进度已保存，下次打开还能继续', 'success');
   };
 
+  const saveVersion = () => {
+    if (!doc) return;
+    const versionNumber = versions.reduce((max, version) => Math.max(max, version.versionNumber), 0) + 1;
+    const version: PolishVersion = {
+      id: `pv_${Date.now()}_${versionNumber}`,
+      versionNumber,
+      label: versionLabel.trim(),
+      createdAt: new Date().toISOString(),
+      docName: doc.docName,
+      chapters: doc.chapters.map((chapter) => ({ ...chapter })),
+    };
+    setVersions((prev) => [...prev, version]);
+    setActiveVersionId(version.id);
+    setVersionLabel('');
+    setSaveVersionOpen(false);
+    addToast(`已保存为${versionDisplayName(version)}，以后可以随时回到这一版`, 'success');
+  };
+
+  const restoreVersion = (version: PolishVersion) => {
+    if (!window.confirm(`切换到${versionDisplayName(version)}会覆盖当前还没有保存的修改，是否继续？`)) return;
+    setDoc({
+      docName: version.docName,
+      updatedAt: new Date().toLocaleString('zh-CN'),
+      chapters: version.chapters.map((chapter) => ({ ...chapter })),
+    });
+    setActiveIndex(0);
+    setEditingTitleIndex(null);
+    setActiveVersionId(version.id);
+    setShowVersions(false);
+    addToast(`已切换到${versionDisplayName(version)}，可继续修改`, 'success');
+  };
+
+  const deleteVersion = (version: PolishVersion) => {
+    if (!window.confirm(`确定删除${versionDisplayName(version)}吗？历史版本删除后无法恢复。`)) return;
+    setVersions((prev) => prev.filter((item) => item.id !== version.id));
+    if (activeVersionId === version.id) setActiveVersionId(null);
+    addToast('历史版本已删除', 'success');
+  };
+
   const resetDoc = () => {
     if (!window.confirm('要换一份传记吗？当前还没有保存的修改会被清掉。')) return;
     setDoc(null);
     setPasteText('');
     setActiveIndex(0);
+    setActiveVersionId(null);
     localStorage.removeItem(storageKey);
   };
 
@@ -372,7 +365,7 @@ export default function BiographyPolish() {
     <div className="polish-page">
       <header className="page-header polish-page-header">
         <div>
-          <h1 className="page-title">传记润色</h1>
+          <h1 className="page-title">已有传记上传</h1>
         </div>
         <div className="page-actions">
           {doc && (
@@ -385,6 +378,16 @@ export default function BiographyPolish() {
               <Annotate id="biography-polish.export-word" inline>
                 <button className="btn btn-outline" onClick={exportWord}>
                   <Download size={14} /> 导出润色稿
+                </button>
+              </Annotate>
+              <Annotate id="biography-polish.versions" inline>
+                <button className="btn btn-outline" onClick={() => setShowVersions(true)}>
+                  <History size={14} /> 历史版本{versions.length ? ` (${versions.length})` : ''}
+                </button>
+              </Annotate>
+              <Annotate id="biography-polish.save-version" inline>
+                <button className="btn btn-outline" onClick={() => setSaveVersionOpen(true)}>
+                  <Save size={14} /> 保存版本
                 </button>
               </Annotate>
               <Annotate id="biography-polish.save" inline>
@@ -494,12 +497,6 @@ export default function BiographyPolish() {
                   </Annotate>
                 </div>
                 <div className="card-body polish-tree-body">
-                  {isUnsplitText && (
-                    <div className="polish-manual-note">
-                      <BookOpen size={15} />
-                      <p>暂时没有找到章节。可以先点击右上角“+”新增章节，再把文字分别放进去。</p>
-                    </div>
-                  )}
                   <div className="polish-chapter-list">
                     {chapters.map((chapter, index) => (
                       <div className="polish-chapter-row" key={`${chapter.title}-${index}`}>
@@ -508,14 +505,45 @@ export default function BiographyPolish() {
                           className={`polish-chapter-item ${activeIndex === index ? 'active' : ''}`}
                           onClick={() => {
                             setActiveIndex(index);
-                            setSelection({ start: 0, end: 0, text: '' });
+                            setEditingTitleIndex(null);
                           }}
                         >
                           <span className="polish-chapter-number">{String(index + 1).padStart(2, '0')}</span>
                           <span className="polish-chapter-left">
-                            <span className="polish-chapter-title">{chapter.title || '未命名章节'}</span>
+                            {editingTitleIndex === index ? (
+                              <input
+                                className="polish-chapter-title-input"
+                                aria-label="修改章节名称"
+                                autoFocus
+                                value={chapter.title}
+                                onClick={(event) => event.stopPropagation()}
+                                onChange={(event) => updateChapter(index, { title: event.target.value, status: 'edited' })}
+                                onBlur={() => {
+                                  if (!chapter.title.trim()) updateChapter(index, { title: `第 ${index + 1} 章` });
+                                  setEditingTitleIndex(null);
+                                }}
+                                onKeyDown={(event) => {
+                                  if (event.key === 'Enter') event.currentTarget.blur();
+                                  if (event.key === 'Escape') setEditingTitleIndex(null);
+                                }}
+                              />
+                            ) : (
+                              <span className="polish-chapter-title">{chapter.title || '未命名章节'}</span>
+                            )}
                             {statusBadge(chapter.status)}
                           </span>
+                        </button>
+                        <button
+                          type="button"
+                          className="icon-btn polish-edit-chapter"
+                          title="修改章节名称"
+                          aria-label={`修改${chapter.title || '这一章'}名称`}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setEditingTitleIndex(index);
+                          }}
+                        >
+                          <Pencil size={13} />
                         </button>
                         <Annotate id="biography-polish.delete-chapter" inline>
                           <button
@@ -563,14 +591,6 @@ export default function BiographyPolish() {
                       className="polish-editor"
                       value={activeChapter.content}
                       onChange={(event) => updateChapter(activeIndex, { content: event.target.value, status: 'edited' })}
-                      onSelect={(event) => {
-                        const { selectionStart, selectionEnd, value } = event.currentTarget;
-                        setSelection({
-                          start: selectionStart,
-                          end: selectionEnd,
-                          text: value.slice(selectionStart, selectionEnd),
-                        });
-                      }}
                       placeholder="把这一章的文字写在这里……"
                     />
                     <div className="polish-toolbar">
@@ -589,14 +609,8 @@ export default function BiographyPolish() {
                         </div>
                       </div>
                       <div className="polish-toolbar-actions">
-                        <button className="btn btn-primary" disabled={polishing} onClick={polishSelection}>
-                          <Sparkles size={14} /> {polishing ? '正在润色……' : 'AI 润色选中内容'}
-                        </button>
-                        <button className="btn btn-outline" disabled={polishing} onClick={() => polishOne(activeIndex)}>
-                          <Wand2 size={14} /> 润色这一章
-                        </button>
-                        <button className="btn btn-outline" disabled={polishing} onClick={polishAll}>
-                          <Wand2 size={14} /> 润色全文
+                        <button className="btn btn-primary" disabled={polishing} onClick={() => polishOne(activeIndex)}>
+                          <Wand2 size={14} /> {polishing ? '正在润色……' : '润色这一章'}
                         </button>
                         <button
                           className="btn btn-ghost"
@@ -614,6 +628,38 @@ export default function BiographyPolish() {
           </div>
         </div>
       )}
+
+      <Modal open={saveVersionOpen} title="保存当前版本" onClose={() => setSaveVersionOpen(false)} footer={
+        <div className="version-modal-actions">
+          <button className="btn btn-outline" onClick={() => setSaveVersionOpen(false)}>取消</button>
+          <button className="btn btn-primary" onClick={saveVersion}>保存版本</button>
+        </div>
+      }>
+        <div className="version-save-form">
+          <label htmlFor="polish-version-label">版本名称（可选）</label>
+          <input id="polish-version-label" value={versionLabel} onChange={(event) => setVersionLabel(event.target.value)} placeholder="如：润色完成稿、补充童年章节（可不填）" autoFocus />
+          <p>系统将自动按顺序命名为 V{versions.reduce((max, version) => Math.max(max, version.versionNumber), 0) + 1}，也可以补充本次版本描述。将保存当前全部 {chapters.length} 个章节。</p>
+        </div>
+      </Modal>
+
+      <Modal open={showVersions} title="历史版本" onClose={() => setShowVersions(false)}>
+        <div className="biography-version-list">
+          {versions.length === 0 ? (
+            <div className="biography-version-empty"><History size={30} /><p>还没有保存过版本</p><span>点击“保存版本”创建第一个可回溯版本。</span></div>
+          ) : versions.slice().reverse().map((version) => (
+            <div className={`biography-version-item ${activeVersionId === version.id ? 'active' : ''}`} key={version.id}>
+              <div className="biography-version-main">
+                <div className="biography-version-title"><strong>V{version.versionNumber}</strong>{version.label && <span>{version.label}</span>}{activeVersionId === version.id && <em>当前版本</em>}</div>
+                <small>{new Date(version.createdAt).toLocaleString('zh-CN')} · {version.chapters.length} 章</small>
+              </div>
+              <div className="biography-version-actions">
+                <button className="btn btn-outline btn-sm" onClick={() => restoreVersion(version)}>继续编辑</button>
+                <button className="icon-btn" title="删除版本" onClick={() => deleteVersion(version)}><Trash2 size={14} /></button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </Modal>
     </div>
   );
 }

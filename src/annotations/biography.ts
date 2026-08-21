@@ -32,7 +32,7 @@ export const biographyAnnotations: PageAnnotations = {
     {
       id: 'biography.simulate-pay',
       target: '「模拟支付 ¥99」按钮',
-      logic: `① 仅非 MVP 版本显示；未登录（无手机号）直接拦截提示。
+      logic: `① V1.0 起显示（出版购买流程）；未登录（无手机号）直接拦截提示。
 ② 调 orderApi.create 创建 ¥99「AI 传记标准版」订单（关联当前档案），再用 paymentApi.pay 模拟微信支付。
 ③ 成功 toast 显示交易号后 8 位；失败提示原因。原型为 mock 支付，不产生真实扣款。`,
     },
@@ -55,14 +55,14 @@ export const biographyAnnotations: PageAnnotations = {
     {
       id: 'biography.materials-settings',
       target: '本章参考素材 + 文风 / 字数设置',
-      logic: `① 参考素材读取 cj_media_\${archiveId}，按 照片/视频/音频/文档 分组展示，点击可预览（原型用占位媒体）；「去上传」跳转 /archive。
-② 文风四选一（朴实自然/温情叙事/典雅文言/新闻纪实），字数三档（约 5 千 / 1.5 万 / 3 万）。
-③ 选择即持久化到 cj_biography_style_\${archiveId}、cj_biography_word_count_\${archiveId}，下次生成按所选组合生效。`,
+      logic: `① 这里展示当前传记主人公在人生档案里上传的照片、视频、音频和文档，按类型分组，点击可以预览；没有素材时可以点「去上传」跳转添加。
+② 文风有四种可选（朴实自然 / 温情叙事 / 典雅文言 / 新闻纪实），字数有三档（约 5 千 / 1.5 万 / 3 万）。
+③ 选好之后系统会自动记住，下一次生成或重新生成章节时，就按选择的文风和字数来写。`,
     },
     {
       id: 'biography.derived',
       target: '衍生内容（金句 / 家风 / 书信 / 时间线）',
-      logic: `① 仅非 MVP 版本显示；四类衍生内容：人生金句、家风总结、写给后人的话、人生时间线。
+      logic: `① 仅完整版显示；四类衍生内容：人生金句、家风总结、写给后人的话、人生时间线。
 ② 每个页签独立生成、独立保留结果；原型为预置文案随机选取，「重新生成」会避开与当前结果相同的一套。
 ③ 「复制」把当前结果按行写入剪贴板，失败时提示手动选择复制。`,
     },

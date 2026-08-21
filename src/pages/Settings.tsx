@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import Avatar from '../components/ui/Avatar';
 import { useAuth } from '../hooks/useAuth';
+import { useVersion } from '../hooks/useVersion';
 import { useToast } from '../hooks/useToast';
 import { quotaApi } from '../api/quota';
 import type { AIQuota } from '../mocks/types';
@@ -156,7 +157,13 @@ export default function Settings() {
   const navigate = useNavigate();
   const { section } = useParams<{ section: string }>();
   const { user, updateUser } = useAuth();
-  const active = sidebarItems.some((item) => item.key === section) ? (section ?? 'account') : 'account';
+  const { isV1 } = useVersion();
+  // V1.0 仅开放：账户信息、通知设置、隐私与安全、帮助与反馈（邀请 V1.1、家庭成员 V1.2 等回退到账户信息）
+  const v1Sections = ['account', 'notification', 'privacy', 'help'];
+  const active =
+    sidebarItems.some((item) => item.key === section) && (!isV1 || v1Sections.includes(section ?? ''))
+      ? (section ?? 'account')
+      : 'account';
 
   const [notifications, setNotifications] = useState(initialNotifications);
   const [twoFactor, setTwoFactor] = useState(false);
@@ -190,6 +197,13 @@ export default function Settings() {
   useEffect(() => {
     quotaApi.get().then(setQuota).catch(() => setQuota(defaultQuota));
   }, []);
+
+  // V1.0 下访问未开放的设置分区时，地址栏同步回到账户信息
+  useEffect(() => {
+    if (isV1 && section && !v1Sections.includes(section)) {
+      navigate('/settings/account', { replace: true });
+    }
+  }, [isV1, section, navigate]);
 
   const [rewardsRefresh, setRewardsRefresh] = useState(0);
   const [savingAccount, setSavingAccount] = useState(false);

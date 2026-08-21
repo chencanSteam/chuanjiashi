@@ -170,7 +170,9 @@ export default function AIInterview() {
   const [quota, setQuota] = useState<AIQuota | null>(null);
 
   useEffect(() => {
-    quotaApi.get().then(setQuota).catch(() => setQuota(null));
+    quotaApi.get().then(setQuota).catch(() => {
+      setQuota({ interviewQuestion: { used: 0, total: 999 }, followUp: { used: 0, total: 999 } } as AIQuota);
+    });
   }, []);
   const [answers, setAnswers] = useState<Record<string, string>>(() =>
     loadJson<Record<string, string>>(`cj_interview_answers_${archiveId}`, {})
@@ -215,6 +217,7 @@ export default function AIInterview() {
     loadSupplementAnswers(archiveId)
   );
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [showFinishPrompt, setShowFinishPrompt] = useState(false);
   const [inviteQuery, setInviteQuery] = useState('');
   const [inviteRelation, setInviteRelation] = useState('配偶');
   const [inviteFound, setInviteFound] = useState<{ phone: string; name?: string } | null>(null);
@@ -384,9 +387,9 @@ export default function AIInterview() {
         try {
           const nextQuota = await quotaApi.consume('interviewQuestion');
           setQuota(nextQuota);
-        } catch (err: any) {
-          addToast(err.message || 'AI采访问题额度不足', 'error');
-          return;
+        } catch {
+          // 原型无后台时使用本地额度，不阻断采访流程
+          setQuota((prev) => prev || { interviewQuestion: { used: 0, total: 999 }, followUp: { used: 0, total: 999 } } as AIQuota);
         }
       }
       setAnswers((prev) => ({ ...prev, [currentQuestion.id]: text }));
@@ -432,9 +435,8 @@ export default function AIInterview() {
     try {
       const used = await quotaApi.consume('followUp');
       setQuota(used);
-    } catch (err: any) {
-      addToast(err.message || '延伸问题额度不足', 'error');
-      return;
+    } catch {
+      // 原型无后台时使用本地追问逻辑，不因额度接口缺失中断采访
     }
     setGeneratingFollowUp(true);
 
@@ -550,7 +552,8 @@ export default function AIInterview() {
       nextTopicIndex += 1;
       nextQuestionIndex = 0;
     } else {
-      addToast('已是最后一题，可以结束采访并整理', 'info');
+      // 已是最后一个主题的最后一题：引导用户结束采访
+      setShowFinishPrompt(true);
       return;
     }
     setSession((prev) => ({
@@ -1047,6 +1050,26 @@ export default function AIInterview() {
           )}
         </div>
       </div>
+
+      {showFinishPrompt && (
+        <div className="modal-overlay" onClick={() => setShowFinishPrompt(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>已是最后一题</h3>
+              <button className="modal-close" onClick={() => setShowFinishPrompt(false)}><X size={18} /></button>
+            </div>
+            <div className="modal-body">
+              <p className="modal-desc">采访问题已全部完成。您可以结束采访并查看整理好的采访记录，也可以返回继续检查或补充回答。</p>
+              <div className="modal-actions">
+                <button className="btn btn-outline" onClick={() => setShowFinishPrompt(false)}>继续检查</button>
+                <button className="btn btn-primary" onClick={() => { setShowFinishPrompt(false); endInterview(); }}>
+                  <FolderOpen size={14} /> 结束采访并整理
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showInviteModal && (
         <div className="modal-overlay" onClick={() => setShowInviteModal(false)}>

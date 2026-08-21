@@ -19,17 +19,19 @@
 }
 
 .work-card {
-  transition: 0.2s;
+  transition: box-shadow 0.2s, transform 0.2s;
 }
 
 .work-card:hover {
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 28px rgba(27, 94, 75, 0.08);
 }
 
 .work-body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 16px;
 }
 
@@ -37,23 +39,24 @@
   display: flex;
   align-items: center;
   gap: 16px;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .work-info {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
+  min-width: 0;
 }
 
 .work-name {
   font-size: 16px;
   font-weight: 600;
   color: #111827;
-}
-
-.work-meta {
-  font-size: 13px;
-  color: #6b7280;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .work-status {
@@ -70,36 +73,31 @@
   color: #065f46;
 }
 
-.work-status.primary {
-  background: #e6efed;
-  color: #1b5e4b;
-}
-
 .work-status.warning {
   background: #fef3c7;
   color: #92400e;
 }
 
-.work-status.info {
-  background: #dbeafe;
-  color: #1e40af;
-}
-
-.work-status.muted {
-  background: #f3f4f6;
-  color: #6b7280;
-}
-
 .work-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: nowrap;
+  flex-shrink: 0;
 }
 
 .work-actions .btn {
-  display: flex;
+  display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
+  min-height: 34px;
+  white-space: nowrap;
+}
+
+.work-actions > .btn-primary {
+  box-shadow: 0 4px 10px rgba(27, 94, 75, 0.16);
 }
 
 .work-publish {
@@ -138,25 +136,37 @@
 
   .work-body {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
+  }
+
+  .work-actions {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .work-actions .btn {
+    flex: 1 1 auto;
   }
 }
 
-/* 创作者收益 + 公开授权 */
+/* 创作者收益 + 公开授权（整行置于卡片底部，带分隔线） */
 .work-extra {
+  order: 3;
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
-  margin-top: 14px;
+  margin-top: 2px;
   padding-top: 14px;
   border-top: 1px solid #f3f4f6;
 }
 
 .work-earnings {
   display: flex;
-  gap: 24px;
+  gap: 32px;
+  flex-wrap: wrap;
 }
 
 .work-earnings-item {
@@ -170,6 +180,7 @@
   font-weight: 700;
   color: #1f2937;
   font-family: var(--font-family);
+  white-space: nowrap;
 }
 
 .work-earnings-total {
@@ -179,6 +190,7 @@
 .work-earnings-label {
   font-size: 11px;
   color: #9ca3af;
+  white-space: nowrap;
 }
 
 .work-license {

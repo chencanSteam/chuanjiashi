@@ -1,11 +1,11 @@
 import { createContext, useEffect, useState, type ReactNode } from 'react';
 
-export type AppVersion = 'mvp' | 'full';
+export type AppVersion = 'v1.0' | 'full';
 
 interface VersionContextValue {
   appVersion: AppVersion;
   setAppVersion: (version: AppVersion) => void;
-  isMVP: boolean;
+  isV1: boolean;
 }
 
 const VERSION_KEY = 'cj_app_version';
@@ -13,7 +13,9 @@ const VERSION_KEY = 'cj_app_version';
 function loadVersion(): AppVersion {
   try {
     const raw = localStorage.getItem(VERSION_KEY);
-    if (raw === 'mvp' || raw === 'full') return raw;
+    if (raw === 'full') return 'full';
+    // 旧的 'mvp' 值迁移为 'v1.0'
+    if (raw === 'v1.0' || raw === 'mvp') return 'v1.0';
   } catch {
     // ignore
   }
@@ -38,7 +40,7 @@ export function VersionProvider({ children }: { children: ReactNode }) {
       value={{
         appVersion,
         setAppVersion,
-        isMVP: appVersion === 'mvp',
+        isV1: appVersion === 'v1.0',
       }}
     >
       {children}

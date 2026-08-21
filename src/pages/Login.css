@@ -443,7 +443,7 @@
   color: #6b7280;
 }
 
-/* 版本切换（MVP / 完整版），位于端口选择页最上方 */
+/* 版本切换（V1.0 / 完整版），位于端口选择页最上方 */
 .login-version-switch {
   margin: 0 0 4px;
   padding: 8px 12px;

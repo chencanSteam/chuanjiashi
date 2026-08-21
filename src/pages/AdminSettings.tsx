@@ -1,6 +1,8 @@
-import { useState } from 'react';
-import { Building2, ShieldCheck, Bell, Save, Check, X as XIcon } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Building2, ShieldCheck, Bell, Save, Check, X as XIcon, Plus, Edit2, Trash2, ChevronUp, ChevronDown, RotateCcw } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
+import { refundReasonApi } from '../api/refundReason';
+import type { RefundReasonOption } from '../mocks/types';
 import Annotate from '../components/annotation/Annotate';
 import './AdminSettings.css';
 
@@ -119,6 +121,91 @@ export default function AdminSettings() {
   const { addToast } = useToast();
   const [info, setInfo] = useState<PlatformInfo>(() => loadJSON(INFO_KEY, defaultInfo));
   const [notify, setNotify] = useState<NotifyConfig>(() => loadJSON(NOTIFY_KEY, defaultNotify));
+  const [refundReasons, setRefundReasons] = useState<RefundReasonOption[]>([]);
+  const [refundReasonModal, setRefundReasonModal] = useState(false);
+  const [editingRefundReason, setEditingRefundReason] = useState<RefundReasonOption | null>(null);
+  const [refundReasonLabel, setRefundReasonLabel] = useState('');
+  const [refundReasonSubmitting, setRefundReasonSubmitting] = useState(false);
+
+  const loadRefundReasons = () => {
+    refundReasonApi.adminList().then(setRefundReasons).catch(() => setRefundReasons([]));
+  };
+
+  useEffect(() => {
+    loadRefundReasons();
+  }, []);
+
+  const openRefundReasonCreate = () => {
+    setEditingRefundReason(null);
+    setRefundReasonLabel('');
+    setRefundReasonModal(true);
+  };
+
+  const openRefundReasonEdit = (reason: RefundReasonOption) => {
+    if (reason.isOther) return;
+    setEditingRefundReason(reason);
+    setRefundReasonLabel(reason.label);
+    setRefundReasonModal(true);
+  };
+
+  const closeRefundReasonModal = () => {
+    setRefundReasonModal(false);
+    setEditingRefundReason(null);
+    setRefundReasonLabel('');
+  };
+
+  const saveRefundReason = async () => {
+    if (!refundReasonLabel.trim()) {
+      addToast('请填写退款原因', 'error');
+      return;
+    }
+    try {
+      setRefundReasonSubmitting(true);
+      if (editingRefundReason) await refundReasonApi.update(editingRefundReason.id, refundReasonLabel);
+      else await refundReasonApi.create(refundReasonLabel);
+      addToast(editingRefundReason ? '退款原因已更新' : '退款原因已新增', 'success');
+      closeRefundReasonModal();
+      loadRefundReasons();
+    } catch (err: any) {
+      addToast(err.message || '保存失败', 'error');
+    } finally {
+      setRefundReasonSubmitting(false);
+    }
+  };
+
+  const toggleRefundReason = async (reason: RefundReasonOption) => {
+    if (reason.isOther) return;
+    try {
+      await refundReasonApi.updateStatus(reason.id, !reason.enabled);
+      loadRefundReasons();
+    } catch (err: any) {
+      addToast(err.message || '状态更新失败', 'error');
+    }
+  };
+
+  const deleteRefundReason = async (reason: RefundReasonOption) => {
+    if (reason.isOther || !window.confirm(`确定删除退款原因“${reason.label}”吗？`)) return;
+    try {
+      await refundReasonApi.remove(reason.id);
+      addToast('退款原因已删除', 'success');
+      loadRefundReasons();
+    } catch (err: any) {
+      addToast(err.message || '删除失败', 'error');
+    }
+  };
+
+  const moveRefundReason = async (index: number, direction: -1 | 1) => {
+    const nextIndex = index + direction;
+    if (nextIndex < 0 || nextIndex >= refundReasons.length) return;
+    const ids = refundReasons.map((reason) => reason.id);
+    [ids[index], ids[nextIndex]] = [ids[nextIndex], ids[index]];
+    try {
+      await refundReasonApi.reorder(ids);
+      loadRefundReasons();
+    } catch (err: any) {
+      addToast(err.message || '排序失败', 'error');
+    }
+  };
 
   const handleSaveInfo = () => {
     if (!info.platformName.trim()) {
@@ -179,6 +266,39 @@ export default function AdminSettings() {
       </div>
       </Annotate>
 
+      <div className="card admin-settings-section">
+        <div className="card-header admin-refund-reasons-header">
+          <div>
+            <h3 className="card-title"><RotateCcw size={16} /> 退款原因配置</h3>
+            <p className="admin-refund-reasons-desc">客户申请退款时将从启用的原因中单选， “其他”始终保留。</p>
+          </div>
+          <button className="btn btn-primary btn-sm" onClick={openRefundReasonCreate}><Plus size={14} /> 新增原因</button>
+        </div>
+        <div className="card-body admin-settings-body">
+          <div className="admin-refund-reasons-list">
+            {refundReasons.map((reason, index) => (
+              <div className="admin-refund-reason-row" key={reason.id}>
+                <span className="admin-refund-reason-order">{index + 1}</span>
+                <div className="admin-refund-reason-info">
+                  <span className="admin-refund-reason-label">{reason.label}</span>
+                  {reason.isOther && <span className="admin-refund-reason-system">系统选项</span>}
+                </div>
+                <span className={`admin-refund-reason-status ${reason.enabled ? 'enabled' : 'disabled'}`}>{reason.enabled ? '已启用' : '已停用'}</span>
+                <div className="admin-refund-reason-actions">
+                  <button className="admin-icon-btn" title="上移" disabled={index === 0} onClick={() => moveRefundReason(index, -1)}><ChevronUp size={15} /></button>
+                  <button className="admin-icon-btn" title="下移" disabled={index === refundReasons.length - 1} onClick={() => moveRefundReason(index, 1)}><ChevronDown size={15} /></button>
+                  {!reason.isOther && <>
+                    <button className="admin-icon-btn" title="编辑" onClick={() => openRefundReasonEdit(reason)}><Edit2 size={14} /></button>
+                    <button className="admin-icon-btn danger" title="删除" onClick={() => deleteRefundReason(reason)}><Trash2 size={14} /></button>
+                    <button className={`admin-refund-toggle ${reason.enabled ? 'on' : ''}`} onClick={() => toggleRefundReason(reason)}>{reason.enabled ? '停用' : '启用'}</button>
+                  </>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
       <Annotate id="admin-settings.role-matrix">
       <div className="card admin-settings-section">
         <div className="card-header">
@@ -237,6 +357,26 @@ export default function AdminSettings() {
         </div>
       </div>
       </Annotate>
+
+      {refundReasonModal && (
+        <div className="modal-overlay" onClick={closeRefundReasonModal}>
+          <div className="modal-content admin-refund-reason-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h4>{editingRefundReason ? '编辑退款原因' : '新增退款原因'}</h4>
+              <button className="modal-close" onClick={closeRefundReasonModal}><XIcon size={16} /></button>
+            </div>
+            <div className="modal-body">
+              <div className="form-row">
+                <label htmlFor="admin-refund-reason-label">原因名称</label>
+                <input id="admin-refund-reason-label" type="text" maxLength={50} value={refundReasonLabel} onChange={(e) => setRefundReasonLabel(e.target.value)} placeholder="如：商品与描述不符" />
+              </div>
+              <button className="btn btn-primary" style={{ width: '100%', marginTop: 8 }} disabled={refundReasonSubmitting} onClick={saveRefundReason}>
+                {refundReasonSubmitting ? '保存中…' : editingRefundReason ? '保存修改' : '确认新增'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

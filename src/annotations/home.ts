@@ -13,7 +13,7 @@ export const homeAnnotations: PageAnnotations = {
       id: 'home.empty-hero',
       target: '无档案引导区',
       logic: `① 仅当 localStorage「cj_archives」为空或解析失败时渲染，作为新用户引导；已有档案时整块不显示。
-② 「新建传记」跳转 /onboarding 建档流程；「进入家庭空间」跳转 /family，MVP 版本（isMVP）下该按钮隐藏。`,
+② 「新建传记」跳转 /onboarding 建档流程；「进入家庭空间」跳转 /family，V1.0 版本（isV1）下该按钮隐藏（家庭空间为 V1.2 功能）。`,
     },
     {
       id: 'home.start-interview',
@@ -21,7 +21,7 @@ export const homeAnnotations: PageAnnotations = {
       logic: `① 点击打开「完善基础信息」弹窗，自动回填当前档案（cj_current_archive_id 对应的 cj_archives 记录）的姓名、性别、出生年份、籍贯、职业与已选标签。
 ② 保存后写入/更新 cj_archives 并把该档案设为当前档案（cj_current_archive_id），随后跳转 /interview 开始 AI 采访。
 ③ 账号下无档案时按「archive_时间戳」生成新档案 id。
-④ 「进入家庭空间」按钮仅非 MVP 版本显示。`,
+④ 「进入家庭空间」按钮仅完整版显示（家庭空间为 V1.2 功能）。`,
     },
     {
       id: 'home.collab-invites',
@@ -43,14 +43,14 @@ export const homeAnnotations: PageAnnotations = {
       logic: `① 数据来自 bookshelfApi.list()（mock 接口），只保留审核通过（status='approved'）的传记。
 ② 按「浏览量 + 点赞数」降序取前 4 本；接口失败时显示空态文案。
 ③ 点击卡片跳转 /biography-shelf/:id 详情；「查看全部」跳转书架列表。
-④ 该区块（连同上方服务入口、下方案例展示）仅非 MVP 版本渲染。`,
+④ 该区块 V1.0 起渲染；上方服务入口中家庭空间、数字博物馆、99元拼团、AI家风馆、数字人生卡片仅完整版显示，案例展示在 V1.0 下仅保留传记书架案例。`,
     },
     {
       id: 'home.activities',
       target: '最近动态',
       logic: `① 动态从真实数据源聚合：档案创建（cj_archives 的 createdAt）、传记章节生成（cj_biography_chapters_\${id} 的最新 updatedAt）、订单提交（orderApi.list）。
 ② 按时间倒序取前 6 条，时间显示为相对时间（刚刚 / N 分钟前 / N 小时前 / N 天前）。
-③ 无任何动态时显示空态；「查看全部」跳转 /family/events，MVP 版本隐藏。`,
+③ 无任何动态时显示空态；「查看全部」跳转 /family/events，V1.0 版本隐藏（家庭动态为 V1.2 功能）。`,
     },
     {
       id: 'home.todo-list',

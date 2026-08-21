@@ -1,6 +1,8 @@
 .mobile-works {
   padding: 16px;
   padding-bottom: 24px;
+  background: #f6f1e7;
+  min-height: 100%;
 }
 
 .mobile-works-empty {
@@ -112,4 +114,24 @@
   background: #1b5e4b;
   border-color: #1b5e4b;
   color: #fff;
+}
+
+.mobile-works-actions {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.mobile-works-actions .mobile-modal-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 38px;
+}
+
+.mobile-modal-btn.danger {
+  color: #dc2626;
+  border-color: #fecaca;
 }

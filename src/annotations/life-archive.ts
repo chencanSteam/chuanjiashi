@@ -43,13 +43,13 @@ export const lifeArchiveAnnotations: PageAnnotations = {
       logic: `① 素材存「cj_media_<archiveId>」，类型筛选（全部 / 照片 / 视频 / 音频 / 文档）为前端即时过滤。
 ② 上传弹窗：必选文件，可关联已有人生阶段（无事件时提示先在时间轴添加）；确认后按扩展名推断类型追加到素材库。
 ③ 删除按钮仅非观察者可见；点击素材打开预览（图片为占位图、视频 / 音频为占位源）。
-④ 非 MVP 版本显示「老照片修复」入口，跳转 /photo-restore。`,
+④ 仅完整版显示「老照片修复」入口，跳转 /photo-restore。`,
     },
     {
       id: 'life-archive.relations',
       target: '人物关系图谱',
       logic: `① 关系数据来自 familyApi.relations(当前档案 id)，以档案本人为中心节点放射布局，拉取失败按空数据处理。
-② MVP 版本点击成员节点打开「维护关系」弹窗；完整版跳转家庭成员详情「/family/members/<姓名>」。`,
+② V1.0 版本点击成员节点打开「维护关系」弹窗；完整版跳转家庭成员详情「/family/members/<姓名>」。`,
     },
     {
       id: 'life-archive.privacy',

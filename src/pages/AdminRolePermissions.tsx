@@ -2,7 +2,7 @@ import { Shield } from 'lucide-react';
 import Annotate from '../components/annotation/Annotate';
 import './AdminRolePermissions.css';
 
-// 通用角色权限管理：MVP 阶段仅作说明，多角色权限后续版本开放
+// 通用角色权限管理：V1.0 阶段仅作说明，多角色权限后续版本开放
 export default function AdminRolePermissions() {
   return (
     <div className="role-permission-page">
@@ -21,7 +21,7 @@ export default function AdminRolePermissions() {
             控制页面查看与操作权限。
           </p>
           <p>
-            当前 MVP 版本仅使用单一「管理员」角色，拥有后台全部权限，无需额外配置。
+            当前 V1.0 版本仅使用单一「管理员」角色，拥有后台全部权限，无需额外配置。
             多角色创建与细粒度权限分配将在后续版本开放。
           </p>
         </div>

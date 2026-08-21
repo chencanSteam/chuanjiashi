@@ -11,16 +11,22 @@ export const biographerProfileAnnotations: PageAnnotations = {
   items: [
     {
       id: 'biographer-profile.header',
-      target: '头部信息卡（头像 / 认证标识 / 编辑入口）',
+      target: '头部信息卡（头像 / 编辑入口）',
       logic: `① 数据加载：路由带 id 时调 biographerApi.get(id) 查看指定传记师；不带 id 时调 biographerApi.me() 查看自己的主页；接口失败显示「暂无传记师资料」。
 ② 本人视角判定（无 id 或登录手机号与档案一致）：显示「编辑资料」入口，点击跳转 /biographer/profile/edit；他人视角不显示。
-③ 认证等级（gold/silver/standard）决定头像角标图标与「金牌认证/银牌认证/平台认证」文案；头像未设置时用姓名首字占位。`,
+③ 头像未设置时用姓名首字占位；姓名旁展示常驻城市与评分（头衔字段已录入但暂不展示，待传记师分级体系上线后恢复），下方数据条含从业年限、完成订单、累计评价、用户评分与好评率。`,
+    },
+    {
+      id: 'biographer-profile.certificates',
+      target: '荣誉证书区',
+      logic: `① 展示传记师获得的荣誉与资质证书，如作协会员证、传记师职业资格证书等。
+② 证书条目是图片地址时按图展示；只有名称时展示占位卡片（原型未上传真实扫描件）。`,
     },
     {
       id: 'biographer-profile.actions',
-      target: '「立即预约 / 在线咨询」按钮区',
-      logic: `① 立即预约：嵌入模式（如服务市场弹层，父级传入 onBookService）直接打开推荐套餐的预约弹窗；独立页面模式跳转 /biographers 传记师列表页。
-② 在线咨询：打开咨询弹窗，为本地模拟对话，不产生真实消息记录。`,
+      target: '「留言咨询」按钮',
+      logic: `① 点击打开留言咨询弹窗，填写称呼、联系电话和留言内容后提交。
+② 联系电话默认带入当前登录用户的手机号（可修改）。`,
     },
     {
       id: 'biographer-profile.services',
@@ -45,10 +51,10 @@ export const biographerProfileAnnotations: PageAnnotations = {
 ④ 成功后关闭弹窗，嵌入模式下同时关闭整个介绍页弹层。`,
     },
     {
-      id: 'biographer-profile.consult',
-      target: '在线咨询弹窗',
-      logic: `① 输入内容为空时不发送；发送后消息追加到对话列表，并自动回复一条「传记师稍后会联系您」。
-② 支持回车键快捷发送；对话内容仅存在页面内存，关闭弹窗或刷新即清空（原型为本地模拟，无真实聊天通道）。`,
+      id: 'biographer-profile.message',
+      target: '留言咨询弹窗',
+      logic: `① 称呼、联系电话、留言内容三项必填，缺任一项拦截并提示；提交后提示「留言已提交，传记师会尽快与您联系」。
+② 留言内容仅做提交演示，不产生真实消息记录（原型为本地模拟）。`,
     },
   ],
 };

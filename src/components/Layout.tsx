@@ -55,26 +55,26 @@ interface NavGroup {
 // 独立入口
 const homeNavItem: NavItem = { to: '/home', icon: LayoutDashboard, label: '首页' };
 
-// 「传记创作」组（MVP 版仅保留 AI智能采访、AI传记生成）
-const creationGroupItemsMVP: NavItem[] = [
+// 「传记创作」组（V1.0 包含 AI智能采访、已有传记上传、AI传记生成、我的传记；「数字资产」仅完整版）
+const creationGroupItemsV1: NavItem[] = [
   { to: '/interview', icon: Mic, label: 'AI智能采访' },
-  { to: '/polish', icon: Wand2, label: '传记润色' },
+  { to: '/polish', icon: Wand2, label: '已有传记上传' },
   { to: '/biography', icon: BookOpen, label: 'AI传记生成' },
+  { to: '/my-works', icon: BookMarked, label: '我的传记' },
 ];
 
 const creationGroupItemsFull: NavItem[] = [
-  ...creationGroupItemsMVP,
-  { to: '/my-works', icon: BookMarked, label: '我的传记' },
+  ...creationGroupItemsV1,
   { to: '/digital-assets', icon: Gem, label: '数字资产' },
 ];
 
-// 「人生记录」组（MVP 版仅保留人生档案；完整版额外包含老照片修复、数字博物馆、家庭空间、数字家谱、AI家风馆）
-const lifeGroupItemsMVP: NavItem[] = [
+// 「人生记录」组（V1.0 仅保留人生档案；完整版额外包含老照片修复、数字博物馆、家庭空间、数字家谱、AI家风馆）
+const lifeGroupItemsV1: NavItem[] = [
   { to: '/archive', icon: FolderOpen, label: '人生档案' },
 ];
 
 const lifeGroupItemsFull: NavItem[] = [
-  ...lifeGroupItemsMVP,
+  ...lifeGroupItemsV1,
   { to: '/photo-restore', icon: Wand2, label: '老照片修复' },
   { to: '/museum', icon: Building2, label: '数字博物馆' },
   { to: '/family', icon: Users, label: '家庭空间' },
@@ -82,8 +82,16 @@ const lifeGroupItemsFull: NavItem[] = [
   { to: '/family-hall', icon: Landmark, label: 'AI家风馆' },
 ];
 
-// 「服务与商城」组
-const servicesGroupItems: NavItem[] = [
+// 「服务与商城」组（V1.0 包含传记书城、找传记师、传家商城、我的订单；「拼团活动」仅完整版）
+const servicesGroupItemsV1: NavItem[] = [
+  { to: '/biography-shelf', icon: BookMarked, label: '传记书城' },
+  { to: '/biographers', icon: UserCheck, label: '找传记师' },
+  { to: '/store', icon: ShoppingBag, label: '传家商城' },
+  { to: '/my-orders', icon: ClipboardList, label: '我的订单' },
+];
+
+const servicesGroupItemsFull: NavItem[] = [
+  { to: '/biography-shelf', icon: BookMarked, label: '传记书城' },
   { to: '/biographers', icon: UserCheck, label: '找传记师' },
   { to: '/group-buy', icon: TicketPercent, label: '拼团活动' },
   { to: '/store', icon: ShoppingBag, label: '传家商城' },
@@ -96,8 +104,15 @@ const digitalHumanGroupItemsFull: NavItem[] = [
   { to: '/digital-companion', icon: MessageCircleHeart, label: '数字陪伴' },
 ];
 
-// 「系统设置」组
-const settingsGroupItems: NavItem[] = [
+// 「系统设置」组（V1.0 包含账户信息、通知设置、隐私与安全、帮助与反馈；邀请/AI额度/家庭成员/存储备份仅完整版）
+const settingsGroupItemsV1: NavItem[] = [
+  { to: '/settings/account', icon: User, label: '账户信息' },
+  { to: '/settings/notification', icon: BellIcon, label: '通知设置' },
+  { to: '/settings/privacy', icon: ShieldIcon, label: '隐私与安全' },
+  { to: '/settings/help', icon: HelpCircle, label: '帮助与反馈' },
+];
+
+const settingsGroupItemsFull: NavItem[] = [
   { to: '/settings/account', icon: User, label: '账户信息' },
   { to: '/settings/invite', icon: Share2, label: '我的邀请' },
   { to: '/settings/quota', icon: Sparkles, label: 'AI额度' },
@@ -130,30 +145,32 @@ const initialNotices: NoticeItem[] = [
   { id: 5, type: '审核结果', title: '家风故事修改提醒', desc: '您提交的家风故事需补充来源说明，请修改后重新提交。', time: '5 天前', read: true },
 ];
 
-function getNavGroups(isMVP: boolean): NavGroup[] {
-  // MVP 版只保留三大核心功能：AI智能采访、AI传记生成、人生档案
-  if (isMVP) {
+function getNavGroups(isV1: boolean): NavGroup[] {
+  // V1.0 版：传记创作、人生记录、服务与商城、系统设置（家庭空间 V1.2、数字家谱/AI家风馆 V2.0、数字人 V3.0 不开放）
+  if (isV1) {
     return [
-      { key: 'creation', icon: BookOpen, label: '传记创作', items: creationGroupItemsMVP },
-      { key: 'life', icon: FolderOpen, label: '人生记录', items: lifeGroupItemsMVP },
+      { key: 'creation', icon: BookOpen, label: '传记创作', items: creationGroupItemsV1 },
+      { key: 'life', icon: FolderOpen, label: '人生记录', items: lifeGroupItemsV1 },
+      { key: 'services', icon: ShoppingBag, label: '服务与商城', items: servicesGroupItemsV1 },
+      { key: 'settings', icon: Settings, label: '系统设置', items: settingsGroupItemsV1 },
     ];
   }
   return [
     { key: 'creation', icon: BookOpen, label: '传记创作', items: creationGroupItemsFull },
     { key: 'life', icon: FolderOpen, label: '人生记录', items: lifeGroupItemsFull },
-    { key: 'services', icon: ShoppingBag, label: '服务与商城', items: servicesGroupItems },
+    { key: 'services', icon: ShoppingBag, label: '服务与商城', items: servicesGroupItemsFull },
     { key: 'digital-human', icon: UserCircle2, label: 'AI 数字人', items: digitalHumanGroupItemsFull },
-    { key: 'settings', icon: Settings, label: '系统设置', items: settingsGroupItems },
+    { key: 'settings', icon: Settings, label: '系统设置', items: settingsGroupItemsFull },
   ];
 }
 
 export default function Layout() {
   const { user, logout } = useAuth();
-  const { isMVP } = useVersion();
+  const { isV1 } = useVersion();
   const location = useLocation();
   const pathname = location.pathname;
 
-  const navGroups = getNavGroups(isMVP);
+  const navGroups = getNavGroups(isV1);
 
   // 用户手动折叠/展开的覆盖值；未覆盖时默认展开当前路由所在分组
   const [expandedOverrides, setExpandedOverrides] = useState<Record<string, boolean>>({});

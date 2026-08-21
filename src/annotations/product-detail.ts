@@ -18,8 +18,9 @@ export const productDetailAnnotations: PageAnnotations = {
     {
       id: 'product-detail.reviews',
       target: '用户评价区（评分汇总 / 分布 / 列表）',
-      logic: `① 评价来自 productApi.reviews(id)，与商品详情 productApi.get(id) 并行加载；平均分 = 全部评价算术平均并保留 1 位小数，无评价时显示 0 并出现「暂无评价」空态。
-② 星级分布按 5 → 1 星统计条数，条形图宽度 = 该星数量 / 评价总数；列表按接口返回顺序逐条展示评分、内容与发表时间。`,
+      logic: `① 评价来自 productApi.reviews(id)，与商品详情 productApi.get(id) 并行加载；平均分 = 全部评价算术平均并保留 1 位小数。
+② 无真实订单评价时，接口按商品类型回退到预置演示评价（仅展示用）；有真实评价后演示数据自动不再出现。
+③ 星级分布按 5 → 1 星统计条数，条形图宽度 = 该星数量 / 评价总数；列表按接口返回顺序逐条展示评分、内容与发表时间。`,
     },
     {
       id: 'product-detail.buy-modal',

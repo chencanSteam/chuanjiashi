@@ -183,8 +183,40 @@ export interface OrderReview {
   createdAt: string
 }
 
+export interface RefundReasonOption {
+  id: string
+  label: string
+  enabled: boolean
+  order: number
+  isOther?: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+/** 数据字典类型：传记职业标签 / 人生阶段标签 / 敏感词库 */
+export type DictionaryType = 'book_occupation' | 'book_life_stage' | 'sensitive_words'
+
+export interface DictionaryItem {
+  id: string
+  type: DictionaryType
+  label: string
+  enabled: boolean
+  order: number
+  createdAt: string
+  updatedAt: string
+}
+
+export type RefundRequestStatus = 'pending' | 'rejected' | 'completed'
+
 export interface RefundRequest {
   reason: string
+  reasonOptionId?: string
+  reasonOptionLabel?: string
+  customReason?: string
+  status?: RefundRequestStatus
+  processedAt?: string
+  processorId?: string
+  rejectionReason?: string
   createdAt: string
 }
 
@@ -203,6 +235,8 @@ export interface Order {
   productId: string
   productName: string
   amount: number
+  /** 购买份数（实体书等实物商品，默认 1） */
+  quantity?: number
   status: OrderStatus
   sku?: string
   remark?: string
@@ -323,11 +357,17 @@ export interface PublicBook {
   author: string
   intro: string
   category: string
+  /** 职业标签（多选，来自数据字典 book_occupation） */
+  occupationTags?: string[]
+  /** 人生阶段标签（多选，来自数据字典 book_life_stage） */
+  lifeStageTags?: string[]
   price: number
   isFree: boolean
   status: 'pending' | 'approved' | 'rejected' | 'off_shelf'
   views: number
   likes: number
+  /** 已售出份数（展示用） */
+  sales?: number
   collects: number
   shares: number
   /** 试看字数（按字数从全本截取试读内容，未设置时默认试读第一章） */
@@ -338,6 +378,8 @@ export interface PublicBook {
   fullContent?: string
   /** 是否已付费解锁（mock 简化，直接挂在书上） */
   unlocked?: boolean
+  /** 当前用户是否已收藏（按用户维度计算，响应时注入） */
+  collected?: boolean
   createdAt: string
 }
 
@@ -367,6 +409,8 @@ export interface Biographer {
   certificationLevel: BiographerCertificationLevel
   rating: number
   reviewCount: number
+  /** 已完成订单数（主页数据条展示） */
+  completedOrders?: number
   deposit: number
   createdAt: string
   updatedAt?: string
@@ -693,6 +737,8 @@ export interface BookComment {
   content: string
   /** 评论时间 */
   createdAt: string
+  /** 购买时间（付费书评论者已购时写入） */
+  purchasedAt?: string
   /** 点赞数 */
   likes: number
 }

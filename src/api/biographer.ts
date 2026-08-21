@@ -28,6 +28,9 @@ export const biographerApi = {
   list: (city?: string) =>
     api.get<Biographer[]>(`/api/biographers${city ? `?city=${encodeURIComponent(city)}` : ''}`),
   get: (id: string) => api.get<Biographer>(`/api/biographers/${id}`),
+  /** 当前用户是否已下单该传记师的套餐（决定能否查看完整联系电话） */
+  getContactAccess: (biographerId: string) =>
+    api.get<{ unlocked: boolean }>(`/api/biographers/${biographerId}/contact-access`),
   createOrder: (biographerId: string, serviceId: string, payload?: { interviewee?: string; relation?: string; preferredTime?: string; location?: string; remark?: string; contactPhone?: string }) =>
     api.post<{ order: unknown; biographerOrder: BiographerOrder }>('/api/biographer-orders', {
       biographerId,

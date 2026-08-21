@@ -2,6 +2,7 @@ import { http, type HttpHandler } from 'msw'
 import { success, fail, unauthorized, notFound } from '../utils/response'
 import { getItem, setItem, generateId, storeKeys } from '../utils/store'
 import { defaultBookComments } from '../data/seed'
+import { findSensitiveWord } from './dictionary'
 import type { PublicBook, Biography, BiographyChapter, Archive, BookComment } from '../types'
 
 function getCurrentUserId(): string | null {
@@ -16,14 +17,17 @@ function getDefaultPublicBooks(): PublicBook[] {
       archiveId: 'default',
       userId: 'u_demo_001',
       title: '张明远：一位苏州企业家的六十年',
-      author: 'AI 整理',
+      author: '张立群',
       intro: '从苏州老巷到创业舞台，记录一个普通中国家庭的奋斗与传承。',
       category: '企业家',
+      occupationTags: ['企业家'],
+      lifeStageTags: ['创业之路', '家庭生活', '人生感悟'],
       price: 0,
       isFree: true,
       status: 'approved',
       views: 1280,
       likes: 86,
+      sales: 236,
       collects: 42,
       shares: 15,
       createdAt: new Date().toISOString(),
@@ -33,14 +37,17 @@ function getDefaultPublicBooks(): PublicBook[] {
       archiveId: 'default2',
       userId: 'u_demo_002',
       title: '山村教师王桂芬',
-      author: '家属整理',
+      author: '王建华',
       intro: '四十年讲台生涯，用知识点亮山村孩子的未来。',
       category: '教师',
+      occupationTags: ['教师'],
+      lifeStageTags: ['求学岁月', '事业奋斗'],
       price: 9.9,
       isFree: false,
       status: 'approved',
       views: 560,
       likes: 34,
+      sales: 45,
       collects: 12,
       shares: 8,
       createdAt: new Date().toISOString(),
@@ -50,9 +57,11 @@ function getDefaultPublicBooks(): PublicBook[] {
       archiveId: 'default3',
       userId: 'u_demo_003',
       title: '医者仁心：李华亭回忆录',
-      author: '家属整理',
+      author: '李文静',
       intro: '从赤脚医生到三甲医院专家，五十载悬壶济世的动人故事。',
       category: '医生',
+      occupationTags: ['医生'],
+      lifeStageTags: ['事业奋斗', '人生感悟'],
       price: 19.9,
       isFree: false,
       status: 'pending',
@@ -67,9 +76,11 @@ function getDefaultPublicBooks(): PublicBook[] {
       archiveId: 'default4',
       userId: 'u_demo_004',
       title: '我的母亲周秀英',
-      author: 'AI 整理',
+      author: '周国强',
       intro: '一位普通农村母亲养育五个子女的艰辛与慈爱。',
       category: '其他',
+      occupationTags: ['农民'],
+      lifeStageTags: ['家庭生活', '家风传承'],
       price: 0,
       isFree: true,
       status: 'pending',
@@ -197,8 +208,28 @@ function ensureBooks(): PublicBook[] {
     ensureDemoBiographies(defaults)
     return defaults
   }
-  // 老数据兼容：补齐试读/全本/解锁字段
+  // 老数据兼容：示例书的作者占位字样（AI 整理/家属整理）与标签字段同步到最新种子值
+  const defaults = getDefaultPublicBooks()
   let changed = false
+  books = books.map((b) => {
+    const def = defaults.find((d) => d.id === b.id)
+    if (!def) return b
+    const next = { ...b }
+    if (['AI 整理', '家属整理'].includes(next.author)) {
+      next.author = def.author
+      changed = true
+    }
+    if (!next.occupationTags) {
+      next.occupationTags = def.occupationTags
+      changed = true
+    }
+    if (!next.lifeStageTags) {
+      next.lifeStageTags = def.lifeStageTags
+      changed = true
+    }
+    return next
+  })
+  // 老数据兼容：补齐试读/全本/解锁字段
   books = books.map((b) => {
     if (b.trialContent) return b
     changed = true
@@ -217,11 +248,43 @@ function ensureBookComments(): BookComment[] {
   return comments
 }
 
+function getCollectMap(): Record<string, string[]> {
+  return getItem<Record<string, string[]>>(storeKeys.bookCollects, {})
+}
+
+interface UnlockRecord {
+  bookId: string
+  unlockedAt: string
+}
+
+function getUnlockMap(): Record<string, UnlockRecord[]> {
+  const raw = getItem<Record<string, (UnlockRecord | string)[]>>(storeKeys.bookUnlocks, {})
+  // 兼容旧的字符串数组格式（无购买时间）
+  const map: Record<string, UnlockRecord[]> = {}
+  Object.entries(raw).forEach(([uid, list]) => {
+    map[uid] = list.map((item) => (typeof item === 'string' ? { bookId: item, unlockedAt: '' } : item))
+  })
+  return map
+}
+
+function findUnlock(userId: string | null, bookId: string): UnlockRecord | undefined {
+  if (!userId) return undefined
+  return (getUnlockMap()[userId] || []).find((r) => r.bookId === bookId)
+}
+
+/** 注入当前用户维度的标记：是否已收藏、是否已解锁 */
+function withUserFlags(book: PublicBook, userId: string | null): PublicBook {
+  const collected = userId ? (getCollectMap()[userId] || []).includes(book.id) : false
+  const unlocked = book.isFree || !!book.unlocked || !!findUnlock(userId, book.id)
+  return { ...book, collected, unlocked }
+}
+
 export const bookshelfHandlers: HttpHandler[] = [
   http.get('/api/bookshelf', async ({ request }) => {
     const url = new URL(request.url)
     const category = url.searchParams.get('category') || ''
     const keyword = url.searchParams.get('keyword') || ''
+    const userId = getCurrentUserId()
     let books = ensureBooks().filter((b) => b.status === 'approved')
     if (category) books = books.filter((b) => b.category === category)
     if (keyword) {
@@ -230,7 +293,7 @@ export const bookshelfHandlers: HttpHandler[] = [
         b.title.toLowerCase().includes(lower) || b.author.toLowerCase().includes(lower)
       )
     }
-    return success(books)
+    return success(books.map((b) => withUserFlags(b, userId)))
   }),
 
   http.get('/api/bookshelf/:id', async ({ params }) => {
@@ -239,7 +302,7 @@ export const bookshelfHandlers: HttpHandler[] = [
     if (!book) return notFound('传记不存在')
     book.views += 1
     setItem(storeKeys.publicBooks, books)
-    return success(book)
+    return success(withUserFlags(book, getCurrentUserId()))
   }),
 
   http.post('/api/bookshelf/:id/like', async ({ params }) => {
@@ -259,9 +322,19 @@ export const bookshelfHandlers: HttpHandler[] = [
     const books = ensureBooks()
     const book = books.find((b) => b.id === params.id)
     if (!book) return notFound('传记不存在')
-    book.collects += 1
+    // 按用户记账，可再次点击取消收藏
+    const map = getCollectMap()
+    const list = map[userId] || []
+    if (list.includes(book.id)) {
+      map[userId] = list.filter((bid) => bid !== book.id)
+      book.collects = Math.max(0, book.collects - 1)
+    } else {
+      map[userId] = [...list, book.id]
+      book.collects += 1
+    }
+    setItem(storeKeys.bookCollects, map)
     setItem(storeKeys.publicBooks, books)
-    return success(book)
+    return success(withUserFlags(book, userId))
   }),
 
   http.post('/api/bookshelf/:id/publish', async ({ request, params }) => {
@@ -269,6 +342,11 @@ export const bookshelfHandlers: HttpHandler[] = [
     if (!userId) return unauthorized()
     const books = ensureBooks()
     const body = (await request.json()) as Partial<PublicBook>
+    // 敏感词拦截：标题与简介含敏感词时不允许提交上架
+    const hit = findSensitiveWord(`${body.title || ''} ${body.intro || ''}`)
+    if (hit) return fail(`内容包含敏感词“${hit}”，请修改后再提交`)
+    const biography = getItem<Array<{ archiveId: string; status?: string }>>(storeKeys.biographies, []).find((item) => item.archiveId === body.archiveId)
+    if (biography && biography.status !== 'final') return fail('传记尚未完成，不能上架')
     const idx = books.findIndex((b) => b.id === params.id && b.userId === userId)
     if (idx < 0) {
       const book: PublicBook = {
@@ -279,6 +357,8 @@ export const bookshelfHandlers: HttpHandler[] = [
         author: body.author || '匿名',
         intro: body.intro || '',
         category: body.category || '其他',
+        occupationTags: body.occupationTags,
+        lifeStageTags: body.lifeStageTags,
         price: body.price ?? 0,
         isFree: body.isFree ?? true,
         status: 'pending',
@@ -364,6 +444,11 @@ export const bookshelfHandlers: HttpHandler[] = [
     if (!book) return notFound('传记不存在')
     const { content } = (await request.json()) as { content?: string }
     if (!content || !content.trim()) return fail('评论内容不能为空')
+    const hit = findSensitiveWord(content)
+    if (hit) return fail(`评论包含敏感词“${hit}”，请修改后再发表`)
+    // 付费传记仅已购用户可评论，评论携带购买时间
+    const unlock = findUnlock(user.id, book.id)
+    if (!book.isFree && !book.unlocked && !unlock) return fail('购买本书后才能发表评论')
     const comments = ensureBookComments()
     const comment: BookComment = {
       id: generateId(),
@@ -372,6 +457,7 @@ export const bookshelfHandlers: HttpHandler[] = [
       content: content.trim(),
       createdAt: new Date().toISOString(),
       likes: 0,
+      purchasedAt: unlock?.unlockedAt || undefined,
     }
     comments.unshift(comment)
     setItem(storeKeys.bookComments, comments)
@@ -385,11 +471,16 @@ export const bookshelfHandlers: HttpHandler[] = [
     const books = ensureBooks()
     const book = books.find((b) => b.id === params.id)
     if (!book) return notFound('传记不存在')
-    if (book.isFree || book.unlocked) return success(book, '已解锁')
-    // mock 环境直接视为支付成功，并补全全本文本
-    book.unlocked = true
+    if (book.isFree) return success(withUserFlags(book, userId), '已解锁')
+    // 按用户记录已购解锁（含购买时间）；mock 环境直接视为支付成功，并补全全本文本
+    const map = getUnlockMap()
+    const list = map[userId] || []
+    if (!list.some((r) => r.bookId === book.id)) {
+      map[userId] = [...list, { bookId: book.id, unlockedAt: new Date().toISOString() }]
+      setItem(storeKeys.bookUnlocks, map)
+    }
     book.fullContent = book.fullContent || buildBookContent({ ...book, isFree: true }).fullContent
     setItem(storeKeys.publicBooks, books)
-    return success(book, '解锁成功')
+    return success(withUserFlags(book, userId), '解锁成功')
   }),
 ]

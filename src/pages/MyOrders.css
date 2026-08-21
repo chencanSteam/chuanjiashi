@@ -1,7 +1,11 @@
 .my-orders-page {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 18px;
+}
+
+.my-orders-page .page-header {
+  margin-bottom: 2px;
 }
 
 .my-order-stats {
@@ -30,31 +34,46 @@
 
 .my-order-list-card {
   overflow: hidden;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .my-order-list-header {
-  padding: 16px 20px;
+  padding: 0 0 12px;
+  background: transparent;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .my-order-filters {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
 .my-order-filters select {
-  padding: 8px 12px;
+  min-width: 112px;
+  padding: 8px 30px 8px 12px;
   border: 1px solid var(--border-light);
   border-radius: var(--radius);
   background: var(--card-bg);
-  font-size: 14px;
+  font-size: 13px;
   color: var(--text);
   outline: none;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.my-order-filters select:focus-visible {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(27, 94, 75, 0.12);
 }
 
 .my-order-list-body {
   padding: 0;
+  background: transparent;
 }
 
 .my-order-empty {
@@ -75,20 +94,34 @@
 .my-order-list {
   display: flex;
   flex-direction: column;
+  gap: 12px;
 }
 
 .my-order-item {
-  padding: 18px 20px;
-  border-bottom: 1px solid var(--border-light);
-  transition: background 0.2s;
+  position: relative;
+  overflow: hidden;
+  padding: 16px 18px 14px 20px;
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  background: var(--card-bg);
+  box-shadow: var(--shadow-sm);
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
 }
 
-.my-order-item:last-child {
-  border-bottom: none;
+.my-order-item::before,
+.my-bio-order-item::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: var(--primary);
 }
 
-.my-order-item:hover {
-  background: rgba(27, 94, 75, 0.02);
+.my-order-item:hover,
+.my-bio-order-item:hover {
+  border-color: rgba(27, 94, 75, 0.25);
+  background: #fffefb;
+  box-shadow: var(--shadow-md);
 }
 
 .my-order-item-header {
@@ -96,13 +129,14 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 10px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .my-order-item-meta {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px 12px;
   flex-wrap: wrap;
   font-size: 12px;
   color: var(--text-muted);
@@ -111,12 +145,14 @@
 .my-order-item-id {
   font-family: monospace;
   color: var(--text-secondary);
+  letter-spacing: 0.01em;
 }
 
 .my-order-item-type {
-  padding: 2px 8px;
+  padding: 3px 8px;
   background: var(--bg-secondary);
-  border-radius: 4px;
+  border: 1px solid var(--border-light);
+  border-radius: 999px;
   color: var(--text-secondary);
 }
 
@@ -136,35 +172,72 @@
   color: #6b7280;
 }
 
-.my-order-item-body {
+.my-order-item-main {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  min-height: 72px;
+  padding: 14px 0;
+}
+
+.my-order-item-mark {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 12px;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--primary-50, rgba(27, 94, 75, 0.1));
+  color: var(--primary);
 }
 
 .my-order-item-product {
-  flex: 1;
   min-width: 0;
 }
 
 .my-order-item-name {
-  font-size: 15px;
-  font-weight: 500;
+  overflow: hidden;
+  margin-bottom: 5px;
   color: var(--text);
-  margin-bottom: 4px;
+  font-size: 15px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.my-order-item-qty {
+  margin-left: 6px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 400;
 }
 
 .my-order-item-sku {
-  font-size: 12px;
+  overflow: hidden;
   color: var(--text-muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.my-order-item-total {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  min-width: 96px;
+}
+
+.my-order-item-total-label {
+  color: var(--text-muted);
+  font-size: 11px;
 }
 
 .my-order-item-amount {
-  font-size: 16px;
+  color: var(--primary);
+  font-size: 17px;
   font-weight: 700;
-  color: #1B5E4B;
   white-space: nowrap;
 }
 
@@ -172,7 +245,9 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 10px;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-light);
 }
 
 .my-order-status {
@@ -217,6 +292,104 @@
 
 .my-order-detail-modal {
   max-width: 480px;
+}
+
+.my-order-refund-notice {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(217, 119, 6, 0.08);
+  color: #92400e;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.my-order-refund-notice strong {
+  font-size: 13px;
+}
+
+.my-order-refund-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.my-order-refund-options legend {
+  margin-bottom: 10px;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.my-order-refund-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.my-order-refund-option:hover,
+.my-order-refund-option.selected {
+  border-color: rgba(27, 94, 75, 0.45);
+  background: rgba(27, 94, 75, 0.06);
+  color: var(--primary);
+}
+
+.my-order-refund-option input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--primary);
+}
+
+.my-order-refund-other {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.my-order-refund-other label {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.my-order-refund-other textarea {
+  width: 100%;
+  min-height: 78px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.my-order-refund-other textarea:focus {
+  border-color: var(--primary);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(27, 94, 75, 0.1);
+}
+
+.my-order-refund-counter {
+  align-self: flex-end;
+  color: var(--text-muted);
+  font-size: 11px;
 }
 
 .my-order-detail-row {
@@ -412,24 +585,75 @@
     grid-template-columns: 1fr;
   }
 
-  .my-order-item-header {
-    flex-direction: column;
-    align-items: flex-start;
+  .my-order-list-header {
+    padding: 0 0 10px;
   }
 
-  .my-order-item-body {
-    flex-direction: column;
+  .my-order-filters {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .my-order-filters select {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .my-order-list-body {
+    padding: 0;
+  }
+
+  .my-order-item {
+    padding: 14px 14px 12px 16px;
+  }
+
+  .my-order-item-header {
     align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .my-order-status {
+    align-self: flex-start;
+  }
+
+  .my-order-item-main {
+    grid-template-columns: 36px minmax(0, 1fr);
+    gap: 10px 12px;
+    padding: 12px 0;
+  }
+
+  .my-order-item-mark {
+    width: 36px;
+    height: 36px;
+  }
+
+  .my-order-item-total {
+    grid-column: 2;
+    align-items: flex-start;
+    min-width: 0;
+  }
+
+  .my-order-item-footer {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .my-order-item-footer .btn {
+    flex: 1 1 auto;
   }
 }
 
 /* ===== 传记师订单卡片（合并自 MyBiographerOrders） ===== */
 .my-bio-order-item {
+  position: relative;
+  overflow: hidden;
+  padding: 18px 18px 16px 20px;
   border: 1px solid var(--border-light);
-  border-radius: 14px;
-  padding: 18px;
-  background: #fff;
-  margin: 12px 20px;
+  border-radius: 12px;
+  background: var(--card-bg);
+  box-shadow: var(--shadow-sm);
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
 }
 
 .my-bio-order-main {
@@ -490,7 +714,14 @@
 
 .my-bio-order-status {
   flex-shrink: 0;
-  font-size: 13px;
+  padding: 4px 10px;
+  border: 1px solid color-mix(in srgb, var(--bio-status-color) 22%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bio-status-color) 9%, transparent);
+  color: var(--bio-status-color);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .my-bio-order-progress {

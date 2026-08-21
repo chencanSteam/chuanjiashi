@@ -1,114 +1,474 @@
 .mobile-home {
   padding: 16px;
   padding-bottom: 24px;
+  background: #f6f1e7;
+  min-height: 100%;
+  color: #3a3227;
 }
 
-.mobile-home-hero {
-  background: linear-gradient(135deg, #1b5e4b 0%, #2d7a62 100%);
-  border-radius: 16px;
-  padding: 24px 20px;
-  margin-bottom: 16px;
-  color: #fff;
-}
-
-.mobile-home-greeting h2 {
-  margin: 0 0 6px;
-  font-size: 20px;
-  font-weight: 600;
-}
-
-.mobile-home-greeting p {
-  margin: 0;
-  font-size: 13px;
-  opacity: 0.85;
-}
-
-.mobile-home-card {
-  background: #fff;
-  border-radius: 12px;
-  padding: 16px;
-  margin-bottom: 16px;
+/* 档案头部 */
+.mh-profile {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-}
-
-.archive-card-info h3 {
-  margin: 0 0 4px;
-  font-size: 16px;
-  color: #111;
-}
-
-.archive-card-info p {
-  margin: 0;
-  font-size: 13px;
-  color: #666;
-}
-
-.archive-card-info .archive-occupation {
-  color: #999;
-  margin-top: 2px;
-}
-
-.mobile-home-section {
-  margin-bottom: 20px;
-}
-
-.section-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: #111;
-  margin: 0 0 12px;
-}
-
-.mobile-home-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
   gap: 12px;
+  margin-bottom: 16px;
+  cursor: pointer;
 }
 
-.mobile-home-grid-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 16px 8px;
-  background: #fff;
-  border: none;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-}
-
-.mobile-home-grid-item span {
-  font-size: 13px;
-  color: #333;
-}
-
-.grid-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
+.mh-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #8b6f47, #a8875a);
+  color: #fff;
+  font-size: 22px;
+  font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
+  border: 2px solid #fffdf8;
+  box-shadow: 0 1px 4px rgba(90, 70, 40, 0.25);
 }
 
-.mobile-home-empty {
-  background: #fff;
-  border-radius: 12px;
-  padding: 32px 16px;
+.mh-profile-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.mh-profile-name {
+  font-size: 17px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Songti SC', 'STSong', 'SimSun', serif;
+}
+
+.mh-archive-select {
+  border: none;
+  background: transparent;
+  font-size: 17px;
+  font-weight: 600;
+  font-family: 'Songti SC', 'STSong', 'SimSun', serif;
+  color: #3a3227;
+  cursor: pointer;
+  padding: 0;
+  max-width: 220px;
+}
+
+.mh-add-archive {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid #d8c6a5;
+  border-radius: 50%;
+  background: #fffdf8;
+  color: #8b6f47;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+
+/* 今日讲述 hero */
+.mh-hero {
+  background: linear-gradient(160deg, #fffdf6 0%, #f3ead7 100%);
+  border: 1px solid #e9e0cd;
+  border-radius: 16px;
+  padding: 22px 18px;
+  margin-bottom: 18px;
   text-align: center;
-  color: #999;
+  box-shadow: 0 2px 8px rgba(90, 70, 40, 0.08);
 }
 
-.mobile-home-empty p {
-  margin: 0 0 12px;
+.mh-hero-title {
+  margin: 0 0 10px;
+  font-size: 20px;
+  font-weight: 600;
+  font-family: 'Songti SC', 'STSong', 'SimSun', serif;
+  color: #3a3227;
+}
+
+
+.mh-hero-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.mh-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  border-radius: 22px;
+  background: #8b6f47;
+  color: #fff;
   font-size: 14px;
+  padding: 10px 20px;
+  cursor: pointer;
 }
 
-.btn-sm {
-  padding: 8px 20px;
+.mh-btn-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #8b6f47;
+  border-radius: 22px;
+  background: transparent;
+  color: #8b6f47;
+  font-size: 14px;
+  padding: 10px 20px;
+  cursor: pointer;
+}
+
+/* 通用 section */
+.mh-section {
+  margin-bottom: 18px;
+}
+
+.mh-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.mh-section-head h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  font-family: 'Songti SC', 'STSong', 'SimSun', serif;
+}
+
+.mh-section-sub {
+  font-size: 12px;
+  color: #a89372;
+}
+
+.mh-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  border: none;
+  background: none;
+  color: #8b6f47;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 0;
+}
+
+/* 人生轴：横向滑动卡片 */
+.mh-story-scroll {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+}
+
+.mh-story-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.mh-story-card {
+  flex-shrink: 0;
+  width: 128px;
+  background: #fffdf8;
+  border: 1px solid #ece3d0;
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.mh-story-card img {
+  width: 100%;
+  height: 84px;
+  object-fit: cover;
+  display: block;
+}
+
+.mh-story-body {
+  padding: 8px 10px 10px;
+}
+
+.mh-story-year {
+  font-size: 12px;
+  color: #b8860b;
+  font-weight: 600;
+}
+
+.mh-story-title {
   font-size: 13px;
-  border-radius: 20px;
+  font-weight: 600;
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+
+.mh-story-more {
+  flex-shrink: 0;
+  width: 96px;
+  border: 1px dashed #cbbd9d;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: #a89372;
+  cursor: pointer;
+  background: rgba(255, 253, 248, 0.6);
+}
+
+.mh-story-more span {
+  font-size: 13px;
+}
+
+.mh-story-more em {
+  font-style: normal;
+  font-size: 11px;
+  color: #c3b493;
+}
+
+
+.mh-ai-card h3 {
+  margin: 0 0 10px;
+  font-size: 16px;
+  font-weight: 600;
+  font-family: 'Songti SC', 'STSong', 'SimSun', serif;
+}
+
+.mh-ai-stats {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.mh-ai-stat {
+  font-size: 13px;
+  color: #6b5f4a;
+}
+
+.mh-ai-stat strong {
+  color: #8b6f47;
+  font-size: 15px;
+}
+
+.mh-ai-stat.warn strong {
+  color: #b8860b;
+}
+
+.mh-ai-issues {
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+}
+
+.mh-ai-issues li {
+  font-size: 12px;
+  color: #8a7f6a;
+  line-height: 1.9;
+}
+
+.mh-ai-issues li::before {
+  content: '·';
+  color: #b8860b;
+  margin-right: 6px;
+}
+
+.mh-ai-btn {
+  font-size: 13px;
+  padding: 8px 18px;
+}
+
+
+.mh-journey-line {
+  position: absolute;
+  top: 22px;
+  left: 28px;
+  right: 28px;
+  height: 2px;
+  background: #e3d7bd;
+}
+
+.mh-journey-stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  z-index: 1;
+}
+
+.mh-journey-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #e3d7bd;
+  border: 2px solid #fffdf8;
+}
+
+.mh-journey-stage.done .mh-journey-dot {
+  background: #8b6f47;
+}
+
+.mh-journey-stage span {
+  font-size: 11px;
+  color: #a89372;
+}
+
+.mh-journey-stage.done span {
+  color: #6b5f4a;
+  font-weight: 600;
+}
+
+/* 珍贵记忆 / 我的传记 双卡 */
+.mh-duo {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.mh-mini-card {
+  background: #fffdf8;
+  border: 1px solid #ece3d0;
+  border-radius: 14px;
+  padding: 14px;
+  cursor: pointer;
+}
+
+.mh-mini-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.mh-mini-head h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: 'Songti SC', 'STSong', 'SimSun', serif;
+}
+
+.mh-photo-stack {
+  display: flex;
+  justify-content: center;
+  padding: 6px 0 10px;
+}
+
+.mh-photo-stack img {
+  width: 62px;
+  height: 62px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 6px rgba(90, 70, 40, 0.18);
+  margin-left: -14px;
+}
+
+.mh-photo-stack img:first-child {
+  margin-left: 0;
+}
+
+.mh-book-cover {
+  width: 70px;
+  height: 88px;
+  margin: 4px auto 10px;
+  border-radius: 4px 8px 8px 4px;
+  background: linear-gradient(150deg, #6d5738, #8b6f47);
+  color: #f3ead7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 13px;
+  font-family: 'Songti SC', 'STSong', 'SimSun', serif;
+  padding: 6px;
+  box-shadow: 2px 2px 6px rgba(90, 70, 40, 0.3);
+  border-left: 4px solid #5a4730;
+}
+
+.mh-mini-desc {
+  margin: 0;
+  text-align: center;
+  font-size: 12px;
+  color: #8a7f6a;
+}
+
+/* 传承好物 */
+.mh-goods-sub {
+  margin: -4px 0 10px;
+  font-size: 12px;
+  color: #a89372;
+}
+
+.mh-goods-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.mh-goods-card {
+  appearance: none;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  background: #fffdf8;
+  border: 1px solid #ece3d0;
+  border-radius: 12px;
+  padding: 12px 10px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.mh-goods-card:hover,
+.mh-goods-card:focus-visible {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(90, 70, 40, 0.12);
+  outline: none;
+}
+
+.mh-goods-cover {
+  height: 64px;
+  border-radius: 8px;
+  background: linear-gradient(150deg, #f3ead7, #e9dcc2);
+  color: #8b6f47;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+
+.mh-goods-title {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.mh-goods-desc {
+  font-size: 11px;
+  color: #a89372;
+  line-height: 1.4;
+}
+
+/* 空态 */
+.mh-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 80px 0;
+  color: #8a7f6a;
 }

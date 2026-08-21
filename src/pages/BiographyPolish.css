@@ -362,11 +362,17 @@
   font-weight: 700;
 }
 
+.polish-edit-chapter,
 .polish-delete-chapter {
   flex: 0 0 auto;
   width: 30px;
   height: 30px;
   color: var(--text-muted);
+}
+
+.polish-edit-chapter:hover {
+  background: var(--primary-50);
+  color: var(--primary);
 }
 
 .polish-delete-chapter:hover:not(:disabled) {
@@ -388,12 +394,29 @@
   width: 100%;
 }
 
-.polish-chapter-title {
+.polish-chapter-title,
+.polish-chapter-title-input {
   min-width: 0;
   overflow: hidden;
   font-size: 13px;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.polish-chapter-title-input {
+  width: 100%;
+  border: 1px solid var(--primary-200);
+  border-radius: 5px;
+  outline: none;
+  background: #fff;
+  color: var(--text);
+  padding: 4px 6px;
+  font: inherit;
+}
+
+.polish-chapter-title-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(45, 90, 74, 0.1);
 }
 
 .polish-status {
@@ -675,3 +698,24 @@
     transition: none;
   }
 }
+
+/* 历史版本 / 保存版本弹窗（与 AI 传记生成页一致的视觉风格） */
+.version-save-form,.biography-version-list { display: grid; gap: 12px; }
+.version-save-form label { color: #4b5563; font-size: 13px; }
+.version-save-form input { width: 100%; box-sizing: border-box; border: 1px solid #d9e2de; border-radius: 8px; padding: 10px 12px; outline: none; font: inherit; }
+.version-save-form input:focus { border-color: #1b5e4b; }
+.version-save-form p { margin: 0; color: #8a928f; font-size: 12px; line-height: 1.6; }
+.version-modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.biography-version-item { display: flex; align-items: center; justify-content: space-between; gap: 12px; border: 1px solid #e5ebe8; border-radius: 10px; padding: 11px 12px; }
+.biography-version-item.active { border-color: #1b5e4b; background: rgba(27,94,75,.05); }
+.biography-version-main { min-width: 0; }
+.biography-version-title { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.biography-version-title strong { color: #1b5e4b; font-size: 13px; }
+.biography-version-title span { overflow: hidden; color: #374151; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
+.biography-version-title em { flex: 0 0 auto; border-radius: 999px; background: #dff3e9; color: #1b5e4b; padding: 2px 6px; font-size: 10px; font-style: normal; }
+.biography-version-main small { display: block; margin-top: 4px; color: #9ca3af; font-size: 11px; }
+.biography-version-actions { display: flex; align-items: center; flex: 0 0 auto; gap: 5px; }
+.biography-version-empty { display: grid; justify-items: center; gap: 6px; padding: 28px 8px; color: #9ca3af; text-align: center; }
+.biography-version-empty p,.biography-version-empty span { margin: 0; }
+.biography-version-empty p { color: #4b5563; font-size: 14px; }
+.biography-version-empty span { font-size: 12px; }

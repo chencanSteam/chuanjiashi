@@ -3,8 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   BookOpen,
   Search,
-  Eye,
-  Heart,
   Bookmark,
   ArrowLeft,
   Share2,
@@ -34,6 +32,7 @@ export default function BiographyShelf() {
   const [loading, setLoading] = useState(true);
   const [keyword, setKeyword] = useState('');
   const [activeCategory, setActiveCategory] = useState('全部');
+  const [activeTab, setActiveTab] = useState<'all' | 'collected' | 'purchased'>('all');
   const [comments, setComments] = useState<BookComment[]>([]);
   const [commentInput, setCommentInput] = useState('');
   const [unlocking, setUnlocking] = useState(false);
@@ -76,6 +75,12 @@ export default function BiographyShelf() {
 
   const filtered = useMemo(() => {
     let list = books;
+    if (activeTab === 'collected') {
+      list = list.filter((b) => b.collected);
+    } else if (activeTab === 'purchased') {
+      // 已购：付费且已解锁（免费书不算购买）
+      list = list.filter((b) => !b.isFree && b.unlocked);
+    }
     if (activeCategory !== '全部') {
       list = list.filter((b) => b.category === activeCategory);
     }
@@ -89,25 +94,7 @@ export default function BiographyShelf() {
       );
     }
     return list;
-  }, [books, activeCategory, keyword]);
-
-  const handleLike = async (bookId: string) => {
-    if (!user) {
-      addToast('请先登录', 'error');
-      return;
-    }
-    try {
-      const updated = await bookshelfApi.like(bookId);
-      addToast('点赞成功', 'success');
-      if (id && book && book.id === bookId) {
-        setBook(updated);
-      } else {
-        setBooks((prev) => prev.map((b) => (b.id === bookId ? updated : b)));
-      }
-    } catch (err: any) {
-      addToast(err.message || '点赞失败', 'error');
-    }
-  };
+  }, [books, activeTab, activeCategory, keyword]);
 
   const handleCollect = async (bookId: string) => {
     if (!user) {
@@ -116,7 +103,7 @@ export default function BiographyShelf() {
     }
     try {
       const updated = await bookshelfApi.collect(bookId);
-      addToast('收藏成功', 'success');
+      addToast(updated.collected ? '收藏成功' : '已取消收藏', 'success');
       if (id && book && book.id === bookId) {
         setBook(updated);
       } else {
@@ -227,7 +214,6 @@ export default function BiographyShelf() {
             <h1 className="biography-shelf-title">{book.title}</h1>
             <div className="biography-shelf-meta">
               <span><User size={12} /> {book.author || '匿名'}</span>
-              <span><Eye size={12} /> {book.views} 阅读</span>
               <span><Clock size={12} /> {new Date(book.createdAt).toLocaleDateString()}</span>
             </div>
             <p className="biography-shelf-intro">{book.intro}</p>
@@ -240,9 +226,7 @@ export default function BiographyShelf() {
             </div>
             <Annotate id="biography-shelf.detail-actions" inline>
             <div className="biography-shelf-actions">
-              <button className="btn btn-outline" onClick={() => handleLike(book.id)}>
-                <Heart size={14} /> {book.likes}
-              </button>
+              <span className="biography-shelf-sold">已售 {book.sales ?? book.likes}</span>
               <button className="btn btn-outline" onClick={() => handleCollect(book.id)}>
                 <Bookmark size={14} /> {book.collects}
               </button>
@@ -281,21 +265,25 @@ export default function BiographyShelf() {
           <h2 className="biography-shelf-section-title">
             <MessageSquare size={16} /> 读者评论（{comments.length}）
           </h2>
-          <div className="biography-shelf-comment-form">
-            <textarea
-              rows={3}
-              placeholder="写下您的读后感…"
-              value={commentInput}
-              onChange={(e) => setCommentInput(e.target.value)}
-            />
-            <button
-              className="btn btn-primary"
-              onClick={handlePostComment}
-              disabled={commentSubmitting || !commentInput.trim()}
-            >
-              <Send size={14} /> {commentSubmitting ? '发表中…' : '发表评论'}
-            </button>
-          </div>
+          {book && !book.isFree && !book.unlocked ? (
+            <div className="biography-shelf-comment-locked">购买本书后才能发表评论</div>
+          ) : (
+            <div className="biography-shelf-comment-form">
+              <textarea
+                rows={3}
+                placeholder="写下您的读后感…"
+                value={commentInput}
+                onChange={(e) => setCommentInput(e.target.value)}
+              />
+              <button
+                className="btn btn-primary"
+                onClick={handlePostComment}
+                disabled={commentSubmitting || !commentInput.trim()}
+              >
+                <Send size={14} /> {commentSubmitting ? '发表中…' : '发表评论'}
+              </button>
+            </div>
+          )}
           {comments.length === 0 ? (
             <div className="biography-shelf-comment-empty">暂无评论，来发表第一条评论吧</div>
           ) : (
@@ -304,6 +292,11 @@ export default function BiographyShelf() {
                 <div className="biography-shelf-comment" key={c.id}>
                   <div className="biography-shelf-comment-head">
                     <span className="biography-shelf-comment-user">{c.userNickname}</span>
+                    {c.purchasedAt && (
+                      <span className="biography-shelf-comment-purchased">
+                        购于 {new Date(c.purchasedAt).toLocaleDateString('zh-CN')}
+                      </span>
+                    )}
                     <span className="biography-shelf-comment-time">
                       {new Date(c.createdAt).toLocaleString()}
                     </span>
@@ -322,7 +315,7 @@ export default function BiographyShelf() {
   return (
     <div className="biography-shelf-page">
       <header className="biography-shelf-header">
-        <h1><BookOpen size={24} /> 名人传记 / 传记书架</h1>
+        <h1><BookOpen size={24} /> 传记书城</h1>
         <p>记录平凡生命中的不凡故事，致敬每一段值得被铭记的人生。</p>
       </header>
 
@@ -354,7 +347,23 @@ export default function BiographyShelf() {
       </div>
       </Annotate>
 
-      {!loading && hotBooks.length > 0 && (
+      <div className="biography-shelf-tabs">
+        {([
+          { key: 'all', label: '全部传记' },
+          { key: 'collected', label: '我的收藏' },
+          { key: 'purchased', label: '已购传记' },
+        ] as const).map((tab) => (
+          <button
+            key={tab.key}
+            className={`biography-shelf-tab ${activeTab === tab.key ? 'active' : ''}`}
+            onClick={() => setActiveTab(tab.key)}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === 'all' && !loading && hotBooks.length > 0 && (
         <Annotate id="biography-shelf.hot-rank">
         <section className="biography-shelf-rank">
           <h2 className="biography-shelf-rank-title"><Flame size={16} /> 热度榜单</h2>
@@ -366,11 +375,17 @@ export default function BiographyShelf() {
                 onClick={() => navigate(`/biography-shelf/${b.id}`)}
               >
                 <span className={`biography-shelf-rank-no rank-${i + 1}`}>{i + 1}</span>
-                <span className="biography-shelf-rank-book">{b.title}</span>
-                <span className="biography-shelf-rank-meta">
-                  <Eye size={12} /> {b.views}
-                  <Heart size={12} /> {b.likes}
-                </span>
+                <div className="biography-shelf-rank-cover"><BookOpen size={20} /></div>
+                <div className="biography-shelf-rank-info">
+                  <div className="biography-shelf-rank-book">{b.title}</div>
+                  <div className="biography-shelf-rank-author">{b.author || '匿名'} · {b.category || '其他'}</div>
+                  <div className="biography-shelf-rank-meta">
+                    <span>已售 {b.sales ?? b.likes}</span>
+                    <span className="biography-shelf-rank-price">
+                      {b.isFree || b.price === 0 ? '免费' : `¥${b.price.toFixed(2)}`}
+                    </span>
+                  </div>
+                </div>
               </div>
             ))}
           </div>
@@ -383,7 +398,13 @@ export default function BiographyShelf() {
       ) : filtered.length === 0 ? (
         <div className="biography-shelf-empty">
           <BookOpen size={48} color="#d1d5db" />
-          <p>暂无符合条件的传记</p>
+          <p>
+            {activeTab === 'collected'
+              ? '还没有收藏任何传记，看到喜欢的就点收藏吧'
+              : activeTab === 'purchased'
+                ? '还没有购买传记，付费解锁后可在这里随时阅读'
+                : '暂无符合条件的传记'}
+          </p>
         </div>
       ) : (
         <Annotate id="biography-shelf.book-cards">
@@ -394,31 +415,29 @@ export default function BiographyShelf() {
                 <BookOpen size={32} />
               </div>
               <div className="biography-shelf-card-body">
-                <div className="biography-shelf-card-category">{b.category || '其他'}</div>
+                <div className="biography-shelf-card-tags">
+                  <span className="biography-shelf-card-category">{b.category || '其他'}</span>
+                  {b.lifeStageTags?.map((tag) => (
+                    <span className="biography-shelf-card-stage" key={tag}>{tag}</span>
+                  ))}
+                </div>
                 <h3 className="biography-shelf-card-title">{b.title}</h3>
                 <p className="biography-shelf-card-intro">{b.intro}</p>
                 <div className="biography-shelf-card-meta">
                   <span>{b.author || '匿名'}</span>
-                  <span><Eye size={12} /> {b.views}</span>
                 </div>
                 <div className="biography-shelf-card-footer">
                   <span className="biography-shelf-card-price">
                     {b.isFree || b.price === 0 ? '免费' : `¥${b.price.toFixed(2)}`}
                   </span>
                   <div className="biography-shelf-card-actions">
+                    <span className="biography-shelf-sold">已售 {b.sales ?? b.likes}</span>
                     <button
-                      className="biography-shelf-icon-btn"
-                      onClick={(e) => { e.stopPropagation(); handleLike(b.id); }}
-                      title="点赞"
-                    >
-                      <Heart size={12} /> {b.likes}
-                    </button>
-                    <button
-                      className="biography-shelf-icon-btn"
+                      className={`biography-shelf-icon-btn ${b.collected ? 'collected' : ''}`}
                       onClick={(e) => { e.stopPropagation(); handleCollect(b.id); }}
-                      title="收藏"
+                      title={b.collected ? '取消收藏' : '收藏'}
                     >
-                      <Bookmark size={12} /> {b.collects}
+                      <Bookmark size={12} fill={b.collected ? 'currentColor' : 'none'} /> {b.collects}
                     </button>
                   </div>
                 </div>

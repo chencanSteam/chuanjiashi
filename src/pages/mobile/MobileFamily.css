@@ -1,6 +1,8 @@
 .mobile-family {
   padding: 16px;
   padding-bottom: 24px;
+  background: #f6f1e7;
+  min-height: 100%;
 }
 
 .mobile-family-hero {

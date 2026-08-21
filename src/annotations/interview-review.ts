@@ -16,11 +16,11 @@ export const interviewReviewAnnotations: PageAnnotations = {
 ② 不强制要求事件全部确认；已确认事件已同步进人生档案时间轴，生成页按已确认大纲或默认章节结构生成。`,
     },
     {
-      id: 'interview-review.summary-tabs',
-      target: '采访摘要 / 采访详情 / 协作者补充',
-      logic: `① 「摘要」：由 buildReviewData 基于采访回答一次性提炼的整段总结，只读。
-② 「采访详情」：按「主题 → 问题」分组，合并本人回答（cj_interview_answers_\${archiveId}，无回答时回退 mock 答案）与协作者补充回答；无任何回答时显示空态。
-③ 「协作者补充」：先按协作者统计补充条数，再列全部补充明细；被创建人作废的补充带「已作废」标记，不作为传记素材。`,
+      id: 'interview-review.records',
+      target: '采访记录列表',
+      logic: `① 读取当前档案的创建人和协作者 transcript（cj_interview_transcript_<archiveId>[_<respondentId>])，列表只显示被采访人、关系、采访时间和对话条数。
+② 没有 transcript 但有采访回答时，根据题目与答案生成可读的回退记录；完全没有数据时显示空态并提供返回 AI 智能采访入口。
+③ 点击记录打开详情弹窗，完整展示 AI 提问和被采访人回答；详情内部滚动，不修改原始采访数据。`,
     },
     {
       id: 'interview-review.events',

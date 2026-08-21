@@ -5,6 +5,30 @@
   justify-content: center;
   background: linear-gradient(135deg, #e8f3ee 0%, #f6fbf9 100%);
   padding: 24px;
+  position: relative;
+}
+
+.onboarding-exit {
+  position: absolute;
+  top: 20px;
+  left: 24px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1px solid rgba(27, 94, 75, 0.2);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.7);
+  color: #1b5e4b;
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.onboarding-exit:hover {
+  background: #fff;
+  border-color: #1b5e4b;
 }
 
 .onboarding-card {
@@ -229,4 +253,76 @@
 .onboarding-footer .btn {
   min-width: 120px;
   justify-content: center;
+}
+
+/* 第 0 步：选择人生档案 */
+.archive-select-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.archive-select-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid #e8e4dd;
+  border-radius: 12px;
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+}
+
+.archive-select-card:hover {
+  border-color: #1b5e4b;
+  box-shadow: 0 4px 14px rgba(27, 94, 75, 0.1);
+  transform: translateY(-1px);
+}
+
+.archive-select-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.archive-select-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.archive-select-meta {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.archive-select-arrow {
+  color: #9ca3af;
+  flex-shrink: 0;
+}
+
+.archive-select-card:hover .archive-select-arrow {
+  color: #1b5e4b;
+}
+
+.archive-select-new {
+  border-style: dashed;
+}
+
+.archive-select-new-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(27, 94, 75, 0.08);
+  color: #1b5e4b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }

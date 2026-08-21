@@ -21,7 +21,7 @@ export const digitalLifeAnnotations: PageAnnotations = {
       id: 'digital-life.stats',
       target: '顶部统计卡',
       logic: `① 五张统计卡均可点击：前两张与「活跃对话」回到本页，「人格训练完成度」跳训练记录页，「数字遗产配置数」跳政务服务页（/government）。
-② MVP 模式下「训练记录」与「政务服务」未开放，点击这两张卡统一回到数字人首页。
+② V1.0 模式下「训练记录」与「政务服务」未开放，点击这两张卡统一回到数字人首页。
 ③ 「数字人物数量」实时读取 cj_relatives 的条数，其余指标为演示静态数据。`,
     },
     {
@@ -59,13 +59,13 @@ export const digitalLifeAnnotations: PageAnnotations = {
       id: 'digital-life.training',
       target: '人格训练参数卡',
       logic: `① 五项训练参数读取 localStorage「cj_training_values」，无数据时用默认值；「开始训练」将当前亲人进度与全部参数各 +5（封顶 100）并即时保存。
-② MVP 模式下隐藏「训练记录」「训练报告」两个入口按钮。
+② V1.0 模式下隐藏「训练记录」「训练报告」两个入口按钮。
 ③ 「训练记录」跳 /digital-person/training-records，「训练报告」跳 /digital-person/training-report。`,
     },
     {
       id: 'digital-life.inheritance',
       target: '数字遗产与继承设置卡',
-      logic: `① 三项继承设置（继承人指定 / 分阶段解锁 / 数据托管）点击跳转 /government 政务与继承页；MVP 模式下点击不跳转，且「管理继承方案」按钮隐藏。
+      logic: `① 三项继承设置（继承人指定 / 分阶段解锁 / 数据托管）点击跳转 /government 政务与继承页；V1.0 模式下点击不跳转，且「管理继承方案」按钮隐藏。
 ② 「查看继承预览」展开/收起一段继承说明文案，为纯前端展示状态。`,
     },
   ],

@@ -51,7 +51,7 @@ function maskIdCard(id: string): string {
 
 export default function Profile() {
   const { user, logout, updateUser } = useAuth();
-  const { isMVP } = useVersion();
+  const { isV1 } = useVersion();
   const { addToast } = useToast();
   const navigate = useNavigate();
   const displayName = user?.name || user?.phone || '用户';
@@ -150,10 +150,11 @@ export default function Profile() {
   const menuItems = [
     { to: '/my-works', icon: BookMarked, label: '我的传记', desc: '查看已生成的传记作品' },
     { to: '/my-orders', icon: ClipboardList, label: '我的订单', desc: '实体书与服务订单' },
-    { to: '/settings/quota', icon: Sparkles, label: 'AI 额度', desc: '套餐与用量明细' },
-    { to: '/settings/invite', icon: Share2, label: '我的邀请', desc: '邀请好友得奖励' },
+    { to: '/settings/quota', icon: Sparkles, label: 'AI 额度', desc: '套餐与用量明细', fullOnly: true },
+    { to: '/settings/invite', icon: Share2, label: '我的邀请', desc: '邀请好友得奖励', fullOnly: true },
     { to: '/settings/account', icon: SettingsIcon, label: '账户设置', desc: '昵称、真实姓名、手机号' },
   ];
+  const visibleMenuItems = menuItems.filter((item) => !item.fullOnly || !isV1);
 
   const handleLogout = async () => {
     await logout();
@@ -174,11 +175,9 @@ export default function Profile() {
               </span>
             </div>
             <div className="profile-phone">{user?.phone}</div>
-            {!isMVP && (
-              <button className="btn btn-outline btn-sm" onClick={() => navigate('/settings/account')}>
-                完善资料
-              </button>
-            )}
+            <button className="btn btn-outline btn-sm" onClick={() => navigate('/settings/account')}>
+              完善资料
+            </button>
           </div>
         </div>
       </div>
@@ -226,22 +225,20 @@ export default function Profile() {
         </Annotate>
       </div>
 
-      {!isMVP && (
-        <Annotate id="profile.menu-list">
-        <div className="card profile-menu-card">
-          {menuItems.map((item) => (
-            <div className="profile-menu-item" key={item.to} onClick={() => navigate(item.to)}>
-              <div className="profile-menu-icon"><item.icon size={18} /></div>
-              <div className="profile-menu-info">
-                <div className="profile-menu-label">{item.label}</div>
-                <div className="profile-menu-desc">{item.desc}</div>
-              </div>
-              <ChevronRight size={16} className="profile-menu-arrow" />
+      <Annotate id="profile.menu-list">
+      <div className="card profile-menu-card">
+        {visibleMenuItems.map((item) => (
+          <div className="profile-menu-item" key={item.to} onClick={() => navigate(item.to)}>
+            <div className="profile-menu-icon"><item.icon size={18} /></div>
+            <div className="profile-menu-info">
+              <div className="profile-menu-label">{item.label}</div>
+              <div className="profile-menu-desc">{item.desc}</div>
             </div>
-          ))}
-        </div>
-        </Annotate>
-      )}
+            <ChevronRight size={16} className="profile-menu-arrow" />
+          </div>
+        ))}
+      </div>
+      </Annotate>
 
       <Annotate id="profile.logout">
       <button className="btn btn-outline profile-logout" onClick={handleLogout}>

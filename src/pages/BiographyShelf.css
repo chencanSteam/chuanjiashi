@@ -142,6 +142,23 @@
   font-weight: 500;
 }
 
+.biography-shelf-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.biography-shelf-card-stage {
+  display: inline-flex;
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: rgba(184, 134, 11, 0.08);
+  color: #b8860b;
+  font-size: 11px;
+  font-weight: 500;
+}
+
 .biography-shelf-card-title {
   margin: 0;
   font-size: 16px;
@@ -215,6 +232,49 @@
 .biography-shelf-icon-btn:hover {
   border-color: #1b5e4b;
   color: #1b5e4b;
+}
+
+.biography-shelf-icon-btn.collected {
+  border-color: rgba(184, 134, 11, 0.4);
+  background: rgba(184, 134, 11, 0.08);
+  color: #b8860b;
+}
+
+.biography-shelf-sold {
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  color: #9ca3af;
+  padding: 4px 2px;
+}
+
+/* 全部 / 我的收藏 / 已购 页签 */
+.biography-shelf-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin: -8px 0 20px;
+}
+
+.biography-shelf-tab {
+  padding: 8px 20px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  font-size: 14px;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.biography-shelf-tab:hover {
+  color: #1b5e4b;
+}
+
+.biography-shelf-tab.active {
+  background: #1b5e4b;
+  color: #fff;
+  font-weight: 500;
 }
 
 /* Detail */
@@ -461,6 +521,24 @@
   color: #9ca3af;
 }
 
+.biography-shelf-comment-purchased {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(184, 134, 11, 0.08);
+  color: #b8860b;
+}
+
+.biography-shelf-comment-locked {
+  padding: 14px;
+  border: 1px dashed #e5e7eb;
+  border-radius: 10px;
+  text-align: center;
+  font-size: 13px;
+  color: #9ca3af;
+  margin-bottom: 14px;
+}
+
 .biography-shelf-comment-text {
   margin: 0;
   font-size: 14px;
@@ -468,7 +546,7 @@
   color: #374151;
 }
 
-/* 热度榜单 */
+/* 热度榜单（参照起点/当当：名次 + 封面 + 书名 + 热度信息） */
 .biography-shelf-rank {
   margin-bottom: 24px;
   padding: 20px 24px;
@@ -492,58 +570,90 @@
 }
 
 .biography-shelf-rank-list {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 12px;
 }
 
 .biography-shelf-rank-item {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 8px;
-  border-radius: 10px;
+  padding: 12px;
+  border: 1px solid #f0ede8;
+  border-radius: 12px;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
 }
 
 .biography-shelf-rank-item:hover {
-  background: #f9fafb;
+  border-color: #1b5e4b;
+  box-shadow: 0 8px 20px rgba(27, 94, 75, 0.08);
+  transform: translateY(-2px);
 }
 
 .biography-shelf-rank-no {
-  width: 22px;
-  height: 22px;
-  border-radius: 6px;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 700;
+  font-style: italic;
   color: #9ca3af;
   background: #f3f4f6;
   flex-shrink: 0;
 }
 
 .biography-shelf-rank-no.rank-1 {
-  background: #fee2e2;
-  color: #dc2626;
+  background: #dc2626;
+  color: #fff;
 }
 
 .biography-shelf-rank-no.rank-2 {
-  background: #ffedd5;
-  color: #d97706;
+  background: #ea7c28;
+  color: #fff;
 }
 
 .biography-shelf-rank-no.rank-3 {
-  background: #fef9c3;
-  color: #a16207;
+  background: #d9a514;
+  color: #fff;
+}
+
+.biography-shelf-rank-cover {
+  width: 46px;
+  height: 62px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #1b5e4b, #2e8b72);
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.biography-shelf-rank-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .biography-shelf-rank-book {
-  flex: 1;
-  min-width: 0;
   font-size: 14px;
-  color: #374151;
+  font-weight: 600;
+  color: #1f2937;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.biography-shelf-rank-author {
+  font-size: 12px;
+  color: #9ca3af;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -552,8 +662,18 @@
 .biography-shelf-rank-meta {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 12px;
   font-size: 12px;
   color: #9ca3af;
-  flex-shrink: 0;
+}
+
+.biography-shelf-rank-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.biography-shelf-rank-price {
+  color: #b8860b;
+  font-weight: 600;
 }

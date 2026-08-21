@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { X, BookOpen, Tag, DollarSign, FileText, User } from 'lucide-react';
 import { bookshelfApi } from '../api/bookshelf';
+import { dictionaryApi } from '../api/dictionary';
 import { useToast } from '../hooks/useToast';
+import { useAuth } from '../hooks/useAuth';
 import type { PublicBook } from '../mocks/types';
 import './PublishBookModal.css';
 
@@ -19,20 +21,32 @@ interface PublishBookModalProps {
   onPublished?: () => void;
 }
 
-const categories = ['企业家', '教师', '医生', '军人', '农民', '工人', '艺术家', '科学家', '其他'];
-
 export default function PublishBookModal({ archive, onClose, onPublished }: PublishBookModalProps) {
   const { addToast } = useToast();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [existing, setExisting] = useState<PublicBook | null>(null);
+  const [occupationOptions, setOccupationOptions] = useState<string[]>([]);
+  const [lifeStageOptions, setLifeStageOptions] = useState<string[]>([]);
   const [form, setForm] = useState({
     title: `${archive.name}的传记`,
-    author: '本人/家属整理',
+    author: user?.name || '本人/家属整理',
     intro: '',
-    category: '其他',
+    occupationTags: [] as string[],
+    lifeStageTags: [] as string[],
     isFree: true,
     price: '',
+    trialWords: 1000,
   });
+
+  useEffect(() => {
+    dictionaryApi.list('book_occupation')
+      .then((list) => setOccupationOptions(list.map((item) => item.label)))
+      .catch(() => setOccupationOptions([]));
+    dictionaryApi.list('book_life_stage')
+      .then((list) => setLifeStageOptions(list.map((item) => item.label)))
+      .catch(() => setLifeStageOptions([]));
+  }, []);
 
   useEffect(() => {
     setLoading(true);
@@ -46,15 +60,24 @@ export default function PublishBookModal({ archive, onClose, onPublished }: Publ
             title: found.title,
             author: found.author,
             intro: found.intro,
-            category: found.category,
+            occupationTags: found.occupationTags?.length ? found.occupationTags : [found.category],
+            lifeStageTags: found.lifeStageTags || [],
             isFree: found.isFree,
             price: found.isFree ? '' : found.price.toString(),
+            trialWords: found.trialWords || 1000,
           });
         }
       })
       .catch(() => setExisting(null))
       .finally(() => setLoading(false));
   }, [archive.id]);
+
+  const toggleTag = (key: 'occupationTags' | 'lifeStageTags', tag: string) => {
+    setForm((prev) => ({
+      ...prev,
+      [key]: prev[key].includes(tag) ? prev[key].filter((t) => t !== tag) : [...prev[key], tag],
+    }));
+  };
 
   const handleSubmit = async () => {
     if (!form.title.trim()) {
@@ -80,9 +103,13 @@ export default function PublishBookModal({ archive, onClose, onPublished }: Publ
         title: form.title,
         author: form.author,
         intro: form.intro,
-        category: form.category,
+        // category 保留用于书架筛选兼容，取第一个职业标签
+        category: form.occupationTags[0] || '其他',
+        occupationTags: form.occupationTags,
+        lifeStageTags: form.lifeStageTags,
         isFree: form.isFree,
         price: form.isFree ? 0 : parseFloat(form.price),
+        trialWords: form.trialWords,
       });
       addToast(existing ? '已重新提交审核' : '上架申请已提交，等待平台审核', 'success');
       onPublished?.();
@@ -138,15 +165,35 @@ export default function PublishBookModal({ archive, onClose, onPublished }: Publ
               </div>
 
               <div className="form-row">
-                <label><Tag size={14} /> 分类</label>
-                <select
-                  value={form.category}
-                  onChange={(e) => setForm((prev) => ({ ...prev, category: e.target.value }))}
-                >
-                  {categories.map((c) => (
-                    <option value={c} key={c}>{c}</option>
+                <label><Tag size={14} /> 职业标签（可多选，选填）</label>
+                <div className="publish-book-tags">
+                  {occupationOptions.map((tag) => (
+                    <button
+                      type="button"
+                      key={tag}
+                      className={`publish-book-tag ${form.occupationTags.includes(tag) ? 'active' : ''}`}
+                      onClick={() => toggleTag('occupationTags', tag)}
+                    >
+                      {tag}
+                    </button>
                   ))}
-                </select>
+                </div>
+              </div>
+
+              <div className="form-row">
+                <label><Tag size={14} /> 人生阶段标签（可多选，选填）</label>
+                <div className="publish-book-tags">
+                  {lifeStageOptions.map((tag) => (
+                    <button
+                      type="button"
+                      key={tag}
+                      className={`publish-book-tag publish-book-tag-stage ${form.lifeStageTags.includes(tag) ? 'active' : ''}`}
+                      onClick={() => toggleTag('lifeStageTags', tag)}
+                    >
+                      {tag}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div className="form-row">
@@ -194,8 +241,17 @@ export default function PublishBookModal({ archive, onClose, onPublished }: Publ
                 )}
               </div>
 
+              {!form.isFree && (
+                <div className="form-row">
+                  <label><FileText size={14} /> 试看字数</label>
+                  <select value={form.trialWords} onChange={(e) => setForm((prev) => ({ ...prev, trialWords: Number(e.target.value) }))}>
+                    {[500, 1000, 2000, 5000].map((value) => <option key={value} value={value}>{value} 字</option>)}
+                  </select>
+                  <span className="publish-book-field-hint">读者可免费阅读前 N 字，付费后解锁全本。</span>
+                </div>
+              )}
               <div className="publish-book-hint">
-                提交后平台将在 1-3 个工作日内完成审核，审核通过后即可公开上架。
+                上架申请仅对已完成传记开放，提交后平台将在 1-3 个工作日内完成审核。
               </div>
 
               <div className="publish-book-actions">

@@ -24,6 +24,7 @@ import {
   TicketPercent,
   Bot,
   FileCheck,
+  Tags,
   ShieldAlert,
   Settings,
   Briefcase,
@@ -101,13 +102,14 @@ const adminNavGroups: NavGroup[] = [
       { to: '/admin/user-invites', icon: Share2, label: '用户邀请奖励' },
       { to: '/admin/ai-usage', icon: Brain, label: 'AI 使用情况' },
       { to: '/admin/ai-tasks', icon: Bot, label: 'AI任务管理' },
+      { to: '/admin/dictionary', icon: Tags, label: '数据字典' },
       { to: '/admin/settings', icon: Settings, label: '系统设置' },
     ],
   },
 ];
 
-// MVP 版后台仅保留：用户与档案、AI任务、角色权限、消息通知
-const adminNavGroupsMVP: NavGroup[] = [
+// V1.0 版后台：用户与档案、传记师管理、订单管理、传记上架审核、AI使用、AI任务、角色权限（合伙人/分润 V1.1 等不开放）
+const adminNavGroupsV1: NavGroup[] = [
   {
     key: 'users',
     icon: Users,
@@ -118,11 +120,30 @@ const adminNavGroupsMVP: NavGroup[] = [
     ],
   },
   {
+    key: 'business',
+    icon: Briefcase,
+    label: '业务管理',
+    items: [
+      { to: '/admin/biographers', icon: PenLine, label: '传记师管理' },
+      { to: '/admin/orders', icon: ShoppingCart, label: '订单管理' },
+    ],
+  },
+  {
+    key: 'content',
+    icon: FileCheck,
+    label: '内容审核',
+    items: [
+      { to: '/admin/book-review', icon: BookOpen, label: '传记上架审核' },
+    ],
+  },
+  {
     key: 'system',
     icon: Settings,
     label: '系统管理',
     items: [
+      { to: '/admin/ai-usage', icon: Brain, label: 'AI 使用情况' },
       { to: '/admin/ai-tasks', icon: Bot, label: 'AI任务管理' },
+      { to: '/admin/dictionary', icon: Tags, label: '数据字典' },
       { to: '/admin/roles', icon: KeyRound, label: '角色权限' },
     ],
   },
@@ -134,13 +155,13 @@ function isGroupActive(group: NavGroup, pathname: string): boolean {
 
 export default function AdminLayout() {
   const { user, logout } = useAuth();
-  const { isMVP } = useVersion();
+  const { isV1 } = useVersion();
   const navigate = useNavigate();
   const location = useLocation();
   const pathname = location.pathname;
   const displayName = user?.name || user?.phone || '管理员';
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const navGroups = isMVP ? adminNavGroupsMVP : adminNavGroups;
+  const navGroups = isV1 ? adminNavGroupsV1 : adminNavGroups;
 
   // 用户手动折叠/展开的覆盖值；未覆盖时默认展开当前路由所在分组
   const [expandedOverrides, setExpandedOverrides] = useState<Record<string, boolean>>({});
@@ -179,7 +200,7 @@ export default function AdminLayout() {
 
         <nav className="nav">
           <ul className="nav-list">
-            {!isMVP && (
+            {!isV1 && (
               <li className="nav-item">
                 <NavLink
                   to={dashboardNavItem.to}

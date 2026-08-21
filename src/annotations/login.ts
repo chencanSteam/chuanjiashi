@@ -11,9 +11,9 @@ export const loginAnnotations: PageAnnotations = {
   items: [
     {
       id: 'login.version-switch',
-      target: 'MVP / 完整版切换开关',
-      logic: `① 点击开关在「MVP 模式 / 完整版」间切换，调用 setAppVersion 并写入 localStorage \`cj_app_version\`，刷新后保持。
-② MVP 模式仅显示用户端、管理后台两个入口；完整版额外开放合伙人中心、传记师端、移动端。`,
+      target: 'V1.0 / 完整版切换开关',
+      logic: `① 点击开关在「V1.0 版本 / 完整版」间切换，调用 setAppVersion 并写入 localStorage \`cj_app_version\`，刷新后保持。
+② V1.0 版本显示用户端、管理后台、传记师端、移动端四个入口；完整版额外开放合伙人中心（V1.1）。`,
     },
     {
       id: 'login.portal-grid',

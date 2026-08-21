@@ -14,7 +14,7 @@ export const profileAnnotations: PageAnnotations = {
       target: '用户信息卡',
       logic: `① 展示名优先级：实名姓名 > 昵称 > 手机号 > 默认「用户」；头像按展示名自动生成。
 ② 实名状态徽标读取 localStorage \`cj_security_<手机号>\`，切换账号（手机号变化）时重新加载。
-③ 「完善资料」仅完整版显示，跳转 /settings/account；MVP 模式隐藏。`,
+③ 「完善资料」V1.0 起显示，跳转 /settings/account。`,
     },
     {
       id: 'profile.realname',
@@ -39,7 +39,7 @@ export const profileAnnotations: PageAnnotations = {
     {
       id: 'profile.menu-list',
       target: '功能菜单（传记 / 订单 / 额度 / 邀请 / 账户）',
-      logic: `① 整组菜单仅完整版显示，MVP 模式隐藏。
+      logic: `① 菜单组 V1.0 起显示，其中「AI 额度」「我的邀请」（V1.1 邀请奖励）仅完整版显示。
 ② 分别跳转 /my-works（我的传记）、/my-orders（我的订单）、/settings/quota（AI 额度）、/settings/invite（我的邀请）、/settings/account（账户设置）。`,
     },
     {

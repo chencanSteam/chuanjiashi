@@ -371,7 +371,7 @@ function getSavedDetail(year: string, archiveId: string) {
 export default function LifeArchive() {
   const navigate = useNavigate();
   const { addToast } = useToast();
-  const { isMVP } = useVersion();
+  const { isV1 } = useVersion();
 
   const initialArchives = loadArchives();
   const initialArchiveId = resolveCurrentArchiveId(initialArchives);
@@ -1170,7 +1170,7 @@ export default function LifeArchive() {
                   </button>
                 ))}
               </div>
-              {!isMVP && (
+              {!isV1 && (
                 <button className="media-restore-btn" onClick={() => navigate('/photo-restore')}>
                   <Wand2 size={14} />
                   <span>老照片修复</span>
@@ -1212,7 +1212,7 @@ export default function LifeArchive() {
                 <div>该分类下暂无素材</div>
                 {canEdit && (
                   <>
-                    {!isMVP && (
+                    {!isV1 && (
                       <button className="media-restore-btn media-restore-btn-empty" onClick={() => navigate('/photo-restore')}>
                         <Wand2 size={14} />
                         <span>老照片修复</span>
@@ -1237,7 +1237,7 @@ export default function LifeArchive() {
           <div className="card-header relation-header">
             <h3 className="card-title">人物关系图谱</h3>
             <div className="relation-header-actions">
-              <span className="relation-subtitle">{isMVP ? '点击成员可维护关系' : '点击成员可查看详情'}</span>
+              <span className="relation-subtitle">{isV1 ? '点击成员可维护关系' : '点击成员可查看详情'}</span>
               <button className="btn btn-outline" onClick={() => setShowRelationModal(true)}>
                 <Settings2 size={14} /> 维护关系
               </button>
@@ -1309,7 +1309,7 @@ export default function LifeArchive() {
                   style={{ left: `${r.x}%`, top: `${r.y}%` }}
                   key={i}
                   onClick={() => {
-                    if (isMVP) {
+                    if (isV1) {
                       setShowRelationModal(true);
                       return;
                     }

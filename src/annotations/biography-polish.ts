@@ -1,9 +1,9 @@
 import type { PageAnnotations } from './types';
 
-/** 传记润色页的白话说明，方便产品演示和非技术人员理解。 */
+/** 已有传记上传页的白话说明，方便产品演示和非技术人员理解。 */
 export const biographyPolishAnnotations: PageAnnotations = {
   page: 'biography-polish',
-  pageName: '传记润色',
+  pageName: '已有传记上传',
   route: '/polish',
   items: [
     {
@@ -25,6 +25,18 @@ export const biographyPolishAnnotations: PageAnnotations = {
 用户下次回来时，可以从上次停下的位置继续整理，不需要重新开始。`,
     },
     {
+      id: 'biography-polish.save-version',
+      target: '保存版本',
+      logic: `用户想把当前整理结果留成一个可回溯的版本时，系统按顺序自动编号（V1、V2……），也可以补充一句版本说明。
+保存的是当前全部章节的名称、原文和最新文字，之后无论怎么修改，都能回到这一版。`,
+    },
+    {
+      id: 'biography-polish.versions',
+      target: '历史版本',
+      logic: `这里列出用户保存过的所有版本，可以看到每一版的保存时间和章节数量。
+用户可以切回任意一个历史版本继续修改，也可以删除不再需要的版本；删除前系统会先提醒确认。`,
+    },
+    {
       id: 'biography-polish.upload',
       target: '放入传记',
       logic: `用户可以提供已有的传记，也可以直接粘贴文字。
@@ -35,7 +47,7 @@ export const biographyPolishAnnotations: PageAnnotations = {
       id: 'biography-polish.chapter-tree',
       target: '章节列表',
       logic: `这里展示系统已经整理出的章节，用户切换章节后，可以查看和修改对应内容。
-如果系统没有判断出章节，用户可以自己补充章节，再把文字分别整理进去。
+章节名称可在正文标题输入框中修改，也可点击章节行右侧的铅笔图标直接修改；失焦后会同步到正文标题和保存内容。
 每一章显示自己的处理进度，方便用户知道哪些内容已经完成；用户也可以删除不需要的章节，但至少保留一章。`,
     },
     {
@@ -54,7 +66,7 @@ export const biographyPolishAnnotations: PageAnnotations = {
       id: 'biography-polish.editor',
       target: '修改和润色文字',
       logic: `用户可以直接修改章节名称和正文，也可以先选择希望呈现的文字感觉。
-用户选中一小段文字时，系统只处理这一段；没有选中时，可以处理当前章节；选择处理全文时，系统再处理全部章节。
+当前仅支持「润色这一章」：系统按所选文风处理当前章节；不提供选中文字润色或全文润色。
 润色结果保留在当前内容中，同时保留最初的文字，方便用户比较和恢复。
 如果当前暂时不能继续处理，系统先提示用户，已经整理好的内容不受影响。`,
     },

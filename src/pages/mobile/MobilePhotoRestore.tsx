@@ -1,8 +1,65 @@
-import { useRef, useState } from 'react';
-import { Image, Upload, Sparkles } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Image, Upload, Sparkles, Trash2 } from 'lucide-react';
 import { useToast } from '../../hooks/useToast';
 import Annotate from '../../components/annotation/Annotate';
 import './MobilePhotoRestore.css';
+
+// 与 Web 端一致：修复记录存 cj_photo_restore_records（最多 20 条），两端互通
+type RestoreMode = 'enhance' | 'scratch' | 'colorize' | 'upscale';
+
+interface RestoreRecord {
+  id: string;
+  original: string;
+  restored: string;
+  mode: RestoreMode;
+  createdAt: string;
+  fileName: string;
+}
+
+interface MediaItem {
+  id: string;
+  title: string;
+  date: string;
+  type: 'image' | 'video' | 'audio' | 'doc';
+  stage?: string;
+}
+
+const STORAGE_KEY = 'cj_photo_restore_records';
+
+function loadJson<T>(key: string, fallback: T): T {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return fallback;
+    return JSON.parse(raw) as T;
+  } catch {
+    return fallback;
+  }
+}
+
+function saveJson(key: string, value: unknown) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // ignore
+  }
+}
+
+function loadRecords(): RestoreRecord[] {
+  return loadJson<RestoreRecord[]>(STORAGE_KEY, []);
+}
+
+function saveRecords(records: RestoreRecord[]) {
+  saveJson(STORAGE_KEY, records.slice(0, 20));
+}
+
+function loadArchives(): { id: string; name: string }[] {
+  return loadJson<{ id: string; name: string }[]>('cj_archives', []);
+}
+
+// 与 Web 端一致：默认保存到当前档案，无当前档案时取第一个
+function resolveSaveArchiveId(): string {
+  return localStorage.getItem('cj_current_archive_id') || loadArchives()[0]?.id || '';
+}
 
 function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -16,10 +73,15 @@ function fileToDataUrl(file: File): Promise<string> {
 export default function MobilePhotoRestore() {
   const { addToast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [records, setRecords] = useState<RestoreRecord[]>(() => loadRecords());
   const [originalUrl, setOriginalUrl] = useState<string | null>(null);
   const [restoredUrl, setRestoredUrl] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    saveRecords(records);
+  }, [records]);
 
   const handleFile = async (files: FileList | null) => {
     const file = files?.[0];
@@ -51,14 +113,64 @@ export default function MobilePhotoRestore() {
       setProgress((p) => Math.min(90, p + Math.random() * 15));
     }, 250);
 
-    // mock 修复：进度条走完后直接复用原图作为「修复后」效果
+    // mock 修复：进度条走完后直接复用原图作为「修复后」效果（与 Web 端同一 mock 策略）
     setTimeout(() => {
       clearInterval(interval);
       setProgress(100);
       setRestoredUrl(originalUrl);
       setProcessing(false);
+      // 与 Web 端一致：修复完成写入修复记录
+      const newRecord: RestoreRecord = {
+        id: Date.now().toString(),
+        original: originalUrl,
+        restored: originalUrl,
+        mode: 'enhance',
+        createdAt: new Date().toISOString(),
+        fileName: `修复照片_${Date.now()}.jpg`,
+      };
+      setRecords((prev) => [newRecord, ...prev]);
       addToast('修复完成，已保存到修复记录', 'success');
     }, 2600);
+  };
+
+  // 与 Web 端一致：保存到当前人生档案（修复图 + 媒体库条目）
+  const saveToArchive = () => {
+    if (!restoredUrl) return;
+    const archiveId = resolveSaveArchiveId();
+    if (!archiveId) {
+      addToast('暂无可选档案，请先创建人生档案', 'error');
+      return;
+    }
+    try {
+      const restoredKey = `cj_restored_photos_${archiveId}`;
+      const restoredList: string[] = loadJson(restoredKey, []);
+      restoredList.unshift(restoredUrl);
+      saveJson(restoredKey, restoredList.slice(0, 50));
+
+      const mediaKey = `cj_media_${archiveId}`;
+      const mediaList: MediaItem[] = loadJson(mediaKey, []);
+      mediaList.unshift({
+        id: `restored_${Date.now()}`,
+        title: `修复照片_${new Date().toLocaleDateString()}.jpg`,
+        date: new Date().toISOString().slice(0, 10),
+        type: 'image',
+        stage: '其他',
+      });
+      saveJson(mediaKey, mediaList);
+      addToast('已保存到人生档案', 'success');
+    } catch {
+      addToast('保存失败', 'error');
+    }
+  };
+
+  const deleteRecord = (id: string) => {
+    setRecords((prev) => prev.filter((r) => r.id !== id));
+  };
+
+  const openRecord = (record: RestoreRecord) => {
+    setOriginalUrl(record.original);
+    setRestoredUrl(record.restored);
+    setProgress(100);
   };
 
   const reset = () => {
@@ -87,16 +199,43 @@ export default function MobilePhotoRestore() {
       />
 
       {!originalUrl ? (
-        <Annotate id="mobile-photo-restore.upload">
-        <div
-          className="mobile-photo-restore-empty clickable"
-          onClick={() => fileInputRef.current?.click()}
-        >
-          <Upload size={40} color="#ccc" />
-          <p>暂无修复记录</p>
-          <span>点击上传照片即可开始修复</span>
-        </div>
-        </Annotate>
+        <>
+          <Annotate id="mobile-photo-restore.upload">
+          <div
+            className="mobile-photo-restore-empty clickable"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <Upload size={40} color="#ccc" />
+            <p>{records.length === 0 ? '暂无修复记录' : '点击上传照片开始修复'}</p>
+            <span>{records.length === 0 ? '点击上传照片即可开始修复' : '或从下方修复记录中查看'}</span>
+          </div>
+          </Annotate>
+
+          {records.length > 0 && (
+            <div className="mobile-photo-history">
+              <h3 className="mobile-photo-history-title">修复记录</h3>
+              <div className="mobile-photo-history-list">
+                {records.map((r) => (
+                  <div key={r.id} className="mobile-photo-history-item" onClick={() => openRecord(r)}>
+                    <img src={r.restored} alt={r.fileName} />
+                    <div className="mobile-photo-history-meta">
+                      <span>{new Date(r.createdAt).toLocaleDateString()}</span>
+                      <button
+                        className="mobile-photo-history-delete"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteRecord(r.id);
+                        }}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
       ) : (
         <div className="mobile-photo-restore-panel">
           {restoredUrl ? (
@@ -144,8 +283,8 @@ export default function MobilePhotoRestore() {
               </button>
               </Annotate>
             ) : (
-              <button className="mobile-photo-btn primary" onClick={() => addToast('修复结果已保存', 'success')}>
-                保存修复结果
+              <button className="mobile-photo-btn primary" onClick={saveToArchive}>
+                保存到人生档案
               </button>
             )}
             <button className="mobile-photo-btn" onClick={reset} disabled={processing}>

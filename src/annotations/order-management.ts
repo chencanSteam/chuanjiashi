@@ -40,8 +40,8 @@ export const orderManagementAnnotations: PageAnnotations = {
       id: 'order-management.row-actions',
       target: '订单行操作按钮（状态流转）',
       logic: `① 按「状态 + 类型」动态出按钮：已支付的实体订单出「发货」（物流公司、运单号必填，订单转服务中）；已支付的数字订单出「上传交付物」（名称、链接必填）；已支付的传记师服务/团购出「开始服务」。
-② 退款贯穿已支付/服务中/已完成三种状态；待支付订单只能「关闭订单」；服务中还可「完成服务」。
-③ 退款、完成服务、关闭订单均弹二次确认，确认后调用 adminUpdateStatus（PUT /api/admin/orders/:id/status）改状态并刷新列表。`,
+② 待支付订单只能「关闭订单」；服务中还可「完成服务」。退款不再是通用状态流转。
+③ 客户提交退款后，订单行展示「退款待审核」；后台通过专用审核接口 approve 才将申请标记完成并把订单改为已退款，驳回必须填写原因且保留原订单状态。`,
     },
     {
       id: 'order-management.detail',

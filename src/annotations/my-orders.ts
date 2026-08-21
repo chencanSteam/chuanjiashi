@@ -44,8 +44,9 @@ export const myOrdersAnnotations: PageAnnotations = {
     {
       id: 'my-orders.refund-modal',
       target: '申请退款弹窗',
-      logic: `① 退款原因必填，空内容拦截提示。
-② 提交 orderApi.refund 后同时关闭退款弹窗与详情弹窗并刷新列表，订单进入已退款状态。`,
+      logic: `① 退款原因由管理端配置的启用选项单选；选择「其他」时必须填写补充说明。
+② 提交 orderApi.refund 后创建「待审核」申请，不改变订单原状态；后台审核通过后才完成退款，驳回时展示驳回原因并允许重新申请。
+③ 退款记录保存选项文案快照，不受后续配置修改影响。`,
     },
   ],
 };

@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
-  ClipboardList,
-  RefreshCw,
   Clock,
   CreditCard,
   Package,
@@ -25,7 +23,8 @@ import {
 } from 'lucide-react';
 import { orderApi } from '../api/order';
 import { biographerApi } from '../api/biographer';
-import type { Order, Biographer, BiographerOrder } from '../mocks/types';
+import type { Order, Biographer, BiographerOrder, RefundReasonOption } from '../mocks/types';
+import { refundReasonApi } from '../api/refundReason';
 import { paymentApi } from '../api/payment';
 import { useToast } from '../hooks/useToast';
 import Annotate from '../components/annotation/Annotate';
@@ -119,7 +118,10 @@ export default function MyOrders() {
   const [bioOrders, setBioOrders] = useState<BiographerOrder[]>([]);
   const [biographers, setBiographers] = useState<Record<string, Biographer>>({});
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<Order['status'] | 'all'>('all');
+  const [statusFilter, setStatusFilter] = useState<Order['status'] | 'all'>(() => {
+    const status = searchParams.get('status');
+    return statusOptions.some((option) => option.value === status) ? (status as Order['status']) : 'all';
+  });
   const [typeFilter, setTypeFilter] = useState<Order['type'] | 'all'>(() => {
     const t = searchParams.get('type');
     return typeOptions.some((o) => o.value === t) ? (t as Order['type']) : 'all';
@@ -130,7 +132,9 @@ export default function MyOrders() {
   const [refundOrder, setRefundOrder] = useState<Order | null>(null);
   const [rating, setRating] = useState(5);
   const [reviewContent, setReviewContent] = useState('');
-  const [refundReason, setRefundReason] = useState('');
+  const [refundReasons, setRefundReasons] = useState<RefundReasonOption[]>([]);
+  const [refundReasonOptionId, setRefundReasonOptionId] = useState('');
+  const [refundCustomReason, setRefundCustomReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
   useCountdown();
 
@@ -140,10 +144,11 @@ export default function MyOrders() {
 
   const loadOrders = () => {
     setLoading(true);
-    Promise.all([orderApi.list(), biographerApi.orders(), biographerApi.list()])
-      .then(([orderList, bioOrderList, bioList]) => {
+    Promise.all([orderApi.list(), biographerApi.orders(), biographerApi.list(), refundReasonApi.list()])
+      .then(([orderList, bioOrderList, bioList, refundReasonList]) => {
         setOrders(orderList);
         setBioOrders(bioOrderList);
+        setRefundReasons(refundReasonList);
         const map: Record<string, Biographer> = {};
         bioList.forEach((b) => (map[b.id] = b));
         setBiographers(map);
@@ -152,6 +157,7 @@ export default function MyOrders() {
         setOrders([]);
         setBioOrders([]);
         setBiographers({});
+        setRefundReasons([]);
       })
       .finally(() => setLoading(false));
   };
@@ -171,15 +177,6 @@ export default function MyOrders() {
   }, [bioOrders, typeFilter]);
 
   const isBioType = typeFilter === 'biographer_service';
-
-  const stats = useMemo(() => {
-    return {
-      total: orders.length,
-      pending: orders.filter((o) => o.status === 'pending_pay').length,
-      delivering: orders.filter((o) => o.status === 'delivering').length,
-      completed: orders.filter((o) => o.status === 'completed').length,
-    };
-  }, [orders]);
 
   const handlePay = async (order: Order) => {
     try {
@@ -220,18 +217,41 @@ export default function MyOrders() {
     }
   };
 
+  const openRefund = (order: Order) => {
+    setRefundOrder(order);
+    setRefundReasonOptionId('');
+    setRefundCustomReason('');
+  };
+
   const handleRefund = async () => {
     if (!refundOrder) return;
-    if (!refundReason.trim()) {
-      addToast('请填写退款原因', 'error');
+    const selectedReason = refundReasons.find((reason) => reason.id === refundReasonOptionId);
+    if (!selectedReason) {
+      addToast('请选择退款原因', 'error');
+      return;
+    }
+    const customReason = refundCustomReason.trim();
+    if (selectedReason.isOther && !customReason) {
+      addToast('请填写其他退款原因', 'error');
+      return;
+    }
+    if (customReason.length > 500) {
+      addToast('退款原因不能超过 500 个字', 'error');
       return;
     }
     try {
       setSubmitting(true);
-      await orderApi.refund(refundOrder.id, { reason: refundReason.trim(), createdAt: new Date().toISOString() });
-      addToast('退款申请已处理', 'success');
+      await orderApi.refund(refundOrder.id, {
+        reason: selectedReason.label,
+        reasonOptionId: selectedReason.id,
+        reasonOptionLabel: selectedReason.label,
+        customReason: selectedReason.isOther ? customReason : undefined,
+        createdAt: new Date().toISOString(),
+      });
+      addToast('退款申请已提交，等待平台审核', 'success');
       setRefundOrder(null);
-      setRefundReason('');
+      setRefundReasonOptionId('');
+      setRefundCustomReason('');
       setSelected(null);
       loadOrders();
     } catch (err: any) {
@@ -241,7 +261,9 @@ export default function MyOrders() {
     }
   };
 
-  const canRefund = (order: Order) => ['paid', 'delivering'].includes(order.status);
+  const canRefund = (order: Order) =>
+    ['paid', 'delivering'].includes(order.status) &&
+    (!order.refundRequest || order.refundRequest.status === 'rejected');
   const canReview = (order: Order) => order.status === 'completed' && !order.review;
 
   return (
@@ -251,43 +273,7 @@ export default function MyOrders() {
           <h1 className="page-title">我的订单</h1>
           <p className="page-subtitle">查看全部商品与服务订单</p>
         </div>
-        <button className="btn btn-outline" onClick={loadOrders} disabled={loading}>
-          <RefreshCw size={14} className={loading ? 'spin' : ''} /> 刷新
-        </button>
       </header>
-
-      <Annotate id="my-orders.stats">
-      <div className="my-order-stats">
-        <div className="card my-order-stat-card">
-          <ClipboardList size={20} color="#1B5E4B" />
-          <div>
-            <div className="my-order-stat-value">{stats.total}</div>
-            <div className="my-order-stat-label">全部订单</div>
-          </div>
-        </div>
-        <div className="card my-order-stat-card">
-          <Clock size={20} color="#d97706" />
-          <div>
-            <div className="my-order-stat-value">{stats.pending}</div>
-            <div className="my-order-stat-label">待支付</div>
-          </div>
-        </div>
-        <div className="card my-order-stat-card">
-          <Package size={20} color="#7c3aed" />
-          <div>
-            <div className="my-order-stat-value">{stats.delivering}</div>
-            <div className="my-order-stat-label">服务中</div>
-          </div>
-        </div>
-        <div className="card my-order-stat-card">
-          <CheckCircle size={20} color="#1B5E4B" />
-          <div>
-            <div className="my-order-stat-value">{stats.completed}</div>
-            <div className="my-order-stat-label">已完成</div>
-          </div>
-        </div>
-      </div>
-      </Annotate>
 
       <div className="card my-order-list-card">
         <div className="card-header my-order-list-header">
@@ -337,7 +323,6 @@ export default function MyOrders() {
                   <div className="my-order-item" key={order.id}>
                     <div className="my-order-item-header">
                       <div className="my-order-item-meta">
-                        <span className="my-order-item-id">{order.id}</span>
                         <span className="my-order-item-time">{new Date(order.createdAt).toLocaleString()}</span>
                         <span className="my-order-item-type">{typeLabelMap[order.type]}</span>
                         {order.status === 'pending_pay' && order.expireAt && (
@@ -350,12 +335,21 @@ export default function MyOrders() {
                         <StatusIcon size={12} /> {status.label}
                       </span>
                     </div>
-                    <div className="my-order-item-body">
+                    <div className="my-order-item-main">
+                      <div className="my-order-item-mark" aria-hidden="true">
+                        <Package size={18} />
+                      </div>
                       <div className="my-order-item-product">
-                        <div className="my-order-item-name">{order.productName}</div>
+                        <div className="my-order-item-name">
+                          {order.productName}
+                          {(order.quantity ?? 1) > 1 && <span className="my-order-item-qty">×{order.quantity} 份</span>}
+                        </div>
                         {order.sku && <div className="my-order-item-sku">{order.sku}</div>}
                       </div>
-                      <div className="my-order-item-amount">¥{order.amount.toLocaleString()}</div>
+                      <div className="my-order-item-total">
+                        <span className="my-order-item-total-label">订单金额</span>
+                        <span className="my-order-item-amount">¥{order.amount.toLocaleString()}</span>
+                      </div>
                     </div>
                     <div className="my-order-item-footer">
                       <button className="btn btn-ghost btn-sm" onClick={() => setSelected(order)}>查看详情</button>
@@ -365,7 +359,7 @@ export default function MyOrders() {
                         </button>
                       )}
                       {canRefund(order) && (
-                        <button className="btn btn-outline btn-sm" onClick={() => { setRefundOrder(order); setRefundReason(''); }}>
+                        <button className="btn btn-outline btn-sm" onClick={() => openRefund(order)}>
                           申请退款
                         </button>
                       )}
@@ -404,8 +398,11 @@ export default function MyOrders() {
                           </div>
                         )}
                       </div>
-                      <div className="my-bio-order-status">
-                        <span style={{ color: bioStatusMap[o.status].color, fontWeight: 600 }}>{bioStatusMap[o.status].label}</span>
+                      <div
+                        className="my-bio-order-status"
+                        style={{ '--bio-status-color': bioStatusMap[o.status].color } as React.CSSProperties}
+                      >
+                        {bioStatusMap[o.status].label}
                       </div>
                     </div>
 
@@ -457,7 +454,7 @@ export default function MyOrders() {
               </div>
               <div className="my-order-detail-row">
                 <span>商品</span>
-                <span>{selected.productName}</span>
+                <span>{selected.productName}{(selected.quantity ?? 1) > 1 ? ` ×${selected.quantity} 份` : ''}</span>
               </div>
               <div className="my-order-detail-row">
                 <span>类型</span>
@@ -554,14 +551,36 @@ export default function MyOrders() {
               {selected.refundRequest && (
                 <div className="my-order-detail-section">
                   <h5>售后记录</h5>
+                  <div className="my-order-refund-notice">
+                    <strong>{selected.refundRequest.status === 'pending' ? '退款审核中' : selected.refundRequest.status === 'rejected' ? '退款申请已驳回' : '退款已完成'}</strong>
+                    <span>{selected.refundRequest.status === 'pending' ? '平台正在审核，请耐心等待' : selected.refundRequest.status === 'rejected' ? '可修改原因后重新申请' : '平台审核通过，退款已完成'}</span>
+                  </div>
                   <div className="my-order-detail-row">
                     <span>退款原因</span>
-                    <span>{selected.refundRequest.reason}</span>
+                    <span>{selected.refundRequest.reasonOptionLabel || selected.refundRequest.reason}</span>
                   </div>
+                  {selected.refundRequest.customReason && (
+                    <div className="my-order-detail-row">
+                      <span>补充说明</span>
+                      <span>{selected.refundRequest.customReason}</span>
+                    </div>
+                  )}
                   <div className="my-order-detail-row">
                     <span>申请时间</span>
                     <span>{new Date(selected.refundRequest.createdAt).toLocaleString()}</span>
                   </div>
+                  {selected.refundRequest.rejectionReason && (
+                    <div className="my-order-detail-row">
+                      <span>驳回原因</span>
+                      <span>{selected.refundRequest.rejectionReason}</span>
+                    </div>
+                  )}
+                  {selected.refundRequest.processedAt && (
+                    <div className="my-order-detail-row">
+                      <span>处理时间</span>
+                      <span>{new Date(selected.refundRequest.processedAt).toLocaleString()}</span>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -577,7 +596,7 @@ export default function MyOrders() {
                   </button>
                 )}
                 {canRefund(selected) && (
-                  <button className="btn btn-outline" onClick={() => { setRefundOrder(selected); setRefundReason(''); }}>
+                  <button className="btn btn-outline" onClick={() => openRefund(selected)}>
                     申请退款
                   </button>
                 )}
@@ -633,15 +652,38 @@ export default function MyOrders() {
             </div>
             <div className="modal-body">
               <div className="my-order-review-product">{refundOrder.productName}</div>
-              <div className="form-row">
-                <label>退款原因</label>
-                <textarea
-                  rows={4}
-                  value={refundReason}
-                  onChange={(e) => setRefundReason(e.target.value)}
-                  placeholder="请简要说明退款原因"
-                />
-              </div>
+              <fieldset className="my-order-refund-options">
+                <legend>退款原因</legend>
+                {refundReasons.map((reason) => (
+                  <label className={`my-order-refund-option ${refundReasonOptionId === reason.id ? 'selected' : ''}`} key={reason.id}>
+                    <input
+                      type="radio"
+                      name="refund-reason"
+                      value={reason.id}
+                      checked={refundReasonOptionId === reason.id}
+                      onChange={() => {
+                        setRefundReasonOptionId(reason.id);
+                        if (!reason.isOther) setRefundCustomReason('');
+                      }}
+                    />
+                    <span>{reason.label}</span>
+                  </label>
+                ))}
+              </fieldset>
+              {refundReasons.find((reason) => reason.id === refundReasonOptionId)?.isOther && (
+                <div className="my-order-refund-other">
+                  <label htmlFor="refund-custom-reason">补充说明</label>
+                  <textarea
+                    id="refund-custom-reason"
+                    rows={3}
+                    maxLength={500}
+                    value={refundCustomReason}
+                    onChange={(e) => setRefundCustomReason(e.target.value)}
+                    placeholder="请填写具体退款原因"
+                  />
+                  <span className="my-order-refund-counter">{refundCustomReason.length}/500</span>
+                </div>
+              )}
               <button className="btn btn-danger" style={{ width: '100%', marginTop: 8 }} disabled={submitting} onClick={handleRefund}>
                 {submitting ? '处理中…' : '确认退款'}
               </button>

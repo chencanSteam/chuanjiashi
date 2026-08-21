@@ -1,6 +1,8 @@
 .mobile-photo-restore {
   padding: 16px;
   padding-bottom: 24px;
+  background: #f6f1e7;
+  min-height: 100%;
 }
 
 .mobile-photo-restore-hero {
@@ -147,4 +149,52 @@
 
 .mobile-photo-btn:disabled {
   opacity: 0.6;
+}
+
+.mobile-photo-history {
+  padding: 0 16px;
+  margin-top: 16px;
+}
+
+.mobile-photo-history-title {
+  font-size: 15px;
+  color: #2b2d33;
+  margin: 0 0 10px;
+}
+
+.mobile-photo-history-list {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.mobile-photo-history-item {
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+.mobile-photo-history-item img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  display: block;
+}
+
+.mobile-photo-history-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px;
+  font-size: 11px;
+  color: #8a8f99;
+}
+
+.mobile-photo-history-delete {
+  border: none;
+  background: none;
+  color: #b0b5bf;
+  padding: 2px;
+  cursor: pointer;
 }

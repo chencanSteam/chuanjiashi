@@ -78,6 +78,9 @@ export default function OrderManagement() {
   const [selectedBiographerOrder, setSelectedBiographerOrder] = useState<BiographerOrder | null>(null);
   const [loadingBioOrder, setLoadingBioOrder] = useState(false);
   const [confirmAction, setConfirmAction] = useState<{ order: AdminOrder; action: OrderAction } | null>(null);
+  const [refundRejectOrder, setRefundRejectOrder] = useState<AdminOrder | null>(null);
+  const [refundRejectionReason, setRefundRejectionReason] = useState('');
+  const [refundSubmitting, setRefundSubmitting] = useState(false);
 
   const [deliverModalOrder, setDeliverModalOrder] = useState<AdminOrder | null>(null);
   const [logistics, setLogistics] = useState<OrderLogistics>({ company: '', trackingNo: '', shippedAt: new Date().toISOString().slice(0, 16) });
@@ -292,6 +295,40 @@ export default function OrderManagement() {
     }
   };
 
+  const handleApproveRefund = async (order: AdminOrder) => {
+    try {
+      setRefundSubmitting(true);
+      await orderApi.adminApproveRefund(order.id);
+      addToast('退款审核通过，退款已完成', 'success');
+      setSelectedOrder((current) => current?.id === order.id ? { ...current, status: 'refunded', refundRequest: current.refundRequest ? { ...current.refundRequest, status: 'completed' } : current.refundRequest } : current);
+      loadOrders();
+    } catch (err: any) {
+      addToast(err.message || '退款审核失败', 'error');
+    } finally {
+      setRefundSubmitting(false);
+    }
+  };
+
+  const handleRejectRefund = async () => {
+    if (!refundRejectOrder) return;
+    if (!refundRejectionReason.trim()) {
+      addToast('请填写驳回原因', 'error');
+      return;
+    }
+    try {
+      setRefundSubmitting(true);
+      await orderApi.adminRejectRefund(refundRejectOrder.id, refundRejectionReason.trim());
+      addToast('退款申请已驳回', 'success');
+      setRefundRejectOrder(null);
+      setRefundRejectionReason('');
+      loadOrders();
+    } catch (err: any) {
+      addToast(err.message || '驳回失败', 'error');
+    } finally {
+      setRefundSubmitting(false);
+    }
+  };
+
   const handleViewDetail = async (item: AdminOrder) => {
     setSelectedOrder(item);
     if (item.type === 'biographer_service') {
@@ -346,15 +383,8 @@ export default function OrderManagement() {
   const renderActionButtons = (item: AdminOrder) => {
     const statusActions: OrderAction[] = [];
 
-    if (item.status === 'paid') {
-      statusActions.push({ status: 'refunded', label: '退款', variant: 'danger' });
-    } else if (item.status === 'delivering') {
-      statusActions.push(
-        { status: 'completed', label: '完成服务', variant: 'primary' },
-        { status: 'refunded', label: '退款', variant: 'danger' }
-      );
-    } else if (item.status === 'completed') {
-      statusActions.push({ status: 'refunded', label: '退款', variant: 'danger' });
+    if (item.status === 'delivering') {
+      statusActions.push({ status: 'completed', label: '完成服务', variant: 'primary' });
     } else if (item.status === 'pending_pay') {
       statusActions.push({ status: 'closed', label: '关闭订单', variant: 'danger' });
     }
@@ -381,6 +411,16 @@ export default function OrderManagement() {
           >
             开始服务
           </button>
+        )}
+        {item.refundRequest?.status === 'pending' && (
+          <>
+            <button className="order-action-btn order-action-primary" disabled={refundSubmitting} onClick={() => { if (window.confirm('审核通过后将模拟完成退款，是否继续？')) handleApproveRefund(item); }}>
+              通过退款
+            </button>
+            <button className="order-action-btn order-action-danger" disabled={refundSubmitting} onClick={() => { setRefundRejectOrder(item); setRefundRejectionReason(''); }}>
+              驳回退款
+            </button>
+          </>
         )}
         {statusActions.map((action) => (
           <button
@@ -664,6 +704,8 @@ export default function OrderManagement() {
                       <span className={`order-status ${status.className}`}>
                         <StatusIcon size={12} /> {status.label}
                       </span>
+                      {item.refundRequest?.status === 'pending' && <span className="order-refund-review-badge pending">退款待审核</span>}
+                      {item.refundRequest?.status === 'rejected' && <span className="order-refund-review-badge rejected">退款已驳回</span>}
                     </div>
                     <div className="order-cell order-cell-time">{new Date(item.createdAt).toLocaleString()}</div>
                     <div className="order-cell order-cell-action">
@@ -742,6 +784,25 @@ export default function OrderManagement() {
               {renderAddress(selectedOrder)}
               {renderLogistics(selectedOrder)}
               {renderDeliverables(selectedOrder)}
+              {selectedOrder.refundRequest && (
+                <>
+                  <div className="order-detail-divider" />
+                  <div className="order-detail-section order-refund-review-section">
+                    <h5><AlertCircle size={14} /> 退款申请 <span className={`order-refund-review-badge ${selectedOrder.refundRequest.status}`}>{selectedOrder.refundRequest.status === 'pending' ? '待审核' : selectedOrder.refundRequest.status === 'rejected' ? '已驳回' : '已完成'}</span></h5>
+                    <div className="order-detail-row"><span className="order-detail-label">退款原因</span><span className="order-detail-value">{selectedOrder.refundRequest.reasonOptionLabel || selectedOrder.refundRequest.reason}</span></div>
+                    {selectedOrder.refundRequest.customReason && <div className="order-detail-row"><span className="order-detail-label">补充说明</span><span className="order-detail-value">{selectedOrder.refundRequest.customReason}</span></div>}
+                    <div className="order-detail-row"><span className="order-detail-label">申请时间</span><span className="order-detail-value">{new Date(selectedOrder.refundRequest.createdAt).toLocaleString()}</span></div>
+                    {selectedOrder.refundRequest.rejectionReason && <div className="order-detail-row"><span className="order-detail-label">驳回原因</span><span className="order-detail-value">{selectedOrder.refundRequest.rejectionReason}</span></div>}
+                    {selectedOrder.refundRequest.processedAt && <div className="order-detail-row"><span className="order-detail-label">处理时间</span><span className="order-detail-value">{new Date(selectedOrder.refundRequest.processedAt).toLocaleString()}</span></div>}
+                    {selectedOrder.refundRequest.status === 'pending' && (
+                      <div className="order-review-actions">
+                        <button className="btn btn-primary btn-sm" disabled={refundSubmitting} onClick={() => { if (window.confirm('审核通过后将模拟完成退款，是否继续？')) handleApproveRefund(selectedOrder); }}>通过退款</button>
+                        <button className="btn btn-danger btn-sm" disabled={refundSubmitting} onClick={() => { setRefundRejectOrder(selectedOrder); setRefundRejectionReason(''); }}>驳回退款</button>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
               {renderReview(selectedOrder)}
 
               {selectedOrder.type === 'biographer_service' && (
@@ -1014,6 +1075,28 @@ export default function OrderManagement() {
                 <button className="btn btn-primary" disabled={supplementSubmitting} onClick={handleSupplementSubmit}>
                   <Plus size={14} /> {supplementSubmitting ? '提交中…' : '确认补单'}
                 </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {refundRejectOrder && (
+        <div className="modal-overlay" onClick={() => setRefundRejectOrder(null)}>
+          <div className="modal-content order-detail-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h4>驳回退款申请</h4>
+              <button className="modal-close" onClick={() => setRefundRejectOrder(null)}><X size={16} /></button>
+            </div>
+            <div className="modal-body">
+              <p className="order-refund-reject-hint">请填写驳回原因，客户将可以看到该说明并重新申请退款。</p>
+              <div className="order-form-row">
+                <label>驳回原因 <span className="order-form-required">*</span></label>
+                <textarea rows={4} maxLength={500} value={refundRejectionReason} onChange={(e) => setRefundRejectionReason(e.target.value)} placeholder="请输入驳回原因" />
+              </div>
+              <div className="order-detail-actions">
+                <button className="btn btn-outline" onClick={() => setRefundRejectOrder(null)}>取消</button>
+                <button className="btn btn-danger" disabled={refundSubmitting} onClick={handleRejectRefund}>{refundSubmitting ? '提交中…' : '确认驳回'}</button>
               </div>
             </div>
           </div>

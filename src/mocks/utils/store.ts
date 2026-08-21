@@ -15,6 +15,8 @@ export const storeKeys = {
   // 商业化
   products: `${PREFIX}products`,
   orders: `${PREFIX}orders`,
+  refundReasons: `${PREFIX}refund_reasons`,
+  dictionary: `${PREFIX}dictionary`,
   payments: `${PREFIX}payments`,
   groupBuyActivities: `${PREFIX}group_buy_activities`,
   groupBuyRecords: `${PREFIX}group_buy_records`,
@@ -43,6 +45,8 @@ export const storeKeys = {
   agreementConfigs: `${PREFIX}agreement_configs`,
   complianceAlerts: `${PREFIX}compliance_alerts`,
   bookComments: `${PREFIX}book_comments`,
+  bookCollects: `${PREFIX}book_collects`,
+  bookUnlocks: `${PREFIX}book_unlocks`,
   museumMessages: `${PREFIX}museum_messages`,
   mediaReviewItems: `${PREFIX}media_review_items`,
   contentReports: `${PREFIX}content_reports`,

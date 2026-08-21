@@ -264,9 +264,16 @@ export default function BookReview() {
                     <span className={`book-status ${statusMap[selectedBook.status].className}`}>
                       {statusMap[selectedBook.status].label}
                     </span>
-                    <span className="book-review-detail-tag">
-                      <Tag size={11} /> {selectedBook.category}
-                    </span>
+                    {(selectedBook.occupationTags?.length ? selectedBook.occupationTags : [selectedBook.category]).map((tag) => (
+                      <span className="book-review-detail-tag" key={tag}>
+                        <Tag size={11} /> {tag}
+                      </span>
+                    ))}
+                    {selectedBook.lifeStageTags?.map((tag) => (
+                      <span className="book-review-detail-tag book-review-detail-tag-stage" key={tag}>
+                        <Tag size={11} /> {tag}
+                      </span>
+                    ))}
                     {selectedBook.isFree ? (
                       <span className="book-review-detail-tag book-review-detail-tag-free">免费公开</span>
                     ) : (

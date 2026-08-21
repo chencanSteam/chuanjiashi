@@ -9,6 +9,95 @@
   padding: 20px;
 }
 
+/* 表单行：标签在上、控件在下，避免默认裸样式挤在一起 */
+.publish-book-modal .form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.publish-book-modal .form-row:last-of-type {
+  margin-bottom: 0;
+}
+
+.publish-book-modal .form-row > label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #4b5563;
+}
+
+.publish-book-modal .form-row > input,
+.publish-book-modal .form-row > select,
+.publish-book-modal .form-row > textarea {
+  box-sizing: border-box;
+  width: 100%;
+  border: 1px solid #e8e4dd;
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 14px;
+  font-family: inherit;
+  color: #2c2824;
+  background: #fff;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.publish-book-modal .form-row > input:focus,
+.publish-book-modal .form-row > select:focus,
+.publish-book-modal .form-row > textarea:focus {
+  border-color: #1b5e4b;
+}
+
+.publish-book-modal .form-row > textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.publish-book-field-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* 标签多选芯片 */
+.publish-book-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.publish-book-tag {
+  padding: 6px 14px;
+  border: 1px solid #e8e4dd;
+  border-radius: 999px;
+  background: #fff;
+  font-size: 13px;
+  color: #4b5563;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.publish-book-tag:hover {
+  border-color: rgba(27, 94, 75, 0.4);
+  color: #1b5e4b;
+}
+
+.publish-book-tag.active {
+  background: rgba(27, 94, 75, 0.08);
+  border-color: #1b5e4b;
+  color: #1b5e4b;
+  font-weight: 500;
+}
+
+.publish-book-tag-stage.active {
+  background: rgba(184, 134, 11, 0.08);
+  border-color: #b8860b;
+  color: #b8860b;
+}
+
 .publish-book-loading {
   text-align: center;
   padding: 40px 20px;
@@ -61,6 +150,7 @@
 
 .publish-book-radio input {
   cursor: pointer;
+  accent-color: #1b5e4b;
 }
 
 .publish-book-price-input {
@@ -86,6 +176,15 @@
   font-size: 14px;
   outline: none;
   color: var(--text);
+  /* 隐藏数字输入框的原生上下箭头 */
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.publish-book-price-input input::-webkit-outer-spin-button,
+.publish-book-price-input input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 .publish-book-hint {

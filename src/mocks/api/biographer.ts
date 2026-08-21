@@ -19,7 +19,21 @@ function ensureBiographers(): Biographer[] {
     setItem(storeKeys.biographers, defaultBiographers)
     return defaultBiographers
   }
-  return biographers
+  // 老数据回填新增字段（完成订单数、荣誉证书），以种子数据中同 id 的记录为准
+  let changed = false
+  const merged = biographers.map((b) => {
+    const seed = defaultBiographers.find((d) => d.id === b.id)
+    if (!seed) return b
+    const completedOrders = b.completedOrders ?? seed.completedOrders
+    const certificates = b.certificates?.length ? b.certificates : seed.certificates
+    if (completedOrders !== b.completedOrders || certificates !== b.certificates) {
+      changed = true
+      return { ...b, completedOrders, certificates }
+    }
+    return b
+  })
+  if (changed) setItem(storeKeys.biographers, merged)
+  return merged
 }
 
 function saveBiographers(biographers: Biographer[]): void {
@@ -103,6 +117,21 @@ export const biographerHandlers: HttpHandler[] = [
     let list = ensureBiographers().filter((b) => b.status === 'approved')
     if (city) list = list.filter((b) => b.city.includes(city))
     return success(list)
+  }),
+
+  http.get('/api/biographers/:id/contact-access', async ({ params }) => {
+    const userId = getCurrentUserId()
+    if (!userId) return success({ unlocked: false })
+    const bioOrders = getItem<BiographerOrder[]>(storeKeys.biographerOrders, []).filter(
+      (o) => o.userId === userId && o.biographerId === params.id
+    )
+    if (bioOrders.length === 0) return success({ unlocked: false })
+    const orders = getItem<Order[]>(storeKeys.orders, [])
+    const unlocked = bioOrders.some((bo) => {
+      const order = orders.find((o) => o.id === bo.orderId)
+      return !!order && (order.status === 'paid' || order.status === 'completed')
+    })
+    return success({ unlocked })
   }),
 
   http.get('/api/biographers/:id', async ({ params }) => {
