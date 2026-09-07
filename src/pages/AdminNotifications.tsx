@@ -114,22 +114,37 @@ export default function AdminNotifications() {
           <h3 className="card-title">历史通知</h3>
         </div>
         <div className="card-body">
-          {notices.map((n) => (
-            <div className="an-notice-row" key={n.id}>
-              <div className="an-notice-main">
-                <div className="an-notice-title">
-                  {n.title}
-                  <span className="an-notice-tag">{n.type}</span>
-                  <span className="an-notice-target">{n.target}</span>
-                </div>
-                <div className="an-notice-content">{n.content}</div>
-              </div>
-              <div className="an-notice-meta">
-                <span className={`an-notice-status ${n.status === '已发布' ? 'published' : ''}`}>{n.status}</span>
-                <span className="an-notice-time">{n.time}</span>
-              </div>
-            </div>
-          ))}
+          {notices.length === 0 ? (
+            <div className="admin-table-empty">暂无通知</div>
+          ) : (
+          <div className="admin-table-wrap">
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>标题</th>
+                <th>类型</th>
+                <th>发送对象</th>
+                <th>时间</th>
+                <th>状态</th>
+              </tr>
+            </thead>
+            <tbody>
+              {notices.map((n) => (
+                <tr key={n.id}>
+                  <td className="admin-table-text-left">
+                    <div className="an-notice-title">{n.title}</div>
+                    <div className="an-notice-content">{n.content}</div>
+                  </td>
+                  <td><span className="an-notice-tag">{n.type}</span></td>
+                  <td><span className="an-notice-target">{n.target}</span></td>
+                  <td>{n.time}</td>
+                  <td><span className={`an-notice-status ${n.status === '已发布' ? 'published' : ''}`}>{n.status}</span></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          </div>
+          )}
         </div>
       </div>
       </Annotate>

@@ -6,7 +6,13 @@ import { useToast } from '../hooks/useToast';
 import { archiveApi } from '../api/archive';
 import Avatar from '../components/ui/Avatar';
 import Annotate from '../components/annotation/Annotate';
+import { regions } from '../data/regions';
+import { industryOptions, industryOccupations } from '../data/occupations';
 import './Onboarding.css';
+
+// 出生日期下拉的年份范围：1900 至今
+const currentYear = new Date().getFullYear();
+const birthYearOptions = Array.from({ length: currentYear - 1900 + 1 }, (_, i) => String(currentYear - i));
 
 interface LifeStage {
   id: string;
@@ -121,11 +127,18 @@ export default function Onboarding() {
   const [name, setName] = useState(user?.name || '');
   const [gender, setGender] = useState<'男' | '女'>('男');
   const [birthYear, setBirthYear] = useState('');
-  const [origin, setOrigin] = useState('');
+  const [birthMonth, setBirthMonth] = useState('');
+  const [birthDay, setBirthDay] = useState('');
+  const [originProvince, setOriginProvince] = useState('');
+  const [originCity, setOriginCity] = useState('');
+  const [originDistrict, setOriginDistrict] = useState('');
+  const [originDetail, setOriginDetail] = useState('');
+  const [industry, setIndustry] = useState('');
   const [occupation, setOccupation] = useState('');
   const [stages, setStages] = useState<LifeStage[]>([]);
   const [outline, setOutline] = useState<OutlineGroup[]>([]);
 
+  const origin = `${originProvince}${originCity}${originDistrict}`;
   const basic = { name, occupation, origin, birthYear };
 
   // 进入页面时加载已有人生档案：有档案则先选择（第 0 步），没有则直接进入新建流程
@@ -172,7 +185,7 @@ export default function Onboarding() {
     }
   };
 
-  const canGoStep2 = name.trim() && birthYear.trim();
+  const canGoStep2 = Boolean(name.trim() && originProvince && originCity && originDistrict);
 
   const addStage = () => {
     setStages((prev) => [
@@ -192,7 +205,12 @@ export default function Onboarding() {
   const next = () => {
     if (step === 1) {
       if (!canGoStep2) {
-        addToast('请填写姓名和出生年份', 'error');
+        addToast('请填写姓名并选择完整的籍贯（省 / 市 / 区）', 'error');
+        return;
+      }
+      const birthParts = [birthYear, birthMonth, birthDay];
+      if (birthParts.some(Boolean) && !birthParts.every(Boolean)) {
+        addToast('请完整选择出生日期（年 / 月 / 日）', 'error');
         return;
       }
       setStep(2);
@@ -214,8 +232,8 @@ export default function Onboarding() {
         type: 'self',
         name: name.trim(),
         gender: gender === '男' ? 'male' : 'female',
-        birthDate: `${birthYear.trim()}-01-01`,
-        birthPlace: origin.trim(),
+        birthDate: birthYear ? `${birthYear}-${birthMonth}-${birthDay}` : '',
+        birthPlace: origin,
         status: 'living',
       });
       // 兼容旧 localStorage 格式，供未迁移页面读取
@@ -223,9 +241,12 @@ export default function Onboarding() {
         id: archive.id,
         name: archive.name,
         gender,
-        birthYear: birthYear.trim(),
-        origin: origin.trim(),
-        occupation: occupation.trim(),
+        birthYear,
+        birthDate: birthYear ? `${birthYear}-${birthMonth}-${birthDay}` : undefined,
+        origin,
+        originDetail: originDetail.trim() || undefined,
+        industry: industry || undefined,
+        occupation,
       };
       saveArchive(legacyArchive);
       localStorage.setItem(`cj_interview_outline_${archive.id}`, JSON.stringify(outline));
@@ -306,7 +327,7 @@ export default function Onboarding() {
               <p className="step-desc">这些信息会用于生成采访提纲和人生档案。</p>
               <div className="form-grid">
                 <div className="form-row">
-                  <label>姓名</label>
+                  <label>姓名 <span style={{ color: '#dc2626' }}>*</span></label>
                   <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="如：张三" />
                 </div>
                 <div className="form-row">
@@ -316,17 +337,73 @@ export default function Onboarding() {
                     <option value="女">女</option>
                   </select>
                 </div>
-                <div className="form-row">
-                  <label>出生年份</label>
-                  <input type="text" value={birthYear} onChange={(e) => setBirthYear(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="如：1958" />
-                </div>
-                <div className="form-row">
-                  <label>籍贯</label>
-                  <input type="text" value={origin} onChange={(e) => setOrigin(e.target.value)} placeholder="如：江苏苏州" />
+                <div className="form-row form-row-full">
+                  <label>出生日期</label>
+                  <div className="date-select-row">
+                    <select value={birthYear} onChange={(e) => setBirthYear(e.target.value)}>
+                      <option value="">年</option>
+                      {birthYearOptions.map((y) => (
+                        <option value={y} key={y}>{y} 年</option>
+                      ))}
+                    </select>
+                    <select value={birthMonth} onChange={(e) => setBirthMonth(e.target.value)}>
+                      <option value="">月</option>
+                      {Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0')).map((m) => (
+                        <option value={m} key={m}>{Number(m)} 月</option>
+                      ))}
+                    </select>
+                    <select value={birthDay} onChange={(e) => setBirthDay(e.target.value)}>
+                      <option value="">日</option>
+                      {Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, '0')).map((d) => (
+                        <option value={d} key={d}>{Number(d)} 日</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
                 <div className="form-row form-row-full">
+                  <label>籍贯 <span style={{ color: '#dc2626' }}>*</span></label>
+                  <div className="date-select-row">
+                    <select value={originProvince} onChange={(e) => { setOriginProvince(e.target.value); setOriginCity(''); setOriginDistrict(''); }}>
+                      <option value="">省份</option>
+                      {regions.map((p) => (
+                        <option value={p.name} key={p.name}>{p.name}</option>
+                      ))}
+                    </select>
+                    <select value={originCity} onChange={(e) => { setOriginCity(e.target.value); setOriginDistrict(''); }} disabled={!originProvince}>
+                      <option value="">城市</option>
+                      {(regions.find((p) => p.name === originProvince)?.cities || []).map((c) => (
+                        <option value={c.name} key={c.name}>{c.name}</option>
+                      ))}
+                    </select>
+                    <select value={originDistrict} onChange={(e) => setOriginDistrict(e.target.value)} disabled={!originCity}>
+                      <option value="">区/县</option>
+                      {(regions.find((p) => p.name === originProvince)?.cities.find((c) => c.name === originCity)?.districts || []).map((d) => (
+                        <option value={d} key={d}>{d}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div className="form-row form-row-full">
+                  <label>详细地址</label>
+                  <input type="text" value={originDetail} onChange={(e) => setOriginDetail(e.target.value)} placeholder="选填，如：平江路 12 号" />
+                </div>
+                <div className="form-row">
+                  <label>行业</label>
+                  <select value={industry} onChange={(e) => { setIndustry(e.target.value); setOccupation(''); }}>
+                    <option value="">请选择行业</option>
+                    {industryOptions.map((i) => (
+                      <option value={i} key={i}>{i}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-row">
                   <label>职业</label>
-                  <input type="text" value={occupation} onChange={(e) => setOccupation(e.target.value)} placeholder="如：教师、工程师、企业家" />
+                  <select value={occupation} onChange={(e) => setOccupation(e.target.value)} disabled={!industry}>
+                    <option value="">{industry ? '请选择职业' : '请先选择行业'}</option>
+                    {(industryOccupations[industry] || []).map((o) => (
+                      <option value={o} key={o}>{o}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
             </div>

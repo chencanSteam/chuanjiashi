@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Phone, Lock, ArrowRight, ArrowLeft } from 'lucide-react';
-import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/useToast';
 import Annotate from '../components/annotation/Annotate';
 import './Login.css';
@@ -10,7 +9,6 @@ import './Login.css';
 export default function Register() {
   const navigate = useNavigate();
   const { addToast } = useToast();
-  const { login } = useAuth();
 
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
@@ -37,7 +35,7 @@ export default function Register() {
     addToast(`验证码已发送（演示环境：${newCode}）`, 'success');
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!agreed) {
       addToast('请先阅读并勾选同意《用户协议》和《隐私协议》', 'error');
@@ -57,14 +55,12 @@ export default function Register() {
     }
     if (submitting) return;
     setSubmitting(true);
-    const { success, error } = await login(phone.trim(), '123456', { isRegister: true });
-    setSubmitting(false);
-    if (!success) {
-      addToast(error || '注册失败', 'error');
-      return;
-    }
-    addToast('注册成功，欢迎使用传家世', 'success');
-    navigate('/onboarding', { replace: true });
+    // 演示环境：注册只走流程，不创建/记录账号
+    window.setTimeout(() => {
+      setSubmitting(false);
+      addToast('注册流程演示完成（未创建真实账号），请使用演示账号登录', 'success');
+      navigate('/login', { replace: true });
+    }, 600);
   };
 
   return (
@@ -74,7 +70,7 @@ export default function Register() {
           <div className="login-logo">传</div>
           <div>
             <h1 className="login-title">注册账号</h1>
-            <p className="login-subtitle">手机号 + 短信验证码即可注册</p>
+            <p className="login-subtitle">演示环境：仅体验注册流程，不会创建真实账号</p>
           </div>
         </div>
 

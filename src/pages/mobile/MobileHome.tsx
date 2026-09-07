@@ -1,9 +1,9 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mic, PenLine, ChevronRight, Plus, BookOpen, UserSearch, PlusCircle } from 'lucide-react';
+import { Mic, PenLine, ChevronRight, Plus, UserSearch, PlusCircle, Image } from 'lucide-react';
+import { useVersion } from '../../hooks/useVersion';
 import { loadStoredEventsForArchive } from '../../utils/timelineSample';
 import { generateImageDataUrl } from '../../utils/mediaPlaceholder';
-import type { ChapterData } from '../../data/aiMock';
 import Annotate from '../../components/annotation/Annotate';
 import { loadLegacyArchives, resolveCurrentArchiveId, setCurrentArchiveId } from '../../utils/mobileArchives';
 import './MobileHome.css';
@@ -27,13 +27,13 @@ function loadJson<T>(key: string, fallback: T): T {
 }
 
 const SERVICES = [
-  { title: '传记实体书', desc: '精装典藏 · 传世之作', icon: BookOpen, path: '/store' },
-  { title: '传记编写', desc: 'AI 生成 · 记录人生故事', icon: PenLine, path: '/biography' },
-  { title: '找传记师', desc: '专业服务 · 一对一记录', icon: UserSearch, path: '/biographers' },
+  { title: '传记编写', desc: 'AI 生成 · 记录人生故事', icon: PenLine },
+  { title: '找传记师', desc: '专业服务 · 一对一记录', icon: UserSearch },
 ];
 
 export default function MobileHome() {
   const navigate = useNavigate();
+  const { isV1 } = useVersion();
   const allArchives = useMemo(() => loadLegacyArchives(), []);
   const archiveId = resolveCurrentArchiveId(allArchives);
   const archive = allArchives.find((item) => item.id === archiveId) || null;
@@ -45,8 +45,6 @@ export default function MobileHome() {
   );
   const media = useMemo(() => loadJson<MediaItem[]>(`cj_media_${archiveId}`, []), [archiveId]);
   const photos = useMemo(() => media.filter((m) => m.type === 'image'), [media]);
-  const chapters = useMemo(() => loadJson<ChapterData[]>(`cj_biography_chapters_${archiveId}`, []), [archiveId]);
-  const generatedChapters = chapters.filter((c) => c.status !== 'notGenerated').length;
 
   // 切换档案：写入当前档案 id 后重载，让所有按档案 id 读取的模块同步更新
   const handleSwitchArchive = (id: string) => {
@@ -86,9 +84,9 @@ export default function MobileHome() {
                 </option>
               ))}
             </select>
-            <button className="mh-add-archive" type="button" onClick={() => navigate('/onboarding', { state: { from: '/m' } })} title="创建新的人生档案">
+            {!isV1 && <button className="mh-add-archive" type="button" onClick={() => navigate('/onboarding', { state: { from: '/m' } })} title="创建新的人生档案">
               <PlusCircle size={18} />
-            </button>
+            </button>}
           </div>
         </div>
       </header>
@@ -101,9 +99,6 @@ export default function MobileHome() {
         <div className="mh-hero-actions">
           <button className="mh-btn-primary" onClick={() => navigate('/m/interview')}>
             <Mic size={16} /> 开始讲述
-          </button>
-          <button className="mh-btn-outline" onClick={() => navigate('/m/interview')}>
-            <PenLine size={16} /> 文字回答
           </button>
         </div>
       </section>
@@ -141,22 +136,18 @@ export default function MobileHome() {
             <h3>珍贵记忆</h3>
             <span className="mh-link">全部照片 <ChevronRight size={12} /></span>
           </div>
-          <div className="mh-photo-stack">
-            {(photos.length > 0 ? photos.slice(0, 3) : [{ id: 'ph', title: '珍贵记忆' } as MediaItem]).map((p, i) => (
-              <img key={p.id} src={generateImageDataUrl(p.title)} alt={p.title} style={{ transform: `rotate(${(i - 1) * 6}deg)` }} />
-            ))}
-          </div>
-          <p className="mh-mini-desc">{photos.length} 张照片</p>
+          <div className="mh-memory-empty"><Image size={30} /><span>{photos.length ? `${photos.length} 张照片` : '还没有珍贵照片'}</span></div>
+          <p className="mh-mini-desc">记录家庭中值得珍藏的瞬间</p>
         </section>
-        <section className="mh-mini-card" onClick={() => navigate('/biography')}>
+        <section className="mh-mini-card" onClick={() => navigate('/m/works')}>
           <div className="mh-mini-head">
             <h3>我的传记</h3>
             <span className="mh-link">查看详情 <ChevronRight size={12} /></span>
           </div>
-          <div className="mh-book-cover">
-            <span>《{archive.name}传》</span>
+          <div className="mh-book-stack">
+            <div className="mh-book-cover"><span>《{archive.name}传》</span></div>
           </div>
-          <p className="mh-mini-desc">{generatedChapters} 章</p>
+          <p className="mh-mini-desc">本档案传记</p>
         </section>
       </div>
       </Annotate>
@@ -175,7 +166,7 @@ export default function MobileHome() {
               type="button"
               onClick={(event) => {
                 event.stopPropagation();
-                navigate(service.path);
+                navigate(service.title === '传记编写' ? '/m/interview' : '/m');
               }}
             >
               <div className="mh-goods-cover"><service.icon size={28} /></div>

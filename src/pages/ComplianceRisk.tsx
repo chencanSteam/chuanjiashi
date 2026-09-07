@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { FileSignature, FileText, AlertTriangle, ShieldCheck, Eye, X } from 'lucide-react';
+import { FileSignature, FileText, AlertTriangle, ShieldCheck, X } from 'lucide-react';
 import { complianceApi } from '../api/compliance';
 import type {
   ComplianceRecord,
@@ -111,29 +111,35 @@ export default function ComplianceRisk() {
             {records.length === 0 ? (
               <div className="compliance-empty">暂无授权记录</div>
             ) : (
-              <div className="compliance-table">
-                <div className="compliance-row compliance-header-row">
-                  <div className="compliance-cell">授权类型</div>
-                  <div className="compliance-cell">对象</div>
-                  <div className="compliance-cell">授权人</div>
-                  <div className="compliance-cell">授权时间</div>
-                  <div className="compliance-cell">状态</div>
-                </div>
+              <div className="admin-table-wrap">
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>授权类型</th>
+                    <th>对象</th>
+                    <th>授权人</th>
+                    <th>授权时间</th>
+                    <th>状态</th>
+                  </tr>
+                </thead>
+                <tbody>
                 {records.map((r) => (
-                  <div className="compliance-row" key={r.id}>
-                    <div className="compliance-cell">
+                  <tr key={r.id}>
+                    <td>
                       <span className="compliance-type-tag">
                         <FileSignature size={12} /> {recordTypeLabels[r.type]}
                       </span>
-                    </div>
-                    <div className="compliance-cell">{r.targetName}</div>
-                    <div className="compliance-cell">{r.authorizedBy}</div>
-                    <div className="compliance-cell">{new Date(r.authorizedAt).toLocaleString()}</div>
-                    <div className="compliance-cell">
+                    </td>
+                    <td>{r.targetName}</td>
+                    <td>{r.authorizedBy}</td>
+                    <td>{new Date(r.authorizedAt).toLocaleString()}</td>
+                    <td>
                       <span className={`compliance-status ${r.status}`}>{recordStatusLabels[r.status]}</span>
-                    </div>
-                  </div>
+                    </td>
+                  </tr>
                 ))}
+                </tbody>
+              </table>
               </div>
             )}
           </div>
@@ -151,30 +157,36 @@ export default function ComplianceRisk() {
             {agreements.length === 0 ? (
               <div className="compliance-empty">暂无协议配置</div>
             ) : (
-              <div className="compliance-table">
-                <div className="compliance-row compliance-header-row">
-                  <div className="compliance-cell">协议名称</div>
-                  <div className="compliance-cell">版本号</div>
-                  <div className="compliance-cell">更新时间</div>
-                  <div className="compliance-cell">操作</div>
-                </div>
+              <div className="admin-table-wrap">
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>协议名称</th>
+                    <th>版本号</th>
+                    <th>更新时间</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody>
                 {agreements.map((a) => (
-                  <div className="compliance-row" key={a.id}>
-                    <div className="compliance-cell">{a.name}</div>
-                    <div className="compliance-cell">
+                  <tr key={a.id}>
+                    <td>{a.name}</td>
+                    <td>
                       <span className="compliance-version">{a.version}</span>
-                    </div>
-                    <div className="compliance-cell">{new Date(a.updatedAt).toLocaleString()}</div>
-                    <div className="compliance-cell">
+                    </td>
+                    <td>{new Date(a.updatedAt).toLocaleString()}</td>
+                    <td>
                       <button
-                        className="btn btn-outline compliance-view-btn"
+                        className="admin-table-link"
                         onClick={() => setViewingAgreement(a)}
                       >
-                        <Eye size={12} /> 查看
+                        查看
                       </button>
-                    </div>
-                  </div>
+                    </td>
+                  </tr>
                 ))}
+                </tbody>
+              </table>
               </div>
             )}
           </div>
@@ -205,31 +217,37 @@ export default function ComplianceRisk() {
               {alerts.length === 0 ? (
                 <div className="compliance-empty">暂无风险预警</div>
               ) : (
-                <div className="compliance-table">
-                  <div className="compliance-row compliance-header-row">
-                    <div className="compliance-cell">传记师</div>
-                    <div className="compliance-cell">涉及客户</div>
-                    <div className="compliance-cell">预警原因</div>
-                    <div className="compliance-cell">风险等级</div>
-                    <div className="compliance-cell">状态</div>
-                    <div className="compliance-cell">时间</div>
-                  </div>
+                <div className="admin-table-wrap">
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>传记师</th>
+                      <th>涉及客户</th>
+                      <th>预警原因</th>
+                      <th>风险等级</th>
+                      <th>状态</th>
+                      <th>时间</th>
+                    </tr>
+                  </thead>
+                  <tbody>
                   {alerts.map((a) => (
-                    <div className="compliance-row" key={a.id}>
-                      <div className="compliance-cell">{a.biographerName}</div>
-                      <div className="compliance-cell">{a.userNickname}</div>
-                      <div className="compliance-cell compliance-reason">{a.reason}</div>
-                      <div className="compliance-cell">
+                    <tr key={a.id}>
+                      <td>{a.biographerName}</td>
+                      <td>{a.userNickname}</td>
+                      <td className="compliance-reason">{a.reason}</td>
+                      <td>
                         <span className={`compliance-risk ${a.riskLevel}`}>{riskLevelLabels[a.riskLevel]}</span>
-                      </div>
-                      <div className="compliance-cell">
+                      </td>
+                      <td>
                         <span className={`compliance-status ${a.status === 'resolved' ? 'valid' : 'expired'}`}>
                           {a.status === 'resolved' ? '已处理' : '待处理'}
                         </span>
-                      </div>
-                      <div className="compliance-cell">{new Date(a.createdAt).toLocaleString()}</div>
-                    </div>
+                      </td>
+                      <td>{new Date(a.createdAt).toLocaleString()}</td>
+                    </tr>
                   ))}
+                  </tbody>
+                </table>
                 </div>
               )}
             </div>

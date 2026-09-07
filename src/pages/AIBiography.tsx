@@ -4,12 +4,9 @@ import {
   ChevronRight,
   BookOpen,
   FileText,
-  FolderOpen,
   Image,
   Sparkles,
   Wand2,
-  Download,
-  FileType,
   Save,
   CheckCircle2,
   Circle,
@@ -17,7 +14,6 @@ import {
   Music,
   Video,
   File,
-  DollarSign,
   RefreshCw,
   Copy,
   Pencil,
@@ -26,14 +22,14 @@ import {
   ChevronDown,
   Plus,
   Trash2,
+  UserPlus,
+  MessagesSquare,
 } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 import { useVersion } from '../hooks/useVersion';
 import { useAuth } from '../hooks/useAuth';
 import { biographyApi } from '../api/biography';
 import Modal from '../components/ui/Modal';
-import { orderApi } from '../api/order';
-import { paymentApi } from '../api/payment';
 import { quotaApi } from '../api/quota';
 
 import { generateImageDataUrl, generateVideoPoster, generateAudioUrl } from '../utils/mediaPlaceholder';
@@ -41,6 +37,24 @@ import { generateInterviewTopics } from '../utils/interviewTopics';
 import { biographyChapterTitles, loadJson, saveJson, type ChapterData } from '../data/aiMock';
 import { composeOutlineChapterContent, loadConfirmedOutline } from '../utils/biographyOutline';
 import { loadTimelineEvents } from '../utils/eventSync';
+import { htmlToText, splitSentences, replaceSentence } from '../utils/sentences';
+import {
+  loadSuggestions,
+  saveSuggestions,
+  makeSuggestion,
+  type EditSuggestion,
+} from '../data/biographyCollaboration';
+import {
+  loadCollaborators,
+  removeCollaborator,
+  createCollabInvite,
+  invitesForArchive,
+  revokeCollabInvite,
+  findAccountByPhoneOrIdCard,
+  findCollaboratingArchives,
+} from '../data/interviewCollaboration';
+import { relationTypeOptions } from '../utils/familyRelations';
+import { getWorkStatus } from '../utils/works';
 import Annotate from '../components/annotation/Annotate';
 import './AIBiography.css';
 
@@ -63,7 +77,6 @@ interface BiographyVersion {
   createdAt: string;
   chapters: ChapterData[];
   style: BiographyStyle;
-  wordCountLevel: WordCountLevel;
 }
 
 function loadCurrentArchive(): Archive | null {
@@ -84,7 +97,7 @@ function initChapters(archiveId: string): ChapterData[] {
   const titles = outline ? outline.chapters.map((c) => c.title) : biographyChapterTitles;
   return titles.map((title) => ({
     title,
-    materials: title === '前言' || title === '后记' ? 2 : 5,
+    materials: 5,
     status: 'notGenerated',
     updatedAt: null,
     content: '',
@@ -112,19 +125,12 @@ function loadArchiveMediaItems(archiveId: string): ArchiveMediaItem[] {
 type DerivedTab = 'quotes' | 'motto' | 'letter' | 'timeline';
 
 type BiographyStyle = 'plain' | 'warm' | 'classical' | 'news';
-type WordCountLevel = 'short' | 'standard' | 'long';
 
 const styleOptions: { key: BiographyStyle; label: string }[] = [
   { key: 'plain', label: '朴实自然' },
   { key: 'warm', label: '温情叙事' },
   { key: 'classical', label: '典雅文言' },
   { key: 'news', label: '新闻纪实' },
-];
-
-const wordCountOptions: { key: WordCountLevel; label: string }[] = [
-  { key: 'short', label: '短篇 · 约5000字' },
-  { key: 'standard', label: '标准 · 约15000字' },
-  { key: 'long', label: '长篇 · 约30000字' },
 ];
 
 const derivedTabLabels: Record<DerivedTab, string> = {
@@ -195,6 +201,7 @@ export default function AIBiography() {
   const navigate = useNavigate();
   const { addToast } = useToast();
   const { isV1 } = useVersion();
+  const { user } = useAuth();
   const archive = useMemo(() => loadCurrentArchive(), []);
   const archiveId = archive?.id || 'default';
   const subjectName = archive?.name || '张明远';
@@ -224,9 +231,22 @@ export default function AIBiography() {
   const confirmedOutline = useMemo(() => loadConfirmedOutline(archiveId), [archiveId]);
 
   // 选择传记：档案可以帮别人建，传记也可以帮别人生成；切换后重载页面载入对应档案数据
-  const archiveOptions = useMemo(
-    () => loadJson<Archive[]>('cj_archives', []).map((a) => ({ id: a.id, label: `${a.name} 的传记` })),
-    []
+  // 末尾追加"我协助的传记"，选中后进入协助修改（只读 + 句级建议）模式
+  const archiveOptions = useMemo(() => {
+    const own = loadJson<Archive[]>('cj_archives', [])
+      .filter((a) => getWorkStatus(a.id) !== '已完成')
+      .map((a) => ({ id: a.id, label: `${a.name} 的传记` }));
+    const collabs = findCollaboratingArchives(user?.name || '')
+      .filter((c) => !own.some((o) => o.id === c.archiveId))
+      .map((c) => ({ id: c.archiveId, label: `${c.archiveName} 的传记（协助）` }));
+    return [...own, ...collabs];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.name]);
+
+  // 协作身份：在档案协作者名单中即视为协助人（本人创建的档案不在名单中）
+  const collabMode = useMemo(
+    () => !!user?.name && loadCollaborators(archiveId).some((c) => c.name === user.name),
+    [archiveId, user]
   );
   const handleSwitchArchive = (id: string) => {
     if (id === archiveId) return;
@@ -247,7 +267,7 @@ export default function AIBiography() {
       return (
         existing || {
           title: oc.title,
-          materials: oc.title === '前言' || oc.title === '后记' ? 2 : 5,
+          materials: 5,
           status: 'notGenerated' as const,
           updatedAt: null,
           content: '',
@@ -263,9 +283,7 @@ export default function AIBiography() {
   const [saveVersionOpen, setSaveVersionOpen] = useState(false);
   const [activeVersionId, setActiveVersionId] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
-  const [exporting, setExporting] = useState<Record<string, boolean>>({});
   const archiveMediaItems = useMemo(() => loadArchiveMediaItems(archiveId), [archiveId]);
-  const { user } = useAuth();
   const [showImportModal, setShowImportModal] = useState(false);
   const [importText, setImportText] = useState('');
   const [importingFile, setImportingFile] = useState(false);
@@ -273,6 +291,165 @@ export default function AIBiography() {
   const [derivedTab, setDerivedTab] = useState<DerivedTab>('quotes');
   const [derivedResults, setDerivedResults] = useState<Partial<Record<DerivedTab, string[]>>>({});
   const [derivedGenerating, setDerivedGenerating] = useState(false);
+  const [finishOpen, setFinishOpen] = useState(false);
+
+  // ---- 协作修改（句级建议） ----
+  const [suggestions, setSuggestions] = useState<EditSuggestion[]>(() => loadSuggestions(archiveId));
+  const [collaborators, setCollaborators] = useState(() => loadCollaborators(archiveId));
+  const [invitesVersion, setInvitesVersion] = useState(0);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [suggestDraft, setSuggestDraft] = useState<{ sentenceIndex: number; original: string } | null>(null);
+  const [suggestText, setSuggestText] = useState('');
+  const [suggestNote, setSuggestNote] = useState('');
+  const [showCollabInvite, setShowCollabInvite] = useState(false);
+  const [inviteQuery, setInviteQuery] = useState('');
+  const [inviteFound, setInviteFound] = useState<{ phone: string; name?: string } | null>(null);
+  const [inviteRelation, setInviteRelation] = useState('子女');
+
+  useEffect(() => {
+    saveSuggestions(archiveId, suggestions);
+  }, [suggestions, archiveId]);
+
+  const pendingSuggestions = suggestions.filter((s) => s.status === 'pending');
+  // 待对方同意的传记修改邀请：打开协助修改弹窗时按需读取，撤销后通过 invitesVersion 触发重读
+  const pendingEditInvites = (() => {
+    void invitesVersion;
+    return invitesForArchive(archiveId).filter((i) => i.status === 'pending' && i.kind === 'collab' && i.scope === 'edit');
+  })();
+  const collabSuggestCount = (name: string) => suggestions.filter((s) => s.authorName === name).length;
+  const collabAcceptedCount = (name: string) => suggestions.filter((s) => s.authorName === name && s.status === 'accepted').length;
+
+  const handleRemoveCollaborator = (id: string) => {
+    removeCollaborator(archiveId, id);
+    setCollaborators((prev) => prev.filter((c) => c.id !== id));
+    addToast('协作者已移除', 'info');
+  };
+
+  const handleRevokeInvite = (id: string) => {
+    revokeCollabInvite(id);
+    setInvitesVersion((v) => v + 1);
+    addToast('邀请已撤销', 'info');
+  };
+  /** 协助人自己提交的建议 */
+  const mySuggestions = suggestions.filter((s) => s.authorName === user?.name);
+  // ---- 本人审阅模式：选择协助人后，正文按句标注其待处理建议 ----
+  const [reviewAuthor, setReviewAuthor] = useState('');
+  const [reviewPopover, setReviewPopover] = useState<{ sug: EditSuggestion; x: number; y: number } | null>(null);
+  const reviewAuthors = useMemo(
+    () => Array.from(new Set(pendingSuggestions.map((s) => s.authorName))),
+    [pendingSuggestions]
+  );
+  const reviewSuggestions = reviewAuthor
+    ? pendingSuggestions.filter((s) => s.authorName === reviewAuthor)
+    : pendingSuggestions;
+  useEffect(() => {
+    const requested = new URLSearchParams(window.location.search).get('reviewAuthor');
+    if (requested && reviewAuthors.includes(requested)) {
+      setReviewAuthor(requested);
+      setShowSuggestions(true);
+    }
+  }, [reviewAuthors]);
+
+  const openSuggest = (sentenceIndex: number, original: string) => {
+    setSuggestDraft({ sentenceIndex, original });
+    setSuggestText(original);
+    setSuggestNote('');
+  };
+
+  const submitSuggestion = () => {
+    if (!suggestDraft || !user?.name) return;
+    const suggested = suggestText.trim();
+    if (!suggested) {
+      addToast('请填写修改后的句子', 'error');
+      return;
+    }
+    if (suggested === suggestDraft.original.trim()) {
+      addToast('内容没有改动', 'info');
+      return;
+    }
+    setSuggestions((prev) => [
+      makeSuggestion({
+        chapterIndex: activeIndex,
+        chapterTitle: activeChapter.title,
+        sentenceIndex: suggestDraft.sentenceIndex,
+        original: suggestDraft.original,
+        suggested,
+        note: suggestNote.trim() || undefined,
+        authorName: user.name || '协助人',
+        collaboratorId: collabMode ? loadCollaborators(archiveId).find((c) => c.name === user.name)?.id : undefined,
+        authorPhone: user.phone,
+      }),
+      ...prev,
+    ]);
+    setSuggestDraft(null);
+    addToast('修改建议已提交，等待本人采纳', 'success');
+  };
+
+  const resolveSuggestion = (suggestion: EditSuggestion, accept: boolean) => {
+    if (accept) {
+      const chapter = chapters[suggestion.chapterIndex];
+      const replaced = chapter
+        ? replaceSentence(htmlToText(chapter.content), suggestion.sentenceIndex, suggestion.original, suggestion.suggested)
+        : null;
+      if (!replaced) {
+        setSuggestions((prev) =>
+          prev.map((s) => (s.id === suggestion.id ? { ...s, status: 'outdated', resolvedAt: new Date().toISOString() } : s))
+        );
+        addToast('原文已被修改，该建议失效', 'info');
+        return;
+      }
+      const nextChapters = chapters.map((c, i) =>
+        i === suggestion.chapterIndex
+          ? { ...c, content: replaced, status: 'edited' as const, updatedAt: new Date().toLocaleString('zh-CN') }
+          : c
+      );
+      setChapters(nextChapters);
+      // 已定稿的传记同步更新成品快照，保证打印预览/我的传记读到最新内容
+      try {
+        const raw = localStorage.getItem(`cj_biography_${archiveId}`);
+        if (raw) {
+          const snapshot = JSON.parse(raw) as { chapters?: unknown };
+          snapshot.chapters = nextChapters.map((c) => ({ title: c.title, content: c.content }));
+          localStorage.setItem(`cj_biography_${archiveId}`, JSON.stringify(snapshot));
+        }
+      } catch {
+        // ignore
+      }
+      addToast('已采纳，正文已更新', 'success');
+    }
+    setSuggestions((prev) =>
+      prev.map((s) =>
+        s.id === suggestion.id ? { ...s, status: accept ? 'accepted' : 'rejected', resolvedAt: new Date().toISOString() } : s
+      )
+    );
+  };
+
+  const handleFindInvitee = () => {
+    const found = findAccountByPhoneOrIdCard(inviteQuery);
+    if (!found) {
+      addToast('没有找到该账号', 'error');
+      return;
+    }
+    setInviteFound(found);
+  };
+
+  const handleSendCollabInvite = () => {
+    if (!inviteFound) return;
+    createCollabInvite({
+      kind: 'collab',
+      scope: 'edit',
+      archiveId,
+      archiveName: `${subjectName}的传记`,
+      subjectName,
+      inviterName: user?.name || '本人',
+      targetPhone: inviteFound.phone,
+      relation: inviteRelation,
+    });
+    addToast(`邀请已发送给 ${inviteFound.name || inviteFound.phone}，对方在首页接受后即可协助修改`, 'success');
+    setShowCollabInvite(false);
+    setInviteQuery('');
+    setInviteFound(null);
+  };
 
   const handleDerivedGenerate = () => {
     setDerivedGenerating(true);
@@ -332,10 +509,6 @@ export default function AIBiography() {
   };
 
   const updateChapter = (index: number, patch: Partial<ChapterData>) => {
-    if (isFinalized) {
-      addToast('传记已完成，无法再次编辑', 'error');
-      return;
-    }
     setChapters((prev) => prev.map((c, i) => (i === index ? { ...c, ...patch } : c)));
   };
 
@@ -343,7 +516,6 @@ export default function AIBiography() {
   const [treeEditing, setTreeEditing] = useState(false);
 
   const moveChapterItem = (index: number, delta: -1 | 1) => {
-    if (isFinalized) return;
     const target = index + delta;
     if (target < 0 || target >= chapters.length) return;
     setChapters((prev) => {
@@ -355,13 +527,11 @@ export default function AIBiography() {
   };
 
   const removeChapterItem = (index: number) => {
-    if (isFinalized) return;
     setChapters((prev) => prev.filter((_, i) => i !== index));
     setActiveIndex((prev) => Math.max(0, prev > index ? prev - 1 : prev === index ? 0 : prev));
   };
 
   const addChapterItem = () => {
-    if (isFinalized) return;
     setChapters((prev) => [
       ...prev,
       { title: '新章节', materials: 0, status: 'notGenerated' as const, updatedAt: null, content: '' },
@@ -409,20 +579,11 @@ export default function AIBiography() {
   const [biographyStyle, setBiographyStyle] = useState<BiographyStyle>(() =>
     loadJson<BiographyStyle>(`cj_biography_style_${archiveId}`, 'warm')
   );
-  const [wordCountLevel, setWordCountLevel] = useState<WordCountLevel>(() =>
-    loadJson<WordCountLevel>(`cj_biography_word_count_${archiveId}`, 'standard')
-  );
-
   useEffect(() => {
     saveJson(`cj_biography_style_${archiveId}`, biographyStyle);
   }, [biographyStyle, archiveId]);
 
-  useEffect(() => {
-    saveJson(`cj_biography_word_count_${archiveId}`, wordCountLevel);
-  }, [wordCountLevel, archiveId]);
-
   const styleLabel = styleOptions.find((s) => s.key === biographyStyle)?.label || '温情叙事';
-  const wordCountLabel = wordCountOptions.find((w) => w.key === wordCountLevel)?.label || '标准 · 约15000字';
 
   const runGenerate = async () => {
     try {
@@ -432,7 +593,7 @@ export default function AIBiography() {
       return;
     }
     setGenerating(true);
-    addToast(`以「${styleLabel}」文风、${wordCountLabel}档位生成`, 'info');
+    addToast(`以「${styleLabel}」文风生成`, 'info');
 
     try {
       const isFirstGenerate = chapters.every((c) => c.status === 'notGenerated');
@@ -454,7 +615,7 @@ export default function AIBiography() {
               updatedAt: now,
             }))
           );
-          addToast(`已按大纲 v${confirmedOutline.version} 生成全部章节（${styleLabel} · ${wordCountLabel}）`, 'success');
+          addToast(`已按大纲 v${confirmedOutline.version} 生成全部章节（${styleLabel}）`, 'success');
         } else {
           updateChapter(activeIndex, {
             status: 'generated',
@@ -466,17 +627,17 @@ export default function AIBiography() {
         return;
       }
       if (isFirstGenerate) {
-        const biography = await biographyApi.generate(archiveId, biographyStyle, wordCountLevel);
+        const biography = await biographyApi.generate(archiveId, biographyStyle);
         setChapters(
           biography.chapters.map((ch) => ({
             title: ch.title,
             content: ch.content,
             status: 'generated' as const,
-            materials: ch.images.length || (ch.title === '前言' || ch.title === '后记' ? 2 : 5),
+            materials: ch.images.length || 5,
             updatedAt: new Date().toLocaleString('zh-CN'),
           }))
         );
-        addToast(`传记全部章节已生成（${styleLabel} · ${wordCountLabel}）`, 'success');
+        addToast(`传记全部章节已生成（${styleLabel}）`, 'success');
       } else {
         const biography = await biographyApi.regenerateChapter(archiveId, activeChapter.title);
         const regenerated = biography.chapters.find((c) => c.title === activeChapter.title);
@@ -539,7 +700,6 @@ export default function AIBiography() {
       createdAt: now.toISOString(),
       chapters: chapters.map((chapter) => ({ ...chapter })),
       style: biographyStyle,
-      wordCountLevel,
     };
     setVersions((prev) => [...prev, version]);
     setActiveVersionId(version.id);
@@ -552,7 +712,6 @@ export default function AIBiography() {
     if (!window.confirm(`切换到“${version.label}”会覆盖当前未保存的修改，是否继续？`)) return;
     setChapters(version.chapters.map((chapter) => ({ ...chapter })));
     setBiographyStyle(version.style);
-    setWordCountLevel(version.wordCountLevel);
     setActiveIndex(0);
     setActiveVersionId(version.id);
     setShowVersions(false);
@@ -570,8 +729,8 @@ export default function AIBiography() {
 
   const saveToMyWorks = async () => {
     if (isFinalized) {
-      addToast('传记已完成，无法再次编辑', 'info');
-      navigate('/my-works');
+      addToast('传记已完成，不能继续编辑', 'info');
+      navigate('/biography/print');
       return;
     }
     if (!chapters.some((chapter) => chapter.content.trim())) {
@@ -596,38 +755,9 @@ export default function AIBiography() {
         chapters: chapters.map((c) => ({ title: c.title, content: c.content })),
       })
     );
+    setFinishOpen(false);
     addToast('传记已完成并保存', 'success');
     navigate('/my-works');
-  };
-
-  const exportFile = (type: string) => {
-    setExporting((prev) => ({ ...prev, [type]: true }));
-    addToast(`${type} 导出中…`, 'info');
-    setTimeout(() => {
-      setExporting((prev) => ({ ...prev, [type]: false }));
-      addToast(`${type} 导出完成`, 'success');
-    }, 1200);
-  };
-
-  const simulatePayment = async () => {
-    if (!user?.phone) {
-      addToast('请先登录', 'error');
-      return;
-    }
-    try {
-      const archiveId = localStorage.getItem('cj_current_archive_id') || undefined;
-      const order = await orderApi.create({
-        type: 'biography',
-        productId: 'prod_biography_99',
-        productName: 'AI 传记标准版',
-        amount: 99,
-        archiveId,
-      });
-      const { payment } = await paymentApi.pay(order.id, 'wechat');
-      addToast(`模拟支付成功，订单号 ${payment.transactionId.slice(-8)}`, 'success');
-    } catch (err: any) {
-      addToast(err.message || '支付失败', 'error');
-    }
   };
 
   const selectChapter = (i: number) => {
@@ -730,45 +860,79 @@ export default function AIBiography() {
             </select>
           </div>
           </Annotate>
-          {!isFinalized && <button className="btn btn-outline" onClick={() => setShowVersions(true)}>
+          {collabMode && <span className="biography-readonly-notice">协助修改模式 · 点击正文中的句子提出修改建议</span>}
+          {collabMode && (
+            <button className="btn btn-outline" onClick={() => setShowSuggestions(true)}>
+              <MessagesSquare size={14} /> 我的建议{mySuggestions.length ? ` (${mySuggestions.length})` : ''}
+            </button>
+          )}
+          {!collabMode && (
+            <button className="btn btn-outline" onClick={() => setShowCollabInvite(true)}>
+              <UserPlus size={14} /> 邀请协助
+            </button>
+          )}
+          {!collabMode && pendingSuggestions.length > 0 && (
+            <div className="review-select-wrap" title="选择协助人，正文将标注其建议修改的句子">
+              <MessagesSquare size={14} />
+              <select
+                value={reviewAuthor}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value === '__panel__') {
+                    setShowSuggestions(true);
+                    setReviewAuthor('');
+                  } else {
+                    setReviewAuthor(value);
+                  }
+                  setReviewPopover(null);
+                }}
+              >
+                <option value="">协助修改（{pendingSuggestions.length}）</option>
+                {reviewAuthors.map((name) => (
+                  <option key={name} value={name}>
+                    {name}（{pendingSuggestions.filter((s) => s.authorName === name).length}）
+                  </option>
+                ))}
+                <option value="__panel__">查看全部建议记录</option>
+              </select>
+            </div>
+          )}
+          {!collabMode && pendingSuggestions.length === 0 && (
+            <button className="btn btn-outline" onClick={() => setShowSuggestions(true)}>
+              <MessagesSquare size={14} /> 协助修改
+            </button>
+          )}
+          {!collabMode && <button className="btn btn-outline" onClick={() => setShowVersions(true)}>
             <RefreshCw size={14} /> 历史版本{versions.length ? ` (${versions.length})` : ''}
           </button>}
-          {!isFinalized && (
+          {!collabMode && (
             <button className="btn btn-primary" onClick={() => setSaveVersionOpen(true)}>
               <Save size={14} /> 保存版本
             </button>
           )}
-          {isFinalized && <span className="biography-readonly-notice">已完成 · 只读</span>}
           <button className="btn btn-outline" onClick={() => setPreviewOpen(true)}>
             <BookOpen size={14} /> 查看传记
           </button>
-          <button className="btn btn-outline" onClick={() => navigate('/archive')}>
-            <FolderOpen size={14} /> 完善人生档案
-          </button>
-          <button className="btn btn-outline" onClick={() => navigate('/interview-review')}>
-            <FileText size={14} /> 查看采访整理
-          </button>
+          {!collabMode && (
+            <button className="btn btn-outline" onClick={() => navigate('/interview-review')}>
+              <FileText size={14} /> 查看采访整理
+            </button>
+          )}
           <Annotate id="biography.save-works" inline>
-          {!isFinalized && (
-            <button className="btn btn-primary" onClick={saveToMyWorks}>
+          {!collabMode && !isFinalized && (
+            <button className="btn btn-primary" onClick={() => setFinishOpen(true)}>
               <BookOpen size={14} /> 完成传记
             </button>
           )}
           </Annotate>
-          <Annotate id="biography.simulate-pay" inline>
-          <button className="btn btn-accent" onClick={simulatePayment}>
-            <DollarSign size={14} /> 模拟支付 ¥99
-          </button>
-          </Annotate>
         </div>
       </header>
-
       <div className="biography-main">
         <Annotate id="biography.chapter-tree">
         <div className="card chapter-tree">
           <div className="card-header chapter-tree-header">
             <h3 className="card-title">章节目录</h3>
-            {!isFinalized && <button
+            {!isFinalized && !collabMode && !reviewAuthor && <button
               className="chapter-edit-toggle"
               title={treeEditing ? '完成编辑' : '编辑目录'}
               onClick={() => setTreeEditing((v) => !v)}
@@ -841,7 +1005,57 @@ export default function AIBiography() {
             </div>
           </div>
           <div className="editor-body">
-            {activeChapter.status === 'notGenerated' && !activeChapter.content ? (
+            {collabMode ? (
+              activeChapter.content ? (
+                <div className="collab-reader">
+                  {splitSentences(htmlToText(activeChapter.content)).map((sentence, i) => {
+                    const hasPending = pendingSuggestions.some(
+                      (s) => s.chapterIndex === activeIndex && s.sentenceIndex === i
+                    );
+                    return (
+                      <span
+                        key={i}
+                        className={`collab-sentence ${hasPending ? 'has-suggestion' : ''}`}
+                        title="点击提出修改建议"
+                        onClick={() => openSuggest(i, sentence)}
+                      >
+                        {sentence}
+                      </span>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="editor-empty">
+                  <Sparkles size={40} color="#1B5E4B" />
+                  <h3>本章还没有内容</h3>
+                  <p>等本人生成或填写本章内容后，您就可以逐句提出修改建议。</p>
+                </div>
+              )
+            ) : reviewAuthor && activeChapter.content ? (
+              <div className="collab-reader review-reader">
+                {splitSentences(htmlToText(activeChapter.content)).map((sentence, i) => {
+                  const sug = reviewSuggestions.find(
+                    (s) => s.chapterIndex === activeIndex && s.sentenceIndex === i
+                  );
+                  return (
+                    <span
+                      key={i}
+                      className={sug ? 'review-mark' : 'review-plain'}
+                      onClick={(e) => {
+                        if (!sug) return;
+                        setReviewPopover({
+                          sug,
+                          x: Math.min(e.clientX, window.innerWidth - 360),
+                          y: e.clientY + 12,
+                        });
+                      }}
+                    >
+                      {sentence}
+                    </span>
+                  );
+                })}
+              </div>
+            ) : activeChapter.status === 'notGenerated' && !activeChapter.content ? (
               <div className="editor-empty">
                 <Sparkles size={40} color="#1B5E4B" />
                 <h3>本章尚未生成</h3>
@@ -850,27 +1064,29 @@ export default function AIBiography() {
             ) : (
               <div
                 ref={editorRef}
-                className={`chapter-editor ${isFinalized ? 'readonly' : ''}`}
+                className={`chapter-editor${isFinalized ? ' chapter-editor-readonly' : ''}`}
                 contentEditable={!isFinalized}
                 suppressContentEditableWarning
-                onInput={handleEditorInput}
-                onBlur={handleEditorInput}
+                onInput={isFinalized ? undefined : handleEditorInput}
+                onBlur={isFinalized ? undefined : handleEditorInput}
                 dangerouslySetInnerHTML={{ __html: activeChapter.content }}
                 data-placeholder="在此编辑本章内容…"
               />
             )}
           </div>
           <div className="editor-toolbar">
-            {!isFinalized && <button className="btn btn-primary" onClick={handleGenerate} disabled={generating}>
+            {isFinalized && <span className="generating-hint">传记已完成，仅支持查看、导出和排版</span>}
+            {collabMode && <span className="generating-hint">协助修改模式：点击上方正文中的句子，即可对该句提出修改建议</span>}
+            {!isFinalized && !collabMode && !reviewAuthor && <button className="btn btn-primary" onClick={handleGenerate} disabled={generating}>
               <Sparkles size={14} /> {activeChapter.status === 'notGenerated' ? '生成本章' : '重新生成本章'}
             </button>}
-            {!isFinalized && <button className="btn btn-outline" onClick={handlePolish} disabled={generating || activeChapter.status === 'notGenerated'}>
+            {!isFinalized && !collabMode && !reviewAuthor && <button className="btn btn-outline" onClick={handlePolish} disabled={generating || activeChapter.status === 'notGenerated'}>
               <Wand2 size={14} /> 润色本章
             </button>}
-            {!isFinalized && <button className="btn btn-outline" onClick={handleInsertImage}>
+            {!isFinalized && !collabMode && !reviewAuthor && <button className="btn btn-outline" onClick={handleInsertImage}>
               <Image size={14} /> 插入图片
             </button>}
-            {!isFinalized && <>
+            {!isFinalized && !collabMode && !reviewAuthor && <>
               <input
                 ref={imageInputRef}
                 type="file"
@@ -956,41 +1172,9 @@ export default function AIBiography() {
                   ))}
                 </div>
               </div>
-              <div className="setting-row setting-row-chips">
-                <label>字数档位</label>
-                <div className="option-chips">
-                  {wordCountOptions.map((w) => (
-                    <button
-                      key={w.key}
-                      type="button"
-                      className={`option-chip ${wordCountLevel === w.key ? 'active' : ''}`}
-                      onClick={() => setWordCountLevel(w.key)}
-                    >
-                      {w.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
             </div>
           </div>
           </Annotate>
-
-          <div className="card export-card">
-            <div className="card-header">
-              <h3 className="card-title"><Download size={14} /> 导出</h3>
-            </div>
-            <div className="card-body export-body">
-              <button className="export-btn" onClick={() => exportFile('Word')} disabled={exporting.Word}>
-                <FileType size={18} /> {exporting.Word ? '导出中…' : '导出 Word'}
-              </button>
-              <button className="export-btn" onClick={() => exportFile('PDF')} disabled={exporting.PDF}>
-                <Download size={18} /> {exporting.PDF ? '导出中…' : '导出 PDF'}
-              </button>
-              <button className="export-btn" onClick={() => navigate('/biography/print')}>
-                <BookOpen size={18} /> 实体书排版
-              </button>
-            </div>
-          </div>
 
           {!isV1 && (
             <div className="card quick-gen-card">
@@ -999,10 +1183,10 @@ export default function AIBiography() {
               </div>
               <div className="card-body quick-gen-body">
                 <button className="btn btn-outline" onClick={() => { setActiveIndex(0); }}>
-                  生成前言
+                  生成第一章
                 </button>
                 <button className="btn btn-outline" onClick={() => { setActiveIndex(chapters.length - 1); }}>
-                  生成后记
+                  生成末章
                 </button>
                 <button className="btn btn-outline" onClick={() => { navigate('/digital-person'); }}>
                   <Sparkles size={14} /> 创建数字人
@@ -1082,6 +1266,18 @@ export default function AIBiography() {
           </div>
         </div>
       )}
+
+      <Modal open={finishOpen} title="确认完成传记" onClose={() => setFinishOpen(false)} footer={
+        <div className="version-modal-actions">
+          <button className="btn btn-outline" onClick={() => setFinishOpen(false)}>再检查一下</button>
+          <button className="btn btn-primary" onClick={saveToMyWorks}>完成传记</button>
+        </div>
+      }>
+        <div className="version-save-form">
+          <p>完成后作品会进入“我的传记”的已完成状态，可查看、排版和制作实体书。</p>
+          <p>完成后将进入只读状态，不能继续编辑。如需修改，请重新创建一份传记草稿。</p>
+        </div>
+      </Modal>
 
       <Modal open={saveVersionOpen} title="保存当前版本" onClose={() => setSaveVersionOpen(false)} footer={
         <div className="version-modal-actions">
@@ -1189,6 +1385,207 @@ export default function AIBiography() {
           </div>
         </div>
       </Modal>
+
+      {/* 协助人：对某一句提出修改建议 */}
+      <Modal
+        open={!!suggestDraft}
+        title={`修改建议 · ${activeChapter.title}`}
+        onClose={() => setSuggestDraft(null)}
+        footer={
+          <div className="import-modal-footer">
+            <button className="btn btn-outline" onClick={() => setSuggestDraft(null)}>取消</button>
+            <button className="btn btn-primary" onClick={submitSuggestion}>提交建议</button>
+          </div>
+        }
+      >
+        {suggestDraft && (
+          <div className="suggest-form">
+            <div className="suggest-original">
+              <span className="suggest-label">原句</span>
+              <p>{suggestDraft.original}</p>
+            </div>
+            <div className="suggest-field">
+              <label>修改为</label>
+              <textarea rows={3} value={suggestText} onChange={(e) => setSuggestText(e.target.value)} />
+            </div>
+            <div className="suggest-field">
+              <label>修改说明（选填）</label>
+              <input type="text" value={suggestNote} onChange={(e) => setSuggestNote(e.target.value)} placeholder="如：时间有误，应为 1984 年" />
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* 修改建议面板：本人可采纳/拒绝，协助人可查看自己建议的状态 */}
+      <Modal
+        open={showSuggestions}
+        title={collabMode ? '我提交的修改建议' : '协助修改'}
+        onClose={() => setShowSuggestions(false)}
+      >
+        {collabMode ? (
+          <div className="suggest-list">
+            {mySuggestions.length === 0 ? (
+              <div className="suggest-empty">您还没有提交过修改建议</div>
+            ) : (
+              mySuggestions.map((s) => (
+                <div className={`suggest-item ${s.status}`} key={s.id}>
+                  <div className="suggest-item-head">
+                    <strong>{s.authorName}</strong>
+                    <span className="suggest-item-chapter">{s.chapterTitle} · 第 {s.sentenceIndex + 1} 句</span>
+                    <span className={`suggest-status suggest-status-${s.status}`}>
+                      {s.status === 'pending' ? '待处理' : s.status === 'accepted' ? '已采纳' : s.status === 'rejected' ? '已拒绝' : '原文已变更'}
+                    </span>
+                  </div>
+                  <div className="suggest-diff">
+                    <p className="suggest-diff-old">{s.original}</p>
+                    <p className="suggest-diff-new">{s.suggested}</p>
+                  </div>
+                  {s.note && <div className="suggest-note">说明：{s.note}</div>}
+                </div>
+              ))
+            )}
+          </div>
+        ) : (
+          <div className="suggest-list">
+            {pendingSuggestions.length > 0 && (
+              <div className="suggest-section">
+                <div className="suggest-section-title">待处理修改建议（{pendingSuggestions.length}）</div>
+                {pendingSuggestions.map((s) => (
+                  <div className={`suggest-item ${s.status}`} key={s.id}>
+                    <div className="suggest-item-head">
+                      <strong>{s.authorName}</strong>
+                      <span className="suggest-item-chapter">{s.chapterTitle} · 第 {s.sentenceIndex + 1} 句</span>
+                    </div>
+                    <div className="suggest-diff">
+                      <p className="suggest-diff-old">{s.original}</p>
+                      <p className="suggest-diff-new">{s.suggested}</p>
+                    </div>
+                    {s.note && <div className="suggest-note">说明：{s.note}</div>}
+                    <div className="suggest-item-foot">
+                      <span>{new Date(s.createdAt).toLocaleString('zh-CN')}</span>
+                      <span className="suggest-actions">
+                        <button className="btn btn-primary btn-sm" onClick={() => resolveSuggestion(s, true)}>采纳</button>
+                        <button className="btn btn-outline btn-sm" onClick={() => resolveSuggestion(s, false)}>拒绝</button>
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {collaborators.length > 0 && (
+              <div className="suggest-section">
+                <div className="suggest-section-title">协作者</div>
+                {collaborators.map((c) => (
+                  <div className="collab-item" key={c.id}>
+                    <div className="collab-info">
+                      <strong>{c.name}</strong>
+                      <span>{c.relation}</span>
+                      <span className="collab-count">建议 {collabSuggestCount(c.name)} 条 · 已采纳 {collabAcceptedCount(c.name)} 条</span>
+                    </div>
+                    <div className="collab-actions">
+                      <button className="btn btn-ghost btn-sm danger" onClick={() => handleRemoveCollaborator(c.id)}>移除</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {pendingEditInvites.length > 0 && (
+              <div className="suggest-section">
+                <div className="suggest-section-title">待对方同意</div>
+                {pendingEditInvites.map((i) => (
+                  <div className="collab-item" key={i.id}>
+                    <div className="collab-info">
+                      <strong>{i.targetPhone}</strong>
+                      <span>{i.relation}</span>
+                      <span className="collab-count">邀请协助修改传记 · 等待对方同意</span>
+                    </div>
+                    <div className="collab-actions">
+                      <button className="btn btn-ghost btn-sm danger" onClick={() => handleRevokeInvite(i.id)}>撤销</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {pendingSuggestions.length === 0 && collaborators.length === 0 && pendingEditInvites.length === 0 && (
+              <div className="suggest-empty">暂无修改建议，可通过「邀请协助」让家人协助修改</div>
+            )}
+          </div>
+        )}
+      </Modal>
+
+      {/* 邀请协助修改 */}
+      <Modal
+        open={showCollabInvite}
+        title="邀请协助修改"
+        onClose={() => setShowCollabInvite(false)}
+        footer={
+          <div className="import-modal-footer">
+            <button className="btn btn-outline" onClick={() => setShowCollabInvite(false)}>取消</button>
+          </div>
+        }
+      >
+        <div className="suggest-form">
+          <p className="import-modal-tip">输入对方注册的手机号或身份证号发出邀请，对方在首页接受后，即可对传记逐句提出修改建议。</p>
+          <div className="suggest-field">
+            <label>手机号 / 身份证号</label>
+            <div className="invite-search-row">
+              <input
+                type="text"
+                value={inviteQuery}
+                onChange={(e) => { setInviteQuery(e.target.value); setInviteFound(null); }}
+                placeholder="请输入对方注册的手机号或身份证号"
+              />
+              <button className="btn btn-outline" onClick={handleFindInvitee}>查找</button>
+            </div>
+          </div>
+          {inviteFound && (
+            <div className="invite-found-row">
+              <strong>{inviteFound.name || '未设置姓名的用户'}</strong>
+              <span>{inviteFound.phone}</span>
+              <select value={inviteRelation} onChange={(e) => setInviteRelation(e.target.value)}>
+                {relationTypeOptions.map((r) => <option key={r} value={r}>{r}</option>)}
+              </select>
+              <button className="btn btn-primary btn-sm" onClick={handleSendCollabInvite}>发送邀请</button>
+            </div>
+          )}
+        </div>
+      </Modal>
+
+      {/* 审阅模式：点击正文标注句子，弹出修改对比，本人决定是否替换 */}
+      {reviewPopover && (
+        <div className="review-popover-backdrop" onClick={() => setReviewPopover(null)}>
+          <div
+            className="review-popover"
+            style={{ left: reviewPopover.x, top: reviewPopover.y }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="review-popover-head">
+              <strong>{reviewPopover.sug.authorName}</strong>
+              <span>{reviewPopover.sug.chapterTitle} · 第 {reviewPopover.sug.sentenceIndex + 1} 句</span>
+            </div>
+            <div className="suggest-diff">
+              <p className="suggest-diff-old">{reviewPopover.sug.original}</p>
+              <p className="suggest-diff-new">{reviewPopover.sug.suggested}</p>
+            </div>
+            {reviewPopover.sug.note && <div className="suggest-note">说明：{reviewPopover.sug.note}</div>}
+            <div className="review-popover-actions">
+              <button className="btn btn-outline btn-sm" onClick={() => setReviewPopover(null)}>再看看</button>
+              <button
+                className="btn btn-outline btn-sm"
+                onClick={() => { const sug = reviewPopover.sug; setReviewPopover(null); resolveSuggestion(sug, false); }}
+              >
+                拒绝
+              </button>
+              <button
+                className="btn btn-primary btn-sm"
+                onClick={() => { const sug = reviewPopover.sug; setReviewPopover(null); resolveSuggestion(sug, true); }}
+              >
+                采纳替换
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -14,15 +14,12 @@ import {
   Rocket,
   Umbrella,
   Sprout,
-  Info,
   Plus,
   Trash2,
   Star,
   X,
   UserPlus,
   User,
-  Shield,
-  Eye,
   Upload,
   Home,
   Plane,
@@ -40,7 +37,8 @@ import { generateImageDataUrl, generateVideoPoster, generateAudioUrl } from '../
 import LocationFootprints from './LocationFootprints';
 import Achievements from './Achievements';
 import { buildRelationNodes, relationTypeOptions, type RelationNode } from '../utils/familyRelations';
-import { presetLifeTags } from '../data/lifeTags';
+import { regions } from '../data/regions';
+import { industryOptions, industryOccupations } from '../data/occupations';
 import { familyApi } from '../api/family';
 import {
   findAccountByPhoneOrIdCard,
@@ -78,7 +76,13 @@ interface Archive {
   name: string;
   gender: '男' | '女';
   birthYear: string;
+  /** 完整出生日期，如 1958-03-12 */
+  birthDate?: string;
   origin: string;
+  /** 籍贯详细地址（级联省市区之外的补充） */
+  originDetail?: string;
+  /** 所属行业 */
+  industry?: string;
   occupation: string;
   tags?: string[];
 }
@@ -112,10 +116,10 @@ interface TimelineEvent {
   tags: TagItem[];
 }
 
-type Role = '档案所有者' | '观察者';
-
-const ROLES: Role[] = ['档案所有者', '观察者'];
 const DEFAULT_ARCHIVE_ID = 'default';
+// 出生日期下拉的年份范围：1900 至今
+const currentYear = new Date().getFullYear();
+const birthYearOptions = Array.from({ length: currentYear - 1900 + 1 }, (_, i) => String(currentYear - i));
 const DEFAULT_ARCHIVE: Archive = {
   id: DEFAULT_ARCHIVE_ID,
   name: '张明远',
@@ -314,16 +318,6 @@ function loadTagsForArchive(archiveId: string): Record<string, string[]> {
     : {};
 }
 
-function loadRole(): Role {
-  try {
-    const saved = localStorage.getItem('cj_current_role') as Role | null;
-    if (saved && ROLES.includes(saved)) return saved;
-  } catch {
-    // ignore
-  }
-  return '档案所有者';
-}
-
 function loadPrivacyValues(): Record<string, string> {
   try {
     const raw = localStorage.getItem('cj_privacy_values');
@@ -337,15 +331,14 @@ function loadPrivacyValues(): Record<string, string> {
 interface Member {
   id: string;
   name: string;
-  role: Role;
   status: 'active' | 'pending';
 }
 
 const defaultMembers: Member[] = [
-  { id: 'm1', name: '张明远', role: '档案所有者', status: 'active' },
-  { id: 'm2', name: '李晓如', role: '观察者', status: 'active' },
-  { id: 'm3', name: '张子涵', role: '观察者', status: 'active' },
-  { id: 'm4', name: '张雨桐', role: '观察者', status: 'pending' },
+  { id: 'm1', name: '张明远', status: 'active' },
+  { id: 'm2', name: '李晓如', status: 'active' },
+  { id: 'm3', name: '张子涵', status: 'active' },
+  { id: 'm4', name: '张雨桐', status: 'pending' },
 ];
 
 function loadMembers(archiveId: string): Member[] {
@@ -421,7 +414,6 @@ export default function LifeArchive() {
       .finally(() => {});
   }, []);
   const [eventTags, setEventTags] = useState<Record<string, string[]>>(initialTags);
-  const [role, setRole] = useState<Role>(loadRole);
   const [privacyValues, setPrivacyValues] = useState<Record<string, string>>(loadPrivacyValues);
   const [mediaItems, setMediaItems] = useState<MediaItem[]>(() => loadMediaItems(currentArchiveId));
 
@@ -451,16 +443,19 @@ export default function LifeArchive() {
   const [newName, setNewName] = useState('');
   const [newGender, setNewGender] = useState<'男' | '女'>('男');
   const [newBirthYear, setNewBirthYear] = useState('');
-  const [newTags, setNewTags] = useState<string[]>([]);
-  const [newCustomTag, setNewCustomTag] = useState('');
-  const [newOrigin, setNewOrigin] = useState('');
+  const [newBirthMonth, setNewBirthMonth] = useState('');
+  const [newBirthDay, setNewBirthDay] = useState('');
+  const [newOriginProvince, setNewOriginProvince] = useState('');
+  const [newOriginCity, setNewOriginCity] = useState('');
+  const [newOriginDistrict, setNewOriginDistrict] = useState('');
+  const [newOriginDetail, setNewOriginDetail] = useState('');
+  const [newIndustry, setNewIndustry] = useState('');
   const [newOccupation, setNewOccupation] = useState('');
 
   const initialMembers = loadMembers(initialArchiveId);
   const [members, setMembers] = useState<Member[]>(initialMembers);
   const [showInvite, setShowInvite] = useState(false);
   const [inviteName, setInviteName] = useState('');
-  const [inviteRole, setInviteRole] = useState<Role>('观察者');
 
   const [relations, setRelations] = useState<FamilyRelation[]>([]);
   const [showRelationModal, setShowRelationModal] = useState(false);
@@ -489,9 +484,8 @@ export default function LifeArchive() {
     () => buildRelationNodes(currentArchive.name, relations),
     [currentArchive.name, relations]
   );
-  const canEdit = role !== '观察者';
-  const canManageArchives = role === '档案所有者';
-  const isOwner = role === '档案所有者';
+  const canEdit = true;
+  const canManageArchives = true;
 
   const sortedEvents = events.slice().sort((a, b) => Number(a.year) - Number(b.year));
 
@@ -537,14 +531,25 @@ export default function LifeArchive() {
       addToast('请输入姓名', 'error');
       return;
     }
+    if (!newOriginProvince || !newOriginCity || !newOriginDistrict) {
+      addToast('请选择完整的籍贯（省 / 市 / 区）', 'error');
+      return;
+    }
+    const birthParts = [newBirthYear, newBirthMonth, newBirthDay];
+    if (birthParts.some(Boolean) && !birthParts.every(Boolean)) {
+      addToast('请完整选择出生日期（年 / 月 / 日）', 'error');
+      return;
+    }
     const archive: Archive = {
       id: Date.now().toString(),
       name,
       gender: newGender,
-      birthYear: newBirthYear.trim(),
-      origin: newOrigin.trim(),
-      occupation: newOccupation.trim(),
-      tags: newTags,
+      birthYear: newBirthYear,
+      birthDate: newBirthYear ? `${newBirthYear}-${newBirthMonth}-${newBirthDay}` : undefined,
+      origin: `${newOriginProvince}${newOriginCity}${newOriginDistrict}`,
+      originDetail: newOriginDetail.trim() || undefined,
+      industry: newIndustry || undefined,
+      occupation: newOccupation,
     };
     const nextArchives = [...archives, archive];
     setArchives(nextArchives);
@@ -564,10 +569,14 @@ export default function LifeArchive() {
     setNewName('');
     setNewGender('男');
     setNewBirthYear('');
-    setNewOrigin('');
+    setNewBirthMonth('');
+    setNewBirthDay('');
+    setNewOriginProvince('');
+    setNewOriginCity('');
+    setNewOriginDistrict('');
+    setNewOriginDetail('');
+    setNewIndustry('');
     setNewOccupation('');
-    setNewTags([]);
-    setNewCustomTag('');
     setShowNewArchive(false);
     addToast('档案已创建', 'success');
   };
@@ -683,11 +692,6 @@ export default function LifeArchive() {
     addToast('事件已删除', 'success');
   };
 
-  const handleRoleChange = (r: Role) => {
-    setRole(r);
-    localStorage.setItem('cj_current_role', r);
-  };
-
   const saveMembers = (archiveId: string, next: Member[]) => {
     localStorage.setItem(`cj_members_${archiveId}`, JSON.stringify(next));
   };
@@ -702,13 +706,12 @@ export default function LifeArchive() {
       addToast('该成员已存在', 'error');
       return;
     }
-    const next: Member[] = [...members, { id: Date.now().toString(), name, role: inviteRole, status: 'pending' }];
+    const next: Member[] = [...members, { id: Date.now().toString(), name, status: 'pending' }];
     setMembers(next);
     saveMembers(currentArchiveId, next);
     setInviteName('');
-    setInviteRole('观察者');
     setShowInvite(false);
-    addToast(`已邀请 ${name} 为 ${inviteRole}`, 'success');
+    addToast(`已邀请 ${name}`, 'success');
   };
 
   const handleRemoveMember = (id: string) => {
@@ -836,75 +839,77 @@ export default function LifeArchive() {
               </select>
             </div>
             <div className="form-row">
-              <label>出生年份</label>
+              <label>出生日期</label>
+              <div className="date-select-row">
+                <select value={newBirthYear} onChange={(e) => { setNewBirthYear(e.target.value); setNewBirthDay((d) => d); }}>
+                  <option value="">年</option>
+                  {birthYearOptions.map((y) => (
+                    <option value={y} key={y}>{y} 年</option>
+                  ))}
+                </select>
+                <select value={newBirthMonth} onChange={(e) => setNewBirthMonth(e.target.value)}>
+                  <option value="">月</option>
+                  {Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0')).map((m) => (
+                    <option value={m} key={m}>{Number(m)} 月</option>
+                  ))}
+                </select>
+                <select value={newBirthDay} onChange={(e) => setNewBirthDay(e.target.value)}>
+                  <option value="">日</option>
+                  {Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, '0')).map((d) => (
+                    <option value={d} key={d}>{Number(d)} 日</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="form-row">
+              <label>籍贯 <span style={{ color: '#dc2626' }}>*</span></label>
+              <div className="date-select-row">
+                <select value={newOriginProvince} onChange={(e) => { setNewOriginProvince(e.target.value); setNewOriginCity(''); setNewOriginDistrict(''); }}>
+                  <option value="">省份</option>
+                  {regions.map((p) => (
+                    <option value={p.name} key={p.name}>{p.name}</option>
+                  ))}
+                </select>
+                <select value={newOriginCity} onChange={(e) => { setNewOriginCity(e.target.value); setNewOriginDistrict(''); }} disabled={!newOriginProvince}>
+                  <option value="">城市</option>
+                  {(regions.find((p) => p.name === newOriginProvince)?.cities || []).map((c) => (
+                    <option value={c.name} key={c.name}>{c.name}</option>
+                  ))}
+                </select>
+                <select value={newOriginDistrict} onChange={(e) => setNewOriginDistrict(e.target.value)} disabled={!newOriginCity}>
+                  <option value="">区/县</option>
+                  {(regions.find((p) => p.name === newOriginProvince)?.cities.find((c) => c.name === newOriginCity)?.districts || []).map((d) => (
+                    <option value={d} key={d}>{d}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="form-row">
+              <label>详细地址</label>
               <input
                 type="text"
-                value={newBirthYear}
-                onChange={(e) => setNewBirthYear(e.target.value)}
-                placeholder="如 1958"
+                value={newOriginDetail}
+                onChange={(e) => setNewOriginDetail(e.target.value)}
+                placeholder="选填，如 平江路 12 号"
               />
             </div>
             <div className="form-row">
-              <label>籍贯</label>
-              <input
-                type="text"
-                value={newOrigin}
-                onChange={(e) => setNewOrigin(e.target.value)}
-                placeholder="如 江苏省苏州市"
-              />
+              <label>行业</label>
+              <select value={newIndustry} onChange={(e) => { setNewIndustry(e.target.value); setNewOccupation(''); }}>
+                <option value="">请选择行业</option>
+                {industryOptions.map((i) => (
+                  <option value={i} key={i}>{i}</option>
+                ))}
+              </select>
             </div>
             <div className="form-row">
               <label>职业</label>
-              <input
-                type="text"
-                value={newOccupation}
-                onChange={(e) => setNewOccupation(e.target.value)}
-                placeholder="如 企业家 / 高级工程师"
-              />
-            </div>
-            <div className="form-row">
-              <label>人生标签</label>
-              <div className="life-tags">
-                {presetLifeTags.map((tag) => (
-                  <button
-                    key={tag}
-                    type="button"
-                    className={`life-tag ${newTags.includes(tag) ? 'active' : ''}`}
-                    onClick={() =>
-                      setNewTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]))
-                    }
-                  >
-                    {tag}
-                  </button>
+              <select value={newOccupation} onChange={(e) => setNewOccupation(e.target.value)} disabled={!newIndustry}>
+                <option value="">{newIndustry ? '请选择职业' : '请先选择行业'}</option>
+                {(industryOccupations[newIndustry] || []).map((o) => (
+                  <option value={o} key={o}>{o}</option>
                 ))}
-              </div>
-              <div className="custom-tag-row">
-                <input
-                  type="text"
-                  value={newCustomTag}
-                  onChange={(e) => setNewCustomTag(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      const t = newCustomTag.trim();
-                      if (t && !newTags.includes(t)) setNewTags((prev) => [...prev, t]);
-                      setNewCustomTag('');
-                    }
-                  }}
-                  placeholder="输入自定义标签，按回车添加"
-                />
-                <button
-                  type="button"
-                  className="btn btn-outline"
-                  onClick={() => {
-                    const t = newCustomTag.trim();
-                    if (t && !newTags.includes(t)) setNewTags((prev) => [...prev, t]);
-                    setNewCustomTag('');
-                  }}
-                >
-                  添加
-                </button>
-              </div>
+              </select>
             </div>
             <div className="form-actions">
               <button className="btn btn-outline" onClick={() => setShowNewArchive(false)}>
@@ -920,7 +925,7 @@ export default function LifeArchive() {
       )}
 
       <div className="tabs">
-        {tabs.map((t) => (
+        {tabs.filter((t) => !isV1 || t.key !== 'privacy').map((t) => (
           <button
             key={t.key}
             className={`tab ${activeTab === t.key ? 'active' : ''}`}
@@ -945,11 +950,6 @@ export default function LifeArchive() {
                     <Plus size={14} /> 添加人生事件
                   </button>
                 )}
-                <div className="timeline-toggle">
-                  <span>关键节点</span>
-                  <Info size={14} className="timeline-info" />
-                  <div className="toggle-switch on" />
-                </div>
               </div>
             </div>
             <div className={`card-body timeline-body ${sortedEvents.length > 0 ? 'has-events' : ''}`}>
@@ -1414,33 +1414,13 @@ export default function LifeArchive() {
         </Annotate>
       )}
 
-      {activeTab === 'privacy' && (
+      {activeTab === 'privacy' && !isV1 && (
         <Annotate id="life-archive.privacy">
         <div className="card privacy-card">
           <div className="card-header">
             <h3 className="card-title">隐私与权限</h3>
           </div>
           <div className="card-body privacy-body">
-            <div className="privacy-role">
-              <span>当前角色：</span>
-              <select value={role} onChange={(e) => handleRoleChange(e.target.value as Role)}>
-                {ROLES.map((r) => (
-                  <option key={r} value={r}>
-                    {r}
-                  </option>
-                ))}
-              </select>
-              <span className="role-hint">
-                {role === '观察者' ? '仅可查看，无法编辑' : '可管理档案与权限'}
-              </span>
-            </div>
-
-            <div className="privacy-template">
-              <span>权限模板：</span>
-              <select disabled={!isOwner}>
-                <option>默认模板（家人可见）</option>
-              </select>
-            </div>
             {privacyItems.map((p, i) => {
               const current = privacyValues[p.label] ?? p.value;
               return (
@@ -1485,13 +1465,6 @@ export default function LifeArchive() {
                     onChange={(e) => setInviteName(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleInvite()}
                   />
-                  <select value={inviteRole} onChange={(e) => setInviteRole(e.target.value as Role)}>
-                    {ROLES.map((r) => (
-                      <option key={r} value={r}>
-                        {r}
-                      </option>
-                    ))}
-                  </select>
                   <button className="btn btn-primary btn-sm" onClick={handleInvite}>
                     邀请
                   </button>
@@ -1513,16 +1486,15 @@ export default function LifeArchive() {
                   <div className="auth-row" key={m.id}>
                     <div className="auth-info">
                       <div className="auth-avatar">
-                        {m.role === '档案所有者' ? <Shield size={16} /> : <Eye size={16} />}
+                        <User size={16} />
                       </div>
                       <div>
                         <div className="auth-name">{m.name}</div>
-                        <div className="auth-meta">{m.role}</div>
                       </div>
                     </div>
                     <div className="auth-actions">
                       <span className={`auth-status ${m.status}`}>{m.status === 'active' ? '已加入' : '待确认'}</span>
-                      {canManageArchives && m.role !== '档案所有者' && (
+                      {canManageArchives && (
                         <button className="icon-btn" onClick={() => handleRemoveMember(m.id)} title="移除">
                           <Trash2 size={14} />
                         </button>

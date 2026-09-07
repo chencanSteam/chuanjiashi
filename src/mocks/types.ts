@@ -140,6 +140,18 @@ export interface DigitalPerson {
 
 export type ProductType = 'biography' | 'digital_person' | 'video' | 'qrcode' | 'book' | 'biographer_service' | 'derivative'
 
+export interface ProductDetailBlock {
+  id: string
+  title: string
+  content: string
+}
+
+export interface ProductFaq {
+  id: string
+  question: string
+  answer: string
+}
+
 export interface ProductPackage {
   id: string
   type: ProductType
@@ -152,6 +164,17 @@ export interface ProductPackage {
   hot?: boolean
   /** 上下架状态，缺省视为 active（上架） */
   status?: 'active' | 'inactive'
+  /** 商品宣传页内容 */
+  coverImage?: string
+  gallery?: string[]
+  headline?: string
+  subheadline?: string
+  detailBlocks?: ProductDetailBlock[]
+  promises?: string[]
+  faqs?: ProductFaq[]
+  tags?: string[]
+  sortOrder?: number
+  updatedAt?: string
   createdAt: string
 }
 
@@ -173,16 +196,6 @@ export interface OrderLogistics {
   shippedAt: string
 }
 
-export type ReviewStatus = 'pending' | 'approved' | 'rejected'
-
-export interface OrderReview {
-  rating: number
-  content: string
-  tags?: string[]
-  status: ReviewStatus
-  createdAt: string
-}
-
 export interface RefundReasonOption {
   id: string
   label: string
@@ -200,6 +213,8 @@ export interface DictionaryItem {
   id: string
   type: DictionaryType
   label: string
+  /** 敏感词级别：1=命中直接拦截不可上传；2=可上传但仅自己可见（不对外展示） */
+  level?: 1 | 2
   enabled: boolean
   order: number
   createdAt: string
@@ -243,7 +258,6 @@ export interface Order {
   address?: OrderAddress
   logistics?: OrderLogistics
   deliverables?: Deliverable[]
-  review?: OrderReview
   refundRequest?: RefundRequest
   expireAt?: string
   payTime?: string
@@ -380,6 +394,8 @@ export interface PublicBook {
   unlocked?: boolean
   /** 当前用户是否已收藏（按用户维度计算，响应时注入） */
   collected?: boolean
+  /** 命中二级敏感词：可上传但不对外展示，仅自己可见 */
+  restricted?: boolean
   createdAt: string
 }
 
@@ -404,6 +420,13 @@ export interface Biographer {
   status: 'pending' | 'approved' | 'rejected' | 'suspended'
   /** 入驻审核驳回原因 */
   rejectReason?: string
+  /** 主页内容审核状态，与入驻 status 独立 */
+  profileReviewStatus?: 'unsubmitted' | 'pending' | 'approved' | 'rejected'
+  profileRejectReason?: string
+  profileSubmittedAt?: string
+  profileReviewedAt?: string
+  profileReviewedBy?: string
+  profileRevision?: number
   /** 入驻申请时登记的身份证号 */
   idCard?: string
   certificationLevel: BiographerCertificationLevel
@@ -414,6 +437,10 @@ export interface Biographer {
   deposit: number
   createdAt: string
   updatedAt?: string
+  /** 审核通过后对外展示的主页快照；旧数据缺失时由 mock 迁移逻辑回填 */
+  publishedProfile?: Partial<Pick<Biographer, 'name' | 'phone' | 'email' | 'avatar' | 'city' | 'intro' | 'title' | 'specialties' | 'experience' | 'serviceAreas' | 'education' | 'certificates' | 'tags' | 'services' | 'cases'>>
+  /** 传记师最近一次提交审核的主页草稿 */
+  profileDraft?: Partial<Pick<Biographer, 'name' | 'phone' | 'email' | 'avatar' | 'city' | 'intro' | 'title' | 'specialties' | 'experience' | 'serviceAreas' | 'education' | 'certificates' | 'tags' | 'services' | 'cases'>>
 }
 
 export interface BiographerService {
@@ -421,6 +448,18 @@ export interface BiographerService {
   name: string
   price: number
   description: string
+  /** 采访次数 */
+  interviewCount?: string
+  /** 传记字数 */
+  wordCount?: string
+  /** 交付周期 */
+  deliveryPeriod?: string
+  /** 实体书 */
+  physicalBook?: string
+  /** 影像资料 */
+  mediaMaterial?: string
+  /** 修改次数 */
+  revisionCount?: string
 }
 
 export interface BiographerCase {
@@ -457,13 +496,15 @@ export interface BiographerBookingForm {
 export interface BiographerOrder {
   id: string
   userId: string
+  customerName?: string
+  deadline?: string
+  remark?: string
   orderId?: string
   biographerId: string
   serviceId: string
   serviceName: string
   amount: number
-  deposit: number
-  status: 'pending_deposit' | 'paid_deposit' | 'interview_scheduled' | 'draft_submitted' | 'modifying' | 'final_submitted' | 'paid_full' | 'completed' | 'after_sales'
+  status: 'pending_schedule' | 'interview_scheduled' | 'draft_submitted' | 'modifying' | 'final_submitted' | 'completed' | 'after_sales'
   schedule?: {
     time: string
     address: string
@@ -606,6 +647,9 @@ export interface AdminUser {
   orderCount: number
   /** 邀请人昵称 */
   inviterName?: string
+  /** 注册行政区划编码/名称 */
+  regionCode?: string
+  regionName?: string
 }
 
 /** 后台档案（管理端视角） */
@@ -615,7 +659,7 @@ export interface AdminArchive {
   ownerName: string
   /** 档案类型：self 本人 / parent 父母 / grandparent 祖辈 / relative 亲友 / other 其他 */
   archiveType: ArchiveType
-  /** 创建人昵称 */
+  /** 创建者昵称 */
   creatorNickname: string
   /** 素材数（图片/音频/文档） */
   materialCounts: {
@@ -731,6 +775,8 @@ export interface BookComment {
   id: string
   /** 书 id */
   bookId: string
+  /** 发表者用户 id（用于二级敏感词评论"仅自己可见"） */
+  userId?: string
   /** 用户昵称 */
   userNickname: string
   /** 评论内容 */
@@ -739,6 +785,8 @@ export interface BookComment {
   createdAt: string
   /** 购买时间（付费书评论者已购时写入） */
   purchasedAt?: string
+  /** 命中二级敏感词：仅自己可见 */
+  restricted?: boolean
   /** 点赞数 */
   likes: number
 }
@@ -1148,4 +1196,52 @@ export interface KnowledgeHitResult {
   snippet: string
   /** 相似度分数（0-1） */
   score: number
+}
+
+// ========== 敏感词审核 ==========
+
+/** 敏感词分类 */
+export type SensitiveWordCategory = 'politics' | 'porn' | 'violence' | 'ads' | 'abuse' | 'custom'
+
+/** 敏感词处置方式：直接拦截 / 转人工复核 / 自动替换 */
+export type SensitiveWordAction = 'block' | 'review' | 'replace'
+
+/** 敏感词库词条 */
+export interface SensitiveWord {
+  id: string
+  word: string
+  category: SensitiveWordCategory
+  action: SensitiveWordAction
+  /** action=replace 时的替换文案，默认 ** */
+  replacement?: string
+  enabled: boolean
+  hitCount: number
+  createdAt: string
+  updatedAt: string
+}
+
+/** 敏感词命中处置状态 */
+export type SensitiveHitStatus = 'pending' | 'blocked' | 'released'
+
+/** 敏感词命中来源类型 */
+export type SensitiveHitSourceType = 'biography_chapter' | 'museum_message' | 'interview_text' | 'comment'
+
+/** 敏感词命中记录 */
+export interface SensitiveHit {
+  id: string
+  wordId: string
+  word: string
+  category: SensitiveWordCategory
+  action: SensitiveWordAction
+  sourceType: SensitiveHitSourceType
+  /** 如：传记《山村教师王桂芬》第3章 */
+  sourceTitle: string
+  /** 命中上下文原文（包含命中词本身） */
+  context: string
+  userId: string
+  userName: string
+  status: SensitiveHitStatus
+  processorId?: string
+  processedAt?: string
+  createdAt: string
 }

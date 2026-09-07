@@ -17,9 +17,9 @@ export const biographyShelfAnnotations: PageAnnotations = {
     },
     {
       id: 'biography-shelf.categories',
-      target: '分类筛选',
-      logic: `① 分类项由当前书籍数据的 category 字段动态去重生成，「全部」固定在最前；数据中没有分类的传记归入「其他」展示。
-② 选中分类后仅显示该分类传记，与搜索关键词条件叠加。`,
+      target: '行业 / 职业级联筛选',
+      logic: `① 两个下拉级联：先选行业（data/occupations 的 industryOptions），再选该行业下的职业；未选行业时职业下拉禁用。
+② 选了职业按 occupationTags 精确匹配；只选行业时匹配该行业下任一职业；与搜索关键词条件叠加。`,
     },
     {
       id: 'biography-shelf.hot-rank',
@@ -44,13 +44,7 @@ export const biographyShelfAnnotations: PageAnnotations = {
       id: 'biography-shelf.reader-unlock',
       target: '阅读区与付费解锁',
       logic: `① 免费（isFree 或价格为 0）或已解锁（unlocked）的传记显示全本内容；否则只显示试读内容 trialContent（无试读则回退为简介），标题随状态切换「全本阅读 / 前 N 字 · 免费试读」。
-② 未解锁时底部出现解锁条：需登录，点击走支付流程（bookshelfApi.unlock），支付中按钮禁用；成功后更新状态为已解锁并提示「支付成功，已解锁全本」，失败 toast 报错。`,
-    },
-    {
-      id: 'biography-shelf.comments',
-      target: '评论区',
-      logic: `① 进入详情模式即加载该传记的评论列表（bookshelfApi.comments），失败降级为空列表。
-② 发表评论需登录且内容非空：空内容拦截提示，提交中按钮禁用；成功后新评论插入列表最前并清空输入框。`,
+② 未解锁时底部出现解锁条：需登录，点击弹出「确认订单」弹窗（商品信息、金额、微信 / 支付宝支付方式二选一），确认支付后模拟支付耗时约 1.2s 再走解锁流程（bookshelfApi.unlock）；支付中按钮禁用，成功后关闭弹窗、更新状态为已解锁并提示「支付成功，已解锁全本」，失败 toast 报错。`,
     },
   ],
 };

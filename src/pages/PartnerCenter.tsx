@@ -59,6 +59,7 @@ const tabs = [
   { key: 'dashboard', icon: LayoutDashboard, label: '数据看板' },
   { key: 'customers', icon: Users, label: '我的客户' },
   { key: 'earnings', icon: TrendingUp, label: '我的收益' },
+  { key: 'region', icon: MapPin, label: '区域分佣' },
   { key: 'withdraw', icon: CreditCard, label: '提现' },
   { key: 'assessment', icon: ClipboardCheck, label: '考核结算' },
 ];
@@ -138,6 +139,7 @@ export default function PartnerCenter() {
           {activeTab === 'dashboard' && <DashboardTab partner={partner} />}
           {activeTab === 'customers' && <CustomersTab partner={partner} />}
           {activeTab === 'earnings' && <EarningsTab partner={partner} />}
+          {activeTab === 'region' && <RegionTab partner={partner} />}
           {activeTab === 'withdraw' && <WithdrawTab partner={partner} />}
           {activeTab === 'assessment' && <AssessmentTab />}
       </div>
@@ -146,15 +148,10 @@ export default function PartnerCenter() {
 }
 
 function DashboardTab({ partner }: { partner: Partner }) {
-  const [customers, setCustomers] = useState<PartnerCustomer[]>([]);
   const [gmvStats, setGmvStats] = useState<GmvLineStat[]>([]);
   const [localOrders, setLocalOrders] = useState<PartnerLocalOrder[]>([]);
 
   useEffect(() => {
-    partnerApi
-      .customers()
-      .then((list) => setCustomers(list.map(mapMockCustomer)))
-      .catch(() => setCustomers([]));
     partnerApi
       .gmvStats()
       .then(setGmvStats)
@@ -164,14 +161,8 @@ function DashboardTab({ partner }: { partner: Partner }) {
       .then(setLocalOrders)
       .catch(() => setLocalOrders([]));
   }, [partner.id]);
-  const paidCustomers = customers.filter((c) => c.hasPaid);
-  const [summary, setSummary] = useState({ total: 0, settled: 0, pending: 0, frozen: 0 });
   const inviteUrl = `${window.location.origin}${window.location.pathname}#/login?invite=${partner.inviteCode}`;
   const { addToast } = useToast();
-
-  useEffect(() => {
-    commissionApi.summary().then(setSummary).catch(() => {});
-  }, []);
 
   const copy = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
@@ -219,13 +210,6 @@ function DashboardTab({ partner }: { partner: Partner }) {
         </div>
       </div>
       </Annotate>
-
-      <div className="partner-center-stats">
-        <div className="card partner-center-stat"><Wallet size={20} color="#1B5E4B" /><div><div className="partner-center-stat-value">¥{summary.settled.toFixed(2)}</div><div className="partner-center-stat-label">可提现余额</div></div></div>
-        <div className="card partner-center-stat"><TrendingUp size={20} color="#2563eb" /><div><div className="partner-center-stat-value">¥{summary.total.toFixed(2)}</div><div className="partner-center-stat-label">累计收益</div></div></div>
-        <div className="card partner-center-stat"><Users size={20} color="#7c3aed" /><div><div className="partner-center-stat-value">{customers.length}</div><div className="partner-center-stat-label">绑定客户</div></div></div>
-        <div className="card partner-center-stat"><Share2 size={20} color="#d97706" /><div><div className="partner-center-stat-value">{paidCustomers.length}</div><div className="partner-center-stat-label">已付费客户</div></div></div>
-      </div>
 
       <Annotate id="partner-center.local-share">
       <div className="partner-center-local-share">
@@ -439,6 +423,102 @@ function EarningsTab({ partner }: { partner: Partner }) {
           </div>
         )}
       </Modal>
+    </>
+  );
+}
+
+// 区域分佣：地域合伙人按区域获得分佣——区域内所有用户的消费订单都计入，不需要邀请关系
+const regionOrderStatusLabels: Record<string, string> = {
+  pending_pay: '待支付',
+  paid: '已支付',
+  delivering: '服务中',
+  completed: '已完成',
+  refunded: '已退款',
+  closed: '已关闭',
+};
+
+function RegionTab({ partner }: { partner: Partner }) {
+  const [orders, setOrders] = useState<PartnerLocalOrder[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    partnerApi
+      .localOrders()
+      .then(setOrders)
+      .catch(() => setOrders([]))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const typeConfig = partnerTypeConfig[partner.type];
+  const rate = typeConfig.rate;
+  const totalAmount = orders.reduce((sum, o) => sum + o.amount, 0);
+  const totalCommission = Math.round(totalAmount * rate * 100) / 100;
+
+  return (
+    <>
+      <Annotate id="partner-center.region">
+      <div className="card" style={{ marginBottom: 16 }}>
+        <div className="card-body" style={{ display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <MapPin size={22} color={typeConfig.color} />
+            <div>
+              <div style={{ fontSize: 16, fontWeight: 600 }}>{partner.regionName || '未分配区域'} · {getPartnerTypeLabel(partner.type)}</div>
+              <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 2 }}>区域分佣比例 {(rate * 100).toFixed(0)}%</div>
+            </div>
+          </div>
+          <div style={{ fontSize: 13, color: '#6b7280', lineHeight: 1.8, flex: 1, minWidth: 280 }}>
+            区域分佣与邀请关系无关：只要下单用户属于「{partner.regionName || '我的区域'}」，无论通过谁的邀请码注册，其消费订单都按 {(rate * 100).toFixed(0)}% 计入您的分佣。
+          </div>
+        </div>
+      </div>
+
+      <div className="invite-stats" style={{ marginBottom: 16 }}>
+        <div className="card" style={{ padding: '18px 22px' }}>
+          <div style={{ fontSize: 20, fontWeight: 700 }}>¥{totalAmount.toLocaleString()}</div>
+          <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 2 }}>区域订单总额</div>
+        </div>
+        <div className="card" style={{ padding: '18px 22px' }}>
+          <div style={{ fontSize: 20, fontWeight: 700, color: '#1B5E4B' }}>¥{totalCommission.toLocaleString()}</div>
+          <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 2 }}>我的区域分佣</div>
+        </div>
+        <div className="card" style={{ padding: '18px 22px' }}>
+          <div style={{ fontSize: 20, fontWeight: 700 }}>{orders.length}</div>
+          <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 2 }}>区域订单数</div>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card-header"><h3 className="card-title">区域分佣明细</h3></div>
+        <div className="card-body">
+          {loading ? (
+            <div className="admin-table-empty">加载中…</div>
+          ) : orders.length === 0 ? (
+            <div className="admin-table-empty">暂无区域订单</div>
+          ) : (
+            <div className="admin-table-wrap">
+            <table className="admin-table">
+              <thead>
+                <tr><th>下单用户</th><th>商品</th><th>订单金额</th><th>分佣比例</th><th>我的分佣</th><th>订单状态</th><th>时间</th></tr>
+              </thead>
+              <tbody>
+                {orders.map((o) => (
+                  <tr key={o.id}>
+                    <td>{o.userNickname}</td>
+                    <td className="admin-table-text-left">{o.productName}</td>
+                    <td>¥{o.amount.toLocaleString()}</td>
+                    <td>{(rate * 100).toFixed(0)}%</td>
+                    <td style={{ color: '#1B5E4B', fontWeight: 600 }}>+¥{(Math.round(o.amount * rate * 100) / 100).toLocaleString()}</td>
+                    <td>{regionOrderStatusLabels[o.status] || o.status}</td>
+                    <td>{new Date(o.createdAt).toLocaleString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            </div>
+          )}
+        </div>
+      </div>
+      </Annotate>
     </>
   );
 }

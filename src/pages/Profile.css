@@ -185,3 +185,22 @@
 .profile-logout:hover {
   background: #fef2f2;
 }
+
+/* 注销账户 */
+.profile-delete-account {
+  width: 100%;
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  background: #fff;
+  color: #dc2626;
+  font-size: 14px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.profile-delete-account:hover {
+  background: #fef2f2;
+  border-color: #fca5a5;
+}

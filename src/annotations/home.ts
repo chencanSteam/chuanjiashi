@@ -18,10 +18,16 @@ export const homeAnnotations: PageAnnotations = {
     {
       id: 'home.start-interview',
       target: '主视觉区「开始智能采访」',
-      logic: `① 点击打开「完善基础信息」弹窗，自动回填当前档案（cj_current_archive_id 对应的 cj_archives 记录）的姓名、性别、出生年份、籍贯、职业与已选标签。
-② 保存后写入/更新 cj_archives 并把该档案设为当前档案（cj_current_archive_id），随后跳转 /interview 开始 AI 采访。
-③ 账号下无档案时按「archive_时间戳」生成新档案 id。
-④ 「进入家庭空间」按钮仅完整版显示（家庭空间为 V1.2 功能）。`,
+      logic: `① 点击按三种情况分流：已有智能采访记录（任一档案的采访逐字稿 cj_interview_transcript_<档案id> 非空）→ 直接跳转 /interview（优先当前档案，否则取第一个有记录的档案并设为当前档案）。
+② 无采访记录但有档案 → 弹出「选择采访档案」弹窗，选择后设为当前档案并跳转 /interview；弹窗也可点「新建档案」进入新建流程。
+③ 无采访记录也无档案 → 打开「完善基础信息」弹窗新建档案（archive_时间戳 生成 id），保存后写入 cj_archives 并设为当前档案，随后跳转 /interview。
+④ 主视觉区另有「已有传记上传」快捷入口，点击跳转 /polish（上传已有传记文档并进行 AI 润色）；「进入家庭空间」按钮仅完整版显示（家庭空间为 V1.2 功能）。`,
+    },
+    {
+      id: 'home.archive-picker',
+      target: '选择采访档案弹窗',
+      logic: `① 仅在「无采访记录但已有档案」时出现；列出全部档案（姓名、性别、出生年份、籍贯、职业），点击即设为当前档案并跳转 /interview 开始采访。
+② 底部「新建档案」关闭本弹窗并打开「完善基础信息」弹窗（空表单），走新建档案流程。`,
     },
     {
       id: 'home.collab-invites',
@@ -61,10 +67,9 @@ export const homeAnnotations: PageAnnotations = {
     },
     {
       id: 'home.basic-info-modal',
-      target: '完善基础信息弹窗（两步向导）',
-      logic: `① 第 1 步基础信息：姓名、出生年份必填（点「下一步」与最终保存都校验），性别默认男，籍贯、职业选填。
-② 第 2 步人生标签：从预设标签（presetLifeTags）勾选，支持自定义标签（回车或点「添加」，自动去重）；标签会影响 AI 采访问题的生成方向。
-③ 保存：同 id 覆盖写入 cj_archives 并更新 cj_current_archive_id，toast 后跳转 /interview。`,
+      target: '新建档案弹窗',
+      logic: `① 姓名必填；性别默认男；出生日期为年/月/日三个下拉（选了就要选全，否则拦截）；籍贯为省/市/区级联必选，另可填详细地址；职业为「行业 → 职业」二级下拉（先选行业再选职业）。
+② 保存：同 id 覆盖写入 cj_archives 并更新 cj_current_archive_id，toast 后跳转 /interview。`,
     },
   ],
 };

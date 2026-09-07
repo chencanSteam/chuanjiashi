@@ -1,5 +1,51 @@
 .biographer-orders-page {
-  max-width: 1000px;
+  width: 100%;
+}
+
+.biographer-orders-filters {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border-light);
+  flex-wrap: wrap;
+}
+
+.biographer-orders-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 280px;
+  padding: 0 12px;
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  color: var(--text-muted);
+}
+
+.biographer-orders-search input {
+  width: 100%;
+  padding: 9px 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+}
+
+.biographer-orders-filters select {
+  padding: 9px 12px;
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--text);
+  background: #fff;
+  outline: none;
+}
+
+.biographer-orders-filters select:focus,
+.biographer-orders-search:focus-within {
+  border-color: var(--primary);
 }
 
 .bio-order-stats {
@@ -28,90 +74,11 @@
   margin-top: 2px;
 }
 
-.bio-order-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.bio-order-item {
-  border: 1px solid var(--border-light);
-  border-radius: 14px;
-  padding: 18px;
-  background: #fff;
-}
-
-.bio-order-main {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 16px;
-}
-
-.bio-order-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.bio-order-service {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text);
-  margin-bottom: 8px;
-}
-
-.bio-order-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  font-size: 12px;
-  color: var(--text-muted);
-  margin-bottom: 8px;
-}
-
-.bio-order-meta span {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.bio-order-schedule {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 12px;
-  color: #7c3aed;
-  background: rgba(124, 58, 237, 0.06);
-  padding: 6px 10px;
-  border-radius: 8px;
-  width: fit-content;
-}
-
-.bio-order-status {
-  flex-shrink: 0;
-  font-size: 13px;
-}
-
-.bio-order-progress {
-  margin-bottom: 16px;
-}
-
-.bio-order-progress-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 12px;
-  color: var(--text-muted);
-  margin-bottom: 8px;
-}
-
 .bio-order-progress-track {
   height: 6px;
   background: var(--bg-secondary);
   border-radius: 999px;
   overflow: hidden;
-  margin-bottom: 12px;
 }
 
 .bio-order-progress-fill {
@@ -121,56 +88,12 @@
   transition: width 0.4s ease;
 }
 
-.bio-order-progress-nodes {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 4px;
-}
-
-.bio-order-progress-node {
+.bio-order-progress-cell {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  font-size: 10px;
-  color: var(--text-muted);
-  flex: 1;
-  text-align: center;
-}
-
-.bio-order-progress-dot {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-light);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: transparent;
-}
-
-.bio-order-progress-node.done .bio-order-progress-dot {
-  background: #1B5E4B;
-  border-color: #1B5E4B;
-  color: #fff;
-}
-
-.bio-order-progress-node.done {
-  color: #1B5E4B;
-  font-weight: 500;
-}
-
-.bio-order-actions {
-  display: flex;
-  justify-content: flex-end;
-}
-
-.bio-order-actions .btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+  min-width: 90px;
 }
 
 @media (max-width: 720px) {
@@ -190,4 +113,70 @@
   .bio-order-progress-node {
     flex: 0 0 calc(33.33% - 8px);
   }
+}
+
+/* 订单详情弹窗 */
+.bio-order-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 20px;
+  margin-bottom: 16px;
+}
+
+.bio-order-detail-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  padding: 6px 0;
+  border-bottom: 1px dashed var(--border-light);
+}
+
+.bio-order-detail-row span {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.bio-order-detail-row strong {
+  font-weight: 500;
+  color: var(--text);
+  text-align: right;
+}
+
+.bio-order-detail-full {
+  grid-column: 1 / -1;
+}
+
+.bio-order-detail-progress-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.bio-order-detail-progress {
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.bio-order-detail-node {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.bio-order-detail-node + .bio-order-detail-node {
+  border-top: 1px solid var(--border-light);
+}
+
+.bio-order-detail-node.done {
+  color: var(--text);
+}
+
+.bio-order-detail-node.done .bio-order-detail-node-name {
+  color: #1B5E4B;
+  font-weight: 500;
 }

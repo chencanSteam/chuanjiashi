@@ -115,44 +115,50 @@ export default function PartnerCustomersAdmin() {
           {filtered.length === 0 ? (
             <div className="partner-customers-admin-empty">暂无客户归属记录</div>
           ) : (
-            <div className="partner-customers-admin-table">
-              <div className="partner-customers-admin-row partner-customers-admin-header-row">
-                <div className="partner-customers-admin-cell">客户</div>
-                <div className="partner-customers-admin-cell">归属合伙人</div>
-                <div className="partner-customers-admin-cell">绑定方式</div>
-                <div className="partner-customers-admin-cell">付费状态</div>
-                <div className="partner-customers-admin-cell">累计订单</div>
-                <div className="partner-customers-admin-cell">绑定时间</div>
-              </div>
+            <div className="admin-table-wrap">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>客户</th>
+                  <th>归属合伙人</th>
+                  <th>绑定方式</th>
+                  <th>付费状态</th>
+                  <th>累计订单</th>
+                  <th>绑定时间</th>
+                </tr>
+              </thead>
+              <tbody>
               {filtered.map((c) => {
                 const p = getPartner(c.partnerId);
                 return (
-                  <div className="partner-customers-admin-row" key={c.id}>
-                    <div className="partner-customers-admin-cell">
+                  <tr key={c.id}>
+                    <td className="admin-table-text-left">
                       <div className="partner-customers-admin-user">
                         <User size={12} /> {c.userName || c.userId}
                       </div>
                       <div className="partner-customers-admin-phone">{c.userPhone || c.userId}</div>
-                    </div>
-                    <div className="partner-customers-admin-cell">
+                    </td>
+                    <td className="admin-table-text-left">
                       <div>{p?.name || '未知'}</div>
                       <div className="partner-customers-admin-type">{p ? getPartnerTypeLabel(p.type) : '-'}</div>
-                    </div>
-                    <div className="partner-customers-admin-cell">
+                    </td>
+                    <td>
                       <span className={`partner-customers-admin-bind ${c.bindType}`}>
                         {c.bindType === 'invite_code' ? '邀请码' : c.bindType === 'region_auto' ? '区域自动' : '手动'}
                       </span>
-                    </div>
-                    <div className="partner-customers-admin-cell">
+                    </td>
+                    <td>
                       <span className={`partner-customers-admin-paid ${c.hasPaid ? 'yes' : 'no'}`}>
                         {c.hasPaid ? '已付费' : '未付费'}
                       </span>
-                    </div>
-                    <div className="partner-customers-admin-cell">¥{c.totalOrderAmount.toFixed(2)}</div>
-                    <div className="partner-customers-admin-cell">{new Date(c.createdAt).toLocaleDateString()}</div>
-                  </div>
+                    </td>
+                    <td>¥{c.totalOrderAmount.toFixed(2)}</td>
+                    <td>{new Date(c.createdAt).toLocaleDateString()}</td>
+                  </tr>
                 );
               })}
+              </tbody>
+            </table>
             </div>
           )}
         </div>

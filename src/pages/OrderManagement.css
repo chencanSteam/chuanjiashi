@@ -86,44 +86,6 @@
   padding: 0;
 }
 
-.order-empty {
-  text-align: center;
-  padding: 48px 20px;
-  color: var(--text-muted);
-}
-
-.order-table {
-  display: table;
-  width: 100%;
-  min-width: 980px;
-}
-
-.order-row {
-  display: table-row;
-}
-
-.order-header-row {
-  background: var(--bg-secondary);
-  font-weight: 500;
-  color: var(--text-secondary);
-  font-size: 13px;
-}
-
-.order-row:not(.order-header-row) {
-  border-bottom: 1px solid var(--border-light);
-}
-
-.order-row:last-child {
-  border-bottom: none;
-}
-
-.order-cell {
-  display: table-cell;
-  padding: 14px 16px;
-  vertical-align: middle;
-  font-size: 13px;
-}
-
 .order-cell-id {
   font-family: monospace;
   color: var(--text-secondary);
@@ -165,19 +127,14 @@
   color: #1B5E4B;
 }
 
-.order-cell-check {
-  width: 40px;
-  text-align: center;
-}
-
-.order-cell-check input[type="checkbox"] {
+.admin-table .admin-table-check input[type="checkbox"] {
   width: 16px;
   height: 16px;
   cursor: pointer;
   accent-color: #1B5E4B;
 }
 
-.order-row.selected {
+.admin-table tbody tr.selected {
   background: rgba(27, 94, 75, 0.04);
 }
 
@@ -323,55 +280,6 @@
   cursor: pointer;
 }
 
-.order-actions {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.order-action-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 5px 10px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 500;
-  border: 1px solid transparent;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.order-action-view {
-  background: var(--bg-secondary);
-  color: var(--text-secondary);
-  border-color: var(--border-light);
-}
-
-.order-action-view:hover {
-  background: var(--border-light);
-}
-
-.order-action-primary {
-  background: #1B5E4B;
-  color: #fff;
-}
-
-.order-action-primary:hover {
-  background: #164c3d;
-}
-
-.order-action-danger {
-  background: #fff;
-  color: #ef4444;
-  border-color: #fecaca;
-}
-
-.order-action-danger:hover {
-  background: #fef2f2;
-}
-
 .order-detail-modal {
   max-width: 480px;
 }
@@ -421,29 +329,6 @@
 @media (max-width: 960px) {
   .order-stats {
     grid-template-columns: repeat(2, 1fr);
-  }
-
-  .order-table {
-    min-width: unset;
-    display: block;
-  }
-
-  .order-row,
-  .order-cell {
-    display: block;
-  }
-
-  .order-header-row {
-    display: none;
-  }
-
-  .order-row:not(.order-header-row) {
-    padding: 14px 16px;
-    border-bottom: 1px solid var(--border-light);
-  }
-
-  .order-cell {
-    padding: 6px 0;
   }
 }
 /* 追加：传记师服务订单详情样式 */
@@ -519,6 +404,12 @@
 
 .order-form-required {
   color: #ef4444;
+}
+
+.order-deliverable-upload {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .order-form-row input,

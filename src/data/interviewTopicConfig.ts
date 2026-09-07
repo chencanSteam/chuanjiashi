@@ -29,7 +29,16 @@ export function loadTopicConfig(): InterviewTopicConfig[] {
     if (raw) {
       const list = JSON.parse(raw) as InterviewTopicConfig[];
       if (Array.isArray(list) && list.length > 0) {
-        return list.sort((a, b) => a.order - b.order);
+        // 内置主题发生调整（如切换八大篇章）时，丢弃旧的内置配置并保留后台新增主题
+        const builtinIds = list.filter((t) => t.builtin).map((t) => t.id).join(',');
+        const currentIds = interviewTopics.map((t) => t.id).join(',');
+        if (builtinIds === currentIds) {
+          return list.sort((a, b) => a.order - b.order);
+        }
+        const customs = list.filter((t) => !t.builtin);
+        const fresh = [...seed(), ...customs];
+        saveTopicConfig(fresh);
+        return fresh;
       }
     }
   } catch {

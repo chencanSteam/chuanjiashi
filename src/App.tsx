@@ -60,6 +60,8 @@ const ApplicationDetail = lazy(() => import('./pages/ApplicationDetail'));
 const PolicyList = lazy(() => import('./pages/PolicyList'));
 const Settings = lazy(() => import('./pages/Settings'));
 const Profile = lazy(() => import('./pages/Profile'));
+const Invite = lazy(() => import('./pages/Invite'));
+const UserPartner = lazy(() => import('./pages/UserPartner'));
 const FamilyMemberList = lazy(() => import('./pages/FamilyMemberList'));
 const FamilyMemberDetail = lazy(() => import('./pages/FamilyMemberDetail'));
 const AlbumDetail = lazy(() => import('./pages/AlbumDetail'));
@@ -92,6 +94,7 @@ const FamilyInherit = lazy(() => import('./pages/FamilyInherit'));
 const FamilyEvents = lazy(() => import('./pages/FamilyEvents'));
 const BiographerManagement = lazy(() => import('./pages/BiographerManagement'));
 const PartnerManagement = lazy(() => import('./pages/PartnerManagement'));
+const RegionalPartnerManagement = lazy(() => import('./pages/RegionalPartnerManagement'));
 const PartnerApplications = lazy(() => import('./pages/PartnerApplications'));
 const PartnerCustomersAdmin = lazy(() => import('./pages/PartnerCustomersAdmin'));
 const CommissionRecords = lazy(() => import('./pages/CommissionRecords'));
@@ -104,6 +107,7 @@ const UserInvites = lazy(() => import('./pages/UserInvites'));
 const PartnerCenter = lazy(() => import('./pages/PartnerCenter'));
 const PartnerApplication = lazy(() => import('./pages/PartnerApplication'));
 const MobileInterview = lazy(() => import('./pages/mobile/MobileInterview'));
+const MobileInterviewReview = lazy(() => import('./pages/mobile/MobileInterviewReview'));
 const MobileLayout = lazy(() => import('./components/MobileLayout'));
 const MobileHome = lazy(() => import('./pages/mobile/MobileHome'));
 const MobileArchive = lazy(() => import('./pages/mobile/MobileArchive'));
@@ -111,16 +115,27 @@ const MobileFamily = lazy(() => import('./pages/mobile/MobileFamily'));
 const MobileProfile = lazy(() => import('./pages/mobile/MobileProfile'));
 const MobileWorks = lazy(() => import('./pages/mobile/MobileWorks'));
 const MobilePhotoRestore = lazy(() => import('./pages/mobile/MobilePhotoRestore'));
+const MobileOrders = lazy(() => import('./pages/mobile/MobileOrders'));
+const MobileAfterSale = lazy(() => import('./pages/mobile/MobileAfterSale'));
+const MobileNotifications = lazy(() => import('./pages/mobile/MobileNotifications'));
+const MobileOrderDetail = lazy(() => import('./pages/mobile/MobileOrderDetail'));
+const MobileOrderSuccess = lazy(() => import('./pages/mobile/MobileOrderSuccess'));
+const MobileAddress = lazy(() => import('./pages/mobile/MobileAddress'));
+const MobilePayment = lazy(() => import('./pages/mobile/MobilePayment'));
+const MobileRefundApply = lazy(() => import('./pages/mobile/MobileRefundApply'));
+const MobileRefundResult = lazy(() => import('./pages/mobile/MobileRefundResult'));
+const MobileInvite = lazy(() => import('./pages/mobile/MobileInvite'));
+const MobileAccount = lazy(() => import('./pages/mobile/MobileAccount'));
+const MobileWorkDetail = lazy(() => import('./pages/mobile/MobileWorkDetail'));
+const MobileBiographyRead = lazy(() => import('./pages/mobile/MobileBiographyRead'));
 const BiographerLayout = lazy(() => import('./components/BiographerLayout'));
 const BiographerCenter = lazy(() => import('./pages/BiographerCenter'));
 const BiographerOrders = lazy(() => import('./pages/BiographerOrders'));
+const BiographerWorks = lazy(() => import('./pages/BiographerWorks'));
 const BiographerProfile = lazy(() => import('./pages/BiographerProfile'));
-const BiographerProfileEdit = lazy(() => import('./pages/BiographerProfileEdit'));
 const PhotoRestore = lazy(() => import('./pages/PhotoRestore'));
 const BiographerList = lazy(() => import('./pages/BiographerList'));
 const MyOrders = lazy(() => import('./pages/MyOrders'));
-const Store = lazy(() => import('./pages/Store'));
-const ProductDetail = lazy(() => import('./pages/ProductDetail'));
 const BiographyShelf = lazy(() => import('./pages/BiographyShelf'));
 const OrderSuccess = lazy(() => import('./pages/OrderSuccess'));
 const GroupBuy = lazy(() => import('./pages/GroupBuy'));
@@ -132,11 +147,12 @@ const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const AdminRolePermissions = lazy(() => import('./pages/AdminRolePermissions'));
 const AdminNotifications = lazy(() => import('./pages/AdminNotifications'));
 const UserManagement = lazy(() => import('./pages/UserManagement'));
-const ArchiveManagement = lazy(() => import('./pages/ArchiveManagement'));
 const AITaskManagement = lazy(() => import('./pages/AITaskManagement'));
 const ProductManagement = lazy(() => import('./pages/ProductManagement'));
 const GroupBuyManagement = lazy(() => import('./pages/GroupBuyManagement'));
 const ContentReview = lazy(() => import('./pages/ContentReview'));
+const SensitiveWords = lazy(() => import('./pages/SensitiveWords'));
+const SensitiveHits = lazy(() => import('./pages/SensitiveHits'));
 const ComplianceRisk = lazy(() => import('./pages/ComplianceRisk'));
 const AdminSettings = lazy(() => import('./pages/AdminSettings'));
 
@@ -165,6 +181,7 @@ function App() {
                 <Route index element={<Home />} />
               </Route>
               <Route path="/partner/apply" element={<PartnerApplication />} />
+              <Route path="/biographer-apply" element={<ProtectedRoute><BiographerApply standalone /></ProtectedRoute>} />
               <Route path="/partner/login" element={<Navigate to="/" replace />} />
               <Route path="/partner-center" element={<Navigate to="/partner" replace />} />
               <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
@@ -177,10 +194,11 @@ function App() {
               <Route path="/biographer" element={<RoleRoute role="biographer"><BiographerLayout /></RoleRoute>}>
                 <Route index element={<BiographerCenter />} />
                 <Route path="orders" element={<BiographerOrders />} />
+                <Route path="works" element={<BiographerWorks />} />
                 <Route path="apply" element={<BiographerApply />} />
                 <Route path="earnings" element={<BiographerEarnings />} />
                 <Route path="profile" element={<BiographerProfile />} />
-                <Route path="profile/edit" element={<BiographerProfileEdit />} />
+                <Route path="profile/edit" element={<Navigate to="/biographer/profile" replace />} />
                 <Route path="*" element={<Navigate to="/biographer" replace />} />
               </Route>
 
@@ -188,13 +206,13 @@ function App() {
                 <Route index element={<AdminV1Redirect><Navigate to="/admin/dashboard" replace /></AdminV1Redirect>} />
                 <Route path="dashboard" element={<AdminV1Redirect><AdminDashboard /></AdminV1Redirect>} />
                 <Route path="users" element={<UserManagement />} />
-                <Route path="archives" element={<ArchiveManagement />} />
                 <Route path="biographers" element={<BiographerManagement />} />
                 <Route path="partners" element={<AdminV1Redirect><PartnerManagement /></AdminV1Redirect>} />
+                <Route path="regional-partners" element={<AdminV1Redirect><RegionalPartnerManagement /></AdminV1Redirect>} />
                 <Route path="partner-applications" element={<AdminV1Redirect><PartnerApplications /></AdminV1Redirect>} />
                 <Route path="partner-customers" element={<AdminV1Redirect><PartnerCustomersAdmin /></AdminV1Redirect>} />
                 <Route path="orders" element={<OrderManagement />} />
-                <Route path="products" element={<AdminV1Redirect><ProductManagement /></AdminV1Redirect>} />
+                <Route path="products" element={<ProductManagement />} />
                 <Route path="group-buy" element={<AdminV1Redirect><GroupBuyManagement /></AdminV1Redirect>} />
                 <Route path="commission-records" element={<AdminV1Redirect><CommissionRecords /></AdminV1Redirect>} />
                 <Route path="book-review" element={<BookReview />} />
@@ -205,7 +223,11 @@ function App() {
                 <Route path="ai-tasks" element={<AITaskManagement />} />
                 <Route path="roles" element={<AdminRolePermissions />} />
                 <Route path="notifications" element={<AdminV1Redirect><AdminNotifications /></AdminV1Redirect>} />
-                <Route path="content-review" element={<AdminV1Redirect><ContentReview /></AdminV1Redirect>} />
+                <Route path="content-review" element={<Navigate to="/admin/content-review/books" replace />} />
+                <Route path="content-review/sensitive" element={<Navigate to="/admin/sensitive-hits" replace />} />
+                <Route path="content-review/:section" element={<ContentReview />} />
+                <Route path="sensitive-words" element={<SensitiveWords />} />
+                <Route path="sensitive-hits" element={<SensitiveHits />} />
                 <Route path="compliance" element={<AdminV1Redirect><ComplianceRisk /></AdminV1Redirect>} />
                 <Route path="settings" element={<AdminV1Redirect><AdminSettings /></AdminV1Redirect>} />
                 <Route path="*" element={<AdminV1Redirect><Navigate to="/admin/dashboard" replace /></AdminV1Redirect>} />
@@ -214,10 +236,24 @@ function App() {
               <Route path="/m" element={<ProtectedRoute><MobileLayout /></ProtectedRoute>}>
                 <Route index element={<MobileHome />} />
                 <Route path="interview" element={<MobileInterview />} />
+                <Route path="interview-review" element={<MobileInterviewReview />} />
                 <Route path="archive" element={<MobileArchive />} />
                 <Route path="family" element={<MobileFamilyV1Redirect><MobileFamily /></MobileFamilyV1Redirect>} />
                 <Route path="works" element={<MobileWorks />} />
+                <Route path="works/:id" element={<MobileWorkDetail />} />
+                <Route path="works/:id/read" element={<MobileBiographyRead />} />
                 <Route path="photo-restore" element={<MobilePhotoRestore />} />
+                <Route path="payment" element={<MobilePayment />} />
+                <Route path="orders" element={<MobileOrders />} />
+                <Route path="orders/:id" element={<MobileOrderDetail />} />
+                <Route path="after-sale" element={<MobileAfterSale />} />
+                <Route path="after-sale/apply" element={<MobileRefundApply />} />
+                <Route path="after-sale/result" element={<MobileRefundResult />} />
+                <Route path="order-success" element={<MobileOrderSuccess />} />
+                <Route path="address" element={<MobileAddress />} />
+                <Route path="notifications" element={<MobileNotifications />} />
+                <Route path="invite" element={<MobileInvite />} />
+                <Route path="account" element={<MobileAccount />} />
                 <Route path="profile" element={<MobileProfile />} />
                 <Route path="*" element={<Navigate to="/m" replace />} />
               </Route>
@@ -238,8 +274,6 @@ function App() {
                 <Route path="biographers" element={<BiographerList />} />
                 <Route path="my-biographer-orders" element={<Navigate to="/my-orders?type=biographer_service" replace />} />
                 <Route path="my-orders" element={<MyOrders />} />
-                <Route path="store" element={<Store />} />
-                <Route path="store/:id" element={<ProductDetail />} />
                 <Route path="biography-shelf" element={<BiographyShelf />} />
                 <Route path="biography-shelf/:id" element={<BiographyShelf />} />
                 <Route path="order-success" element={<OrderSuccess />} />
@@ -258,6 +292,8 @@ function App() {
                 <Route path="government/policies" element={<V1Redirect><PolicyList /></V1Redirect>} />
                 <Route path="settings" element={<Navigate to="/settings/account" replace />} />
                 <Route path="settings/:section" element={<Settings />} />
+                <Route path="invite" element={<Invite />} />
+                <Route path="my-partner" element={<UserPartner />} />
                 <Route path="profile" element={<Profile />} />
                 <Route path="family/members" element={<V1Redirect><FamilyMemberList /></V1Redirect>} />
                 <Route path="family/members/:name" element={<V1Redirect><FamilyMemberDetail /></V1Redirect>} />

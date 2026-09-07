@@ -5,6 +5,51 @@ export interface Collaborator {
   phone?: string;
   remark?: string;
   joinedAt: string;
+  /** 移除仅撤销访问，保留历史采访和建议；旧数据无此字段时视为 active */
+  status?: 'active' | 'removed';
+  removedAt?: string;
+}
+
+export interface InterviewTranscriptLine {
+  speaker: string;
+  time: string;
+  text: string;
+  topicId?: string;
+  questionId?: string;
+  kind?: 'welcome' | 'question' | 'answer' | 'follow-up-question' | 'follow-up-answer' | 'system';
+  createdAt?: string;
+}
+
+export function getInterviewTranscriptKey(archiveId: string, collaboratorId?: string) {
+  return `cj_interview_transcript_${archiveId}${collaboratorId ? `_${collaboratorId}` : ''}`;
+}
+
+export function getInterviewSessionKey(archiveId: string, collaboratorId?: string) {
+  return `cj_interview_session_${archiveId}${collaboratorId ? `_${collaboratorId}` : ''}`;
+}
+
+function isActiveCollaborator(collaborator: Collaborator) {
+  return collaborator.status !== 'removed';
+}
+
+export function loadActiveCollaborators(archiveId: string): Collaborator[] {
+  return loadCollaborators(archiveId).filter(isActiveCollaborator);
+}
+
+export function findCollaboratorForUser(archiveId: string, user: { phone?: string; name?: string } | null | undefined) {
+  if (!user) return null;
+  const list = loadActiveCollaborators(archiveId);
+  return list.find((item) => user.phone && item.phone === user.phone)
+    || list.find((item) => user.name && item.name === user.name)
+    || null;
+}
+
+export function loadInterviewTranscript(archiveId: string, collaboratorId?: string): InterviewTranscriptLine[] {
+  return loadJson<InterviewTranscriptLine[]>(getInterviewTranscriptKey(archiveId, collaboratorId), []);
+}
+
+export function loadAllCollaborators(archiveId: string): Collaborator[] {
+  return loadCollaborators(archiveId);
 }
 
 export interface SupplementAnswer {
@@ -21,6 +66,8 @@ export interface CollabInvite {
   id: string;
   /** collab=采访协作邀请；relation=人物关系邀请（同意后建立关系图谱中的关系） */
   kind: 'collab' | 'relation';
+  /** kind=collab 时的协作范围：interview=邀请协助采访，edit=邀请协助修改传记 */
+  scope?: 'interview' | 'edit';
   archiveId: string;
   archiveName: string;
   subjectName: string;
@@ -160,7 +207,11 @@ export function addCollaborator(archiveId: string, collaborator: Omit<Collaborat
 }
 
 export function removeCollaborator(archiveId: string, id: string) {
-  const list = loadCollaborators(archiveId).filter((c) => c.id !== id);
+  const list = loadCollaborators(archiveId).map((collaborator) =>
+    collaborator.id === id
+      ? { ...collaborator, status: 'removed' as const, removedAt: new Date().toISOString() }
+      : collaborator
+  );
   saveCollaborators(archiveId, list);
 }
 
@@ -230,7 +281,7 @@ export interface CollaboratingArchive {
   invited: boolean;
 }
 
-// 当前账号在协作者名单中的档案 → 以协作身份参与；不在名单中的档案均为本账号创建（创建人）
+// 当前账号在协作者名单中的档案 → 以协作身份参与；不在名单中的档案均为本账号创建（创建者）
 export function findCollaboratingArchives(userName: string): CollaboratingArchive[] {
   const archives = loadJson<{ id: string; name: string }[]>('cj_archives', []);
   return archives

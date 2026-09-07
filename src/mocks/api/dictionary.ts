@@ -7,7 +7,7 @@ import type { DictionaryItem, DictionaryType } from '../types'
 const DICT_TYPES: DictionaryType[] = ['book_occupation', 'book_life_stage', 'sensitive_words']
 
 /** 默认标签种子版本：每次扩充 defaultDictionaryItems 时 +1，老缓存自动补齐新增项 */
-const DICT_SEED_VERSION = 3
+const DICT_SEED_VERSION = 4
 
 function getCurrentUser(): { id: string } | null {
   return getItem<{ id: string } | null>(storeKeys.currentUser, null)
@@ -20,12 +20,18 @@ function ensureItems(): DictionaryItem[] {
     setItem(`${storeKeys.dictionary}_seed_v`, DICT_SEED_VERSION)
     return [...defaultDictionaryItems]
   }
-  // 种子升级：仅在版本号落后时补齐新增的默认标签（用户手动删除的不会复活）
+  // 种子升级：仅在版本号落后时补齐新增的默认标签（用户手动删除的不会复活），并同步级别等新字段
   const version = getItem<number>(`${storeKeys.dictionary}_seed_v`, 1)
   if (version < DICT_SEED_VERSION) {
-    const merged = [...stored]
+    let merged = [...stored]
     defaultDictionaryItems.forEach((def) => {
-      if (merged.some((item) => item.type === def.type && item.label === def.label)) return
+      const existingIndex = merged.findIndex((item) => item.type === def.type && item.label === def.label)
+      if (existingIndex >= 0) {
+        if (merged[existingIndex].level === undefined && def.level !== undefined) {
+          merged[existingIndex] = { ...merged[existingIndex], level: def.level }
+        }
+        return
+      }
       const maxOrder = Math.max(0, ...merged.filter((item) => item.type === def.type).map((item) => item.order))
       merged.push({ ...def, id: generateId(), order: maxOrder + 1 })
     })
@@ -57,11 +63,12 @@ function listByType(type: DictionaryType, enabledOnly = false): DictionaryItem[]
     .sort((a, b) => a.order - b.order)
 }
 
-/** 敏感词检查：命中启用中的敏感词则返回该词，否则返回 null（供评论/上架等接口复用） */
-export function findSensitiveWord(text: string): string | null {
+/** 敏感词检查：命中启用中的敏感词则返回 { word, level }，否则返回 null（供评论/上架等接口复用） */
+export function findSensitiveHit(text: string): { word: string; level: 1 | 2 } | null {
   if (!text) return null
-  const words = listByType('sensitive_words', true).map((item) => item.label)
-  return words.find((word) => text.includes(word)) || null
+  const words = listByType('sensitive_words', true)
+  const hit = words.find((item) => text.includes(item.label))
+  return hit ? { word: hit.label, level: hit.level ?? 1 } : null
 }
 
 export const dictionaryHandlers: HttpHandler[] = [
@@ -82,7 +89,7 @@ export const dictionaryHandlers: HttpHandler[] = [
 
   http.post('/api/admin/dictionary', async ({ request }) => {
     if (!getCurrentUser()) return unauthorized()
-    const { type, label } = (await request.json()) as { type?: string; label?: string }
+    const { type, label, level } = (await request.json()) as { type?: string; label?: string; level?: 1 | 2 }
     if (!isValidType(type)) return fail('字典类型不存在')
     const items = ensureItems()
     const error = validateLabel(label, items, type)
@@ -92,6 +99,7 @@ export const dictionaryHandlers: HttpHandler[] = [
       id: generateId(),
       type,
       label: label!.trim(),
+      level: type === 'sensitive_words' ? (level === 2 ? 2 : 1) : undefined,
       enabled: true,
       order: listByType(type).length + 1,
       createdAt: now,
@@ -119,10 +127,11 @@ export const dictionaryHandlers: HttpHandler[] = [
     const items = ensureItems()
     const item = items.find((entry) => entry.id === params.id)
     if (!item) return notFound('标签不存在')
-    const { label } = (await request.json()) as { label?: string }
+    const { label, level } = (await request.json()) as { label?: string; level?: 1 | 2 }
     const error = validateLabel(label, items, item.type, item.id)
     if (error) return fail(error)
-    const next = { ...item, label: label!.trim(), updatedAt: new Date().toISOString() }
+    const next: DictionaryItem = { ...item, label: label!.trim(), updatedAt: new Date().toISOString() }
+    if (item.type === 'sensitive_words' && (level === 1 || level === 2)) next.level = level
     saveItems(items.map((entry) => (entry.id === item.id ? next : entry)))
     return success(next, '标签已更新')
   }),

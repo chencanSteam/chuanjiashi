@@ -26,13 +26,6 @@ const tabs = [
   { key: 'guide', label: '政策指引' },
 ];
 
-const stats = [
-  { icon: FileText, label: '本月办理业务', value: '128', trend: '23' },
-  { icon: Clock, label: '平均办理时长', value: '2.3天', trend: '' },
-  { icon: CheckCircle, label: '已办结', value: '96', trend: '18' },
-  { icon: AlertCircle, label: '待补充材料', value: '12', trend: '5' },
-];
-
 const services = [
   { icon: FileCheck, title: '亲属关系证明', desc: '用于公证、落户、入学等场景', code: 'ZJ-20260618-001' },
   { icon: BadgeCheck, title: '家风荣誉认证', desc: '申报优秀家庭、文明家庭等荣誉', code: 'RY-20260618-002' },
@@ -101,21 +94,6 @@ export default function GovernmentService() {
 
       {activeTab === 'overview' && (
         <>
-          <Annotate id="government.stats">
-          <div className="gov-stats-row">
-            {stats.map((s, i) => (
-              <div className="card gov-stat" key={i} onClick={() => navigate('/government/dashboard')}>
-                <div className="card-body">
-                  <div className="gov-stat-icon"><s.icon size={20} color="#1B5E4B" /></div>
-                  <div className="gov-stat-label">{s.label}</div>
-                  <div className="gov-stat-value">{s.value}</div>
-                  {s.trend && <div className="gov-stat-trend">较上月 <ChevronRight size={10} className="trend-up" /> {s.trend}</div>}
-                </div>
-              </div>
-            ))}
-          </div>
-          </Annotate>
-
           <div className="gov-layout">
             <Annotate id="government.services">
             <div className="card services-card">

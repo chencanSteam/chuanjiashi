@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Search, CreditCard, CheckCircle, XCircle, Clock, DollarSign } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 import { commissionApi } from '../api/commission';
 import { getWithdrawalStatusLabel } from '../data/partnerData';
@@ -33,14 +33,6 @@ export default function WithdrawalManagement() {
     });
   }, [withdrawals, keyword, statusFilter]);
 
-  const stats = useMemo(() => {
-    return {
-      pending: withdrawals.filter((w) => w.status === 'pending').reduce((sum, w) => sum + w.amount, 0),
-      paid: withdrawals.filter((w) => w.status === 'paid').reduce((sum, w) => sum + w.amount, 0),
-      total: withdrawals.length,
-    };
-  }, [withdrawals]);
-
   const handleProcess = async (id: string, status: WithdrawalStatus) => {
     try {
       await commissionApi.processWithdrawal(id, status as MockWithdrawalRecord['status']);
@@ -56,32 +48,6 @@ export default function WithdrawalManagement() {
       <header className="page-header">
         <h1 className="page-title">提现审核</h1>
       </header>
-
-      <Annotate id="withdrawal-management.stats">
-      <div className="withdrawal-stats">
-        <div className="card withdrawal-stat">
-          <Clock size={20} color="#d97706" />
-          <div>
-            <div className="withdrawal-stat-value">¥{stats.pending.toFixed(2)}</div>
-            <div className="withdrawal-stat-label">待审核金额</div>
-          </div>
-        </div>
-        <div className="card withdrawal-stat">
-          <DollarSign size={20} color="#1B5E4B" />
-          <div>
-            <div className="withdrawal-stat-value">¥{stats.paid.toFixed(2)}</div>
-            <div className="withdrawal-stat-label">已打款金额</div>
-          </div>
-        </div>
-        <div className="card withdrawal-stat">
-          <CreditCard size={20} color="#2563eb" />
-          <div>
-            <div className="withdrawal-stat-value">{stats.total}</div>
-            <div className="withdrawal-stat-label">提现笔数</div>
-          </div>
-        </div>
-      </div>
-      </Annotate>
 
       <div className="card">
         <div className="card-header withdrawal-header">
@@ -104,33 +70,44 @@ export default function WithdrawalManagement() {
         <Annotate id="withdrawal-management.list">
         <div className="card-body withdrawal-body">
           {filtered.length === 0 ? (
-            <div className="withdrawal-empty">暂无提现记录</div>
+            <div className="admin-table-empty">暂无提现记录</div>
           ) : (
-            <div className="withdrawal-list">
+            <div className="admin-table-wrap">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>合伙人</th>
+                  <th>提现金额</th>
+                  <th>申请时间</th>
+                  <th>状态</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody>
               {filtered.map((w) => (
-                <div className="withdrawal-card" key={w.id}>
-                  <div className="withdrawal-main">
-                    <div className="withdrawal-title">
-                      <span>{w.partnerName}</span>
-                      <span className={`withdrawal-status ${w.status}`}>{getWithdrawalStatusLabel(w.status)}</span>
-                    </div>
-                    <div className="withdrawal-amount">¥{w.amount.toFixed(2)}</div>
-                    <div className="withdrawal-time">申请时间：{new Date(w.createdAt).toLocaleString()}</div>
-                  </div>
-                  {w.status === 'pending' && (
-                    <Annotate id="withdrawal-management.review" inline>
-                    <div className="withdrawal-actions">
-                      <button className="btn btn-primary" onClick={() => handleProcess(w.id, 'paid')}>
-                        <CheckCircle size={14} /> 确认打款
-                      </button>
-                      <button className="btn btn-outline" onClick={() => handleProcess(w.id, 'rejected')}>
-                        <XCircle size={14} /> 拒绝
-                      </button>
-                    </div>
-                    </Annotate>
-                  )}
-                </div>
+                <tr key={w.id}>
+                  <td className="admin-table-text-left">{w.partnerName}</td>
+                  <td>¥{w.amount.toFixed(2)}</td>
+                  <td>{new Date(w.createdAt).toLocaleString()}</td>
+                  <td>
+                    <span className={`withdrawal-status ${w.status}`}>{getWithdrawalStatusLabel(w.status)}</span>
+                  </td>
+                  <td>
+                    {w.status === 'pending' ? (
+                      <Annotate id="withdrawal-management.review" inline>
+                      <>
+                        <button className="admin-table-link" onClick={() => handleProcess(w.id, 'paid')}>确认打款</button>
+                        <button className="admin-table-link danger" onClick={() => handleProcess(w.id, 'rejected')}>拒绝</button>
+                      </>
+                      </Annotate>
+                    ) : (
+                      <span className="admin-table-muted">已处理</span>
+                    )}
+                  </td>
+                </tr>
               ))}
+              </tbody>
+            </table>
             </div>
           )}
         </div>

@@ -58,6 +58,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
 .biographer-list-filter-group {
@@ -230,13 +231,8 @@
   font-weight: 600;
 }
 
-.biographer-list-card-reviews {
+.biographer-list-card-sales {
   color: var(--text-muted);
-}
-
-.biographer-list-card-satisfaction {
-  color: #1B5E4B;
-  font-weight: 500;
 }
 
 .biographer-list-card-footer {

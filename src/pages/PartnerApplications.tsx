@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Search, CheckCircle, XCircle, Clock, Phone, MapPin, FileText } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 import { partnerApi } from '../api/partner';
 import {
@@ -74,43 +74,49 @@ export default function PartnerApplications() {
           {filtered.length === 0 ? (
             <div className="partner-app-empty">暂无申请记录</div>
           ) : (
-            <div className="partner-app-list">
-              {filtered.map((a) => (
-                <div className="partner-app-card" key={a.id}>
-                  <div className="partner-app-main">
-                    <div className="partner-app-title">
-                      <span>{a.name}</span>
-                      <span className={`partner-app-status ${a.status}`}>{getApplicationStatusLabel(a.status)}</span>
-                    </div>
-                    <div className="partner-app-meta">
-                      <span><Phone size={12} /> {a.phone}</span>
-                      {a.email && <span>{a.email}</span>}
-                      <span><MapPin size={12} /> {a.regionName || '无区域'}</span>
-                      <span>{getPartnerTypeLabel(a.type)}</span>
-                    </div>
-                    {a.reason && (
-                      <div className="partner-app-reason">
-                        <FileText size={12} /> {a.reason}
-                      </div>
-                    )}
-                    <div className="partner-app-time">
-                      <Clock size={12} /> 申请时间：{new Date(a.createdAt).toLocaleString()}
-                    </div>
-                  </div>
-                  {a.status === 'pending' && (
-                    <Annotate id="admin-partner-applications.review" inline>
-                    <div className="partner-app-actions">
-                      <button className="btn btn-primary" onClick={() => handleProcess(a.id, 'approved')}>
-                        <CheckCircle size={14} /> 通过
-                      </button>
-                      <button className="btn btn-outline" onClick={() => handleProcess(a.id, 'rejected')}>
-                        <XCircle size={14} /> 拒绝
-                      </button>
-                    </div>
-                    </Annotate>
-                  )}
-                </div>
-              ))}
+            <div className="admin-table-wrap">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>申请人</th>
+                  <th>联系方式</th>
+                  <th>区域</th>
+                  <th>合伙人类型</th>
+                  <th>申请理由</th>
+                  <th>申请时间</th>
+                  <th>状态</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((a) => (
+                  <tr key={a.id}>
+                    <td>{a.name}</td>
+                    <td className="admin-table-text-left">
+                      <div>{a.phone}</div>
+                      {a.email && <div>{a.email}</div>}
+                    </td>
+                    <td>{a.regionName || '无区域'}</td>
+                    <td>{getPartnerTypeLabel(a.type)}</td>
+                    <td className="admin-table-text-left">{a.reason || <span className="admin-table-muted">—</span>}</td>
+                    <td>{new Date(a.createdAt).toLocaleString()}</td>
+                    <td><span className={`partner-app-status ${a.status}`}>{getApplicationStatusLabel(a.status)}</span></td>
+                    <td>
+                      {a.status === 'pending' ? (
+                        <Annotate id="admin-partner-applications.review" inline>
+                        <>
+                          <button className="admin-table-link" onClick={() => handleProcess(a.id, 'approved')}>通过</button>
+                          <button className="admin-table-link danger" onClick={() => handleProcess(a.id, 'rejected')}>拒绝</button>
+                        </>
+                        </Annotate>
+                      ) : (
+                        <span className="admin-table-muted">已处理</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
             </div>
           )}
         </div>

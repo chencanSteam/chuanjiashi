@@ -10,7 +10,7 @@ export type AdminUserDetail = AdminUser & {
 
 export const adminUserApi = {
   // 用户列表（关键词/状态过滤）
-  list: (params?: { keyword?: string; status?: AdminUser['status'] | 'all' }) =>
+  list: (params?: { keyword?: string; status?: AdminUser['status'] | 'all'; regionCode?: string }) =>
     api.get<AdminUser[]>(`/api/admin/users?${toQuery(params)}`),
   // 用户详情（含推广关系、佣金明细）
   get: (id: string) => api.get<AdminUserDetail>(`/api/admin/users/${id}`),

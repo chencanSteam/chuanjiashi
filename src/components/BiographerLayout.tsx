@@ -6,11 +6,11 @@ import {
   LayoutDashboard,
   ClipboardList,
   UserCircle,
-  Settings,
   LogOut,
   ChevronDown,
   BadgeCheck,
   Wallet,
+  BookOpen,
 } from 'lucide-react';
 import Avatar from './ui/Avatar';
 import { useAuth } from '../hooks/useAuth';
@@ -26,10 +26,10 @@ interface NavItem {
 const biographerNavItems: NavItem[] = [
   { to: '/biographer', icon: LayoutDashboard, label: '工作台' },
   { to: '/biographer/orders', icon: ClipboardList, label: '我的订单' },
+  { to: '/biographer/works', icon: BookOpen, label: '传记修改' },
   { to: '/biographer/earnings', icon: Wallet, label: '结算提现' },
   { to: '/biographer/apply', icon: BadgeCheck, label: '入驻认证' },
   { to: '/biographer/profile', icon: UserCircle, label: '我的介绍页' },
-  { to: '/biographer/profile/edit', icon: Settings, label: '编辑资料' },
 ];
 
 export default function BiographerLayout() {

@@ -33,34 +33,6 @@
   color: var(--text-muted);
 }
 
-.compliance-table {
-  display: table;
-  width: 100%;
-  min-width: 860px;
-}
-
-.compliance-row {
-  display: table-row;
-}
-
-.compliance-header-row {
-  background: var(--bg-secondary);
-  font-weight: 500;
-  color: var(--text-secondary);
-  font-size: 13px;
-}
-
-.compliance-row:not(.compliance-header-row) {
-  border-bottom: 1px solid var(--border-light);
-}
-
-.compliance-cell {
-  display: table-cell;
-  padding: 12px 14px;
-  vertical-align: middle;
-  font-size: 13px;
-}
-
 .compliance-type-tag {
   display: inline-flex;
   align-items: center;
@@ -101,11 +73,6 @@
   background: var(--bg-secondary);
   color: var(--text-secondary);
   font-weight: 600;
-}
-
-.compliance-view-btn {
-  padding: 4px 12px;
-  font-size: 12px;
 }
 
 .compliance-tip-card {
@@ -159,18 +126,3 @@
   color: #dc2626;
 }
 
-@media (max-width: 960px) {
-  .compliance-table {
-    min-width: unset;
-    display: block;
-  }
-
-  .compliance-row,
-  .compliance-cell {
-    display: block;
-  }
-
-  .compliance-header-row {
-    display: none;
-  }
-}

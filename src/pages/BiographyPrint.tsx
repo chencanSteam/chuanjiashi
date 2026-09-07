@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Printer, Download, BookOpen, ShoppingBag } from 'lucide-react';
+import { Printer, Download, BookOpen } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 import Annotate from '../components/annotation/Annotate';
 import './BiographyPrint.css';
@@ -140,15 +140,6 @@ export default function BiographyPrint() {
           <Annotate id="biography-print.download-pdf" inline>
           <button className="btn btn-primary" onClick={handleDownloadPdf} disabled={downloading}>
             <Download size={14} /> {downloading ? '生成中…' : '下载 PDF'}
-          </button>
-          </Annotate>
-          <Annotate id="biography-print.order" inline>
-          <button
-            className="btn btn-outline"
-            style={{ color: '#b8860b', borderColor: 'rgba(184,134,11,0.3)' }}
-            onClick={() => navigate(`/store?category=book&archiveId=${archiveId}`)}
-          >
-            <ShoppingBag size={14} /> 下单印刷实体书
           </button>
           </Annotate>
         </div>

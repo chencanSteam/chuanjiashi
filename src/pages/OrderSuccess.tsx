@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { CheckCircle, Package, FileText, ArrowRight, ShoppingBag, Copy } from 'lucide-react';
+import { CheckCircle, Package, FileText, ArrowRight, Copy } from 'lucide-react';
 import { orderApi } from '../api/order';
 import { useToast } from '../hooks/useToast';
 import Annotate from '../components/annotation/Annotate';
@@ -96,8 +96,8 @@ export default function OrderSuccess() {
           <button className="btn btn-primary" onClick={() => navigate('/my-orders')}>
             查看我的订单 <ArrowRight size={14} />
           </button>
-          <button className="btn btn-outline" onClick={() => navigate('/store')}>
-            <ShoppingBag size={14} /> 继续逛逛
+          <button className="btn btn-outline" onClick={() => navigate('/home')}>
+            返回首页
           </button>
         </div>
         </Annotate>

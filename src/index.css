@@ -43,6 +43,29 @@
   --font-family-sans: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
 }
 
+/* 页面顶部 KPI 只保留主要内容，不作为首屏展示；详情内部指标不受影响 */
+.ad-stats,
+.ai-usage-overview,
+.ai-usage-stats,
+.bio-stats,
+.order-stats,
+.book-review-stats,
+.commission-stats,
+.withdrawal-stats,
+.user-invite-stats,
+.partner-mgmt-stats,
+.partner-center-stats,
+.earnings-stats,
+.hall-stats-row,
+.digital-stats-row,
+.genealogy-stats-row,
+.gov-stats-row,
+.gov-stats,
+.stats-wide,
+.partner-center-local-share {
+  display: none !important;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -110,4 +133,87 @@ button {
   .hidden-sm {
     display: none;
   }
+}
+
+/* ============ 后台通用普通表格（若依风格） ============ */
+.admin-table-wrap {
+  overflow-x: auto;
+}
+
+.admin-table {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--card-bg);
+}
+
+.admin-table th,
+.admin-table td {
+  border: 1px solid var(--border-light);
+  padding: 10px 12px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.admin-table thead th {
+  background: var(--bg-secondary);
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.admin-table tbody tr:hover {
+  background: var(--primary-50);
+}
+
+.admin-table .admin-table-check {
+  width: 40px;
+}
+
+.admin-table .admin-table-text-left {
+  text-align: left;
+}
+
+.admin-table-empty {
+  text-align: center;
+  padding: 48px 20px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+/* 操作列文字按钮 */
+.admin-table-link {
+  background: none;
+  border: none;
+  padding: 0 6px;
+  cursor: pointer;
+  color: var(--primary);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.admin-table-link:hover {
+  color: var(--primary-dark);
+  text-decoration: underline;
+}
+
+.admin-table-link:disabled {
+  color: var(--text-muted);
+  cursor: not-allowed;
+  text-decoration: none;
+}
+
+.admin-table-link.danger {
+  color: #c0392b;
+}
+
+.admin-table-link.danger:hover {
+  color: #962d22;
+}
+
+.admin-table-muted {
+  color: var(--text-muted);
+  font-size: 12px;
 }

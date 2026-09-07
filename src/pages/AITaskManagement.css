@@ -33,34 +33,6 @@
   color: var(--text-muted);
 }
 
-.ai-task-table {
-  display: table;
-  width: 100%;
-  min-width: 960px;
-}
-
-.ai-task-row {
-  display: table-row;
-}
-
-.ai-task-header-row {
-  background: var(--bg-secondary);
-  font-weight: 500;
-  color: var(--text-secondary);
-  font-size: 13px;
-}
-
-.ai-task-row:not(.ai-task-header-row) {
-  border-bottom: 1px solid var(--border-light);
-}
-
-.ai-task-cell {
-  display: table-cell;
-  padding: 12px 14px;
-  vertical-align: middle;
-  font-size: 13px;
-}
-
 .ai-task-target {
   font-weight: 500;
   color: var(--text);
@@ -132,10 +104,6 @@
 .ai-token-stat-label {
   font-size: 12px;
   color: var(--text-muted);
-}
-
-.ai-token-table {
-  min-width: 720px;
 }
 
 .ai-token-bar {
@@ -210,20 +178,6 @@
 @media (max-width: 960px) {
   .ai-token-stats {
     grid-template-columns: 1fr;
-  }
-
-  .ai-task-table {
-    min-width: unset;
-    display: block;
-  }
-
-  .ai-task-row,
-  .ai-task-cell {
-    display: block;
-  }
-
-  .ai-task-header-row {
-    display: none;
   }
 }
 

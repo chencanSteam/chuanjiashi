@@ -893,3 +893,49 @@
 .home-cases-grid .service-card {
   border: 1px solid #e8ecea;
 }
+
+/* 采访档案选择弹窗 */
+.archive-picker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.archive-picker-item {
+  text-align: left;
+  padding: 12px 14px;
+  border: 1px solid var(--border-light, #e8e4dd);
+  border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+
+.archive-picker-item:hover {
+  border-color: var(--primary, #2d5a4a);
+  background: var(--primary-50, #f0f7f4);
+}
+
+.archive-picker-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text, #1f2937);
+}
+
+.archive-picker-meta {
+  font-size: 12px;
+  color: var(--text-muted, #9ca3af);
+  margin-top: 3px;
+}
+
+/* 新建档案：日期/籍贯级联选择行 */
+.basic-info-date-row {
+  display: flex;
+  gap: 8px;
+}
+
+.basic-info-date-row select {
+  flex: 1;
+  min-width: 0;
+}

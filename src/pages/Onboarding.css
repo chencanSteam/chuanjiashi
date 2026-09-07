@@ -326,3 +326,14 @@
   justify-content: center;
   flex-shrink: 0;
 }
+
+/* 第一步表单：日期/籍贯级联选择行 */
+.date-select-row {
+  display: flex;
+  gap: 8px;
+}
+
+.date-select-row select {
+  flex: 1;
+  min-width: 0;
+}

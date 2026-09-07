@@ -8,7 +8,17 @@ import type { Biographer as MockBiographer } from '../mocks/types';
 import Annotate from '../components/annotation/Annotate';
 import './BiographerProfileEdit.css';
 
-export default function BiographerProfileEdit() {
+function isImageUrl(value: string): boolean {
+  return /^(https?:|data:|blob:|\/)/.test(value);
+}
+
+interface BiographerProfileEditProps {
+  /** 嵌入「我的介绍页」的编辑模式：隐藏独立页头，取消/提交后回调 onExit */
+  embedded?: boolean;
+  onExit?: () => void;
+}
+
+export default function BiographerProfileEdit({ embedded, onExit }: BiographerProfileEditProps = {}) {
   const navigate = useNavigate();
   const { addToast } = useToast();
   const [loading, setLoading] = useState(true);
@@ -83,8 +93,9 @@ export default function BiographerProfileEdit() {
     setSaving(true);
     try {
       await biographerApi.updateProfile(form);
-      addToast('资料已保存', 'success');
-      navigate('/biographer/profile');
+      addToast('主页已提交平台审核，审核通过后才会对外展示', 'success');
+      if (embedded) onExit?.();
+      else navigate('/biographer/profile');
     } catch (err: any) {
       addToast(err.message || '保存失败', 'error');
     } finally {
@@ -104,12 +115,27 @@ export default function BiographerProfileEdit() {
 
   return (
     <div className="biographer-edit-page">
-      <header className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1 className="page-title">编辑资料</h1>
-        <button className="btn btn-outline" onClick={() => navigate('/biographer/profile')}>
-          <Eye size={14} /> 预览介绍页
-        </button>
-      </header>
+      {embedded ? (
+        <div className="biographer-edit-review-hints">
+          <p className="profile-review-hint">编辑后提交平台审核，通过后才会对外展示；审核期间线上主页保持不变。</p>
+          {form.profileReviewStatus === 'pending' && <p className="profile-review-status pending">主页审核中，当前线上主页保持不变</p>}
+          {form.profileReviewStatus === 'rejected' && <p className="profile-review-status rejected">主页未通过审核：{form.profileRejectReason || '请修改后重新提交'}</p>}
+          {form.profileReviewStatus === 'approved' && <p className="profile-review-status approved">当前主页已通过平台审核并正常展示</p>}
+        </div>
+      ) : (
+        <header className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <h1 className="page-title">编辑主页</h1>
+            <p className="profile-review-hint">提交后由平台审核，通过后才会对外展示</p>
+            {form.profileReviewStatus === 'pending' && <p className="profile-review-status pending">主页审核中，当前线上主页保持不变</p>}
+            {form.profileReviewStatus === 'rejected' && <p className="profile-review-status rejected">主页未通过审核：{form.profileRejectReason || '请修改后重新提交'}</p>}
+            {form.profileReviewStatus === 'approved' && <p className="profile-review-status approved">当前主页已通过平台审核并正常展示</p>}
+          </div>
+          <button className="btn btn-outline" onClick={() => navigate('/biographer/profile')}>
+            <Eye size={14} /> 预览提交内容
+          </button>
+        </header>
+      )}
 
       <Annotate id="biographer-profile-edit.avatar">
       <div className="biographer-edit-section">
@@ -259,6 +285,58 @@ export default function BiographerProfileEdit() {
                 <label>套餐描述</label>
                 <input value={s.description} onChange={(e) => setForm((f) => ({ ...f, services: (f.services || []).map((item, i) => i === idx ? { ...item, description: e.target.value } : item) }))} />
               </div>
+              <div className="biographer-edit-row">
+                <div className="biographer-edit-field">
+                  <label>采访次数</label>
+                  <input value={s.interviewCount || ''} placeholder="如：2 次" onChange={(e) => setForm((f) => ({ ...f, services: (f.services || []).map((item, i) => i === idx ? { ...item, interviewCount: e.target.value } : item) }))} />
+                </div>
+                <div className="biographer-edit-field">
+                  <label>传记字数</label>
+                  <input value={s.wordCount || ''} placeholder="如：5000 字" onChange={(e) => setForm((f) => ({ ...f, services: (f.services || []).map((item, i) => i === idx ? { ...item, wordCount: e.target.value } : item) }))} />
+                </div>
+              </div>
+              <div className="biographer-edit-row">
+                <div className="biographer-edit-field">
+                  <label>交付周期</label>
+                  <input value={s.deliveryPeriod || ''} placeholder="如：30 天" onChange={(e) => setForm((f) => ({ ...f, services: (f.services || []).map((item, i) => i === idx ? { ...item, deliveryPeriod: e.target.value } : item) }))} />
+                </div>
+                <div className="biographer-edit-field">
+                  <label>修改次数</label>
+                  <input value={s.revisionCount || ''} placeholder="如：2 次" onChange={(e) => setForm((f) => ({ ...f, services: (f.services || []).map((item, i) => i === idx ? { ...item, revisionCount: e.target.value } : item) }))} />
+                </div>
+              </div>
+              <div className="biographer-edit-row">
+                <div className="biographer-edit-field">
+                  <label>实体书</label>
+                  <div className="biographer-edit-radio-group">
+                    {['含', '不含'].map((opt) => (
+                      <label key={opt} className="biographer-edit-radio">
+                        <input
+                          type="radio"
+                          checked={(s.physicalBook || '') === opt}
+                          onChange={() => setForm((f) => ({ ...f, services: (f.services || []).map((item, i) => i === idx ? { ...item, physicalBook: opt } : item) }))}
+                        />
+                        {opt}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                <div className="biographer-edit-field">
+                  <label>影像资料</label>
+                  <div className="biographer-edit-radio-group">
+                    {['含', '不含'].map((opt) => (
+                      <label key={opt} className="biographer-edit-radio">
+                        <input
+                          type="radio"
+                          checked={(s.mediaMaterial || '') === opt}
+                          onChange={() => setForm((f) => ({ ...f, services: (f.services || []).map((item, i) => i === idx ? { ...item, mediaMaterial: opt } : item) }))}
+                        />
+                        {opt}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
           ))}
           <button className="biographer-edit-add-btn" onClick={() => setForm((f) => ({ ...f, services: [...(f.services || []), { id: `svc_${Date.now()}`, name: '', price: 0, description: '' }] }))}>
@@ -319,8 +397,8 @@ export default function BiographerProfileEdit() {
         <h3 className="biographer-edit-section-title">资质证明</h3>
         <div className="biographer-edit-certificates">
           {(form.certificates || []).map((url, idx) => (
-            <div key={idx} className="biographer-edit-certificate">
-              {url ? <img src={url} alt="证明" /> : <Upload size={24} />}
+            <div key={idx} className={`biographer-edit-certificate ${isImageUrl(url) ? '' : 'named'}`}>
+              {isImageUrl(url) ? <img src={url} alt="证明" /> : <><Upload size={20} /><span>{url}</span></>}
               <button className="biographer-edit-certificate-remove" onClick={() => removeCert(idx)}><X size={14} /></button>
             </div>
           ))}
@@ -341,9 +419,9 @@ export default function BiographerProfileEdit() {
 
       <Annotate id="biographer-profile-edit.save">
       <div className="biographer-edit-footer">
-        <button className="btn btn-outline" onClick={() => navigate('/biographer')} disabled={saving}>取消</button>
+        <button className="btn btn-outline" onClick={() => (embedded ? onExit?.() : navigate('/biographer'))} disabled={saving}>取消</button>
         <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
-          <Save size={14} /> {saving ? '保存中...' : '保存资料'}
+          <Save size={14} /> {saving ? '提交中...' : form.profileReviewStatus === 'rejected' ? '重新提交审核' : '提交平台审核'}
         </button>
       </div>
       </Annotate>

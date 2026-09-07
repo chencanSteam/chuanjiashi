@@ -9,13 +9,23 @@ import Annotate from '../components/annotation/Annotate';
 import type { Biographer, BiographerService, BiographerBookingForm } from '../mocks/types';
 import './BiographerList.css';
 
-const CITIES = ['全部', '杭州', '上海', '北京', '广州', '深圳', '南京', '苏州', '成都'];
+const PROVINCE_CITIES: Record<string, string[]> = {
+  浙江省: ['杭州', '宁波', '温州'],
+  上海市: ['上海'],
+  北京市: ['北京'],
+  广东省: ['广州', '深圳'],
+  江苏省: ['南京', '苏州'],
+  四川省: ['成都'],
+};
 
 const SORT_OPTIONS = [
   { key: 'default', label: '综合排序' },
   { key: 'rating', label: '评分从高到低' },
+  { key: 'ratingAsc', label: '评分从低到高' },
   { key: 'priceAsc', label: '价格从低到高' },
   { key: 'priceDesc', label: '价格从高到低' },
+  { key: 'salesDesc', label: '销量从高到低' },
+  { key: 'salesAsc', label: '销量从低到高' },
 ];
 
 function formatPrice(price: number): string {
@@ -32,6 +42,7 @@ export default function BiographerList() {
   const [biographers, setBiographers] = useState<Biographer[]>([]);
   const [loading, setLoading] = useState(true);
   const [keyword, setKeyword] = useState('');
+  const [province, setProvince] = useState('全部');
   const [city, setCity] = useState('全部');
   const [sort, setSort] = useState('default');
   const [selected, setSelected] = useState<Biographer | null>(null);
@@ -48,28 +59,29 @@ export default function BiographerList() {
 
   const filtered = useMemo(() => {
     let list = biographers;
+    const provinceCities = province === '全部' ? [] : (PROVINCE_CITIES[province] || []);
+    if (province !== '全部') {
+      list = list.filter((b) => provinceCities.some((name) => b.city?.includes(name) || b.serviceAreas?.some((area) => area.includes(name))));
+    }
     if (city !== '全部') {
-      list = list.filter((b) => b.city?.includes(city) || b.serviceAreas?.includes(city));
+      list = list.filter((b) => b.city?.includes(city) || b.serviceAreas?.some((area) => area.includes(city)));
     }
     if (keyword.trim()) {
-      const lower = keyword.toLowerCase();
-      list = list.filter(
-        (b) =>
-          b.name.toLowerCase().includes(lower) ||
-          b.city?.toLowerCase().includes(lower) ||
-          b.specialties?.some((s) => s.toLowerCase().includes(lower)) ||
-          b.tags?.some((t) => t.toLowerCase().includes(lower))
-      );
+      const lower = keyword.trim().toLowerCase();
+      list = list.filter((b) => b.name.toLowerCase().includes(lower));
     }
-    if (sort === 'rating') {
-      list = [...list].sort((a, b) => (b.rating || 5) - (a.rating || 5));
-    } else if (sort === 'priceAsc') {
-      list = [...list].sort((a, b) => getMinPrice(a) - getMinPrice(b));
-    } else if (sort === 'priceDesc') {
-      list = [...list].sort((a, b) => getMinPrice(b) - getMinPrice(a));
+    if (sort !== 'default') {
+      list = [...list].sort((a, b) => {
+        if (sort === 'rating') return (b.rating || 0) - (a.rating || 0);
+        if (sort === 'ratingAsc') return (a.rating || 0) - (b.rating || 0);
+        if (sort === 'priceAsc') return getMinPrice(a) - getMinPrice(b);
+        if (sort === 'priceDesc') return getMinPrice(b) - getMinPrice(a);
+        if (sort === 'salesDesc') return (b.completedOrders || 0) - (a.completedOrders || 0);
+        return (a.completedOrders || 0) - (b.completedOrders || 0);
+      });
     }
     return list;
-  }, [biographers, city, keyword, sort]);
+  }, [biographers, province, city, keyword, sort]);
 
   const handleBook = async (service: BiographerService, formData: BiographerBookingForm) => {
     if (!selected) return;
@@ -77,7 +89,7 @@ export default function BiographerList() {
       setBooking(true);
       const { order } = await biographerApi.createOrder(selected.id, service.id, formData);
       await paymentApi.pay((order as any).id, 'wechat');
-      addToast(`预约成功，请支付定金 ¥${selected.deposit || Math.round(service.price * 0.3)}`, 'success');
+      addToast('预约成功，等待传记师确认采访时间', 'success');
       setSelected(null);
     } catch (err: any) {
       addToast(err.message || '预约失败', 'error');
@@ -101,7 +113,7 @@ export default function BiographerList() {
           <Search size={16} />
           <input
             type="text"
-            placeholder="搜索姓名、城市、专长…"
+            placeholder="搜索传记师姓名…"
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
           />
@@ -111,10 +123,13 @@ export default function BiographerList() {
         <div className="biographer-list-filter-groups">
           <div className="biographer-list-filter-group">
             <MapPin size={14} />
+            <select value={province} onChange={(e) => { setProvince(e.target.value); setCity('全部'); }}>
+              <option value="全部">全部省份</option>
+              {Object.keys(PROVINCE_CITIES).map((name) => <option key={name} value={name}>{name}</option>)}
+            </select>
             <select value={city} onChange={(e) => setCity(e.target.value)}>
-              {CITIES.map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
+              <option value="全部">{province === '全部' ? '全部城市' : '全部城市'}</option>
+              {(province === '全部' ? Object.values(PROVINCE_CITIES).flat() : PROVINCE_CITIES[province] || []).map((name) => <option key={name} value={name}>{name}</option>)}
             </select>
           </div>
           <div className="biographer-list-filter-group">
@@ -165,8 +180,7 @@ export default function BiographerList() {
                       <span className="biographer-list-card-stars">
                         <Star size={12} fill="currentColor" /> {(b.rating || 5).toFixed(1)}
                       </span>
-                      <span className="biographer-list-card-reviews">{b.reviewCount || 0} 条评价</span>
-                      <span className="biographer-list-card-satisfaction">好评率 {Math.round((b.rating || 5) / 5 * 100)}%</span>
+                      <span className="biographer-list-card-sales">已完成 {b.completedOrders || 0} 单</span>
                     </div>
                     <div className="biographer-list-card-footer">
                       <div className="biographer-list-card-price">

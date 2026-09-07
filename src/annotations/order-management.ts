@@ -10,13 +10,6 @@ export const orderManagementAnnotations: PageAnnotations = {
   route: '/admin/orders',
   items: [
     {
-      id: 'order-management.supplement',
-      target: '「手动补单」按钮',
-      logic: `① 用于线下收款等场景补录订单；用户必选（选项取自订单中已出现过的客户）、金额必须大于 0，否则拦截并提示。
-② 提交调用 orderApi.adminCreate（POST /api/admin/orders），mock 端再次校验用户与金额后创建订单。
-③ 补单创建后直接为「已支付」状态并写入支付时间；商品名称不填时默认为「手动补单」。`,
-    },
-    {
       id: 'order-management.stats',
       target: '顶部统计卡片',
       logic: `① 基于当前订单列表前端实时计算：订单总数、订单总额（全部订单金额合计）。
@@ -39,7 +32,7 @@ export const orderManagementAnnotations: PageAnnotations = {
     {
       id: 'order-management.row-actions',
       target: '订单行操作按钮（状态流转）',
-      logic: `① 按「状态 + 类型」动态出按钮：已支付的实体订单出「发货」（物流公司、运单号必填，订单转服务中）；已支付的数字订单出「上传交付物」（名称、链接必填）；已支付的传记师服务/团购出「开始服务」。
+      logic: `① 按「状态 + 类型」动态出按钮：已支付的实体订单出「发货」（物流公司、运单号必填，订单转服务中）；已支付的数字订单出「上传交付物」（名称必填；文件类交付物——PDF/视频/图片——可点「选择本地文件」经 uploadFile()（POST /api/upload）上传，成功后自动回填链接并以文件名补全名称，也可手动填写链接；链接/二维码类型仅填链接）；已支付的传记师服务/团购出「开始服务」。
 ② 待支付订单只能「关闭订单」；服务中还可「完成服务」。退款不再是通用状态流转。
 ③ 客户提交退款后，订单行展示「退款待审核」；后台通过专用审核接口 approve 才将申请标记完成并把订单改为已退款，驳回必须填写原因且保留原订单状态。`,
     },
@@ -47,15 +40,8 @@ export const orderManagementAnnotations: PageAnnotations = {
       id: 'order-management.detail',
       target: '订单详情弹窗',
       logic: `① 点击「详情」打开弹窗，展示订单基础信息，并按订单数据条件展示收货地址、物流信息、交付物、用户评价四个区块（无数据不渲染）。
-② 类型为「传记师服务」时额外调用 biographerApi.adminGetBiographerOrderByOrderId 拉取关联的传记师订单，展示定金金额、采访安排和服务进度节点；查不到时显示「未找到关联的传记师订单」。
+② 类型为「传记师服务」时额外调用 biographerApi.adminGetBiographerOrderByOrderId 拉取关联的传记师订单，展示订单金额、采访安排和服务进度节点；查不到时显示「未找到关联的传记师订单」。
 ③ 交付物「查看」直接新窗口打开链接。`,
-    },
-    {
-      id: 'order-management.review-audit',
-      target: '用户评价审核（通过 / 驳回）',
-      logic: `① 订单存在用户评价时展示评分与内容，并带「待审核/已通过/已驳回」状态徽标。
-② 仅待审核状态出现「通过 / 驳回」按钮，点击调用 adminAuditReview（PUT /api/admin/orders/:id/review）改写评价状态。
-③ 只有「已通过」的评价才会出现在 C 端商品详情页的评价列表中。`,
     },
   ],
 };

@@ -18,7 +18,7 @@ export const adminPartnerApplicationsAnnotations: PageAnnotations = {
     {
       id: 'admin-partner-applications.list',
       target: '申请列表',
-      logic: `① 数据来自 partnerApi.adminApplications，卡片展示申请人、联系方式、申请区域、合伙人类型、申请理由与申请时间。
+      logic: `① 数据来自 partnerApi.adminApplications，表格展示申请人、联系方式、申请区域、合伙人类型、申请理由与申请时间。
 ② 无匹配数据时显示「暂无申请记录」。
 ③ 每次审核操作后通过 refresh 计数器重新拉取全量列表，保证状态及时更新。`,
     },

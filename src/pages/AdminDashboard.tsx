@@ -1,11 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  TrendingUp,
-  ShoppingCart,
-  Users,
   PenTool,
-  UsersRound,
   ChevronRight,
   BarChart3,
   BookOpen,
@@ -24,13 +20,10 @@ import {
   Legend,
 } from 'recharts';
 import { orderApi, type AdminOrder } from '../api/order';
-import { adminUserApi } from '../api/adminUser';
-import { biographerApi } from '../api/biographer';
-import { groupBuyApi } from '../api/groupBuy';
 import { bookshelfApi } from '../api/bookshelf';
 import { commissionApi } from '../api/commission';
 import { partnerApi } from '../api/partner';
-import type { Biographer, GroupBuyRecord, WithdrawalRecord, PartnerApplication } from '../mocks/types';
+import type { WithdrawalRecord, PartnerApplication } from '../mocks/types';
 import Annotate from '../components/annotation/Annotate';
 import './AdminDashboard.css';
 
@@ -49,18 +42,12 @@ function last6Months(): string[] {
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const [orders, setOrders] = useState<AdminOrder[]>([]);
-  const [userCount, setUserCount] = useState(0);
-  const [biographers, setBiographers] = useState<Biographer[]>([]);
-  const [groupRecords, setGroupRecords] = useState<GroupBuyRecord[]>([]);
   const [pendingBooks, setPendingBooks] = useState(0);
   const [withdrawals, setWithdrawals] = useState<WithdrawalRecord[]>([]);
   const [applications, setApplications] = useState<PartnerApplication[]>([]);
 
   useEffect(() => {
     orderApi.adminList().then(setOrders).catch(() => setOrders([]));
-    adminUserApi.list().then((list) => setUserCount(list.length)).catch(() => setUserCount(0));
-    biographerApi.adminList().then(setBiographers).catch(() => setBiographers([]));
-    groupBuyApi.records().then(setGroupRecords).catch(() => setGroupRecords([]));
     bookshelfApi
       .adminList({ status: 'pending' })
       .then((list) => setPendingBooks(list.length))
@@ -68,11 +55,6 @@ export default function AdminDashboard() {
     commissionApi.adminWithdrawals().then(setWithdrawals).catch(() => setWithdrawals([]));
     partnerApi.adminApplications().then(setApplications).catch(() => setApplications([]));
   }, []);
-
-  const gmvTotal = useMemo(
-    () => orders.filter((o) => GMV_STATUSES.includes(o.status)).reduce((sum, o) => sum + o.amount, 0),
-    [orders]
-  );
 
   const trendData = useMemo(() => {
     const months = last6Months();
@@ -85,19 +67,9 @@ export default function AdminDashboard() {
     });
   }, [orders]);
 
-  const pendingBiographers = biographers.filter((b) => b.status === 'pending').length;
+  const pendingBiographers = 0;
   const pendingWithdrawals = withdrawals.filter((w) => w.status === 'pending').length;
   const pendingApplications = applications.filter((a) => a.status === 'pending').length;
-  const ongoingGroupBuys = groupRecords.filter((r) => r.status === 'pending').length;
-
-  const statCards = [
-    { icon: TrendingUp, label: 'GMV 总额', value: `¥${gmvTotal.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, color: '#1B5E4B' },
-    { icon: ShoppingCart, label: '订单总数', value: orders.length.toString(), color: '#2563eb' },
-    { icon: Users, label: '注册用户数', value: userCount.toString(), color: '#7c3aed' },
-    { icon: PenTool, label: '入驻传记师数', value: biographers.length.toString(), color: '#d97706' },
-    { icon: UsersRound, label: '进行中拼团数', value: ongoingGroupBuys.toString(), color: '#0891b2' },
-  ];
-
   const todos = [
     { icon: PenTool, label: '待审核传记师', count: pendingBiographers, path: '/admin/biographers', color: '#d97706' },
     { icon: BookOpen, label: '待审核书籍', count: pendingBooks, path: '/admin/book-review', color: '#7c3aed' },
@@ -110,20 +82,6 @@ export default function AdminDashboard() {
       <header className="page-header">
         <h1 className="page-title">平台总览</h1>
       </header>
-
-      <Annotate id="admin-dashboard.stats">
-      <div className="ad-stats">
-        {statCards.map((card) => (
-          <div className="card ad-stat-card" key={card.label}>
-            <div className="ad-stat-icon" style={{ color: card.color, background: `${card.color}14` }}>
-              <card.icon size={20} />
-            </div>
-            <div className="ad-stat-value">{card.value}</div>
-            <div className="ad-stat-label">{card.label}</div>
-          </div>
-        ))}
-      </div>
-      </Annotate>
 
       <div className="ad-main">
         <Annotate id="admin-dashboard.todo">

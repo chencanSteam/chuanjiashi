@@ -22,11 +22,6 @@ export const biographyPrintAnnotations: PageAnnotations = {
 ② 生成期间按钮禁用并显示「生成中…」；生成失败时 toast 引导改用打印功能。`,
     },
     {
-      id: 'biography-print.order',
-      target: '「下单印刷实体书」按钮',
-      logic: `① 跳转 /store?category=book&archiveId={当前档案 id}，进入商城实体书下单流程并携带档案上下文。`,
-    },
-    {
       id: 'biography-print.book',
       target: '书本预览（封面 / 扉页 / 目录 / 章节 / 封底）',
       logic: `① 数据优先级：先读 cj_biography_\${archiveId}（「保存到我的传记」的快照），没有则回退读章节草稿 cj_biography_chapters_\${archiveId}；两者皆无有效内容时显示空态并引导去 /biography 生成。

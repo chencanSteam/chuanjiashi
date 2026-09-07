@@ -53,6 +53,13 @@ export const partnerCenterAnnotations: PageAnnotations = {
 ④ 点击单条记录弹出收益详情，佣金比例按「佣金 ÷ 订单金额」现场反算展示。`,
     },
     {
+      id: 'partner-center.region',
+      target: '区域分佣（地域合伙人）',
+      logic: `① 与邀请分佣的区别：区域分佣不看邀请关系，只要下单用户属于该合伙人的区域（regionCode/regionName），其消费订单都按合伙人等级比例（省级 30% / 市级 25% / 县级 20%，见 partnerTypeConfig）计佣。
+② 区域订单来自 partnerApi.localOrders()（GET /api/partner/local/orders）；统计卡展示区域订单总额、我的区域分佣（总额 × 比例）、区域订单数。
+③ 明细表逐单展示下单用户、商品、订单金额、分佣比例、我的分佣（订单金额 × 比例实时计算）、订单状态与时间。`,
+    },
+    {
       id: 'partner-center.withdraw',
       target: '提现（金额输入 / 提交 / 提现记录）',
       logic: `① 可提现余额来自 commissionApi.summary() 的 settled 字段（已结算佣金）；「审核中」为状态 pending 的历史提现申请总额。

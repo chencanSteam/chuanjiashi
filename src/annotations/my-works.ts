@@ -19,7 +19,7 @@ export const myWorksAnnotations: PageAnnotations = {
       id: 'my-works.work-status',
       target: '作品卡片（信息与状态）',
       logic: `① 列表数据 = mock 后端档案（archiveApi.list）与本地 cj_archives 合并去重；接口失败时只用本地数据。
-② 状态统一为「进行中 / 已完成」：有已完成标记或历史非空传记快照为已完成，只有采访/档案过程数据为进行中。
+② 状态三态：「采访进行中 / 传记修改中 / 已完成」——无传记快照为采访进行中，有内容但未定稿（draft）为传记修改中，已定稿（final）为已完成。
 ③ 状态决定主操作按钮的文案与跳转目标（见操作区标注）。`,
     },
     {
@@ -30,10 +30,17 @@ export const myWorksAnnotations: PageAnnotations = {
     },
     {
       id: 'my-works.work-actions',
-      target: '操作区（继续 / 上架 / 实体书 / 删除）',
-      logic: `① 进行中显示「继续完成」，已完成显示只读「查看传记」；完成作品不再提供编辑或查看档案。
-② 「上架」与公开授权合并为同一个发布弹窗，仅已完成作品可见；「制作实体书」同样仅已完成可用。
+      target: '操作区（继续 / 上架 / 删除）',
+      logic: `① 采访进行中/传记修改中显示「继续完成」，已完成显示只读「查看传记」；完成作品不再提供编辑或查看档案。
+② 「上架」与公开授权合并为同一个发布弹窗，仅已完成作品可见。
 ③ 「删除」二次确认后移除该档案及其全部关联 localStorage 数据；若删的是当前档案，则把 cj_current_archive_id 切到列表第一个。`,
+    },
+    {
+      id: 'my-works.paid-services',
+      target: '付费服务（下载 PDF / 出版实体书 / 生成二维码）',
+      logic: `① 仅「已完成」的传记显示三个付费服务入口，标价分别为 ¥9.9 / ¥59 / ¥19.9。
+② 未购买：点击弹出支付确认弹窗（作品、服务、说明、金额），确认后走 orderApi.create + paymentApi.pay 模拟微信支付；支付成功写入 localStorage「cj_work_paid_<档案id>」，永久开通（按钮变为「已开通」），订单可在「我的订单」与后台订单管理查看。
+③ 已购买后点击直接执行：下载 PDF 跳转传记印刷页（/biography/print）下载；出版实体书生成实体书订单（type=book）等待平台履约；生成二维码弹出二维码弹窗（占位图 + 分享链接，可复制）。`,
     },
   ],
 };

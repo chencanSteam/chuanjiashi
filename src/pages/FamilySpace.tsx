@@ -264,23 +264,6 @@ export default function FamilySpace() {
               </div>
             </div>
 
-            <div className="card stats-wide">
-              <div className="card-body stats-wide-body">
-                {[
-                  { label: '家庭成员数', value: '32人', trend: '4', path: '/family/members' },
-                  { label: '家庭故事数', value: `${stories.length}篇`, trend: '12', path: '/family/stories' },
-                  { label: '相册照片数', value: '1,268张', trend: '128', path: '/family/albums' },
-                  { label: '家族分支数', value: '8个', trend: '1', path: '/family/relations' },
-                  { label: '近期活动数', value: '5场', trend: '2', path: '/family/events' },
-                ].map((s, i) => (
-                  <div className="wide-stat" key={i} onClick={() => navigate(s.path)}>
-                    <div className="wide-label">{s.label}</div>
-                    <div className="wide-value">{s.value}</div>
-                    <div className="wide-trend">较上月 <ChevronRight size={10} className="trend-up" /> {s.trend}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
           </div>
 
           <div className="family-grid">

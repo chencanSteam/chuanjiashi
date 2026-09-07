@@ -50,6 +50,8 @@ export const storeKeys = {
   museumMessages: `${PREFIX}museum_messages`,
   mediaReviewItems: `${PREFIX}media_review_items`,
   contentReports: `${PREFIX}content_reports`,
+  sensitiveWords: `${PREFIX}sensitive_words`,
+  sensitiveHits: `${PREFIX}sensitive_hits`,
   // 合伙人渠道/考核 + 传记师结算
   partnerChannels: `${PREFIX}partner_channels`,
   partnerAssessment: `${PREFIX}partner_assessment`,

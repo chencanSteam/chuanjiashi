@@ -126,33 +126,39 @@ export default function AITaskManagement() {
             {tasks.length === 0 ? (
               <div className="ai-task-empty">暂无符合条件的任务</div>
             ) : (
-              <div className="ai-task-table">
-                <div className="ai-task-row ai-task-header-row">
-                  <div className="ai-task-cell">用户</div>
-                  <div className="ai-task-cell">类型</div>
-                  <div className="ai-task-cell">使用模型</div>
-                  <div className="ai-task-cell">Token 消耗</div>
-                  <div className="ai-task-cell">耗时</div>
-                  <div className="ai-task-cell">创建时间</div>
-                </div>
-                {tasks.map((task) => (
-                  <div className="ai-task-row" key={task.id}>
-                    <div className="ai-task-cell">
-                      <div className="ai-task-target">{task.userName}</div>
-                      <div className="ai-task-user-phone">{task.userPhone}</div>
-                      {task.status === 'failed' && task.failReason && (
-                        <div className="ai-task-fail-reason">
-                          <AlertCircle size={12} /> {task.failReason}
-                        </div>
-                      )}
-                    </div>
-                    <div className="ai-task-cell">{taskTypeLabels[task.type]}</div>
-                    <div className="ai-task-cell">{taskModel(task)}</div>
-                    <div className="ai-task-cell">{task.tokens.toLocaleString()}</div>
-                    <div className="ai-task-cell">{formatDuration(task)}</div>
-                    <div className="ai-task-cell">{new Date(task.createdAt).toLocaleString()}</div>
-                  </div>
-                ))}
+              <div className="admin-table-wrap">
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>用户</th>
+                      <th>类型</th>
+                      <th>使用模型</th>
+                      <th>Token 消耗</th>
+                      <th>耗时</th>
+                      <th>创建时间</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tasks.map((task) => (
+                      <tr key={task.id}>
+                        <td className="admin-table-text-left">
+                          <div className="ai-task-target">{task.userName}</div>
+                          <div className="ai-task-user-phone">{task.userPhone}</div>
+                          {task.status === 'failed' && task.failReason && (
+                            <div className="ai-task-fail-reason">
+                              <AlertCircle size={12} /> {task.failReason}
+                            </div>
+                          )}
+                        </td>
+                        <td>{taskTypeLabels[task.type]}</td>
+                        <td>{taskModel(task)}</td>
+                        <td>{task.tokens.toLocaleString()}</td>
+                        <td>{formatDuration(task)}</td>
+                        <td>{new Date(task.createdAt).toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>
@@ -171,19 +177,25 @@ export default function AITaskManagement() {
               {typeStats.length === 0 ? (
                 <div className="ai-task-empty">暂无统计数据</div>
               ) : (
-                <div className="ai-task-table ai-token-table">
-                  <div className="ai-task-row ai-task-header-row">
-                    <div className="ai-task-cell">任务类型</div>
-                    <div className="ai-task-cell">使用模型</div>
-                    <div className="ai-task-cell">Token 消耗</div>
-                  </div>
-                  {typeStats.map((s) => (
-                    <div className="ai-task-row" key={s.type}>
-                      <div className="ai-task-cell">{taskTypeLabels[s.type]}</div>
-                      <div className="ai-task-cell">{Array.from(s.models).join('、')}</div>
-                      <div className="ai-task-cell">{s.totalTokens.toLocaleString()}</div>
-                    </div>
-                  ))}
+                <div className="admin-table-wrap">
+                  <table className="admin-table">
+                    <thead>
+                      <tr>
+                        <th>任务类型</th>
+                        <th>使用模型</th>
+                        <th>Token 消耗</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {typeStats.map((s) => (
+                        <tr key={s.type}>
+                          <td>{taskTypeLabels[s.type]}</td>
+                          <td>{Array.from(s.models).join('、')}</td>
+                          <td>{s.totalTokens.toLocaleString()}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </div>
@@ -198,24 +210,30 @@ export default function AITaskManagement() {
               {userStats.length === 0 ? (
                 <div className="ai-task-empty">暂无统计数据</div>
               ) : (
-                <div className="ai-task-table ai-token-table">
-                  <div className="ai-task-row ai-task-header-row">
-                    <div className="ai-task-cell">用户</div>
-                    <div className="ai-task-cell">任务类型</div>
-                    <div className="ai-task-cell">使用模型</div>
-                    <div className="ai-task-cell">Token 消耗</div>
-                  </div>
-                  {userStats.map((s) => (
-                    <div className="ai-task-row" key={s.userPhone}>
-                      <div className="ai-task-cell">
-                        <div className="ai-task-target">{s.userName}</div>
-                        <div className="ai-task-user-phone">{s.userPhone}</div>
-                      </div>
-                      <div className="ai-task-cell">{Array.from(s.types).join('、')}</div>
-                      <div className="ai-task-cell">{Array.from(s.models).join('、')}</div>
-                      <div className="ai-task-cell">{s.totalTokens.toLocaleString()}</div>
-                    </div>
-                  ))}
+                <div className="admin-table-wrap">
+                  <table className="admin-table">
+                    <thead>
+                      <tr>
+                        <th>用户</th>
+                        <th>任务类型</th>
+                        <th>使用模型</th>
+                        <th>Token 消耗</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {userStats.map((s) => (
+                        <tr key={s.userPhone}>
+                          <td className="admin-table-text-left">
+                            <div className="ai-task-target">{s.userName}</div>
+                            <div className="ai-task-user-phone">{s.userPhone}</div>
+                          </td>
+                          <td>{Array.from(s.types).join('、')}</td>
+                          <td>{Array.from(s.models).join('、')}</td>
+                          <td>{s.totalTokens.toLocaleString()}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </div>

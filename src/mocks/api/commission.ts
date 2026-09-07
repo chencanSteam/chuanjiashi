@@ -132,6 +132,7 @@ export const commissionHandlers: HttpHandler[] = [
     const records = getItem<CommissionRecord[]>(storeKeys.commissions, []).filter((r) => r.userId === userId)
     const settled = records.filter((r) => r.status === 'settled').reduce((s, r) => s + r.commission, 0)
     if (amount > settled) return fail('可提现金额不足')
+    const withdrawals = getItem<WithdrawalRecord[]>(storeKeys.withdrawals, [])
     const withdrawal: WithdrawalRecord = {
       id: generateId(),
       userId,
@@ -140,7 +141,6 @@ export const commissionHandlers: HttpHandler[] = [
       appliedAt: new Date().toISOString(),
       partnerName: getPartnerName(userId),
     }
-    const withdrawals = getItem<WithdrawalRecord[]>(storeKeys.withdrawals, [])
     withdrawals.push(withdrawal)
     setItem(storeKeys.withdrawals, withdrawals)
     return success(withdrawal, '提现申请已提交')

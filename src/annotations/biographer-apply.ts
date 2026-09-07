@@ -1,7 +1,7 @@
 import type { PageAnnotations } from './types';
 
 /**
- * 入驻认证（/biographer/apply）的逻辑标注。
+ * 入驻认证（传记师端 /biographer/apply；用户端独立申请页 /biographer-apply，同一组件 standalone 模式多一个「返回首页」按钮）的逻辑标注。
  * 编号 = 数组顺序，改顺序即改编号；新增标注在页面代码里加 <Annotate id="..."> 即可。
  */
 export const biographerApplyAnnotations: PageAnnotations = {

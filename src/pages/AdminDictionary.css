@@ -2,6 +2,48 @@
   padding-bottom: 40px;
 }
 
+.admin-dict-layout {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.admin-dict-nav {
+  width: 200px;
+  flex-shrink: 0;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.admin-dict-nav-item {
+  padding: 10px 14px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  text-align: left;
+  font-size: 14px;
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.admin-dict-nav-item:hover {
+  background: var(--bg-secondary);
+}
+
+.admin-dict-nav-item.active {
+  background: rgba(27, 94, 75, 0.1);
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.admin-dict-main {
+  flex: 1;
+  min-width: 0;
+}
+
 .admin-dict-section {
   margin-bottom: 20px;
 }
@@ -95,6 +137,40 @@
 
 .admin-dict-col-status {
   width: 90px;
+}
+
+.admin-dict-col-level {
+  width: 150px;
+}
+
+.admin-dict-level {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.admin-dict-level.level-1 {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.admin-dict-level.level-2 {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.admin-dict-form-row select {
+  box-sizing: border-box;
+  width: 100%;
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--text);
+  background: #fff;
+  outline: none;
 }
 
 .admin-dict-col-actions {

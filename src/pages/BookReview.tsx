@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Search, BookOpen, CheckCircle, XCircle, Eye, AlertCircle, Clock, User, Hash, DollarSign, Calendar, FileText, Bookmark, Tag, Type, Timer, BarChart3 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Search, BookOpen, CheckCircle, XCircle, AlertCircle, User, Hash, DollarSign, Calendar, FileText, Bookmark, Tag, Type, Timer, BarChart3 } from 'lucide-react';
 import { bookshelfApi, type BookReviewStatus } from '../api/bookshelf';
 import { biographyApi } from '../api/biography';
 import { useToast } from '../hooks/useToast';
@@ -27,7 +27,6 @@ const statusMap: Record<PublicBook['status'], { label: string; className: string
 export default function BookReview() {
   const { addToast } = useToast();
   const [books, setBooks] = useState<PublicBook[]>([]);
-  const [allBooks, setAllBooks] = useState<PublicBook[]>([]);
   const [keyword, setKeyword] = useState('');
   const [statusFilter, setStatusFilter] = useState<PublicBook['status'] | 'all'>('all');
   const [loading, setLoading] = useState(true);
@@ -48,17 +47,9 @@ export default function BookReview() {
   };
 
   // 全量列表仅用于顶部统计卡，避免随筛选条件变化
-  const loadAllBooks = () => {
-    bookshelfApi
-      .adminList({ status: 'all' })
-      .then(setAllBooks)
-      .catch(() => setAllBooks([]));
-  };
-
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadBooks();
-    loadAllBooks();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -67,15 +58,6 @@ export default function BookReview() {
     loadBooks();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter, keyword]);
-
-  const stats = useMemo(() => {
-    return {
-      total: allBooks.length,
-      pending: allBooks.filter((b) => b.status === 'pending').length,
-      approved: allBooks.filter((b) => b.status === 'approved').length,
-      rejected: allBooks.filter((b) => b.status === 'rejected').length,
-    };
-  }, [allBooks]);
 
   const handleReview = async (book: PublicBook, status: BookReviewStatus) => {
     try {
@@ -86,7 +68,6 @@ export default function BookReview() {
       setSelectedBook(null);
       setSelectedBiography(null);
       loadBooks();
-      loadAllBooks();
     } catch (err: any) {
       addToast(err.message || '操作失败', 'error');
     }
@@ -111,39 +92,6 @@ export default function BookReview() {
       <header className="page-header">
         <h1 className="page-title">传记上架审核</h1>
       </header>
-
-      <Annotate id="book-review.stats">
-      <div className="book-review-stats">
-        <div className="card book-review-stat">
-          <BookOpen size={20} color="#1B5E4B" />
-          <div>
-            <div className="book-review-stat-value">{stats.total}</div>
-            <div className="book-review-stat-label">全部申请</div>
-          </div>
-        </div>
-        <div className="card book-review-stat">
-          <Clock size={20} color="#d97706" />
-          <div>
-            <div className="book-review-stat-value">{stats.pending}</div>
-            <div className="book-review-stat-label">待审核</div>
-          </div>
-        </div>
-        <div className="card book-review-stat">
-          <CheckCircle size={20} color="#1B5E4B" />
-          <div>
-            <div className="book-review-stat-value">{stats.approved}</div>
-            <div className="book-review-stat-label">已通过</div>
-          </div>
-        </div>
-        <div className="card book-review-stat">
-          <XCircle size={20} color="#ef4444" />
-          <div>
-            <div className="book-review-stat-value">{stats.rejected}</div>
-            <div className="book-review-stat-label">已拒绝</div>
-          </div>
-        </div>
-      </div>
-      </Annotate>
 
       <div className="card book-review-list-card">
         <div className="card-header book-review-list-header">
@@ -173,63 +121,59 @@ export default function BookReview() {
           ) : books.length === 0 ? (
             <div className="book-review-empty">暂无符合条件的申请</div>
           ) : (
-            <div className="book-review-table">
-              <div className="book-review-row book-review-header-row">
-                <div className="book-review-cell">传记信息</div>
-                <div className="book-review-cell">作者/用户</div>
-                <div className="book-review-cell">分类</div>
-                <div className="book-review-cell">定价</div>
-                <div className="book-review-cell">状态</div>
-                <div className="book-review-cell">申请时间</div>
-                <div className="book-review-cell">操作</div>
-              </div>
+            <div className="admin-table-wrap">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>传记信息</th>
+                  <th>作者/用户</th>
+                  <th>分类</th>
+                  <th>定价</th>
+                  <th>状态</th>
+                  <th>申请时间</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody>
               {books.map((book) => (
-                <div className="book-review-row" key={book.id}>
-                  <div className="book-review-cell book-review-cell-info">
+                <tr key={book.id}>
+                  <td className="admin-table-text-left book-review-cell-info">
                     <div className="book-review-title">{book.title}</div>
                     <div className="book-review-intro" title={book.intro}>{book.intro}</div>
-                  </div>
-                  <div className="book-review-cell">
+                  </td>
+                  <td className="admin-table-text-left">
                     <div className="book-review-author"><User size={12} /> {book.author}</div>
                     <div className="book-review-user">{book.userId}</div>
-                  </div>
-                  <div className="book-review-cell">{book.category}</div>
-                  <div className="book-review-cell book-review-cell-price">
+                  </td>
+                  <td>{book.category}</td>
+                  <td className="book-review-cell-price">
                     {book.isFree ? '免费' : `¥${book.price.toFixed(2)}`}
-                  </div>
-                  <div className="book-review-cell">
+                  </td>
+                  <td>
                     <span className={`book-status ${statusMap[book.status].className}`}>
                       {statusMap[book.status].label}
                     </span>
-                  </div>
-                  <div className="book-review-cell book-review-cell-time">{new Date(book.createdAt).toLocaleString()}</div>
-                  <div className="book-review-cell book-review-cell-action">
-                    <button className="book-review-btn book-review-btn-view" onClick={() => openDetail(book)}>
-                      <Eye size={12} /> 详情
-                    </button>
+                  </td>
+                  <td className="book-review-cell-time">{new Date(book.createdAt).toLocaleString()}</td>
+                  <td>
+                    <button className="admin-table-link" onClick={() => openDetail(book)}>详情</button>
                     {book.status === 'pending' && (
                       <>
-                        <button className="book-review-btn book-review-btn-approve" onClick={() => handleReview(book, 'approved')}>
-                          <CheckCircle size={12} /> 通过
-                        </button>
-                        <button className="book-review-btn book-review-btn-reject" onClick={() => setRejectingBook(book)}>
-                          <XCircle size={12} /> 拒绝
-                        </button>
+                        <button className="admin-table-link" onClick={() => handleReview(book, 'approved')}>通过</button>
+                        <button className="admin-table-link danger" onClick={() => setRejectingBook(book)}>拒绝</button>
                       </>
                     )}
                     {book.status === 'approved' && (
-                      <button className="book-review-btn book-review-btn-off-shelf" onClick={() => handleReview(book, 'off_shelf')}>
-                        <AlertCircle size={12} /> 下架
-                      </button>
+                      <button className="admin-table-link danger" onClick={() => handleReview(book, 'off_shelf')}>下架</button>
                     )}
                     {book.status === 'off_shelf' && (
-                      <button className="book-review-btn book-review-btn-approve" onClick={() => handleReview(book, 'approved')}>
-                        <CheckCircle size={12} /> 重新上架
-                      </button>
+                      <button className="admin-table-link" onClick={() => handleReview(book, 'approved')}>重新上架</button>
                     )}
-                  </div>
-                </div>
+                  </td>
+                </tr>
               ))}
+              </tbody>
+            </table>
             </div>
           )}
         </div>

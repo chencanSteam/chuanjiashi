@@ -1,13 +1,14 @@
 import type { PageAnnotations } from './types';
 
 /**
- * 编辑资料（/biographer/profile/edit）的逻辑标注。
+ * 编辑资料（「我的介绍页」编辑模式，/biographer/profile）的逻辑标注。
+ * 原独立路由 /biographer/profile/edit 已重定向到 /biographer/profile，编辑表单内嵌于介绍页。
  * 编号 = 数组顺序，改顺序即改编号；新增标注在页面代码里加 <Annotate id="..."> 即可。
  */
 export const biographerProfileEditAnnotations: PageAnnotations = {
   page: 'biographer-profile-edit',
   pageName: '编辑资料',
-  route: '/biographer/profile/edit',
+  route: '/biographer/profile',
   items: [
     {
       id: 'biographer-profile-edit.avatar',
@@ -32,9 +33,10 @@ export const biographerProfileEditAnnotations: PageAnnotations = {
     {
       id: 'biographer-profile-edit.services',
       target: '服务套餐编辑',
-      logic: `① 「添加套餐」追加一条空套餐（id 按时间戳 svc_xxx 生成），名称、价格、描述均可编辑，点 × 删除整条。
-② 价格按整数解析，非法输入归为 0；未填名称/价格的空套餐也会随保存提交，需平台侧约束。
-③ 套餐保存后展示在介绍页，价格排序决定「推荐」档位。`,
+      logic: `① 「添加套餐」追加一条空套餐（id 按时间戳 svc_xxx 生成），点 × 删除整条。
+② 每个套餐单独填写：名称、价格、描述，以及六项对比属性——采访次数 / 传记字数 / 交付周期 / 修改次数为自由文本，实体书 / 影像资料为「含 / 不含」单选。
+③ 价格按整数解析，非法输入归为 0；未填名称/价格的空套餐也会随保存提交，需平台侧约束。
+④ 套餐保存后展示在介绍页，价格排序决定「推荐」档位；六项属性展示在「套餐对比」表，未填显示 —。`,
     },
     {
       id: 'biographer-profile-edit.cases',

@@ -11,15 +11,15 @@ import {
   Clock,
   Lock,
   Unlock,
-  MessageSquare,
   Flame,
-  Send,
 } from 'lucide-react';
 import { bookshelfApi } from '../api/bookshelf';
 import Annotate from '../components/annotation/Annotate';
+import Modal from '../components/ui/Modal';
 import { useToast } from '../hooks/useToast';
 import { useAuth } from '../hooks/useAuth';
-import type { PublicBook, BookComment } from '../mocks/types';
+import { industryOccupations, industryOptions } from '../data/occupations';
+import type { PublicBook } from '../mocks/types';
 import './BiographyShelf.css';
 
 export default function BiographyShelf() {
@@ -31,12 +31,14 @@ export default function BiographyShelf() {
   const [book, setBook] = useState<PublicBook | null>(null);
   const [loading, setLoading] = useState(true);
   const [keyword, setKeyword] = useState('');
-  const [activeCategory, setActiveCategory] = useState('全部');
+  const [activeIndustry, setActiveIndustry] = useState('');
+  const [activeOccupation, setActiveOccupation] = useState('');
+  const [activeChapter, setActiveChapter] = useState('');
+  const [sort, setSort] = useState('default');
   const [activeTab, setActiveTab] = useState<'all' | 'collected' | 'purchased'>('all');
-  const [comments, setComments] = useState<BookComment[]>([]);
-  const [commentInput, setCommentInput] = useState('');
   const [unlocking, setUnlocking] = useState(false);
-  const [commentSubmitting, setCommentSubmitting] = useState(false);
+  const [showPayModal, setShowPayModal] = useState(false);
+  const [payMethod, setPayMethod] = useState<'wechat' | 'alipay'>('wechat');
 
   useEffect(() => {
     if (id) {
@@ -60,19 +62,6 @@ export default function BiographyShelf() {
     }
   }, [id, addToast]);
 
-  useEffect(() => {
-    if (!id) return;
-    bookshelfApi
-      .comments(id)
-      .then(setComments)
-      .catch(() => setComments([]));
-  }, [id]);
-
-  const categories = useMemo(() => {
-    const set = new Set(books.map((b) => b.category).filter(Boolean));
-    return ['全部', ...Array.from(set)];
-  }, [books]);
-
   const filtered = useMemo(() => {
     let list = books;
     if (activeTab === 'collected') {
@@ -81,8 +70,14 @@ export default function BiographyShelf() {
       // 已购：付费且已解锁（免费书不算购买）
       list = list.filter((b) => !b.isFree && b.unlocked);
     }
-    if (activeCategory !== '全部') {
-      list = list.filter((b) => b.category === activeCategory);
+    if (activeOccupation) {
+      list = list.filter((b) => (b.occupationTags || []).includes(activeOccupation));
+    } else if (activeIndustry) {
+      const occupations = industryOccupations[activeIndustry] || [];
+      list = list.filter((b) => (b.occupationTags || []).some((t) => occupations.includes(t)));
+    }
+    if (activeChapter) {
+      list = list.filter((b) => (b.lifeStageTags || []).includes(activeChapter));
     }
     if (keyword.trim()) {
       const q = keyword.trim().toLowerCase();
@@ -93,8 +88,18 @@ export default function BiographyShelf() {
           b.intro.toLowerCase().includes(q)
       );
     }
+    list = [...list];
+    const sales = (book: PublicBook) => book.sales ?? book.likes ?? 0;
+    if (sort === 'newest') list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    if (sort === 'oldest') list.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    if (sort === 'price-high') list.sort((a, b) => b.price - a.price);
+    if (sort === 'price-low') list.sort((a, b) => a.price - b.price);
+    if (sort === 'sales-high') list.sort((a, b) => sales(b) - sales(a));
+    if (sort === 'sales-low') list.sort((a, b) => sales(a) - sales(b));
     return list;
-  }, [books, activeTab, activeCategory, keyword]);
+  }, [books, activeTab, activeIndustry, activeOccupation, activeChapter, keyword, sort]);
+
+  const chapterOptions = useMemo(() => Array.from(new Set(books.flatMap((b) => b.lifeStageTags || []))), [books]);
 
   const handleCollect = async (bookId: string) => {
     if (!user) {
@@ -137,39 +142,23 @@ export default function BiographyShelf() {
       return;
     }
     if (!book) return;
+    setShowPayModal(true);
+  };
+
+  const handleConfirmPay = async () => {
+    if (!book) return;
     setUnlocking(true);
     try {
+      // mock 演示：模拟支付耗时后完成解锁
+      await new Promise((r) => setTimeout(r, 1200));
       const updated = await bookshelfApi.unlock(book.id);
       setBook(updated);
+      setShowPayModal(false);
       addToast('支付成功，已解锁全本', 'success');
     } catch (err: unknown) {
       addToast(err instanceof Error && err.message ? err.message : '解锁失败', 'error');
     } finally {
       setUnlocking(false);
-    }
-  };
-
-  const handlePostComment = async () => {
-    if (!user) {
-      addToast('请先登录', 'error');
-      return;
-    }
-    if (!id) return;
-    const content = commentInput.trim();
-    if (!content) {
-      addToast('请输入评论内容', 'error');
-      return;
-    }
-    setCommentSubmitting(true);
-    try {
-      const comment = await bookshelfApi.postComment(id, content);
-      setComments((prev) => [comment, ...prev]);
-      setCommentInput('');
-      addToast('评论发表成功', 'success');
-    } catch (err: unknown) {
-      addToast(err instanceof Error && err.message ? err.message : '评论失败', 'error');
-    } finally {
-      setCommentSubmitting(false);
     }
   };
 
@@ -205,7 +194,7 @@ export default function BiographyShelf() {
         </button>
         <div className="biography-shelf-detail">
           <div className="biography-shelf-cover">
-            <BookOpen size={64} />
+            {book.cover ? <img src={book.cover} alt={book.title} /> : <BookOpen size={64} />}
           </div>
           <div className="biography-shelf-detail-info">
             <div className="biography-shelf-category">
@@ -252,62 +241,66 @@ export default function BiographyShelf() {
           {!canReadFull && (
             <div className="biography-shelf-unlock-bar">
               <span>试读结束，解锁后可阅读全本</span>
-              <button className="btn btn-primary" onClick={handleUnlock} disabled={unlocking}>
-                <Lock size={14} /> {unlocking ? '支付中…' : `付费解锁全本 ¥${book.price.toFixed(2)}`}
+              <button className="btn btn-primary" onClick={handleUnlock}>
+                <Lock size={14} /> 付费解锁全本 ¥{book.price.toFixed(2)}
               </button>
             </div>
           )}
         </div>
         </Annotate>
 
-        <Annotate id="biography-shelf.comments">
-        <div className="biography-shelf-comments">
-          <h2 className="biography-shelf-section-title">
-            <MessageSquare size={16} /> 读者评论（{comments.length}）
-          </h2>
-          {book && !book.isFree && !book.unlocked ? (
-            <div className="biography-shelf-comment-locked">购买本书后才能发表评论</div>
-          ) : (
-            <div className="biography-shelf-comment-form">
-              <textarea
-                rows={3}
-                placeholder="写下您的读后感…"
-                value={commentInput}
-                onChange={(e) => setCommentInput(e.target.value)}
-              />
-              <button
-                className="btn btn-primary"
-                onClick={handlePostComment}
-                disabled={commentSubmitting || !commentInput.trim()}
-              >
-                <Send size={14} /> {commentSubmitting ? '发表中…' : '发表评论'}
+        <Modal
+          open={showPayModal}
+          title="确认订单"
+          onClose={() => !unlocking && setShowPayModal(false)}
+          footer={
+            <>
+              <button className="btn btn-outline" onClick={() => setShowPayModal(false)} disabled={unlocking}>
+                取消
               </button>
+              <button className="btn btn-primary" onClick={handleConfirmPay} disabled={unlocking}>
+                {unlocking ? '支付中…' : `确认支付 ¥${book.price.toFixed(2)}`}
+              </button>
+            </>
+          }
+        >
+          <div className="biography-shelf-pay">
+            <div className="biography-shelf-pay-row">
+              <span>商品名称</span>
+              <span>{book.title}</span>
             </div>
-          )}
-          {comments.length === 0 ? (
-            <div className="biography-shelf-comment-empty">暂无评论，来发表第一条评论吧</div>
-          ) : (
-            <div className="biography-shelf-comment-list">
-              {comments.map((c) => (
-                <div className="biography-shelf-comment" key={c.id}>
-                  <div className="biography-shelf-comment-head">
-                    <span className="biography-shelf-comment-user">{c.userNickname}</span>
-                    {c.purchasedAt && (
-                      <span className="biography-shelf-comment-purchased">
-                        购于 {new Date(c.purchasedAt).toLocaleDateString('zh-CN')}
-                      </span>
-                    )}
-                    <span className="biography-shelf-comment-time">
-                      {new Date(c.createdAt).toLocaleString()}
-                    </span>
-                  </div>
-                  <p className="biography-shelf-comment-text">{c.content}</p>
-                </div>
-              ))}
+            <div className="biography-shelf-pay-row">
+              <span>商品类型</span>
+              <span>电子传记（全本阅读）</span>
             </div>
-          )}
-        </div>
-        </Annotate>
+            <div className="biography-shelf-pay-row">
+              <span>订单金额</span>
+              <span className="biography-shelf-pay-price">¥{book.price.toFixed(2)}</span>
+            </div>
+            <div className="biography-shelf-pay-methods">
+              <div className="biography-shelf-pay-label">支付方式</div>
+              <label className={`biography-shelf-pay-method ${payMethod === 'wechat' ? 'active' : ''}`}>
+                <input
+                  type="radio"
+                  name="payMethod"
+                  checked={payMethod === 'wechat'}
+                  onChange={() => setPayMethod('wechat')}
+                />
+                微信支付
+              </label>
+              <label className={`biography-shelf-pay-method ${payMethod === 'alipay' ? 'active' : ''}`}>
+                <input
+                  type="radio"
+                  name="payMethod"
+                  checked={payMethod === 'alipay'}
+                  onChange={() => setPayMethod('alipay')}
+                />
+                支付宝
+              </label>
+            </div>
+            <p className="biography-shelf-pay-tip">演示环境为模拟支付，点击「确认支付」即视为支付成功。</p>
+          </div>
+        </Modal>
       </div>
     );
   }
@@ -334,16 +327,39 @@ export default function BiographyShelf() {
       </Annotate>
 
       <Annotate id="biography-shelf.categories" inline>
-      <div className="biography-shelf-categories">
-        {categories.map((c) => (
-          <button
-            key={c}
-            className={`biography-shelf-category-chip ${activeCategory === c ? 'active' : ''}`}
-            onClick={() => setActiveCategory(c)}
-          >
-            {c}
-          </button>
-        ))}
+      <div className="biography-shelf-cascade">
+        <select
+          value={activeIndustry}
+          onChange={(e) => { setActiveIndustry(e.target.value); setActiveOccupation(''); }}
+        >
+          <option value="">全部行业</option>
+          {industryOptions.map((i) => (
+            <option value={i} key={i}>{i}</option>
+          ))}
+        </select>
+        <select
+          value={activeOccupation}
+          onChange={(e) => setActiveOccupation(e.target.value)}
+          disabled={!activeIndustry}
+        >
+          <option value="">{activeIndustry ? '全部职业' : '请先选择行业'}</option>
+          {(industryOccupations[activeIndustry] || []).map((o) => (
+            <option value={o} key={o}>{o}</option>
+          ))}
+        </select>
+        <select value={activeChapter} onChange={(e) => setActiveChapter(e.target.value)}>
+          <option value="">全部章节</option>
+          {chapterOptions.map((chapter) => <option value={chapter} key={chapter}>{chapter}</option>)}
+        </select>
+        <select value={sort} onChange={(e) => setSort(e.target.value)} aria-label="排序方式">
+          <option value="default">综合排序</option>
+          <option value="newest">上架时间：最新</option>
+          <option value="oldest">上架时间：最早</option>
+          <option value="price-high">价格：从高到低</option>
+          <option value="price-low">价格：从低到高</option>
+          <option value="sales-high">销量：从高到低</option>
+          <option value="sales-low">销量：从低到高</option>
+        </select>
       </div>
       </Annotate>
 
@@ -375,7 +391,9 @@ export default function BiographyShelf() {
                 onClick={() => navigate(`/biography-shelf/${b.id}`)}
               >
                 <span className={`biography-shelf-rank-no rank-${i + 1}`}>{i + 1}</span>
-                <div className="biography-shelf-rank-cover"><BookOpen size={20} /></div>
+                <div className="biography-shelf-rank-cover">
+                  {b.cover ? <img src={b.cover} alt={b.title} /> : <BookOpen size={20} />}
+                </div>
                 <div className="biography-shelf-rank-info">
                   <div className="biography-shelf-rank-book">{b.title}</div>
                   <div className="biography-shelf-rank-author">{b.author || '匿名'} · {b.category || '其他'}</div>
@@ -412,7 +430,7 @@ export default function BiographyShelf() {
           {filtered.map((b) => (
             <div className="biography-shelf-card" key={b.id} onClick={() => navigate(`/biography-shelf/${b.id}`)}>
               <div className="biography-shelf-card-cover">
-                <BookOpen size={32} />
+                {b.cover ? <img src={b.cover} alt={b.title} /> : <BookOpen size={32} />}
               </div>
               <div className="biography-shelf-card-body">
                 <div className="biography-shelf-card-tags">

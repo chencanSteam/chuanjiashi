@@ -29,7 +29,7 @@ export function increaseProductSales(productId: string, amount: number = 1): voi
 export const productHandlers: HttpHandler[] = [
   // 用户端商城：仅返回上架中的套餐
   http.get('/api/products', async () => {
-    return success(ensureProducts().filter((p) => p.status !== 'inactive'))
+    return success(ensureProducts().filter((p) => (p.type === 'biography' || p.type === 'book') && p.status !== 'inactive'))
   }),
 
   // 管理端：全部套餐（含已下架），注意放在 /:id 之前
@@ -47,7 +47,7 @@ export const productHandlers: HttpHandler[] = [
   http.post('/api/products', async ({ request }) => {
     const body = (await request.json()) as Partial<ProductPackage>
     if (!body.name?.trim()) return fail('请填写套餐名称')
-    if (!body.type) return fail('请选择套餐分类')
+    if (!body.type || (body.type !== 'biography' && body.type !== 'book')) return fail('当前仅支持 AI传记和实体书商品')
     if (!body.price || Number.isNaN(Number(body.price)) || Number(body.price) <= 0) {
       return fail('请填写正确的价格')
     }
@@ -62,7 +62,17 @@ export const productHandlers: HttpHandler[] = [
       rights: body.rights || [],
       hot: !!body.hot,
       status: 'active',
+      headline: body.headline?.trim(),
+      subheadline: body.subheadline?.trim(),
+      detailBlocks: body.detailBlocks,
+      promises: body.promises,
+      faqs: body.faqs,
+      tags: body.tags,
+      sortOrder: body.sortOrder,
+      coverImage: body.coverImage,
+      gallery: body.gallery,
       createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     }
     products.push(product)
     saveProducts(products)
@@ -76,6 +86,7 @@ export const productHandlers: HttpHandler[] = [
     const idx = products.findIndex((p) => p.id === params.id)
     if (idx < 0) return notFound('套餐不存在')
     if (!body.name?.trim()) return fail('请填写套餐名称')
+    if (body.type && body.type !== 'biography' && body.type !== 'book') return fail('当前仅支持 AI传记和实体书商品')
     if (!body.price || Number.isNaN(Number(body.price)) || Number(body.price) <= 0) {
       return fail('请填写正确的价格')
     }
@@ -88,6 +99,16 @@ export const productHandlers: HttpHandler[] = [
       description: body.description?.trim() || '',
       rights: body.rights || [],
       hot: !!body.hot,
+      headline: body.headline?.trim(),
+      subheadline: body.subheadline?.trim(),
+      detailBlocks: body.detailBlocks,
+      promises: body.promises,
+      faqs: body.faqs,
+      tags: body.tags,
+      sortOrder: body.sortOrder,
+      coverImage: body.coverImage,
+      gallery: body.gallery,
+      updatedAt: new Date().toISOString(),
     }
     saveProducts(products)
     return success(products[idx], '套餐已更新')

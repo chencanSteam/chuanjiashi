@@ -1,0 +1,26 @@
+.profile-preview { color: #2c2824; }
+.profile-preview-banner { padding: 10px 14px; border-radius: 8px; background: #fff7df; color: #8a641c; font-size: 12px; margin-bottom: 14px; }
+.profile-preview-hero { display: flex; align-items: center; gap: 14px; padding: 16px; border-radius: 10px; background: #f0f7f4; }
+.profile-preview-avatar { width: 68px; height: 68px; border-radius: 50%; display: grid; place-items: center; overflow: hidden; background: #2d5a4a; color: white; font-size: 28px; }
+.profile-preview-avatar img, .profile-preview-case-cover img { width: 100%; height: 100%; object-fit: cover; }
+.profile-preview-hero h2 { margin: 0 0 4px; font-size: 20px; }
+.profile-preview-hero strong, .profile-preview-hero span { display: block; font-size: 12px; margin-top: 3px; color: #68736e; }
+.profile-preview-rating { margin-left: auto; display: grid; grid-template-columns: auto auto; align-items: center; gap: 3px; color: #b8860b; font-weight: 700; }
+.profile-preview-rating small { grid-column: 1 / -1; color: #7b817e; font-size: 11px; font-weight: 400; }
+.profile-preview-section { padding: 16px 0; border-bottom: 1px solid #eeeae2; }
+.profile-preview-section h3 { display: flex; align-items: center; gap: 6px; margin: 0 0 10px; font-size: 14px; color: #1b5e4b; }
+.profile-preview-section p { margin: 0; color: #5d5a55; font-size: 13px; line-height: 1.75; }
+.profile-preview-tags, .profile-preview-certificates { display: flex; flex-wrap: wrap; gap: 7px; }
+.profile-preview-tags span, .profile-preview-certificates span { display: inline-flex; align-items: center; gap: 3px; padding: 5px 9px; border-radius: 999px; background: #f5f3ee; color: #5d665f; font-size: 12px; }
+.profile-preview-services { display: grid; gap: 8px; }
+.profile-preview-service { display: flex; justify-content: space-between; gap: 12px; padding: 11px 12px; border: 1px solid #eeeae2; border-radius: 8px; }
+.profile-preview-service strong { font-size: 13px; }
+.profile-preview-service p { margin-top: 4px; font-size: 12px; }
+.profile-preview-service b { flex: 0 0 auto; color: #b8860b; }
+.profile-preview-muted { color: #9c9993 !important; }
+.profile-preview-cases { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.profile-preview-cases article { overflow: hidden; border: 1px solid #eeeae2; border-radius: 8px; }
+.profile-preview-case-cover { height: 86px; display: grid; place-items: center; background: #f3f1eb; color: #9b9990; }
+.profile-preview-cases article > strong, .profile-preview-cases article > p { display: block; padding: 0 10px; }
+.profile-preview-cases article > strong { margin-top: 9px; font-size: 12px; }
+.profile-preview-cases article > p { margin: 4px 0 10px; font-size: 11px; line-height: 1.5; }

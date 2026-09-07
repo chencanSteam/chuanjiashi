@@ -8,14 +8,12 @@ import {
   Landmark,
   BookOpen,
   GraduationCap,
-  Users,
   Star,
   Monitor,
   Eye,
   Save,
   Send,
   Sparkles,
-  BookMarked,
   FileText,
   Mic,
   BarChart3,
@@ -30,14 +28,6 @@ import {
 } from 'lucide-react';
 import Annotate from '../components/annotation/Annotate';
 import './AIFamilyHall.css';
-
-const stats = [
-  { icon: Landmark, label: '在建家风馆', value: '18', trend: '12.5%' },
-  { icon: BookOpen, label: '已发布专题', value: '36', trend: '8.3%' },
-  { icon: BookMarked, label: '家风故事库', value: '1,258', trend: '15.6%' },
-  { icon: GraduationCap, label: '家风课程数', value: '128', trend: '9.4%' },
-  { icon: Users, label: '最美家庭申报数', value: '243', trend: '11.2%' },
-];
 
 const initialProjects = [
   { name: '张氏家风馆', status: '建设中', date: '2024-05-24 15:30' },
@@ -84,7 +74,6 @@ const contentCards = [
   { title: '家风故事库', desc: '管理家风故事，支持AI扩写与润色', btn: '故事管理', path: '/family-hall/story-library' },
   { title: '家风测评', desc: '构建家风测评问卷，评估家风传承', btn: '创建测评', path: '/family-hall/assessment' },
   { title: '最美家庭评选', desc: '发起评选活动，展示榜样力量', btn: '发起评选', path: '/family-hall/activity' },
-  { title: '家风衍生品', desc: '把家风馆内容定制成纪念册、礼盒、二维码等实物', btn: '去定制', path: '/store?category=derivative' },
 ];
 
 const oralStats = [
@@ -252,24 +241,6 @@ export default function AIFamilyHall() {
           <h1 className="page-title">AI家风馆</h1>
         </div>
       </header>
-
-      <Annotate id="family-hall.stats-row">
-      <div className="hall-stats-row">
-        {stats.map((s, i) => (
-          <div className="card hall-stat" key={i} onClick={() => {
-            const paths = ['/family-hall', '/family-hall/deploy', '/family/stories', '/family-hall/activity', '/family-hall/activity'];
-            navigate(paths[i]);
-          }}>
-            <div className="card-body">
-              <div className="hall-stat-icon"><s.icon size={22} color="#1B5E4B" /></div>
-              <div className="hall-stat-label">{s.label}</div>
-              <div className="hall-stat-value">{s.label === '在建家风馆' ? projectsList.filter((p) => p.status === '建设中').length : s.value}</div>
-              <div className="hall-stat-trend">较上月 <ChevronRight size={10} className="trend-up" /> {s.trend}</div>
-            </div>
-          </div>
-        ))}
-      </div>
-      </Annotate>
 
       <div className="hall-main-grid">
         <Annotate id="family-hall.project-list">

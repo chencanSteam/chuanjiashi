@@ -19,14 +19,13 @@ export const lifeArchiveAnnotations: PageAnnotations = {
     {
       id: 'life-archive.new-archive',
       target: '「新建档案」按钮与表单',
-      logic: `① 仅「档案所有者」可用，观察者角色下按钮禁用。
-② 姓名必填，为空时拦截并提示；性别、出生年份、籍贯、职业选填；人生标签可选预设标签，也可回车或点「添加」自定义，自动去重。
-③ 创建后以时间戳为 id 写入「cj_archives」，自动切换为新档案，并初始化该档案的空事件 / 标签 / 成员数据。`,
+      logic: `① 姓名必填；籍贯为省/市/区级联必选（data/regions），另可填详细地址；出生日期为年/月/日三个下拉（选了就要选全）；职业为「行业 → 职业」二级下拉（data/occupations）；不再收集人生标签。
+② 创建后以时间戳为 id 写入「cj_archives」，自动切换为新档案，并初始化该档案的空事件 / 标签 / 成员数据。`,
     },
     {
       id: 'life-archive.timeline',
       target: '人生时间轴（添加 / 编辑 / 删除事件）',
-      logic: `① 事件按年份升序展示，数据存「cj_events_<archiveId>」；观察者角色无添加、编辑、删除入口。
+      logic: `① 事件按年份升序展示，数据存「cj_events_<archiveId>」。
 ② 添加事件：开始年份与标题必填，年份重复时拦截；保存后同步写入「event-<archiveId>-<年份>」详情记录，并自动选中新事件。
 ③ 编辑跳转「/archive/event/<年份>/edit」；删除直接移除该年份事件，若删的是当前选中项，回退选中 1992 或首个事件。`,
     },
@@ -35,14 +34,14 @@ export const lifeArchiveAnnotations: PageAnnotations = {
       target: '人生事件详情卡',
       logic: `① 详情取值优先级：localStorage「event-<archiveId>-<年份>」已保存内容 → 内置演示数据 → 时间轴事件自身的标题 / 描述。
 ② 关联素材按「阶段前缀 = 年份」从「cj_media_<archiveId>」筛选：图片取前 4 张作照片墙，全部类型列入附件区。
-③ 「上传本阶段资料」仅非观察者可见，文件按扩展名推断类型（图片 / 视频 / 音频 / 文档），自动关联当前阶段写入素材库；点击照片或附件打开预览弹窗。`,
+③ 「上传本阶段资料」按扩展名推断文件类型（图片 / 视频 / 音频 / 文档），自动关联当前阶段写入素材库；点击照片或附件打开预览弹窗。`,
     },
     {
       id: 'life-archive.media-library',
       target: '多媒体档案库',
       logic: `① 素材存「cj_media_<archiveId>」，类型筛选（全部 / 照片 / 视频 / 音频 / 文档）为前端即时过滤。
 ② 上传弹窗：必选文件，可关联已有人生阶段（无事件时提示先在时间轴添加）；确认后按扩展名推断类型追加到素材库。
-③ 删除按钮仅非观察者可见；点击素材打开预览（图片为占位图、视频 / 音频为占位源）。
+③ 点击素材打开预览（图片为占位图、视频 / 音频为占位源）。
 ④ 仅完整版显示「老照片修复」入口，跳转 /photo-restore。`,
     },
     {
@@ -53,10 +52,10 @@ export const lifeArchiveAnnotations: PageAnnotations = {
     },
     {
       id: 'life-archive.privacy',
-      target: '隐私与权限（角色 / 可见范围 / 授权成员）',
-      logic: `① 角色下拉（档案所有者 / 观察者）是演示用全局开关，写入「cj_current_role」，控制全页编辑入口的显隐与禁用。
-② 五个模块的可见范围（家人可见 / 公开展示 / 仅自己）存「cj_privacy_values」，观察者禁用修改；权限模板下拉仅所有者可用（演示仅默认模板）。
-③ 授权成员存「cj_members_<archiveId>」：邀请时姓名必填且不可重复，新成员状态为「待确认」；仅所有者可移除非所有者成员。`,
+      target: '隐私与权限（可见范围 / 授权成员）',
+      logic: `① 仅完整版显示该标签页，V1.0 隐藏。
+② 五个模块的可见范围（家人可见 / 公开展示 / 仅自己）存「cj_privacy_values」。
+③ 授权成员存「cj_members_<archiveId>」：邀请时姓名必填且不可重复，新成员状态为「待确认」；成员不区分角色，均可移除。`,
     },
     {
       id: 'life-archive.relation-invite',

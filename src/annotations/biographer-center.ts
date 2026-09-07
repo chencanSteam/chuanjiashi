@@ -13,7 +13,7 @@ export const biographerCenterAnnotations: PageAnnotations = {
       id: 'biographer-center.stats',
       target: '订单统计卡片区',
       logic: `① 页面加载时并行请求 biographerApi.me()（GET /api/biographer/me，当前传记师档案）与 biographerApi.myOrders()（GET /api/biographer/orders，我的订单列表），两者都结束后关闭加载态；任一失败则对应模块降级为空（资料不渲染 / 订单为空数组）。
-② 统计口径：全部订单=订单总数；待处理=状态为待付定金/已付定金/已预约采访的订单数；进行中=已提交初稿/修改中/已提交终稿；已完成=已付尾款/已完成/售后中。`,
+② 统计口径：全部订单=订单总数；待处理=状态为待预约采访/已预约采访的订单数；进行中=已提交初稿/修改中/已提交终稿；已完成=已完成/售后中。`,
     },
     {
       id: 'biographer-center.profile',

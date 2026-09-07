@@ -36,6 +36,8 @@ import type {
   PartnerAssessmentRecord,
   RefundReasonOption,
   DictionaryItem,
+  SensitiveWord,
+  SensitiveHit,
 } from '../types'
 
 export const demoUser: User = {
@@ -114,7 +116,7 @@ function dictSeed(type: DictionaryItem['type'], labels: string[]): DictionaryIte
   }))
 }
 
-/** 数据字典默认值：上架传记的职业标签 / 人生阶段标签 */
+/** 数据字典默认值：上架传记的职业标签 / 人生阶段标签 / 敏感词库（一级=直接拦截，二级=仅自己可见） */
 export const defaultDictionaryItems: DictionaryItem[] = [
   ...dictSeed('book_occupation', [
     '企业家', '教师', '医生', '军人', '农民', '工人', '工程师', '艺术家',
@@ -124,9 +126,19 @@ export const defaultDictionaryItems: DictionaryItem[] = [
     '童年成长', '求学岁月', '军旅生涯', '事业奋斗', '创业之路',
     '婚姻家庭', '为人父母', '退休生活', '人生感悟', '家风传承',
   ]),
-  ...dictSeed('sensitive_words', [
-    '诈骗', '赌博', '色情', '暴力', '传销', '毒品', '枪支', '洗钱',
-  ]),
+  ...([
+    ['赌博', 1], ['色情', 1], ['毒品', 1], ['枪支', 1],
+    ['诈骗', 2], ['暴力', 2], ['传销', 2], ['洗钱', 2],
+  ] as Array<[string, 1 | 2]>).map(([label, level], index) => ({
+    id: `dict_sensitive_words_${index + 1}`,
+    type: 'sensitive_words' as const,
+    label,
+    level,
+    enabled: true,
+    order: index + 1,
+    createdAt: DICT_SEED_TIME,
+    updatedAt: DICT_SEED_TIME,
+  })),
 ]
 
 export const defaultProducts: ProductPackage[] = [
@@ -140,6 +152,20 @@ export const defaultProducts: ProductPackage[] = [
     rights: ['AI 智能采访', '8 章传记生成', '在线编辑', 'PDF 导出', '30 天有效期'],
     sales: 1280,
     hot: true,
+    headline: '把人生故事，写成家人愿意反复阅读的传记',
+    subheadline: '像聊天一样讲述，AI 帮您整理成一本文字作品',
+    detailBlocks: [
+      { id: 'bio99-1', title: '会聊天的 AI 采访师', content: '不用会写，只要会说。AI 按人生阶段引导提问，支持语音回答，让每段记忆都有机会被记录。' },
+      { id: 'bio99-2', title: '清晰完整的传记结构', content: '从童年、求学到工作与人生感悟，自动梳理章节脉络，生成适合家人阅读的传记初稿。' },
+      { id: 'bio99-3', title: '可继续编辑与保存', content: '生成后可以逐章修改、插入照片、调整表达，完成后保存为自己的传记作品。' },
+    ],
+    promises: ['AI 采访引导', '生成后可继续编辑', '支持 PDF 导出'],
+    faqs: [
+      { id: 'bio99-faq1', question: '不会写文章也能使用吗？', answer: '可以，只需要像聊天一样回答问题，系统会帮助您整理成文字。' },
+      { id: 'bio99-faq2', question: '可以为家人创建传记吗？', answer: '可以，您可以为父母、长辈或其他家人建立独立的人生档案。' },
+    ],
+    tags: ['AI采访', '人生记录', '传记生成'],
+    sortOrder: 1,
     createdAt: new Date().toISOString(),
   },
   {
@@ -192,6 +218,20 @@ export const defaultProducts: ProductPackage[] = [
     rights: ['PDF 智能排版', '精装封面设计', '锁线装订工艺', '烫金书脊', '礼盒包装'],
     sales: 356,
     hot: true,
+    headline: '把一段人生，装订成值得珍藏的家族记忆',
+    subheadline: '精装封面与锁线装订，让故事留得久、翻得多',
+    detailBlocks: [
+      { id: 'hardcover-1', title: '专属封面设计', content: '根据传主姓名和家庭故事设计专属封面，内页图文混排，呈现正式出版物般的阅读质感。' },
+      { id: 'hardcover-2', title: '精装锁线装订', content: '采用耐翻阅的精装与锁线工艺，书页平整不易散页，适合收藏与赠送长辈。' },
+      { id: 'hardcover-3', title: '印刷前确认', content: '排版完成后先提供电子预览，确认内容和版式后再安排印刷，成品快递到家。' },
+    ],
+    promises: ['专属封面设计', '印刷前电子预览', '全国快递包邮'],
+    faqs: [
+      { id: 'hardcover-faq1', question: '需要准备什么材料？', answer: '完成传记后即可下单，也可以提供照片用于内页排版。' },
+      { id: 'hardcover-faq2', question: '多久可以收到？', answer: '确认排版后通常 7–10 天完成制作并寄出。' },
+    ],
+    tags: ['精装收藏', '家族礼赠', '实体交付'],
+    sortOrder: 2,
     createdAt: new Date().toISOString(),
   },
   {
@@ -267,8 +307,8 @@ export const defaultBiographers: Biographer[] = [
     certificates: ['浙江省作家协会会员证', '高级传记师职业资格证书', '省家族文化研究会理事聘书'],
     tags: ['金牌传记师', '家族史专家', '上门采访', '实体书制作'],
     services: [
-      { id: 'svc_001', name: '基础采访套餐', price: 1999, description: '2 次深度采访 + 5000 字传记' },
-      { id: 'svc_002', name: '深度定制套餐', price: 5999, description: '5 次采访 + 3 万字传记 + 实体书排版' },
+      { id: 'svc_001', name: '基础采访套餐', price: 1999, description: '2 次深度采访 + 5000 字传记', interviewCount: '2 次', wordCount: '5000 字', deliveryPeriod: '30 天', physicalBook: '不含', mediaMaterial: '不含', revisionCount: '2 次' },
+      { id: 'svc_002', name: '深度定制套餐', price: 5999, description: '5 次采访 + 3 万字传记 + 实体书排版', interviewCount: '5 次', wordCount: '3 万字', deliveryPeriod: '60 天', physicalBook: '含', mediaMaterial: '含', revisionCount: '不限次' },
     ],
     cases: [
       { id: 'case_001', title: '张氏家族百年记忆', summary: '记录三代人创业与家风传承', cover: '' },
@@ -372,51 +412,23 @@ export const defaultBiographers: Biographer[] = [
     deposit: 600,
     createdAt: new Date().toISOString(),
   },
+  {
+    id: 'bio_review_pending_01', userId: 'u_mock_bio_review_01', phone: '13900139101', name: '周静宜', email: 'zhoujingyi.review@example.com', city: '杭州', title: '口述史整理师',
+    intro: '', specialties: ['口述史', '家族记忆', '老照片整理'], experience: 5, serviceAreas: ['杭州', '绍兴', '湖州'], education: '浙江传媒学院新闻学本科', certificates: ['口述历史采集培训证书'], tags: ['首次提交'],
+    services: [{ id: 'svc_review_01', name: '口述史整理入门版', price: 1599, description: '1 次深度采访 + 5000 字口述史整理' }], cases: [{ id: 'case_review_01', title: '外婆的西湖边记忆', summary: '整理三代女性关于杭州生活的家庭记忆', cover: '' }],
+    status: 'approved', certificationLevel: 'standard', rating: 5, reviewCount: 0, completedOrders: 0, deposit: 500, profileReviewStatus: 'pending', profileSubmittedAt: '2026-08-30T10:20:00.000Z', profileRevision: 1,
+    profileDraft: { name: '周静宜', phone: '13900139101', email: 'zhoujingyi.review@example.com', city: '杭州', title: '口述史整理师', intro: '曾长期参与社区口述史项目，擅长用轻松访谈帮助长辈打开记忆，把照片、家书和生活片段整理成清晰的人生故事。', specialties: ['口述史', '家族记忆', '老照片整理'], experience: 5, serviceAreas: ['杭州', '绍兴', '湖州'], education: '浙江传媒学院新闻学本科', certificates: ['口述历史采集培训证书'], tags: ['社区口述史', '长辈友好'], services: [{ id: 'svc_review_01', name: '口述史整理入门版', price: 1599, description: '1 次深度采访 + 5000 字口述史整理' }], cases: [{ id: 'case_review_01', title: '外婆的西湖边记忆', summary: '整理三代女性关于杭州生活的家庭记忆', cover: '' }] }, createdAt: '2026-08-20T09:00:00.000Z'
+  },
+  {
+    id: 'bio_review_pending_02', userId: 'u_mock_bio_review_02', phone: '13900139102', name: '沈明诚', email: 'shenmingcheng.review@example.com', city: '南京', title: '家族传记撰稿人', intro: '专注家族传记采访与基础成稿服务。', specialties: ['家族传记', '人物采访'], experience: 7, serviceAreas: ['南京', '苏州'], education: '南京大学中文系本科', certificates: ['高级传记写作研修证书'], tags: ['新版待审'], services: [{ id: 'svc_review_02', name: '家族传记标准版', price: 2999, description: '2 次采访 + 10000 字家族传记' }], cases: [{ id: 'case_review_02', title: '秦淮老街三代人', summary: '记录一家三代人的城市记忆', cover: '' }], status: 'approved', certificationLevel: 'silver', rating: 4.7, reviewCount: 18, completedOrders: 32, deposit: 800, profileReviewStatus: 'pending', profileSubmittedAt: '2026-08-31T14:35:00.000Z', profileRevision: 3,
+    publishedProfile: { name: '沈明诚', phone: '13900139102', email: 'shenmingcheng.review@example.com', city: '南京', title: '家族传记撰稿人', intro: '专注家族传记采访与基础成稿服务。', specialties: ['家族传记', '人物采访'], experience: 7, serviceAreas: ['南京', '苏州'], education: '南京大学中文系本科', certificates: ['高级传记写作研修证书'], tags: ['家族传记'], services: [{ id: 'svc_review_02', name: '家族传记标准版', price: 2999, description: '2 次采访 + 10000 字家族传记' }], cases: [{ id: 'case_review_02', title: '秦淮老街三代人', summary: '记录一家三代人的城市记忆', cover: '' }] },
+    profileDraft: { name: '沈明诚', phone: '13900139102', email: 'shenmingcheng.review@example.com', city: '南京', title: '资深家族史传记师', intro: '深耕江南家族史与城市迁徙记忆，擅长把族谱、老照片、口述采访整合为适合家庭收藏的长篇传记。', specialties: ['家族传记', '族谱整理', '城市迁徙史'], experience: 8, serviceAreas: ['南京', '苏州', '无锡'], education: '南京大学中文系本科', certificates: ['高级传记写作研修证书'], tags: ['江南家族史'], services: [{ id: 'svc_review_02_new', name: '家族史深度定制版', price: 4999, description: '3 次采访 + 20000 字传记' }], cases: [{ id: 'case_review_02_new', title: '从老宅到新城的家族迁徙', summary: '串联四代人的城市生活变迁', cover: '' }] }, createdAt: '2026-06-10T09:00:00.000Z'
+  },
+  {
+    id: 'bio_review_rejected_01', userId: 'u_mock_bio_review_03', phone: '13900139103', name: '顾南枝', email: 'gunanzhi.review@example.com', city: '成都', title: '纪实写作传记师', intro: '提供个人回忆录与家庭纪念册写作服务。', specialties: ['个人回忆录', '纪实写作'], experience: 4, serviceAreas: ['成都', '重庆'], education: '四川大学文学与新闻学院本科', certificates: ['纪实写作工作坊结业证书'], tags: ['驳回样例'], services: [{ id: 'svc_review_03', name: '个人回忆录基础版', price: 1999, description: '2 次采访 + 8000 字个人回忆录' }], cases: [{ id: 'case_review_03', title: '茶馆里的父亲', summary: '记录一位老茶客的城市生活记忆', cover: '' }], status: 'approved', certificationLevel: 'standard', rating: 4.6, reviewCount: 9, completedOrders: 14, deposit: 500, profileReviewStatus: 'rejected', profileRejectReason: '案例描述存在夸大宣传，请补充真实交付说明；资质图片不清晰，请重新上传。', profileSubmittedAt: '2026-08-25T16:00:00.000Z', profileReviewedAt: '2026-08-26T09:30:00.000Z', profileReviewedBy: 'u_13800138000', profileRevision: 2,
+    profileDraft: { name: '顾南枝', phone: '13900139103', email: 'gunanzhi.review@example.com', city: '成都', title: '首席爆款传记导师', intro: '纪实传记作者，承诺快速打造家族故事。', specialties: ['个人回忆录', '纪实写作'], experience: 4, serviceAreas: ['成都', '重庆'], education: '四川大学文学与新闻学院本科', certificates: [''], tags: ['快速交付'], services: [{ id: 'svc_review_03_new', name: '家族故事套餐', price: 3999, description: '2 次采访 + 10000 字故事' }], cases: [{ id: 'case_review_03_new', title: '茶馆里的家族故事', summary: '记录城市生活记忆', cover: '' }] }, createdAt: '2026-07-01T09:00:00.000Z'
+  },
 ]
-
-/** 商品详情页的演示评价池：无真实评价时按商品类型回退展示 */
-export interface ProductReviewSeed {
-  userName: string
-  rating: number
-  content: string
-}
-
-export const defaultProductReviewsByType: Record<string, ProductReviewSeed[]> = {
-  biography: [
-    { userName: '刘女士', rating: 5, content: 'AI 采访就像聊天一样，母亲说着说着就回忆起很多细节，生成的传记很感人，家里人都抢着看。' },
-    { userName: '周先生', rating: 5, content: '操作比想象中简单，采访完自动成稿，导出 PDF 后找打印店印了两本，效果很好。' },
-    { userName: '吴女士', rating: 4, content: '章节结构合理，润色功能也实用，个别句子还需要自己再改一改，整体很满意。' },
-    { userName: '郑先生', rating: 5, content: '给爷爷做的传记，一周就完成了初稿，效率高，内容也扎实，值得推荐给朋友。' },
-  ],
-  book: [
-    { userName: '张先生', rating: 5, content: '书收到很惊喜，纸张手感好，父亲的传记印出来很正式，老人看了特别高兴。' },
-    { userName: '李女士', rating: 5, content: '排版很专业，封面设计雅致，作为金婚礼物送给长辈，全家都很满意。' },
-    { userName: '王先生', rating: 4, content: '整体不错，印刷清晰、装订结实，就是快递稍慢了一天，内容排版值得肯定。' },
-    { userName: '陈女士', rating: 5, content: '锁线装订翻阅平整，摊开不回弹，收藏和送人都很合适。' },
-  ],
-  digital_person: [
-    { userName: '孙女士', rating: 5, content: '和父亲的数字人对话，语气很像本人，孩子特别喜欢听"爷爷"讲过去的故事。' },
-    { userName: '钱先生', rating: 5, content: '知识库构建很细致，问答都是传记里的真实经历，感觉像留住了父亲的声音。' },
-    { userName: '冯女士', rating: 4, content: '文字对话很流畅，偶尔有答非所问的情况，希望后续支持语音对话。' },
-  ],
-  video: [
-    { userName: '何先生', rating: 5, content: '60 秒的短片在家族聚会播放，配乐和字幕都很到位，好几位长辈看红了眼眶。' },
-    { userName: '高女士', rating: 5, content: '脚本自动从传记里提取，配音自然，导出高清视频很方便。' },
-    { userName: '罗先生', rating: 4, content: '成片效果不错，就是背景音乐选择再多一些就更好了。' },
-  ],
-  qrcode: [
-    { userName: '梁女士', rating: 5, content: '二维码印在书签上，扫一扫就能听到老人的故事，家里人都说这个形式很新颖。' },
-    { userName: '宋先生', rating: 4, content: '生成和下载都很顺利，高清图打印出来清晰，希望样式模板再多几个。' },
-  ],
-  derivative: [
-    { userName: '许女士', rating: 5, content: '做工比预期好，把家风家训印在日常物件上，孩子每天都能看见，很有意义。' },
-    { userName: '邓先生', rating: 4, content: '包装仔细，实物和图片一致，发货速度可以接受。' },
-  ],
-  default: [
-    { userName: '王女士', rating: 5, content: '整体体验不错，符合预期，推荐给有需要的朋友。' },
-    { userName: '李先生', rating: 4, content: '性价比可以，细节还有提升空间，会继续关注。' },
-  ],
-}
 
 export const defaultReviews: BiographerReview[] = [
   {
@@ -537,10 +549,10 @@ const DAY = 24 * 60 * 60 * 1000
 const daysAgo = (n: number) => new Date(Date.now() - n * DAY).toISOString()
 
 export const defaultAdminUsers: AdminUser[] = [
-  { id: 'u_demo_001', nickname: '用户8000', phone: '13800138000', registeredAt: daysAgo(180), status: 'active', realNameStatus: 'verified', archiveCount: 3, orderCount: 5, inviterName: '张先生' },
-  { id: 'u_demo_002', nickname: '用户0001', phone: '13800000001', registeredAt: daysAgo(150), status: 'active', realNameStatus: 'verified', archiveCount: 2, orderCount: 3, inviterName: '体验用户' },
-  { id: 'u_demo_003', nickname: '用户0002', phone: '13900000002', registeredAt: daysAgo(120), status: 'active', realNameStatus: 'pending', archiveCount: 1, orderCount: 2 },
-  { id: 'u_demo_004', nickname: '用户0003', phone: '13700000003', registeredAt: daysAgo(96), status: 'active', realNameStatus: 'none', archiveCount: 1, orderCount: 0, inviterName: '张先生' },
+  { id: 'u_demo_001', nickname: '用户8000', phone: '13800138000', registeredAt: daysAgo(180), status: 'active', realNameStatus: 'verified', archiveCount: 3, orderCount: 5, inviterName: '张先生', regionCode: '330106', regionName: '杭州市西湖区' },
+  { id: 'u_demo_002', nickname: '用户0001', phone: '13800000001', registeredAt: daysAgo(150), status: 'active', realNameStatus: 'verified', archiveCount: 2, orderCount: 3, inviterName: '体验用户', regionCode: '330106', regionName: '杭州市西湖区' },
+  { id: 'u_demo_003', nickname: '用户0002', phone: '13900000002', registeredAt: daysAgo(120), status: 'active', realNameStatus: 'pending', archiveCount: 1, orderCount: 2, regionCode: '330100', regionName: '杭州市' },
+  { id: 'u_demo_004', nickname: '用户0003', phone: '13700000003', registeredAt: daysAgo(96), status: 'active', realNameStatus: 'none', archiveCount: 1, orderCount: 0, inviterName: '张先生', regionCode: '330200', regionName: '宁波市' },
   { id: 'u_demo_005', nickname: '用户0004', phone: '13600000004', registeredAt: daysAgo(75), status: 'active', realNameStatus: 'verified', archiveCount: 4, orderCount: 6, inviterName: '李女士' },
   { id: 'u_demo_006', nickname: '用户0005', phone: '13500000005', registeredAt: daysAgo(50), status: 'disabled', realNameStatus: 'rejected', archiveCount: 0, orderCount: 1 },
   { id: 'u_demo_007', nickname: '用户0006', phone: '13400000006', registeredAt: daysAgo(32), status: 'active', realNameStatus: 'pending', archiveCount: 2, orderCount: 1, inviterName: '陈女士' },
@@ -679,6 +691,44 @@ export const defaultContentReports: ContentReport[] = [
   { id: 'report_001', reporter: '刘先生', target: '传记《医者仁心：李华亭回忆录》', reason: '部分内容侵犯家属隐私，未经授权公开', createdAt: '2026-07-19 09:18', status: 'pending' },
   { id: 'report_002', reporter: '赵女士', target: '书架评论', reason: '评论含人身攻击内容', createdAt: '2026-07-18 16:45', status: 'pending' },
   { id: 'report_003', reporter: '周先生', target: '公开传记《陈建国自传》', reason: '疑似抄袭其他出版物章节', createdAt: '2026-07-15 13:27', status: 'processed' },
+]
+
+/** 敏感词库种子数据（覆盖六个分类、三种处置方式） */
+export const defaultSensitiveWords: SensitiveWord[] = [
+  { id: 'sw_001', word: '颠覆国家政权', category: 'politics', action: 'block', enabled: true, hitCount: 12, createdAt: daysAgo(90), updatedAt: daysAgo(30) },
+  { id: 'sw_002', word: '法轮功', category: 'politics', action: 'block', enabled: true, hitCount: 8, createdAt: daysAgo(90), updatedAt: daysAgo(30) },
+  { id: 'sw_003', word: '台独', category: 'politics', action: 'review', enabled: true, hitCount: 3, createdAt: daysAgo(60), updatedAt: daysAgo(12) },
+  { id: 'sw_004', word: '色情视频', category: 'porn', action: 'block', enabled: true, hitCount: 21, createdAt: daysAgo(90), updatedAt: daysAgo(20) },
+  { id: 'sw_005', word: '裸聊', category: 'porn', action: 'block', enabled: true, hitCount: 6, createdAt: daysAgo(75), updatedAt: daysAgo(15) },
+  { id: 'sw_006', word: '成人用品', category: 'porn', action: 'review', enabled: false, hitCount: 2, createdAt: daysAgo(50), updatedAt: daysAgo(8) },
+  { id: 'sw_007', word: '砍人', category: 'violence', action: 'review', enabled: true, hitCount: 4, createdAt: daysAgo(60), updatedAt: daysAgo(10) },
+  { id: 'sw_008', word: '自杀', category: 'violence', action: 'replace', replacement: '**', enabled: true, hitCount: 9, createdAt: daysAgo(60), updatedAt: daysAgo(5) },
+  { id: 'sw_009', word: '枪支买卖', category: 'violence', action: 'block', enabled: true, hitCount: 1, createdAt: daysAgo(45), updatedAt: daysAgo(45) },
+  { id: 'sw_010', word: '代办信用卡', category: 'ads', action: 'block', enabled: true, hitCount: 15, createdAt: daysAgo(90), updatedAt: daysAgo(25) },
+  { id: 'sw_011', word: '刷销量', category: 'ads', action: 'block', enabled: true, hitCount: 7, createdAt: daysAgo(70), updatedAt: daysAgo(18) },
+  { id: 'sw_012', word: '加微信', category: 'ads', action: 'replace', replacement: '***', enabled: true, hitCount: 33, createdAt: daysAgo(80), updatedAt: daysAgo(3) },
+  { id: 'sw_013', word: '微商代理', category: 'ads', action: 'review', enabled: true, hitCount: 5, createdAt: daysAgo(55), updatedAt: daysAgo(9) },
+  { id: 'sw_014', word: '老不死', category: 'abuse', action: 'review', enabled: true, hitCount: 3, createdAt: daysAgo(40), updatedAt: daysAgo(7) },
+  { id: 'sw_015', word: '废物', category: 'abuse', action: 'replace', replacement: '**', enabled: false, hitCount: 11, createdAt: daysAgo(40), updatedAt: daysAgo(14) },
+  { id: 'sw_016', word: '断绝关系', category: 'custom', action: 'review', enabled: true, hitCount: 2, createdAt: daysAgo(30), updatedAt: daysAgo(6) },
+  { id: 'sw_017', word: '遗嘱无效', category: 'custom', action: 'review', enabled: true, hitCount: 1, createdAt: daysAgo(28), updatedAt: daysAgo(28) },
+  { id: 'sw_018', word: '争家产', category: 'custom', action: 'block', enabled: true, hitCount: 0, createdAt: daysAgo(20), updatedAt: daysAgo(20) },
+]
+
+const hoursAgo = (n: number) => new Date(Date.now() - n * 3600 * 1000).toISOString()
+
+/** 敏感词命中记录种子数据（覆盖四种来源类型、三种状态） */
+export const defaultSensitiveHits: SensitiveHit[] = [
+  { id: 'sh_001', wordId: 'sw_001', word: '颠覆国家政权', category: 'politics', action: 'block', sourceType: 'biography_chapter', sourceTitle: '传记《峥嵘岁月：陈建国自传》第2章', context: '那一年的政治风波中，有人喊出了颠覆国家政权的口号，村里人议论纷纷。', userId: 'u_demo_001', userName: '体验用户', status: 'blocked', processorId: 'admin_001', processedAt: hoursAgo(2), createdAt: hoursAgo(5) },
+  { id: 'sh_002', wordId: 'sw_012', word: '加微信', category: 'ads', action: 'replace', sourceType: 'museum_message', sourceTitle: '数字馆留言 · 张家老宅', context: '故事很感人，想了解更多家族史料可以加微信详聊。', userId: 'u_demo_002', userName: '用户0001', status: 'pending', createdAt: hoursAgo(3) },
+  { id: 'sh_003', wordId: 'sw_007', word: '砍人', category: 'violence', action: 'review', sourceType: 'interview_text', sourceTitle: '采访转写 · 王大爷口述：动乱年代', context: '他回忆说当年集市上确实发生过砍人事件，大家都吓得不敢出门。', userId: 'u_demo_003', userName: '用户0002', status: 'pending', createdAt: hoursAgo(8) },
+  { id: 'sh_004', wordId: 'sw_014', word: '老不死', category: 'abuse', action: 'review', sourceType: 'comment', sourceTitle: '书架评论 · 《医者仁心：李华亭回忆录》', context: '写得什么玩意，这种老不死的经历也好意思出书。', userId: 'u_demo_004', userName: '用户0003', status: 'blocked', processorId: 'admin_001', processedAt: hoursAgo(20), createdAt: hoursAgo(26) },
+  { id: 'sh_005', wordId: 'sw_008', word: '自杀', category: 'violence', action: 'replace', sourceType: 'biography_chapter', sourceTitle: '传记《山村教师王桂芬》第3章', context: '最艰难的那几年，她也曾动过自杀的念头，但讲台上的孩子们让她坚持了下来。', userId: 'u_demo_001', userName: '体验用户', status: 'released', processorId: 'admin_001', processedAt: hoursAgo(30), createdAt: daysAgo(2) },
+  { id: 'sh_006', wordId: 'sw_010', word: '代办信用卡', category: 'ads', action: 'block', sourceType: 'comment', sourceTitle: '书架评论 · 《陈建国自传》', context: '需要资金周转的朋友可以联系我，专业代办信用卡，额度高放款快。', userId: 'u_demo_005', userName: '用户0004', status: 'blocked', processorId: 'admin_001', processedAt: daysAgo(2), createdAt: daysAgo(2) },
+  { id: 'sh_007', wordId: 'sw_003', word: '台独', category: 'politics', action: 'review', sourceType: 'interview_text', sourceTitle: '采访转写 · 退伍老兵访谈', context: '谈到两岸关系时，老人情绪激动地批评了台独分裂行径。', userId: 'u_demo_006', userName: '用户0005', status: 'released', processorId: 'admin_001', processedAt: daysAgo(3), createdAt: daysAgo(4) },
+  { id: 'sh_008', wordId: 'sw_016', word: '断绝关系', category: 'custom', action: 'review', sourceType: 'biography_chapter', sourceTitle: '传记《慈母手中线》第5章', context: '一气之下，父亲说再这样就和他断绝关系，母子俩抱头痛哭。', userId: 'u_demo_002', userName: '用户0001', status: 'released', processorId: 'admin_001', processedAt: daysAgo(4), createdAt: daysAgo(5) },
+  { id: 'sh_009', wordId: 'sw_013', word: '微商代理', category: 'ads', action: 'review', sourceType: 'museum_message', sourceTitle: '数字馆留言 · 李家祠堂', context: '家里老人留下的特产配方很不错，想做微商代理的私信我。', userId: 'u_demo_003', userName: '用户0002', status: 'pending', createdAt: daysAgo(1) },
+  { id: 'sh_010', wordId: 'sw_004', word: '色情视频', category: 'porn', action: 'block', sourceType: 'comment', sourceTitle: '书架评论 · 《山村教师王桂芬》', context: '借楼发个广告，点击链接免费看色情视频。', userId: 'u_demo_005', userName: '用户0004', status: 'blocked', processorId: 'admin_001', processedAt: daysAgo(6), createdAt: daysAgo(6) },
 ]
 
 export const defaultComplianceAlerts: ComplianceAlert[] = [
@@ -881,9 +931,13 @@ export const defaultBiographerSettlements: BiographerSettlement[] = [
     ],
     withdrawals: [
       { id: 'wd_001', amount: 8000, status: 'paid', appliedAt: daysAgo(50), paidAt: daysAgo(48) },
+      { id: 'wd_007', amount: 3000, status: 'approved', appliedAt: daysAgo(10) },
+      { id: 'wd_008', amount: 2000, status: 'rejected', appliedAt: daysAgo(6) },
       { id: 'wd_002', amount: 5000, status: 'pending', appliedAt: daysAgo(2) },
     ],
-    penalties: [],
+    penalties: [
+      { id: 'pen_003', reason: '初稿交付逾期 1 天，按约扣除违约金', amount: 200, createdAt: daysAgo(20) },
+    ],
   },
   {
     biographerId: 'bio_002',
@@ -957,6 +1011,7 @@ export const defaultBiographerDeposits: BiographerDepositRecord[] = [
 export const defaultBiographerPenalties: BiographerPenaltyRecord[] = [
   { id: 'pnr_001', biographerId: 'bio_002', biographerName: '王雅琴', violationType: '交付逾期', measure: '扣款', amount: 200, reason: '交付逾期 2 天，按约扣除违约金', status: 'effective', createdAt: daysAgo(50) },
   { id: 'pnr_002', biographerId: 'bio_003', biographerName: '陈墨涵', violationType: '私单引流', measure: '扣款+警告', amount: 1000, reason: '疑似引导私单，冻结部分结算款', status: 'effective', createdAt: daysAgo(3) },
+  { id: 'pnr_003', biographerId: 'bio_001', biographerName: '李传记', violationType: '交付逾期', measure: '扣款', amount: 200, reason: '初稿交付逾期 1 天，按约扣除违约金', status: 'effective', createdAt: daysAgo(20) },
 ]
 
 export const defaultPartnerFees: PartnerFeeRecord[] = [

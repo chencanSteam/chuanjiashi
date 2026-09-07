@@ -7,16 +7,16 @@ export const biographyPolishAnnotations: PageAnnotations = {
   route: '/polish',
   items: [
     {
+      id: 'biography-polish.classify',
+      target: '章节归类预览（确认归类 / 跳过）',
+      logic: `上传或粘贴传记后，AI 按统一八大篇章（故里童年 → 求学成长 → 择业入行 → 深耕岁月 → 风雨磨砺 → 行业感悟 → 家风人生 → 人生回望）为每个原章节建议归属，标题精确命中优先、其次按内容关键词匹配，无法识别的标「待确认」，可手动改选。
+「确认归类」：同篇章内容合并，空篇章不生成，编辑页按八大篇章结构展示。「跳过，保持原文结构」：不套用八大篇章，平台只提供润色、排版、储存、素材绑定；编辑页章节区显示「原文结构」标记。`,
+    },
+    {
       id: 'biography-polish.reupload',
       target: '换一份传记',
       logic: `用户想换一份传记时，系统先提醒当前内容可能还没有保存。
 用户确认后，清空当前整理结果，回到传记的放入入口。`,
-    },
-    {
-      id: 'biography-polish.export-word',
-      target: '导出润色稿',
-      logic: `用户需要带走成果时，系统把当前已经整理好的章节和文字合并成一份完整传记。
-导出的内容以用户眼前看到的最新版本为准，不影响页面里的原文和后续修改。`,
     },
     {
       id: 'biography-polish.save',

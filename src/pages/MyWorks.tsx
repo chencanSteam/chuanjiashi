@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Mic, Trash2, User, Plus, ChevronRight, UploadCloud } from 'lucide-react';
+import { BookOpen, Mic, Trash2, User, Plus, ChevronRight, UploadCloud, Download, Printer, QrCode } from 'lucide-react';
 import Avatar from '../components/ui/Avatar';
 import { useToast } from '../hooks/useToast';
 import { archiveApi } from '../api/archive';
+import { orderApi } from '../api/order';
+import { paymentApi } from '../api/payment';
 import PublishBookModal from '../components/PublishBookModal';
+import Modal from '../components/ui/Modal';
 import { getWorkStatus, type WorkStatus } from '../utils/works';
 import Annotate from '../components/annotation/Annotate';
 import './MyWorks.css';
@@ -64,12 +67,50 @@ function mockEarnings(id: string) {
   return { sold, price, total: sold * price };
 }
 
+/** 传记增值付费服务 */
+type PaidServiceKey = 'download' | 'publish' | 'qrcode';
+
+interface PaidService {
+  key: PaidServiceKey;
+  label: string;
+  price: number;
+  desc: string;
+  orderType: 'biography' | 'book' | 'qrcode';
+}
+
+const paidServices: PaidService[] = [
+  { key: 'download', label: '下载 PDF', price: 9.9, desc: '高清排版 PDF，可保存与自行打印', orderType: 'biography' },
+  { key: 'publish', label: '出版实体书', price: 59, desc: '精装印刷成书，配送到家', orderType: 'book' },
+  { key: 'qrcode', label: '生成二维码', price: 19.9, desc: '生成传记专属二维码，扫码即可阅读', orderType: 'qrcode' },
+];
+
+function loadPaidServices(workId: string): PaidServiceKey[] {
+  try {
+    const raw = localStorage.getItem(`cj_work_paid_${workId}`);
+    if (raw) return JSON.parse(raw) as PaidServiceKey[];
+  } catch {
+    // ignore
+  }
+  return [];
+}
+
+function savePaidService(workId: string, key: PaidServiceKey) {
+  const list = loadPaidServices(workId);
+  if (!list.includes(key)) {
+    localStorage.setItem(`cj_work_paid_${workId}`, JSON.stringify([...list, key]));
+  }
+}
+
 export default function MyWorks() {
   const navigate = useNavigate();
   const { addToast } = useToast();
   const [works, setWorks] = useState<WorkItem[]>([]);
   const [publishingWork, setPublishingWork] = useState<WorkItem | null>(null);
   const [licenseSettings, setLicenseSettings] = useState<Record<string, { isFree: boolean; price: number; trialWords: number }>>({});
+  const [payTarget, setPayTarget] = useState<{ work: WorkItem; service: PaidService } | null>(null);
+  const [paying, setPaying] = useState(false);
+  const [qrWork, setQrWork] = useState<WorkItem | null>(null);
+  const [paidMap, setPaidMap] = useState<Record<string, PaidServiceKey[]>>({});
 
   useEffect(() => {
     const load = async () => {
@@ -93,11 +134,17 @@ export default function MyWorks() {
         const items = Array.from(mergedMap.values()).map((a) => ({ ...a, status: getWorkStatus(a.id) }));
         setWorks(items);
         setLicenseSettings(loadLicenseSettings(items));
+        const paid: Record<string, PaidServiceKey[]> = {};
+        items.forEach((w) => { paid[w.id] = loadPaidServices(w.id); });
+        setPaidMap(paid);
       } catch {
         const legacyArchives = loadLegacyArchives();
         const items = legacyArchives.map((a) => ({ ...a, status: getWorkStatus(a.id) }));
         setWorks(items);
         setLicenseSettings(loadLicenseSettings(items));
+        const paid: Record<string, PaidServiceKey[]> = {};
+        items.forEach((w) => { paid[w.id] = loadPaidServices(w.id); });
+        setPaidMap(paid);
       } finally {
         // ignore
       }
@@ -134,8 +181,11 @@ export default function MyWorks() {
     localStorage.setItem('cj_current_archive_id', work.id);
     if (work.status === '已完成') {
       navigate('/biography/print');
-    } else if (localStorage.getItem(`cj_biography_${work.id}`) || localStorage.getItem(`cj_biography_chapters_${work.id}`)) {
-      // 已有传记成品或章节草稿：回到传记编辑器，而不是重新采访
+    } else if (localStorage.getItem(`cj_polish_doc_${work.id}`)) {
+      // 已有传记上传草稿：回到原上传润色页继续编辑
+      navigate('/polish');
+    } else if (localStorage.getItem(`cj_biography_chapters_${work.id}`)) {
+      // AI传记章节草稿：回到传记编辑器，而不是重新采访
       navigate('/biography');
     } else {
       navigate('/interview');
@@ -143,6 +193,50 @@ export default function MyWorks() {
   };
 
   const canPublish = (work: WorkItem) => work.status === '已完成';
+
+  // 付费服务：已购买直接执行，未购买先弹支付确认
+  const runPaidService = (work: WorkItem, service: PaidService) => {
+    if (service.key === 'download') {
+      localStorage.setItem('cj_current_archive_id', work.id);
+      navigate('/biography/print');
+    } else if (service.key === 'publish') {
+      addToast('出版订单已提交，可在「我的订单」查看进度', 'success');
+    } else {
+      setQrWork(work);
+    }
+  };
+
+  const handlePaidService = (work: WorkItem, service: PaidService) => {
+    if ((paidMap[work.id] || []).includes(service.key)) {
+      runPaidService(work, service);
+      return;
+    }
+    setPayTarget({ work, service });
+  };
+
+  const handleConfirmPay = async () => {
+    if (!payTarget) return;
+    const { work, service } = payTarget;
+    setPaying(true);
+    try {
+      const order = await orderApi.create({
+        type: service.orderType,
+        productId: `${service.key}_${work.id}`,
+        productName: `${work.name}的传记 · ${service.label}`,
+        amount: service.price,
+      });
+      await paymentApi.pay(order.id, 'wechat');
+      savePaidService(work.id, service.key);
+      setPaidMap((prev) => ({ ...prev, [work.id]: [...(prev[work.id] || []), service.key] }));
+      addToast(`支付成功，${service.label}已开通`, 'success');
+      setPayTarget(null);
+      runPaidService(work, service);
+    } catch (err) {
+      addToast(err instanceof Error ? err.message : '支付失败，请稍后重试', 'error');
+    } finally {
+      setPaying(false);
+    }
+  };
 
   return (
     <div className="my-works-page">
@@ -212,7 +306,7 @@ export default function MyWorks() {
                 </div>
                 <Annotate id="my-works.work-actions">
                 <div className="work-actions">
-                  {work.status === '进行中' ? (
+                  {work.status !== '已完成' ? (
                     <button className="btn btn-primary btn-sm" onClick={() => openWork(work)}>
                       <Mic size={14} /> 继续完成 <ChevronRight size={14} />
                     </button>
@@ -222,17 +316,9 @@ export default function MyWorks() {
                     </button>
                   )}
                   {canPublish(work) && (
-                    <>
-                      <button className="btn btn-outline btn-sm work-publish" onClick={() => setPublishingWork(work)}>
-                        <UploadCloud size={14} /> 上架
-                      </button>
-                      <button
-                        className="btn btn-outline btn-sm work-store"
-                        onClick={() => navigate(`/store?category=book&archiveId=${work.id}`)}
-                      >
-                        <BookOpen size={14} /> 制作实体书
-                      </button>
-                    </>
+                    <button className="btn btn-outline btn-sm work-publish" onClick={() => setPublishingWork(work)}>
+                      <UploadCloud size={14} /> 上架
+                    </button>
                   )}
                   <button
                     className="icon-btn work-delete"
@@ -243,11 +329,82 @@ export default function MyWorks() {
                   </button>
                 </div>
                 </Annotate>
+                {work.status === '已完成' && (
+                  <Annotate id="my-works.paid-services">
+                  <div className="work-paid-services">
+                    {paidServices.map((service) => {
+                      const paid = (paidMap[work.id] || []).includes(service.key);
+                      const ServiceIcon = service.key === 'download' ? Download : service.key === 'publish' ? Printer : QrCode;
+                      return (
+                        <button
+                          key={service.key}
+                          type="button"
+                          className={`work-paid-btn ${paid ? 'paid' : ''}`}
+                          title={service.desc}
+                          onClick={() => handlePaidService(work, service)}
+                        >
+                          <ServiceIcon size={14} /> {service.label}
+                          <span className="work-paid-price">{paid ? '已开通' : `¥${service.price}`}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  </Annotate>
+                )}
               </div>
             </div>
             );
           })}
         </div>
+      )}
+
+      {payTarget && (
+        <Modal
+          open
+          title="确认支付"
+          onClose={() => { if (!paying) setPayTarget(null); }}
+          footer={
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+              <button className="btn btn-outline" disabled={paying} onClick={() => setPayTarget(null)}>取消</button>
+              <button className="btn btn-primary" disabled={paying} onClick={handleConfirmPay}>
+                {paying ? '支付中…' : `微信支付 ¥${payTarget.service.price}`}
+              </button>
+            </div>
+          }
+        >
+          <div className="work-pay-detail">
+            <div className="work-pay-row"><span>作品</span><strong>{payTarget.work.name}的传记</strong></div>
+            <div className="work-pay-row"><span>服务</span><strong>{payTarget.service.label}</strong></div>
+            <div className="work-pay-row"><span>说明</span><strong>{payTarget.service.desc}</strong></div>
+            <div className="work-pay-row total"><span>应付金额</span><strong>¥{payTarget.service.price.toFixed(2)}</strong></div>
+            <p className="work-pay-tip">演示环境为模拟支付，支付成功后该服务永久开通，可在「我的订单」查看记录。</p>
+          </div>
+        </Modal>
+      )}
+
+      {qrWork && (
+        <Modal
+          open
+          title={`《${qrWork.name}的传记》分享二维码`}
+          onClose={() => setQrWork(null)}
+          footer={
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+              <button
+                className="btn btn-outline"
+                onClick={() => { navigator.clipboard.writeText(`https://cj.example.com/share/${qrWork.id}`); addToast('链接已复制', 'success'); }}
+              >
+                复制链接
+              </button>
+              <button className="btn btn-primary" onClick={() => setQrWork(null)}>完成</button>
+            </div>
+          }
+        >
+          <div className="work-qr-body">
+            <div className="work-qr-image"><QrCode size={140} strokeWidth={1} /></div>
+            <p>微信扫码即可阅读传记内容</p>
+            <p className="work-qr-link">https://cj.example.com/share/{qrWork.id}</p>
+          </div>
+        </Modal>
       )}
 
       {publishingWork && (

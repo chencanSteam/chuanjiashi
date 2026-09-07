@@ -24,8 +24,7 @@ export const mobileProfileAnnotations: PageAnnotations = {
     {
       id: 'mobile-profile.services',
       target: '我的服务',
-      logic: `① 传家商城跳 /store，复用现有商品浏览、收货地址、创建订单与微信支付原型流程。
-② 我的订单跳 /my-orders；售后服务跳 /my-orders?status=refunded，订单详情页中仍可按状态发起退款、查看退款原因与处理记录。`,
+      logic: `① 我的订单跳 /my-orders；售后服务跳 /my-orders?status=refunded，订单详情页中仍可按状态发起退款、查看退款原因与处理记录。（商城入口已下线，原传家商城项已移除）`,
     },
     {
       id: 'mobile-profile.security',

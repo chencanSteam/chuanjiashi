@@ -26,7 +26,7 @@ export const biographerListAnnotations: PageAnnotations = {
     {
       id: 'biographer-list.card',
       target: '传记师卡片',
-      logic: `① 卡片信息：姓名、城市、评分（默认 5 分）、简介；好评率 = 评分 / 5 换算。
+      logic: `① 卡片信息：姓名、城市、评分（默认 5 分）、简介。
 ② 价格取该传记师所有服务的最低价显示「¥X 起」，无服务时显示「价格面议」。
 ③ 点击卡片或「查看详情」按钮打开传记师详情弹窗（内嵌 BiographerProfile）；「查看详情」阻止事件冒泡，效果与点卡片一致。
 ④ 列表为空时显示空态引导；接口异常时降级为空列表。`,
@@ -34,9 +34,8 @@ export const biographerListAnnotations: PageAnnotations = {
     {
       id: 'biographer-list.booking',
       target: '预约下单（详情弹窗内）',
-      logic: `① 在弹窗中选择服务并提交预约表单后，先调 biographerApi.createOrder（POST /api/biographer-orders）创建订单，成功后自动调 paymentApi.pay 以微信渠道支付定金。
-② 定金金额优先取传记师的 deposit 字段，缺省按服务价 30% 四舍五入计算，仅用于成功提示文案。
-③ 下单期间显示「正在创建订单…」遮罩并禁用表单；任一步失败 toast 报错，成功后关闭弹窗。`,
+      logic: `① 在弹窗中选择服务并提交预约表单后，先调 biographerApi.createOrder（POST /api/biographer-orders）创建订单，成功后自动调 paymentApi.pay 以微信渠道全额支付。
+② 订单为全额支付，无定金/尾款环节；下单期间显示「正在创建订单…」遮罩并禁用表单；任一步失败 toast 报错，成功后关闭弹窗。`,
     },
   ],
 };

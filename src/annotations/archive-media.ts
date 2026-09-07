@@ -12,8 +12,7 @@ export const archiveMediaAnnotations: PageAnnotations = {
     {
       id: 'archive-media.upload',
       target: '「上传素材」按钮',
-      logic: `① 观察者角色（cj_current_role = 观察者）隐藏上传与删除入口，仅可查看。
-② 选择文件后按扩展名推断类型（图片 / 视频 / 音频 / 文档），以当天日期追加到素材列表并写入「cj_media_<archiveId>」；空列表时也提供上传入口。`,
+      logic: `① 选择文件后按扩展名推断类型（图片 / 视频 / 音频 / 文档），以当天日期追加到素材列表并写入「cj_media_<archiveId>」；空列表时也提供上传入口。`,
     },
     {
       id: 'archive-media.filter-search',
@@ -23,10 +22,11 @@ export const archiveMediaAnnotations: PageAnnotations = {
     },
     {
       id: 'archive-media.grid',
-      target: '素材网格（预览 / 下载 / 删除）',
+      target: '素材网格（预览 / 下载 / 重命名 / 删除）',
       logic: `① 素材数据来自「cj_media_<archiveId>」（default 档案用内置演示素材），列表每次变更自动回写 localStorage。
 ② 点击素材打开预览弹窗；下载按钮为演示动作，仅 toast 提示「开始下载素材」。
-③ 删除按钮仅非观察者可见，点击直接移除该素材（已阻止冒泡，不会触发预览）。`,
+③ 重命名按钮弹出重命名弹窗，名称为空时拦截；确认后更新素材标题并回写存储（重命名不改变素材类型，类型按上传时的扩展名固定）。
+④ 删除按钮点击直接移除该素材（已阻止冒泡，不会触发预览）。`,
     },
     {
       id: 'archive-media.preview',

@@ -1,5 +1,7 @@
 // 预设人生标签：新建档案/完善基础信息时勾选，AI 按标签生成针对性采访主题
 export const presetLifeTags = [
+  '出生',
+  '童年',
   '求学深造',
   '参军入伍',
   '出国留学',
@@ -17,3 +19,57 @@ export const presetLifeTags = [
   '宗教信仰',
   '家乡迁徙',
 ];
+
+// 通用标签的年龄门槛：传主年龄不足时不展示该标签（未列出的标签不限年龄）
+const tagMinAge: Record<string, number> = {
+  求学深造: 6,
+  参军入伍: 18,
+  出国留学: 16,
+  下海创业: 20,
+  调岗转行: 22,
+  结婚生子: 20,
+  养育子女: 20,
+  退休生活: 45,
+  宗教信仰: 18,
+};
+
+// 职业下拉选项
+export const occupationOptions = [
+  '企业家',
+  '工程师',
+  '教师',
+  '医生',
+  '农民',
+  '工人',
+  '军人',
+  '公务员',
+  '文艺工作者',
+  '自由职业',
+  '退休人士',
+  '其他',
+];
+
+// 职业相关人生标签：选中职业后优先展示该职业的常见经历，未匹配时展示全量预设标签
+export const occupationLifeTags: Record<string, string[]> = {
+  企业家: ['下海创业', '调岗转行', '家乡迁徙', '养育子女', '结婚生子', '退休生活'],
+  工程师: ['求学深造', '调岗转行', '家乡迁徙', '体育运动', '旅游摄影'],
+  教师: ['求学深造', '养育子女', '书法绘画', '家乡迁徙', '退休生活'],
+  医生: ['求学深造', '调岗转行', '疾病康复', '养育子女', '退休生活'],
+  农民: ['养育子女', '家乡迁徙', '钓鱼养花', '宗教信仰', '体育运动'],
+  工人: ['调岗转行', '养育子女', '体育运动', '宗教信仰', '退休生活'],
+  军人: ['参军入伍', '家乡迁徙', '养育子女', '体育运动', '退休生活'],
+  公务员: ['求学深造', '调岗转行', '养育子女', '书法绘画', '退休生活'],
+  文艺工作者: ['书法绘画', '音乐戏曲', '求学深造', '旅游摄影', '退休生活'],
+  自由职业: ['出国留学', '调岗转行', '旅游摄影', '音乐戏曲', '体育运动'],
+  退休人士: ['退休生活', '钓鱼养花', '书法绘画', '旅游摄影', '疾病康复'],
+};
+
+/** 按职业取人生标签：有映射用映射，否则用全量预设；再按出生年份过滤掉年龄不符的标签 */
+export function lifeTagsForOccupation(occupation: string, birthYear?: string): string[] {
+  const base = occupationLifeTags[occupation] || presetLifeTags;
+  const year = Number(birthYear);
+  const currentYear = new Date().getFullYear();
+  if (!year || year < 1900 || year > currentYear) return base;
+  const age = currentYear - year;
+  return base.filter((tag) => (tagMinAge[tag] ?? 0) <= age);
+}

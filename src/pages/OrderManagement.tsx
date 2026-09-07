@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Search, RefreshCw, ShoppingCart, CreditCard, Package, CheckCircle, AlertCircle, Clock, XCircle, Eye, X, UserCheck, Calendar, MapPin, Truck, Upload, FileText, ExternalLink, Star, Plus } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Search, RefreshCw, CreditCard, Package, CheckCircle, AlertCircle, Clock, XCircle, X, UserCheck, Calendar, MapPin, Truck, Upload, FileText, ExternalLink, Paperclip } from 'lucide-react';
 import { orderApi, type AdminOrder } from '../api/order';
 import { biographerApi } from '../api/biographer';
+import { uploadFile } from '../api/client';
 import { useToast } from '../hooks/useToast';
-import type { BiographerOrder, Deliverable, OrderLogistics, ReviewStatus } from '../mocks/types';
+import type { BiographerOrder, Deliverable, OrderLogistics } from '../mocks/types';
 import Annotate from '../components/annotation/Annotate';
 import './OrderManagement.css';
 
@@ -67,6 +68,13 @@ const deliverableTypeLabels: Record<Deliverable['type'], string> = {
   image: '图片',
 };
 
+// 文件类交付物：支持直接上传本地文件（也可仍填链接）
+const fileDeliverableAccept: Partial<Record<Deliverable['type'], string>> = {
+  pdf: '.pdf',
+  video: 'video/*',
+  image: 'image/*',
+};
+
 export default function OrderManagement() {
   const { addToast } = useToast();
   const [orders, setOrders] = useState<AdminOrder[]>([]);
@@ -87,6 +95,28 @@ export default function OrderManagement() {
 
   const [deliverableModalOrder, setDeliverableModalOrder] = useState<AdminOrder | null>(null);
   const [deliverable, setDeliverable] = useState<Deliverable>({ type: 'link', url: '', name: '', createdAt: new Date().toISOString() });
+  const [deliverableUploading, setDeliverableUploading] = useState(false);
+  const deliverableFileRef = useRef<HTMLInputElement>(null);
+
+  const handleDeliverableFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    try {
+      setDeliverableUploading(true);
+      const list = await uploadFile([file]);
+      setDeliverable((prev) => ({
+        ...prev,
+        url: list[0].url,
+        name: prev.name.trim() || file.name.replace(/\.[^.]+$/, ''),
+      }));
+      addToast('文件已上传', 'success');
+    } catch {
+      addToast('文件上传失败', 'error');
+    } finally {
+      setDeliverableUploading(false);
+    }
+  };
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [batchDeliverModal, setBatchDeliverModal] = useState(false);
@@ -96,16 +126,6 @@ export default function OrderManagement() {
   const [batchDeliverableName, setBatchDeliverableName] = useState('');
   const [batchDeliverableUrl, setBatchDeliverableUrl] = useState('');
   const [batchSubmitting, setBatchSubmitting] = useState(false);
-
-  const [supplementModal, setSupplementModal] = useState(false);
-  const [supplementForm, setSupplementForm] = useState<{ userId: string; type: AdminOrder['type']; productName: string; amount: string; remark: string }>({
-    userId: '',
-    type: 'biography',
-    productName: '',
-    amount: '',
-    remark: '',
-  });
-  const [supplementSubmitting, setSupplementSubmitting] = useState(false);
 
   useEffect(() => {
     loadOrders();
@@ -209,47 +229,6 @@ export default function OrderManagement() {
     });
   }, [orders, keyword, statusFilter, typeFilter]);
 
-  // 手动补单的用户选项：取自订单中已出现的客户（与 mock 用户库一致）
-  const userOptions = useMemo(() => {
-    const map = new Map<string, { userId: string; label: string }>();
-    orders.forEach((o) => {
-      if (!map.has(o.userId)) {
-        map.set(o.userId, { userId: o.userId, label: `${o.userName || '未知用户'}（${o.userPhone || o.userId}）` });
-      }
-    });
-    return Array.from(map.values());
-  }, [orders]);
-
-  const handleSupplementSubmit = async () => {
-    if (!supplementForm.userId) {
-      addToast('请选择用户', 'error');
-      return;
-    }
-    const amount = Number(supplementForm.amount);
-    if (!amount || amount <= 0) {
-      addToast('请填写有效金额', 'error');
-      return;
-    }
-    try {
-      setSupplementSubmitting(true);
-      await orderApi.adminCreate({
-        userId: supplementForm.userId,
-        type: supplementForm.type,
-        productName: supplementForm.productName.trim() || undefined,
-        amount,
-        remark: supplementForm.remark.trim() || undefined,
-      });
-      addToast('补单成功，订单已创建为已支付状态', 'success');
-      setSupplementModal(false);
-      setSupplementForm({ userId: '', type: 'biography', productName: '', amount: '', remark: '' });
-      loadOrders();
-    } catch (err) {
-      addToast(err instanceof Error ? err.message : '补单失败', 'error');
-    } finally {
-      setSupplementSubmitting(false);
-    }
-  };
-
   const toggleSelect = (id: string) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -269,18 +248,6 @@ export default function OrderManagement() {
 
   const physicalSelected = useMemo(() => filtered.filter((o) => selectedIds.has(o.id) && isPhysicalProduct(o.type) && o.status === 'paid'), [filtered, selectedIds]);
   const digitalSelected = useMemo(() => filtered.filter((o) => selectedIds.has(o.id) && isDigitalProduct(o.type) && o.status === 'paid'), [filtered, selectedIds]);
-
-  const stats = useMemo(() => {
-    const totalAmount = orders.reduce((sum, o) => sum + o.amount, 0);
-    const paidAmount = orders.filter((o) => ['paid', 'delivering', 'completed'].includes(o.status)).reduce((sum, o) => sum + o.amount, 0);
-    const pendingCount = orders.filter((o) => o.status === 'pending_pay').length;
-    return {
-      total: orders.length,
-      totalAmount,
-      paidAmount,
-      pendingCount,
-    };
-  }, [orders]);
 
   const executeAction = async () => {
     if (!confirmAction) return;
@@ -366,7 +333,7 @@ export default function OrderManagement() {
   const handleAddDeliverable = async () => {
     if (!deliverableModalOrder) return;
     if (!deliverable.url.trim() || !deliverable.name.trim()) {
-      addToast('请填写交付物名称和链接/地址', 'error');
+      addToast('请填写交付物名称，并上传文件或填写链接/地址', 'error');
       return;
     }
     try {
@@ -390,23 +357,23 @@ export default function OrderManagement() {
     }
 
     return (
-      <div className="order-actions">
-        <button className="order-action-btn order-action-view" onClick={() => handleViewDetail(item)}>
-          <Eye size={12} /> 详情
+      <>
+        <button className="admin-table-link" onClick={() => handleViewDetail(item)}>
+          详情
         </button>
         {item.status === 'paid' && isPhysicalProduct(item.type) && (
-          <button className="order-action-btn order-action-primary" onClick={() => setDeliverModalOrder(item)}>
-            <Truck size={12} /> 发货
+          <button className="admin-table-link" onClick={() => setDeliverModalOrder(item)}>
+            发货
           </button>
         )}
         {item.status === 'paid' && isDigitalProduct(item.type) && (
-          <button className="order-action-btn order-action-primary" onClick={() => setDeliverableModalOrder(item)}>
-            <Upload size={12} /> 上传交付物
+          <button className="admin-table-link" onClick={() => setDeliverableModalOrder(item)}>
+            上传交付物
           </button>
         )}
         {item.status === 'paid' && !isPhysicalProduct(item.type) && !isDigitalProduct(item.type) && (
           <button
-            className="order-action-btn order-action-primary"
+            className="admin-table-link"
             onClick={() => setConfirmAction({ order: item, action: { status: 'delivering', label: '开始服务', variant: 'primary' } })}
           >
             开始服务
@@ -414,10 +381,10 @@ export default function OrderManagement() {
         )}
         {item.refundRequest?.status === 'pending' && (
           <>
-            <button className="order-action-btn order-action-primary" disabled={refundSubmitting} onClick={() => { if (window.confirm('审核通过后将模拟完成退款，是否继续？')) handleApproveRefund(item); }}>
+            <button className="admin-table-link" disabled={refundSubmitting} onClick={() => { if (window.confirm('审核通过后将模拟完成退款，是否继续？')) handleApproveRefund(item); }}>
               通过退款
             </button>
-            <button className="order-action-btn order-action-danger" disabled={refundSubmitting} onClick={() => { setRefundRejectOrder(item); setRefundRejectionReason(''); }}>
+            <button className="admin-table-link danger" disabled={refundSubmitting} onClick={() => { setRefundRejectOrder(item); setRefundRejectionReason(''); }}>
               驳回退款
             </button>
           </>
@@ -425,13 +392,13 @@ export default function OrderManagement() {
         {statusActions.map((action) => (
           <button
             key={action.status}
-            className={`order-action-btn order-action-${action.variant}`}
+            className={`admin-table-link${action.variant === 'danger' ? ' danger' : ''}`}
             onClick={() => setConfirmAction({ order: item, action })}
           >
             {action.label}
           </button>
         ))}
-      </div>
+      </>
     );
   };
 
@@ -507,101 +474,16 @@ export default function OrderManagement() {
     );
   };
 
-  const handleAuditReview = async (order: AdminOrder, status: ReviewStatus) => {
-    try {
-      await orderApi.adminAuditReview(order.id, status);
-      addToast(status === 'approved' ? '评价已通过' : '评价已驳回', 'success');
-      loadOrders();
-    } catch (err: any) {
-      addToast(err.message || '审核失败', 'error');
-    }
-  };
-
-  const reviewStatusLabel: Record<ReviewStatus, { label: string; className: string }> = {
-    pending: { label: '待审核', className: 'review-status-pending' },
-    approved: { label: '已通过', className: 'review-status-approved' },
-    rejected: { label: '已驳回', className: 'review-status-rejected' },
-  };
-
-  const renderReview = (order: AdminOrder) => {
-    if (!order.review) return null;
-    const status = reviewStatusLabel[order.review.status || 'pending'];
-    return (
-      <Annotate id="order-management.review-audit">
-      <>
-        <div className="order-detail-divider" />
-        <div className="order-detail-section">
-          <h5><Star size={14} /> 用户评价 <span className={`review-status-badge ${status.className}`}>{status.label}</span></h5>
-          <div className="order-review-stars">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Star key={i} size={14} className={i < order.review!.rating ? 'filled' : ''} />
-            ))}
-          </div>
-          <p className="order-review-content">{order.review.content}</p>
-          {order.review.status === 'pending' && (
-            <div className="order-review-actions">
-              <button className="btn btn-primary btn-sm" onClick={() => handleAuditReview(order, 'approved')}>
-                <CheckCircle size={12} /> 通过
-              </button>
-              <button className="btn btn-danger btn-sm" onClick={() => handleAuditReview(order, 'rejected')}>
-                <XCircle size={12} /> 驳回
-              </button>
-            </div>
-          )}
-        </div>
-      </>
-      </Annotate>
-    );
-  };
-
   return (
     <div className="order-management-page">
       <header className="page-header">
         <h1 className="page-title">订单管理</h1>
         <div style={{ display: 'flex', gap: 8 }}>
-          <Annotate id="order-management.supplement" inline>
-          <button className="btn btn-primary" onClick={() => setSupplementModal(true)}>
-            <Plus size={14} /> 手动补单
-          </button>
-          </Annotate>
           <button className="btn btn-outline" onClick={loadOrders} disabled={loading}>
             <RefreshCw size={14} className={loading ? 'spin' : ''} /> 刷新
           </button>
         </div>
       </header>
-
-      <Annotate id="order-management.stats">
-      <div className="order-stats">
-        <div className="card order-stat-card">
-          <ShoppingCart size={20} color="#1B5E4B" />
-          <div>
-            <div className="order-stat-value">{stats.total}</div>
-            <div className="order-stat-label">订单总数</div>
-          </div>
-        </div>
-        <div className="card order-stat-card">
-          <CreditCard size={20} color="#2563eb" />
-          <div>
-            <div className="order-stat-value">¥{stats.paidAmount.toLocaleString()}</div>
-            <div className="order-stat-label">实收金额</div>
-          </div>
-        </div>
-        <div className="card order-stat-card">
-          <Clock size={20} color="#d97706" />
-          <div>
-            <div className="order-stat-value">{stats.pendingCount}</div>
-            <div className="order-stat-label">待支付</div>
-          </div>
-        </div>
-        <div className="card order-stat-card">
-          <CheckCircle size={20} color="#7c3aed" />
-          <div>
-            <div className="order-stat-value">¥{stats.totalAmount.toLocaleString()}</div>
-            <div className="order-stat-label">订单总额</div>
-          </div>
-        </div>
-      </div>
-      </Annotate>
 
       <div className="card order-list-card">
         <div className="card-header order-list-header">
@@ -651,69 +533,75 @@ export default function OrderManagement() {
         )}
         <div className="card-body order-list-body">
           {loading ? (
-            <div className="order-empty">加载中…</div>
+            <div className="admin-table-empty">加载中…</div>
           ) : filtered.length === 0 ? (
-            <div className="order-empty">暂无符合条件的订单</div>
+            <div className="admin-table-empty">暂无符合条件的订单</div>
           ) : (
-            <div className="order-table">
-              <div className="order-row order-header-row">
-                <div className="order-cell order-cell-check">
-                  <input
-                    type="checkbox"
-                    checked={filtered.length > 0 && selectedIds.size === filtered.length}
-                    onChange={toggleSelectAll}
-                  />
-                </div>
-                <div className="order-cell">订单号</div>
-                <div className="order-cell">客户</div>
-                <div className="order-cell">商品/服务</div>
-                <div className="order-cell">类型</div>
-                <div className="order-cell">金额</div>
-                <div className="order-cell">状态</div>
-                <div className="order-cell">下单时间</div>
-                <div className="order-cell">操作</div>
-              </div>
-              {filtered.map((item) => {
-                const status = statusMap[item.status];
-                const StatusIcon = status.icon;
-                const selected = selectedIds.has(item.id);
-                return (
-                  <div className={`order-row ${selected ? 'selected' : ''}`} key={item.id}>
-                    <div className="order-cell order-cell-check">
-                      <input type="checkbox" checked={selected} onChange={() => toggleSelect(item.id)} />
-                    </div>
-                    <div className="order-cell order-cell-id">{item.id}</div>
-                    <div className="order-cell">
-                      <div className="order-user-name">{item.userName || '未知用户'}</div>
-                      <div className="order-user-phone">{item.userPhone || item.userId}</div>
-                    </div>
-                    <div className="order-cell order-cell-product">
-                      <div className="order-product-name">{item.productName}</div>
-                      <div className="order-product-tags">
-                        {item.address && (
-                          <span className="order-product-tag address-tag" title="已填写收货地址"><MapPin size={10} /> 地址</span>
-                        )}
-                        {item.deliverables && item.deliverables.length > 0 && (
-                          <span className="order-product-tag deliverable-tag" title={`已上传 ${item.deliverables.length} 个交付物`}><FileText size={10} /> 交付物 {item.deliverables.length}</span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="order-cell">{typeLabelMap[item.type]}</div>
-                    <div className="order-cell order-cell-amount">¥{item.amount.toLocaleString()}</div>
-                    <div className="order-cell">
-                      <span className={`order-status ${status.className}`}>
-                        <StatusIcon size={12} /> {status.label}
-                      </span>
-                      {item.refundRequest?.status === 'pending' && <span className="order-refund-review-badge pending">退款待审核</span>}
-                      {item.refundRequest?.status === 'rejected' && <span className="order-refund-review-badge rejected">退款已驳回</span>}
-                    </div>
-                    <div className="order-cell order-cell-time">{new Date(item.createdAt).toLocaleString()}</div>
-                    <div className="order-cell order-cell-action">
-                      <Annotate id="order-management.row-actions" inline>{renderActionButtons(item)}</Annotate>
-                    </div>
-                  </div>
-                );
-              })}
+            <div className="admin-table-wrap">
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th className="admin-table-check">
+                      <input
+                        type="checkbox"
+                        checked={filtered.length > 0 && selectedIds.size === filtered.length}
+                        onChange={toggleSelectAll}
+                      />
+                    </th>
+                    <th>订单号</th>
+                    <th>客户</th>
+                    <th>商品/服务</th>
+                    <th>类型</th>
+                    <th>金额</th>
+                    <th>状态</th>
+                    <th>下单时间</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((item) => {
+                    const status = statusMap[item.status];
+                    const StatusIcon = status.icon;
+                    const selected = selectedIds.has(item.id);
+                    return (
+                      <tr className={selected ? 'selected' : undefined} key={item.id}>
+                        <td className="admin-table-check">
+                          <input type="checkbox" checked={selected} onChange={() => toggleSelect(item.id)} />
+                        </td>
+                        <td className="order-cell-id">{item.id}</td>
+                        <td>
+                          <div className="order-user-name">{item.userName || '未知用户'}</div>
+                          <div className="order-user-phone">{item.userPhone || item.userId}</div>
+                        </td>
+                        <td className="admin-table-text-left order-cell-product">
+                          <div className="order-product-name">{item.productName}</div>
+                          <div className="order-product-tags">
+                            {item.address && (
+                              <span className="order-product-tag address-tag" title="已填写收货地址"><MapPin size={10} /> 地址</span>
+                            )}
+                            {item.deliverables && item.deliverables.length > 0 && (
+                              <span className="order-product-tag deliverable-tag" title={`已上传 ${item.deliverables.length} 个交付物`}><FileText size={10} /> 交付物 {item.deliverables.length}</span>
+                            )}
+                          </div>
+                        </td>
+                        <td>{typeLabelMap[item.type]}</td>
+                        <td className="order-cell-amount">¥{item.amount.toLocaleString()}</td>
+                        <td>
+                          <span className={`order-status ${status.className}`}>
+                            <StatusIcon size={12} /> {status.label}
+                          </span>
+                          {item.refundRequest?.status === 'pending' && <span className="order-refund-review-badge pending">退款待审核</span>}
+                          {item.refundRequest?.status === 'rejected' && <span className="order-refund-review-badge rejected">退款已驳回</span>}
+                        </td>
+                        <td className="order-cell-time">{new Date(item.createdAt).toLocaleString()}</td>
+                        <td>
+                          <Annotate id="order-management.row-actions" inline>{renderActionButtons(item)}</Annotate>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           )}
         </div>
@@ -803,7 +691,6 @@ export default function OrderManagement() {
                   </div>
                 </>
               )}
-              {renderReview(selectedOrder)}
 
               {selectedOrder.type === 'biographer_service' && (
                 <>
@@ -815,8 +702,8 @@ export default function OrderManagement() {
                     ) : selectedBiographerOrder ? (
                       <>
                         <div className="order-detail-row">
-                          <span className="order-detail-label">定金金额</span>
-                          <span className="order-detail-value">¥{selectedBiographerOrder.deposit.toLocaleString()}</span>
+                          <span className="order-detail-label">订单金额</span>
+                          <span className="order-detail-value">¥{selectedBiographerOrder.amount.toLocaleString()}</span>
                         </div>
                         {selectedBiographerOrder.schedule?.time && (
                           <div className="order-detail-row">
@@ -918,17 +805,25 @@ export default function OrderManagement() {
                 />
               </div>
               <div className="order-form-row">
-                <label>链接 / 地址 <span className="order-form-required">*</span></label>
+                <label>文件 / 链接 <span className="order-form-required">*</span></label>
+                {fileDeliverableAccept[deliverable.type] && (
+                  <div className="order-deliverable-upload">
+                    <button type="button" className="btn btn-outline btn-sm" disabled={deliverableUploading} onClick={() => deliverableFileRef.current?.click()}>
+                      <Paperclip size={12} /> {deliverableUploading ? '上传中…' : '选择本地文件'}
+                    </button>
+                    <input ref={deliverableFileRef} type="file" accept={fileDeliverableAccept[deliverable.type]} hidden onChange={handleDeliverableFile} />
+                  </div>
+                )}
                 <input
                   type="text"
                   value={deliverable.url}
                   onChange={(e) => setDeliverable({ ...deliverable, url: e.target.value })}
-                  placeholder="https://..."
+                  placeholder={fileDeliverableAccept[deliverable.type] ? '上传文件后自动填入，或手动输入 https://...' : 'https://...'}
                 />
               </div>
               <div className="order-detail-actions">
                 <button className="btn btn-outline" onClick={() => setDeliverableModalOrder(null)}>取消</button>
-                <button className="btn btn-primary" onClick={handleAddDeliverable}><Upload size={14} /> 确认上传</button>
+                <button className="btn btn-primary" disabled={deliverableUploading} onClick={handleAddDeliverable}><Upload size={14} /> 确认上传</button>
               </div>
             </div>
           </div>
@@ -1003,77 +898,6 @@ export default function OrderManagement() {
                 <button className="btn btn-outline" onClick={() => setBatchDeliverableModal(false)}>取消</button>
                 <button className="btn btn-primary" disabled={batchSubmitting} onClick={handleBatchDeliverable}>
                   <Upload size={14} /> {batchSubmitting ? '上传中…' : '确认批量上传'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {supplementModal && (
-        <div className="modal-overlay" onClick={() => setSupplementModal(false)}>
-          <div className="modal-content order-detail-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h4>手动补单</h4>
-              <button className="modal-close" onClick={() => setSupplementModal(false)}><X size={16} /></button>
-            </div>
-            <div className="modal-body">
-              <p className="order-batch-hint">用于线下收款等场景补录订单，创建后直接为「已支付」状态。</p>
-              <div className="order-form-row">
-                <label>用户 <span className="order-form-required">*</span></label>
-                <select
-                  value={supplementForm.userId}
-                  onChange={(e) => setSupplementForm({ ...supplementForm, userId: e.target.value })}
-                >
-                  <option value="">请选择用户</option>
-                  {userOptions.map((u) => (
-                    <option value={u.userId} key={u.userId}>{u.label}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="order-form-row">
-                <label>产品类型 <span className="order-form-required">*</span></label>
-                <select
-                  value={supplementForm.type}
-                  onChange={(e) => setSupplementForm({ ...supplementForm, type: e.target.value as AdminOrder['type'] })}
-                >
-                  {typeOptions.filter((t) => t.value !== 'all').map((t) => (
-                    <option value={t.value} key={t.value}>{t.label}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="order-form-row">
-                <label>商品/服务名称</label>
-                <input
-                  type="text"
-                  value={supplementForm.productName}
-                  onChange={(e) => setSupplementForm({ ...supplementForm, productName: e.target.value })}
-                  placeholder="不填则默认为「手动补单」"
-                />
-              </div>
-              <div className="order-form-row">
-                <label>金额（元） <span className="order-form-required">*</span></label>
-                <input
-                  type="number"
-                  min={0}
-                  value={supplementForm.amount}
-                  onChange={(e) => setSupplementForm({ ...supplementForm, amount: e.target.value })}
-                  placeholder="请输入金额"
-                />
-              </div>
-              <div className="order-form-row">
-                <label>备注</label>
-                <input
-                  type="text"
-                  value={supplementForm.remark}
-                  onChange={(e) => setSupplementForm({ ...supplementForm, remark: e.target.value })}
-                  placeholder="如：线下微信收款补录"
-                />
-              </div>
-              <div className="order-detail-actions">
-                <button className="btn btn-outline" onClick={() => setSupplementModal(false)}>取消</button>
-                <button className="btn btn-primary" disabled={supplementSubmitting} onClick={handleSupplementSubmit}>
-                  <Plus size={14} /> {supplementSubmitting ? '提交中…' : '确认补单'}
                 </button>
               </div>
             </div>

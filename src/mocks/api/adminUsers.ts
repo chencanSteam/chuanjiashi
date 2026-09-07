@@ -26,8 +26,10 @@ export const adminUserHandlers: HttpHandler[] = [
     const url = new URL(request.url)
     const keyword = url.searchParams.get('keyword') || ''
     const status = url.searchParams.get('status') || 'all'
+    const regionCode = url.searchParams.get('regionCode') || ''
     let users = ensureAdminUsers()
     if (status !== 'all') users = users.filter((u) => u.status === status)
+    if (regionCode) users = users.filter((u) => u.regionCode?.startsWith(regionCode))
     if (keyword) {
       const lower = keyword.toLowerCase()
       users = users.filter((u) =>

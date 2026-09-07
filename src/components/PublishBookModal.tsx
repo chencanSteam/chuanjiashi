@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
-import { X, BookOpen, Tag, DollarSign, FileText, User } from 'lucide-react';
+import { X, BookOpen, DollarSign, FileText, Image, User } from 'lucide-react';
 import { bookshelfApi } from '../api/bookshelf';
-import { dictionaryApi } from '../api/dictionary';
 import { useToast } from '../hooks/useToast';
 import { useAuth } from '../hooks/useAuth';
 import type { PublicBook } from '../mocks/types';
@@ -26,27 +25,15 @@ export default function PublishBookModal({ archive, onClose, onPublished }: Publ
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [existing, setExisting] = useState<PublicBook | null>(null);
-  const [occupationOptions, setOccupationOptions] = useState<string[]>([]);
-  const [lifeStageOptions, setLifeStageOptions] = useState<string[]>([]);
   const [form, setForm] = useState({
     title: `${archive.name}的传记`,
     author: user?.name || '本人/家属整理',
     intro: '',
-    occupationTags: [] as string[],
-    lifeStageTags: [] as string[],
+    cover: '',
     isFree: true,
     price: '',
     trialWords: 1000,
   });
-
-  useEffect(() => {
-    dictionaryApi.list('book_occupation')
-      .then((list) => setOccupationOptions(list.map((item) => item.label)))
-      .catch(() => setOccupationOptions([]));
-    dictionaryApi.list('book_life_stage')
-      .then((list) => setLifeStageOptions(list.map((item) => item.label)))
-      .catch(() => setLifeStageOptions([]));
-  }, []);
 
   useEffect(() => {
     setLoading(true);
@@ -60,8 +47,7 @@ export default function PublishBookModal({ archive, onClose, onPublished }: Publ
             title: found.title,
             author: found.author,
             intro: found.intro,
-            occupationTags: found.occupationTags?.length ? found.occupationTags : [found.category],
-            lifeStageTags: found.lifeStageTags || [],
+            cover: found.cover || '',
             isFree: found.isFree,
             price: found.isFree ? '' : found.price.toString(),
             trialWords: found.trialWords || 1000,
@@ -72,11 +58,17 @@ export default function PublishBookModal({ archive, onClose, onPublished }: Publ
       .finally(() => setLoading(false));
   }, [archive.id]);
 
-  const toggleTag = (key: 'occupationTags' | 'lifeStageTags', tag: string) => {
-    setForm((prev) => ({
-      ...prev,
-      [key]: prev[key].includes(tag) ? prev[key].filter((t) => t !== tag) : [...prev[key], tag],
-    }));
+  const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      addToast('请选择图片文件', 'error');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => setForm((prev) => ({ ...prev, cover: String(reader.result || '') }));
+    reader.readAsDataURL(file);
+    e.target.value = '';
   };
 
   const handleSubmit = async () => {
@@ -98,20 +90,22 @@ export default function PublishBookModal({ archive, onClose, onPublished }: Publ
 
     try {
       const bookId = existing?.id || `book_${archive.id}_${Date.now()}`;
-      await bookshelfApi.publish(bookId, {
+      const published = await bookshelfApi.publish(bookId, {
         archiveId: archive.id,
         title: form.title,
         author: form.author,
         intro: form.intro,
-        // category 保留用于书架筛选兼容，取第一个职业标签
-        category: form.occupationTags[0] || '其他',
-        occupationTags: form.occupationTags,
-        lifeStageTags: form.lifeStageTags,
+        cover: form.cover || undefined,
+        category: '其他',
         isFree: form.isFree,
         price: form.isFree ? 0 : parseFloat(form.price),
         trialWords: form.trialWords,
       });
-      addToast(existing ? '已重新提交审核' : '上架申请已提交，等待平台审核', 'success');
+      if (published.restricted) {
+        addToast('已提交，但内容包含需复核的词汇，审核期间仅自己可见', 'info');
+      } else {
+        addToast(existing ? '已重新提交审核' : '上架申请已提交，等待平台审核', 'success');
+      }
       onPublished?.();
       onClose();
     } catch (err: any) {
@@ -165,34 +159,31 @@ export default function PublishBookModal({ archive, onClose, onPublished }: Publ
               </div>
 
               <div className="form-row">
-                <label><Tag size={14} /> 职业标签（可多选，选填）</label>
-                <div className="publish-book-tags">
-                  {occupationOptions.map((tag) => (
-                    <button
-                      type="button"
-                      key={tag}
-                      className={`publish-book-tag ${form.occupationTags.includes(tag) ? 'active' : ''}`}
-                      onClick={() => toggleTag('occupationTags', tag)}
-                    >
-                      {tag}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="form-row">
-                <label><Tag size={14} /> 人生阶段标签（可多选，选填）</label>
-                <div className="publish-book-tags">
-                  {lifeStageOptions.map((tag) => (
-                    <button
-                      type="button"
-                      key={tag}
-                      className={`publish-book-tag publish-book-tag-stage ${form.lifeStageTags.includes(tag) ? 'active' : ''}`}
-                      onClick={() => toggleTag('lifeStageTags', tag)}
-                    >
-                      {tag}
-                    </button>
-                  ))}
+                <label><Image size={14} /> 书籍封面（选填）</label>
+                <div className="publish-book-cover-row">
+                  <div className="publish-book-cover-preview">
+                    {form.cover ? (
+                      <img src={form.cover} alt="书籍封面" />
+                    ) : (
+                      <BookOpen size={28} />
+                    )}
+                  </div>
+                  <div className="publish-book-cover-actions">
+                    <label className="btn btn-outline btn-sm">
+                      上传封面
+                      <input type="file" hidden accept="image/*" onChange={handleCoverChange} />
+                    </label>
+                    {form.cover && (
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => setForm((prev) => ({ ...prev, cover: '' }))}
+                      >
+                        移除
+                      </button>
+                    )}
+                    <span className="publish-book-field-hint">建议竖版图片，不上传则使用默认封面。</span>
+                  </div>
                 </div>
               </div>
 

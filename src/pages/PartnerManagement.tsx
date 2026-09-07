@@ -2,11 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   Plus,
   Search,
-  Users,
   MapPin,
-  Share2,
-  Edit2,
-  Trash2,
   X,
   Phone,
   Mail,
@@ -153,16 +149,6 @@ export default function PartnerManagement() {
       return matchKeyword && matchType;
     });
   }, [partners, keyword, typeFilter]);
-
-  const stats = useMemo(() => {
-    return {
-      total: partners.length,
-      province: partners.filter((p) => p.type === 'province').length,
-      city: partners.filter((p) => p.type === 'city').length,
-      district: partners.filter((p) => p.type === 'district').length,
-      inviter: partners.filter((p) => p.type === 'inviter').length,
-    };
-  }, [partners]);
 
   const openCreate = () => {
     setEditing(null);
@@ -332,14 +318,6 @@ export default function PartnerManagement() {
 
       {activeTab === 'list' && (
       <>
-      <div className="partner-mgmt-stats">
-        <div className="card partner-mgmt-stat"><Users size={18} color="#1B5E4B" /><div><div className="partner-mgmt-stat-value">{stats.total}</div><div className="partner-mgmt-stat-label">总数</div></div></div>
-        <div className="card partner-mgmt-stat"><MapPin size={18} color="#2563eb" /><div><div className="partner-mgmt-stat-value">{stats.province}</div><div className="partner-mgmt-stat-label">省级</div></div></div>
-        <div className="card partner-mgmt-stat"><MapPin size={18} color="#7c3aed" /><div><div className="partner-mgmt-stat-value">{stats.city}</div><div className="partner-mgmt-stat-label">市级</div></div></div>
-        <div className="card partner-mgmt-stat"><MapPin size={18} color="#d97706" /><div><div className="partner-mgmt-stat-value">{stats.district}</div><div className="partner-mgmt-stat-label">区县</div></div></div>
-        <div className="card partner-mgmt-stat"><Share2 size={18} color="#0891b2" /><div><div className="partner-mgmt-stat-value">{stats.inviter}</div><div className="partner-mgmt-stat-label">邀请码</div></div></div>
-      </div>
-
       <div className="card">
         <div className="card-header partner-mgmt-header">
           <Annotate id="admin-partners.list-filter" inline>
@@ -361,45 +339,53 @@ export default function PartnerManagement() {
         <Annotate id="admin-partners.list-table">
         <div className="card-body partner-mgmt-body">
           {filtered.length === 0 ? (
-            <div className="partner-mgmt-empty">暂无合伙人</div>
+            <div className="admin-table-empty">暂无合伙人</div>
           ) : (
-            <div className="partner-mgmt-table">
-              <div className="partner-mgmt-row partner-mgmt-header-row">
-                <div className="partner-mgmt-cell partner-mgmt-cell-name">合伙人</div>
-                <div className="partner-mgmt-cell partner-mgmt-cell-type">类型</div>
-                <div className="partner-mgmt-cell partner-mgmt-cell-region">区域</div>
-                <div className="partner-mgmt-cell partner-mgmt-cell-code">邀请码</div>
-                <div className="partner-mgmt-cell partner-mgmt-cell-rate">分佣</div>
-                <div className="partner-mgmt-cell partner-mgmt-cell-earnings">累计收益</div>
-                <div className="partner-mgmt-cell partner-mgmt-cell-status">状态</div>
-                <div className="partner-mgmt-cell partner-mgmt-cell-action">操作</div>
-              </div>
-              {filtered.map((p) => (
-                <div className="partner-mgmt-row" key={p.id}>
-                  <div className="partner-mgmt-cell partner-mgmt-cell-name">
-                    <Avatar name={p.name} size={36} />
-                    <div>
-                      <div className="partner-mgmt-name">{p.name}</div>
-                      <div className="partner-mgmt-phone">{p.phone}</div>
-                    </div>
-                  </div>
-                  <div className="partner-mgmt-cell partner-mgmt-cell-type">{getPartnerTypeLabel(p.type)}</div>
-                  <div className="partner-mgmt-cell partner-mgmt-cell-region">{p.regionName || '-'}</div>
-                  <div className="partner-mgmt-cell partner-mgmt-cell-code">
-                    <span className="partner-mgmt-code">{p.inviteCode}</span>
-                    <button className="icon-btn" onClick={() => copyInviteCode(p.inviteCode)}><Share2 size={12} /></button>
-                  </div>
-                  <div className="partner-mgmt-cell partner-mgmt-cell-rate">{(p.commissionRate * 100).toFixed(0)}%</div>
-                  <div className="partner-mgmt-cell partner-mgmt-cell-earnings">¥{p.totalEarnings.toFixed(2)}</div>
-                  <div className="partner-mgmt-cell partner-mgmt-cell-status">
-                    <span className={`partner-mgmt-status ${p.status}`}>{getPartnerStatusLabel(p.status)}</span>
-                  </div>
-                  <div className="partner-mgmt-cell partner-mgmt-cell-action">
-                    <button className="icon-btn" onClick={() => openEdit(p)}><Edit2 size={14} /></button>
-                    <button className="icon-btn" onClick={() => setShowDelete(p)}><Trash2 size={14} /></button>
-                  </div>
-                </div>
-              ))}
+            <div className="admin-table-wrap">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>合伙人</th>
+                  <th>类型</th>
+                  <th>区域</th>
+                  <th>邀请码</th>
+                  <th>分佣</th>
+                  <th>累计收益</th>
+                  <th>状态</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((p) => (
+                  <tr key={p.id}>
+                    <td className="admin-table-text-left">
+                      <div className="partner-mgmt-name-cell">
+                        <Avatar name={p.name} size={36} />
+                        <div>
+                          <div className="partner-mgmt-name">{p.name}</div>
+                          <div className="partner-mgmt-phone">{p.phone}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td>{getPartnerTypeLabel(p.type)}</td>
+                    <td>{p.regionName || '-'}</td>
+                    <td>
+                      <span className="partner-mgmt-code">{p.inviteCode}</span>
+                      <button className="admin-table-link" onClick={() => copyInviteCode(p.inviteCode)}>复制</button>
+                    </td>
+                    <td>{(p.commissionRate * 100).toFixed(0)}%</td>
+                    <td>¥{p.totalEarnings.toFixed(2)}</td>
+                    <td>
+                      <span className={`partner-mgmt-status ${p.status}`}>{getPartnerStatusLabel(p.status)}</span>
+                    </td>
+                    <td>
+                      <button className="admin-table-link" onClick={() => openEdit(p)}>编辑</button>
+                      <button className="admin-table-link danger" onClick={() => setShowDelete(p)}>删除</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
             </div>
           )}
         </div>
@@ -413,34 +399,42 @@ export default function PartnerManagement() {
         <div className="card">
           <div className="card-body partner-mgmt-body">
             {fees.length === 0 ? (
-              <div className="partner-mgmt-empty">暂无费用记录</div>
+              <div className="admin-table-empty">暂无费用记录</div>
             ) : (
-              <div className="partner-mgmt-table">
-                <div className="partner-mgmt-row partner-mgmt-header-row">
-                  <div className="partner-mgmt-cell partner-mgmt-cell-name">合伙人</div>
-                  <div className="partner-mgmt-cell partner-mgmt-cell-type">费用类型</div>
-                  <div className="partner-mgmt-cell partner-mgmt-cell-earnings">金额</div>
-                  <div className="partner-mgmt-cell partner-mgmt-cell-region">缴纳时间</div>
-                  <div className="partner-mgmt-cell partner-mgmt-cell-status">状态</div>
-                </div>
-                {fees.map((f) => (
-                  <div className="partner-mgmt-row" key={f.id}>
-                    <div className="partner-mgmt-cell partner-mgmt-cell-name">
-                      <Avatar name={f.partnerName} size={32} />
-                      <div>
-                        <div className="partner-mgmt-name">{f.partnerName}</div>
-                      </div>
-                    </div>
-                    <div className="partner-mgmt-cell partner-mgmt-cell-type">{feeTypeLabels[f.feeType]}</div>
-                    <div className="partner-mgmt-cell partner-mgmt-cell-earnings">¥{f.amount.toLocaleString()}</div>
-                    <div className="partner-mgmt-cell partner-mgmt-cell-region">{new Date(f.paidAt).toLocaleString()}</div>
-                    <div className="partner-mgmt-cell partner-mgmt-cell-status">
-                      <span className={`partner-mgmt-status ${f.status === 'paid' ? 'active' : f.status === 'pending' ? 'pending' : 'inactive'}`}>
-                        {feeStatusLabels[f.status]}
-                      </span>
-                    </div>
-                  </div>
-                ))}
+              <div className="admin-table-wrap">
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>合伙人</th>
+                    <th>费用类型</th>
+                    <th>金额</th>
+                    <th>缴纳时间</th>
+                    <th>状态</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {fees.map((f) => (
+                    <tr key={f.id}>
+                      <td className="admin-table-text-left">
+                        <div className="partner-mgmt-name-cell">
+                          <Avatar name={f.partnerName} size={32} />
+                          <div>
+                            <div className="partner-mgmt-name">{f.partnerName}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td>{feeTypeLabels[f.feeType]}</td>
+                      <td>¥{f.amount.toLocaleString()}</td>
+                      <td>{new Date(f.paidAt).toLocaleString()}</td>
+                      <td>
+                        <span className={`partner-mgmt-status ${f.status === 'paid' ? 'active' : f.status === 'pending' ? 'pending' : 'inactive'}`}>
+                          {feeStatusLabels[f.status]}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
               </div>
             )}
           </div>
@@ -453,32 +447,40 @@ export default function PartnerManagement() {
         <div className="card">
           <div className="card-body partner-mgmt-body">
             {shareConfigs.length === 0 ? (
-              <div className="partner-mgmt-empty">暂无分成配置</div>
+              <div className="admin-table-empty">暂无分成配置</div>
             ) : (
-              <div className="partner-mgmt-table">
-                <div className="partner-mgmt-row partner-mgmt-header-row">
-                  <div className="partner-mgmt-cell partner-mgmt-cell-region">区域</div>
-                  <div className="partner-mgmt-cell partner-mgmt-cell-name">合伙人</div>
-                  <div className="partner-mgmt-cell partner-mgmt-cell-rate">分成比例</div>
-                  <div className="partner-mgmt-cell partner-mgmt-cell-region">生效时间</div>
-                  <div className="partner-mgmt-cell partner-mgmt-cell-action">操作</div>
-                </div>
-                {shareConfigs.map((c) => (
-                  <div className="partner-mgmt-row" key={c.id}>
-                    <div className="partner-mgmt-cell partner-mgmt-cell-region">{c.regionName}</div>
-                    <div className="partner-mgmt-cell partner-mgmt-cell-name">
-                      <Avatar name={c.partnerName} size={32} />
-                      <div>
-                        <div className="partner-mgmt-name">{c.partnerName}</div>
-                      </div>
-                    </div>
-                    <div className="partner-mgmt-cell partner-mgmt-cell-rate">{(c.rate * 100).toFixed(0)}%</div>
-                    <div className="partner-mgmt-cell partner-mgmt-cell-region">{new Date(c.effectiveAt).toLocaleDateString()}</div>
-                    <div className="partner-mgmt-cell partner-mgmt-cell-action">
-                      <button className="icon-btn" title="编辑" onClick={() => openShareEdit(c)}><Edit2 size={14} /></button>
-                    </div>
-                  </div>
-                ))}
+              <div className="admin-table-wrap">
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>区域</th>
+                    <th>合伙人</th>
+                    <th>分成比例</th>
+                    <th>生效时间</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {shareConfigs.map((c) => (
+                    <tr key={c.id}>
+                      <td>{c.regionName}</td>
+                      <td className="admin-table-text-left">
+                        <div className="partner-mgmt-name-cell">
+                          <Avatar name={c.partnerName} size={32} />
+                          <div>
+                            <div className="partner-mgmt-name">{c.partnerName}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td>{(c.rate * 100).toFixed(0)}%</td>
+                      <td>{new Date(c.effectiveAt).toLocaleDateString()}</td>
+                      <td>
+                        <button className="admin-table-link" onClick={() => openShareEdit(c)}>编辑</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
               </div>
             )}
           </div>
@@ -491,33 +493,39 @@ export default function PartnerManagement() {
         <div className="card">
           <div className="card-body partner-mgmt-body">
             {rewardConfigs.length === 0 ? (
-              <div className="partner-mgmt-empty">暂无奖励配置</div>
+              <div className="admin-table-empty">暂无奖励配置</div>
             ) : (
-              <div className="partner-mgmt-table">
-                <div className="partner-mgmt-row partner-mgmt-header-row">
-                  <div className="partner-mgmt-cell partner-mgmt-cell-type">级别</div>
-                  <div className="partner-mgmt-cell partner-mgmt-cell-name">档位条件</div>
-                  <div className="partner-mgmt-cell partner-mgmt-cell-earnings">奖励金额</div>
-                  <div className="partner-mgmt-cell partner-mgmt-cell-status">状态</div>
-                  <div className="partner-mgmt-cell partner-mgmt-cell-action">操作</div>
-                </div>
-                {rewardConfigs.map((c) => (
-                  <div className="partner-mgmt-row" key={c.id}>
-                    <div className="partner-mgmt-cell partner-mgmt-cell-type">{rewardLevelLabels[c.level]}</div>
-                    <div className="partner-mgmt-cell partner-mgmt-cell-name">
-                      <div className="partner-mgmt-name">{c.condition}</div>
-                    </div>
-                    <div className="partner-mgmt-cell partner-mgmt-cell-earnings">¥{c.amount.toLocaleString()}</div>
-                    <div className="partner-mgmt-cell partner-mgmt-cell-status">
-                      <span className={`partner-mgmt-status ${c.status === 'enabled' ? 'active' : 'inactive'}`}>
-                        {c.status === 'enabled' ? '启用' : '停用'}
-                      </span>
-                    </div>
-                    <div className="partner-mgmt-cell partner-mgmt-cell-action">
-                      <button className="icon-btn" title="编辑" onClick={() => openRewardEdit(c)}><Edit2 size={14} /></button>
-                    </div>
-                  </div>
-                ))}
+              <div className="admin-table-wrap">
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>级别</th>
+                    <th>档位条件</th>
+                    <th>奖励金额</th>
+                    <th>状态</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rewardConfigs.map((c) => (
+                    <tr key={c.id}>
+                      <td>{rewardLevelLabels[c.level]}</td>
+                      <td className="admin-table-text-left">
+                        <div className="partner-mgmt-name">{c.condition}</div>
+                      </td>
+                      <td>¥{c.amount.toLocaleString()}</td>
+                      <td>
+                        <span className={`partner-mgmt-status ${c.status === 'enabled' ? 'active' : 'inactive'}`}>
+                          {c.status === 'enabled' ? '启用' : '停用'}
+                        </span>
+                      </td>
+                      <td>
+                        <button className="admin-table-link" onClick={() => openRewardEdit(c)}>编辑</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
               </div>
             )}
           </div>
@@ -529,40 +537,48 @@ export default function PartnerManagement() {
         <div className="card">
           <div className="card-body partner-mgmt-body">
             {assessments.length === 0 ? (
-              <div className="partner-mgmt-empty">暂无考核记录</div>
+              <div className="admin-table-empty">暂无考核记录</div>
             ) : (
-              <div className="partner-mgmt-table">
-                <div className="partner-mgmt-row partner-mgmt-header-row">
-                  <div className="partner-mgmt-cell partner-mgmt-cell-name">合伙人</div>
-                  <div className="partner-mgmt-cell">年度</div>
-                  <div className="partner-mgmt-cell partner-mgmt-cell-region">GMV 档位</div>
-                  <div className="partner-mgmt-cell">渠道拓展</div>
-                  <div className="partner-mgmt-cell">履约</div>
-                  <div className="partner-mgmt-cell">品牌</div>
-                  <div className="partner-mgmt-cell">合规</div>
-                  <div className="partner-mgmt-cell partner-mgmt-cell-status">综合评级</div>
-                </div>
-                {assessments.map((a) => (
-                  <div className="partner-mgmt-row" key={a.id}>
-                    <div className="partner-mgmt-cell partner-mgmt-cell-name">
-                      <Avatar name={a.partnerName} size={32} />
-                      <div>
-                        <div className="partner-mgmt-name">{a.partnerName}</div>
-                      </div>
-                    </div>
-                    <div className="partner-mgmt-cell">{a.year}</div>
-                    <div className="partner-mgmt-cell partner-mgmt-cell-region">{a.gmvTier}</div>
-                    <div className="partner-mgmt-cell">{a.channelScore}</div>
-                    <div className="partner-mgmt-cell">{a.fulfillmentScore}</div>
-                    <div className="partner-mgmt-cell">{a.brandScore}</div>
-                    <div className="partner-mgmt-cell">{a.complianceScore}</div>
-                    <div className="partner-mgmt-cell partner-mgmt-cell-status">
-                      <span className={`partner-mgmt-status ${a.rating === '优秀' ? 'active' : a.rating === '不合格' ? 'rejected' : 'pending'}`}>
-                        {a.rating}
-                      </span>
-                    </div>
-                  </div>
-                ))}
+              <div className="admin-table-wrap">
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>合伙人</th>
+                    <th>年度</th>
+                    <th>GMV 档位</th>
+                    <th>渠道拓展</th>
+                    <th>履约</th>
+                    <th>品牌</th>
+                    <th>合规</th>
+                    <th>综合评级</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {assessments.map((a) => (
+                    <tr key={a.id}>
+                      <td className="admin-table-text-left">
+                        <div className="partner-mgmt-name-cell">
+                          <Avatar name={a.partnerName} size={32} />
+                          <div>
+                            <div className="partner-mgmt-name">{a.partnerName}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td>{a.year}</td>
+                      <td>{a.gmvTier}</td>
+                      <td>{a.channelScore}</td>
+                      <td>{a.fulfillmentScore}</td>
+                      <td>{a.brandScore}</td>
+                      <td>{a.complianceScore}</td>
+                      <td>
+                        <span className={`partner-mgmt-status ${a.rating === '优秀' ? 'active' : a.rating === '不合格' ? 'rejected' : 'pending'}`}>
+                          {a.rating}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
               </div>
             )}
           </div>

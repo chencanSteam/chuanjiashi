@@ -1,9 +1,8 @@
 import { http, type HttpHandler } from 'msw'
 import { success, fail, unauthorized, notFound } from '../utils/response'
 import { getItem, setItem, generateId, storeKeys } from '../utils/store'
-import { defaultProductReviewsByType } from '../data/seed'
 import { getRefundReasonOptions } from './refundReasons'
-import type { Order, OrderStatus, User, Deliverable, OrderLogistics, OrderReview, RefundRequest, ReviewStatus, ProductPackage } from '../types'
+import type { Order, OrderStatus, User, Deliverable, OrderLogistics, RefundRequest } from '../types'
 
 function getCurrentUserId(): string | null {
   const user = getItem<{ id: string } | null>(storeKeys.currentUser, null)
@@ -272,19 +271,6 @@ export const orderHandlers: HttpHandler[] = [
     return success({ ...order, ...getOrderUserInfo(order) }, '交付物已上传')
   }),
 
-  http.post('/api/orders/:id/review', async ({ request, params }) => {
-    const userId = getCurrentUserId()
-    if (!userId) return unauthorized()
-    const order = findOrder(params.id as string)
-    if (!order || order.userId !== userId) return notFound('订单不存在')
-    if (order.status !== 'completed') return fail('订单未完成，无法评价')
-    const review = (await request.json()) as OrderReview
-    order.review = { ...review, status: review.status || 'pending', createdAt: new Date().toISOString() }
-    order.updatedAt = new Date().toISOString()
-    saveOrder(order)
-    return success(order, '评价已提交，等待审核')
-  }),
-
   http.post('/api/orders/:id/refund', async ({ request, params }) => {
     const userId = getCurrentUserId()
     if (!userId) return unauthorized()
@@ -343,50 +329,4 @@ export const orderHandlers: HttpHandler[] = [
     return success({ ...order, ...getOrderUserInfo(order) }, '退款申请已驳回')
   }),
 
-  http.put('/api/admin/orders/:id/review', async ({ request, params }) => {
-    const userId = getCurrentUserId()
-    if (!userId) return unauthorized()
-    const order = findOrder(params.id as string)
-    if (!order) return notFound('订单不存在')
-    if (!order.review) return fail('订单暂无评价')
-    const { status } = (await request.json()) as { status: ReviewStatus }
-    order.review.status = status
-    order.updatedAt = new Date().toISOString()
-    saveOrder(order)
-    return success({ ...order, ...getOrderUserInfo(order) }, status === 'approved' ? '评价已通过' : '评价已驳回')
-  }),
-
-  http.get('/api/products/:id/reviews', async ({ params }) => {
-    const productId = params.id as string
-    const orders = getItem<Order[]>(storeKeys.orders, [])
-    const reviews = orders
-      .filter((o) => o.productId === productId && o.review && o.review.status === 'approved')
-      .map((o) => ({
-        id: `${o.id}_review`,
-        orderId: o.id,
-        userName: getOrderUserInfo(o).userName || '匿名用户',
-        productId: o.productId,
-        productName: o.productName,
-        rating: o.review!.rating,
-        content: o.review!.content,
-        createdAt: o.review!.createdAt,
-      }))
-    if (reviews.length > 0) return success(reviews)
-    // 无真实评价时，按商品类型回退到预置演示评价
-    const products = getItem<ProductPackage[]>(storeKeys.products, [])
-    const product = products.find((p) => p.id === productId)
-    const pool = defaultProductReviewsByType[product?.type || ''] || defaultProductReviewsByType.default
-    return success(
-      pool.map((r, i) => ({
-        id: `seed_review_${productId}_${i}`,
-        orderId: '',
-        userName: r.userName,
-        productId,
-        productName: product?.name || '',
-        rating: r.rating,
-        content: r.content,
-        createdAt: new Date(Date.now() - (i + 2) * 9 * 24 * 60 * 60 * 1000).toISOString(),
-      }))
-    )
-  }),
 ]

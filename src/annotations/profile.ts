@@ -37,10 +37,10 @@ export const profileAnnotations: PageAnnotations = {
 ③ 更换成功后，实名与微信绑定等安全信息从旧手机号 key 迁移到 \`cj_security_<新手机号>\`，旧 key 删除，同时更新登录账号的手机号。`,
     },
     {
-      id: 'profile.menu-list',
-      target: '功能菜单（传记 / 订单 / 额度 / 邀请 / 账户）',
-      logic: `① 菜单组 V1.0 起显示，其中「AI 额度」「我的邀请」（V1.1 邀请奖励）仅完整版显示。
-② 分别跳转 /my-works（我的传记）、/my-orders（我的订单）、/settings/quota（AI 额度）、/settings/invite（我的邀请）、/settings/account（账户设置）。`,
+      id: 'profile.delete-account',
+      target: '注销账户',
+      logic: `① 点击弹出二次确认弹窗，明确提示注销后账号与本地数据（档案、传记、订单等）将被清除且无法恢复。
+② 确认后删除 mock 用户记录（cj_mock_users / cj_registered_users 中该手机号条目）与安全信息（cj_security_<手机号>），退出登录并跳转 /login。`,
     },
     {
       id: 'profile.logout',

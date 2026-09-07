@@ -62,42 +62,6 @@
   color: var(--text-muted);
 }
 
-/* 标签多选芯片 */
-.publish-book-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.publish-book-tag {
-  padding: 6px 14px;
-  border: 1px solid #e8e4dd;
-  border-radius: 999px;
-  background: #fff;
-  font-size: 13px;
-  color: #4b5563;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.publish-book-tag:hover {
-  border-color: rgba(27, 94, 75, 0.4);
-  color: #1b5e4b;
-}
-
-.publish-book-tag.active {
-  background: rgba(27, 94, 75, 0.08);
-  border-color: #1b5e4b;
-  color: #1b5e4b;
-  font-weight: 500;
-}
-
-.publish-book-tag-stage.active {
-  background: rgba(184, 134, 11, 0.08);
-  border-color: #b8860b;
-  color: #b8860b;
-}
-
 .publish-book-loading {
   text-align: center;
   padding: 40px 20px;
@@ -211,4 +175,38 @@
     border-radius: 0;
     margin: 0;
   }
+}
+
+/* 书籍封面上传 */
+.publish-book-cover-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.publish-book-cover-preview {
+  width: 72px;
+  height: 96px;
+  border-radius: 8px;
+  border: 1px dashed #e8e4dd;
+  background: #f9fafb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.publish-book-cover-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.publish-book-cover-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
 }

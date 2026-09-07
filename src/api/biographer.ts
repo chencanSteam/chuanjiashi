@@ -62,5 +62,7 @@ export const biographerApi = {
   update: (id: string, data: Partial<Biographer>) => api.put<Biographer>(`/api/biographers/${id}`, data),
   review: (id: string, action: 'approve' | 'reject', reason?: string) =>
     api.patch<Biographer>(`/api/biographers/${id}/review`, { action, reason }),
+  profileReview: (id: string, action: 'approve' | 'reject', reason?: string) =>
+    api.patch<Biographer>(`/api/biographers/${id}/profile-review`, { action, reason }),
   delete: (id: string) => api.delete<null>(`/api/biographers/${id}`),
 }

@@ -3,8 +3,6 @@ import {
   Search,
   UserCheck,
   X,
-  Ban,
-  CheckCircle,
 } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 import { adminUserApi, type AdminUserDetail } from '../api/adminUser';
@@ -116,42 +114,47 @@ function UserListTab({ addToast }: { addToast: AddToast }) {
           {users.length === 0 ? (
             <div className="um-empty">暂无符合条件的用户</div>
           ) : (
-            <div className="um-table">
-              <div className="um-row um-header">
-                <div className="um-cell">昵称</div>
-                <div className="um-cell">手机号</div>
-                <div className="um-cell">注册时间</div>
-                <div className="um-cell">实名状态</div>
-                <div className="um-cell">状态</div>
-                <div className="um-cell">操作</div>
-              </div>
+            <div className="admin-table-wrap">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>昵称</th>
+                  <th>手机号</th>
+                  <th>注册时间</th>
+                  <th>实名状态</th>
+                  <th>状态</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody>
               {users.map((u) => (
-                <div className="um-row um-row-clickable" key={u.id} onClick={() => openDetail(u.id)}>
-                  <div className="um-cell um-cell-name">用户{u.phone.slice(-4)}</div>
-                  <div className="um-cell">{u.phone}</div>
-                  <div className="um-cell">{new Date(u.registeredAt).toLocaleDateString()}</div>
-                  <div className="um-cell">
+                <tr className="um-row-clickable" key={u.id} onClick={() => openDetail(u.id)}>
+                  <td className="admin-table-text-left um-cell-name">用户{u.phone.slice(-4)}</td>
+                  <td>{u.phone}</td>
+                  <td>{new Date(u.registeredAt).toLocaleDateString()}</td>
+                  <td>
                     <span className={`um-status realname-${u.realNameStatus}`}>
                       {REALNAME_STATUS_LABELS[u.realNameStatus]}
                     </span>
-                  </div>
-                  <div className="um-cell">
+                  </td>
+                  <td>
                     <span className={`um-status ${u.status}`}>{u.status === 'active' ? '正常' : '已禁用'}</span>
-                  </div>
-                  <div className="um-cell">
+                  </td>
+                  <td>
                     <button
-                      className={`btn ${u.status === 'active' ? 'um-btn-danger' : 'btn-primary'}`}
+                      className={`admin-table-link ${u.status === 'active' ? 'danger' : ''}`}
                       onClick={(e) => {
                         e.stopPropagation();
                         setConfirmUser(u);
                       }}
                     >
-                      {u.status === 'active' ? <Ban size={12} /> : <CheckCircle size={12} />}
-                      {u.status === 'active' ? ' 禁用' : ' 启用'}
+                      {u.status === 'active' ? '禁用' : '启用'}
                     </button>
-                  </div>
-                </div>
+                  </td>
+                </tr>
               ))}
+              </tbody>
+            </table>
             </div>
           )}
         </div>

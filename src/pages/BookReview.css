@@ -83,38 +83,6 @@
   color: var(--text-muted);
 }
 
-.book-review-table {
-  display: table;
-  width: 100%;
-  min-width: 1000px;
-}
-
-.book-review-row {
-  display: table-row;
-}
-
-.book-review-header-row {
-  background: var(--bg-secondary);
-  font-weight: 500;
-  color: var(--text-secondary);
-  font-size: 13px;
-}
-
-.book-review-row:not(.book-review-header-row) {
-  border-bottom: 1px solid var(--border-light);
-}
-
-.book-review-row:last-child {
-  border-bottom: none;
-}
-
-.book-review-cell {
-  display: table-cell;
-  padding: 14px 16px;
-  vertical-align: middle;
-  font-size: 13px;
-}
-
 .book-review-cell-info {
   min-width: 220px;
   max-width: 280px;
@@ -185,65 +153,6 @@
 .book-status-off-shelf {
   background: #f3f4f6;
   color: #6b7280;
-}
-
-.book-review-cell-action {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.book-review-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 5px 10px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 500;
-  border: 1px solid transparent;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.book-review-btn-view {
-  background: var(--bg-secondary);
-  color: var(--text-secondary);
-  border-color: var(--border-light);
-}
-
-.book-review-btn-view:hover {
-  background: var(--border-light);
-}
-
-.book-review-btn-approve {
-  background: #1B5E4B;
-  color: #fff;
-}
-
-.book-review-btn-approve:hover {
-  background: #164c3d;
-}
-
-.book-review-btn-reject {
-  background: #fff;
-  color: #ef4444;
-  border-color: #fecaca;
-}
-
-.book-review-btn-reject:hover {
-  background: #fef2f2;
-}
-
-.book-review-btn-off-shelf {
-  background: #f3f4f6;
-  color: #6b7280;
-  border-color: var(--border-light);
-}
-
-.book-review-btn-off-shelf:hover {
-  background: var(--border-light);
 }
 
 /* Detail modal */
@@ -881,28 +790,5 @@
 
   .book-review-stats {
     grid-template-columns: repeat(2, 1fr);
-  }
-
-  .book-review-table {
-    min-width: unset;
-    display: block;
-  }
-
-  .book-review-row,
-  .book-review-cell {
-    display: block;
-  }
-
-  .book-review-header-row {
-    display: none;
-  }
-
-  .book-review-row:not(.book-review-header-row) {
-    padding: 14px 16px;
-    border-bottom: 1px solid var(--border-light);
-  }
-
-  .book-review-cell {
-    padding: 6px 0;
   }
 }

@@ -28,6 +28,11 @@ function ensureUniqueInviteCode(existing: Partner[]): string {
   return code
 }
 
+const DEMO_REGION = {
+  regionCode: '330106',
+  regionName: '杭州市西湖区',
+}
+
 export function findPartnerByUserId(userId: string): Partner | undefined {
   return getItem<Partner[]>(storeKeys.partners, []).find((p) => p.userId === userId)
 }
@@ -48,6 +53,16 @@ export function savePartner(partner: Partner): void {
   setItem(storeKeys.partners, partners)
 }
 
+function validateRegionalPartner(partners: Partner[], candidate: Partial<Partner>, currentId?: string): string | null {
+  if (candidate.type !== 'province' && candidate.type !== 'city' && candidate.type !== 'district') return null
+  if (!candidate.regionCode) return '请选择代理区域'
+  if (candidate.commissionRate !== undefined && (!Number.isFinite(candidate.commissionRate) || candidate.commissionRate < 0 || candidate.commissionRate > 1)) {
+    return '分成比例需在 0-1 之间'
+  }
+  const occupied = partners.some((p) => p.id !== currentId && (p.status === 'active' || p.status === 'pending') && p.type === candidate.type && p.regionCode === candidate.regionCode)
+  return occupied ? '该区域已有同级合伙人' : null
+}
+
 export const partnerHandlers: HttpHandler[] = [
   // 当前合伙人信息
   http.get('/api/partner/me', async () => {
@@ -64,6 +79,7 @@ export const partnerHandlers: HttpHandler[] = [
         type,
         name: currentUser?.nickname || '演示合伙人',
         phone: currentUser?.phone || '13800138000',
+        ...DEMO_REGION,
         inviteCode: ensureUniqueInviteCode(partners),
         commissionRate: partnerTypeConfig[type].rate,
         balance: 3280,
@@ -71,6 +87,9 @@ export const partnerHandlers: HttpHandler[] = [
         status: 'active',
         createdAt: new Date().toISOString(),
       }
+      savePartner(partner)
+    } else if (!partner.regionCode || !partner.regionName) {
+      partner = { ...partner, ...DEMO_REGION }
       savePartner(partner)
     }
     return success(partner)
@@ -261,6 +280,8 @@ export const partnerHandlers: HttpHandler[] = [
     if (!body.name || !body.phone) return fail('请填写姓名和手机号')
 
     const partners = getItem<Partner[]>(storeKeys.partners, [])
+    const validationError = validateRegionalPartner(partners, body)
+    if (validationError) return fail(validationError)
     const partner: Partner = {
       id: generateId(),
       userId: body.userId || generateId(),
@@ -290,6 +311,9 @@ export const partnerHandlers: HttpHandler[] = [
     const partners = getItem<Partner[]>(storeKeys.partners, [])
     const idx = partners.findIndex((p) => p.id === params.id)
     if (idx < 0) return notFound('合伙人不存在')
+    const validationError = validateRegionalPartner(partners, { ...partners[idx], ...body }, partners[idx].id)
+    if (validationError) return fail(validationError)
+    if (body.commissionRate !== undefined && (!Number.isFinite(body.commissionRate) || body.commissionRate < 0 || body.commissionRate > 1)) return fail('分成比例需在 0-1 之间')
     partners[idx] = { ...partners[idx], ...body, id: partners[idx].id }
     setItem(storeKeys.partners, partners)
     return success(partners[idx])

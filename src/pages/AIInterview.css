@@ -674,6 +674,11 @@
   line-height: 1.7;
 }
 
+.tx-text.invalid {
+  text-decoration: line-through;
+  color: #9ca3af;
+}
+
 .interview-done {
   flex: 1;
   display: flex;
@@ -877,6 +882,50 @@
 .btn-danger:hover {
   background: #fee2e2;
 }
+
+.topic-proposal-panel {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid rgba(184, 134, 11, 0.25);
+  border-radius: 10px;
+  background: #fffaf0;
+}
+
+.topic-proposal-panel-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #5c4211;
+  margin-bottom: 8px;
+}
+
+.topic-proposal-item {
+  padding: 10px 0;
+  border-top: 1px solid rgba(184, 134, 11, 0.15);
+}
+
+.topic-proposal-head,
+.topic-proposal-actions,
+.topic-proposal-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.topic-proposal-head span,
+.topic-proposal-item p,
+.topic-proposal-status span {
+  color: #7b7280;
+  font-size: 12px;
+}
+
+.topic-proposal-item p { margin: 6px 0; }
+.topic-proposal-questions { font-size: 12px; color: #5b5560; }
+.topic-proposal-questions ol { margin: 6px 0 8px 20px; padding: 0; }
+.topic-proposal-actions { margin-top: 8px; }
+.topic-proposal-actions input { flex: 1; min-width: 0; }
+.proposal-status.approved { color: #1b5e4b; }
+.proposal-status.rejected { color: #b42318; }
+.proposal-status.pending { color: #b8860b; }
 
 .custom-topic-section {
   padding: 12px;

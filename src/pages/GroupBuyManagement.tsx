@@ -223,39 +223,45 @@ export default function GroupBuyManagement() {
             {records.length === 0 ? (
               <div className="groupbuy-empty">暂无拼团订单</div>
             ) : (
-              <div className="groupbuy-table">
-                <div className="groupbuy-row groupbuy-header-row">
-                  <div className="groupbuy-cell">团号</div>
-                  <div className="groupbuy-cell">团长</div>
-                  <div className="groupbuy-cell">人数进度</div>
-                  <div className="groupbuy-cell">状态</div>
-                  <div className="groupbuy-cell">金额</div>
-                  <div className="groupbuy-cell">截止时间</div>
-                </div>
-                {records.map((r) => (
-                  <div className="groupbuy-row" key={r.id}>
-                    <div className="groupbuy-cell">{r.id}</div>
-                    <div className="groupbuy-cell">{r.launcherPhone}</div>
-                    <div className="groupbuy-cell">
-                      <div className="groupbuy-progress">
-                        <div className="groupbuy-progress-bar">
-                          <div
-                            className="groupbuy-progress-inner"
-                            style={{ width: `${Math.min(100, (r.currentCount / r.targetCount) * 100)}%` }}
-                          />
-                        </div>
-                        <span>{r.currentCount}/{r.targetCount} 人</span>
-                      </div>
-                    </div>
-                    <div className="groupbuy-cell">
-                      <span className={`groupbuy-status ${r.status}`}>{groupStatusLabels[r.status]}</span>
-                    </div>
-                    <div className="groupbuy-cell groupbuy-money">
-                      ¥{((activity?.price || 0) * r.currentCount).toFixed(2)}
-                    </div>
-                    <div className="groupbuy-cell">{new Date(r.endAt).toLocaleString()}</div>
-                  </div>
-                ))}
+              <div className="admin-table-wrap">
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>团号</th>
+                      <th>团长</th>
+                      <th>人数进度</th>
+                      <th>状态</th>
+                      <th>金额</th>
+                      <th>截止时间</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {records.map((r) => (
+                      <tr key={r.id}>
+                        <td>{r.id}</td>
+                        <td>{r.launcherPhone}</td>
+                        <td>
+                          <div className="groupbuy-progress">
+                            <div className="groupbuy-progress-bar">
+                              <div
+                                className="groupbuy-progress-inner"
+                                style={{ width: `${Math.min(100, (r.currentCount / r.targetCount) * 100)}%` }}
+                              />
+                            </div>
+                            <span>{r.currentCount}/{r.targetCount} 人</span>
+                          </div>
+                        </td>
+                        <td>
+                          <span className={`groupbuy-status ${r.status}`}>{groupStatusLabels[r.status]}</span>
+                        </td>
+                        <td className="groupbuy-money">
+                          ¥{((activity?.price || 0) * r.currentCount).toFixed(2)}
+                        </td>
+                        <td>{new Date(r.endAt).toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>
@@ -273,29 +279,35 @@ export default function GroupBuyManagement() {
             {freeRecords.length === 0 ? (
               <div className="groupbuy-empty">暂无免单记录</div>
             ) : (
-              <div className="groupbuy-table">
-                <div className="groupbuy-row groupbuy-header-row">
-                  <div className="groupbuy-cell">免单用户</div>
-                  <div className="groupbuy-cell">团号</div>
-                  <div className="groupbuy-cell">角色</div>
-                  <div className="groupbuy-cell">参团时间</div>
-                  <div className="groupbuy-cell">退款状态</div>
-                </div>
-                {freeRecords.map((m) => (
-                  <div className="groupbuy-row" key={m.id}>
-                    <div className="groupbuy-cell">{m.phone}</div>
-                    <div className="groupbuy-cell">{m.groupId}</div>
-                    <div className="groupbuy-cell">{m.isLauncher ? '团长' : '团员'}</div>
-                    <div className="groupbuy-cell">{new Date(m.joinedAt).toLocaleString()}</div>
-                    <div className="groupbuy-cell">
-                      {m.refunded ? (
-                        <span className="groupbuy-status refunded">已退款</span>
-                      ) : (
-                        <span className="groupbuy-status pending">待退款</span>
-                      )}
-                    </div>
-                  </div>
-                ))}
+              <div className="admin-table-wrap">
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>免单用户</th>
+                      <th>团号</th>
+                      <th>角色</th>
+                      <th>参团时间</th>
+                      <th>退款状态</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {freeRecords.map((m) => (
+                      <tr key={m.id}>
+                        <td>{m.phone}</td>
+                        <td>{m.groupId}</td>
+                        <td>{m.isLauncher ? '团长' : '团员'}</td>
+                        <td>{new Date(m.joinedAt).toLocaleString()}</td>
+                        <td>
+                          {m.refunded ? (
+                            <span className="groupbuy-status refunded">已退款</span>
+                          ) : (
+                            <span className="groupbuy-status pending">待退款</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>
@@ -313,36 +325,42 @@ export default function GroupBuyManagement() {
             {failedGroups.length === 0 ? (
               <div className="groupbuy-empty">暂无待退款订单</div>
             ) : (
-              <div className="groupbuy-table">
-                <div className="groupbuy-row groupbuy-header-row">
-                  <div className="groupbuy-cell">团号</div>
-                  <div className="groupbuy-cell">用户</div>
-                  <div className="groupbuy-cell">金额</div>
-                  <div className="groupbuy-cell">参团时间</div>
-                  <div className="groupbuy-cell">操作</div>
-                </div>
-                {failedGroups.flatMap((r) =>
-                  r.members.map((m) => {
-                    const refunded = !!m.refunded;
-                    return (
-                      <div className="groupbuy-row" key={m.id}>
-                        <div className="groupbuy-cell">{r.id}</div>
-                        <div className="groupbuy-cell">{m.phone}</div>
-                        <div className="groupbuy-cell groupbuy-money">¥{(activity?.price || 0).toFixed(2)}</div>
-                        <div className="groupbuy-cell">{new Date(m.joinedAt).toLocaleString()}</div>
-                        <div className="groupbuy-cell">
-                          {refunded ? (
-                            <span className="groupbuy-status refunded"><CheckCircle size={12} /> 已退款</span>
-                          ) : (
-                            <button className="btn btn-outline groupbuy-refund-btn" onClick={() => handleConfirmRefund(m.id)}>
-                              确认退款
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
+              <div className="admin-table-wrap">
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>团号</th>
+                      <th>用户</th>
+                      <th>金额</th>
+                      <th>参团时间</th>
+                      <th>操作</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {failedGroups.flatMap((r) =>
+                      r.members.map((m) => {
+                        const refunded = !!m.refunded;
+                        return (
+                          <tr key={m.id}>
+                            <td>{r.id}</td>
+                            <td>{m.phone}</td>
+                            <td className="groupbuy-money">¥{(activity?.price || 0).toFixed(2)}</td>
+                            <td>{new Date(m.joinedAt).toLocaleString()}</td>
+                            <td>
+                              {refunded ? (
+                                <span className="groupbuy-status refunded"><CheckCircle size={12} /> 已退款</span>
+                              ) : (
+                                <button className="admin-table-link" onClick={() => handleConfirmRefund(m.id)}>
+                                  确认退款
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>

@@ -38,13 +38,16 @@ export function loadConfirmedOutline(archiveId: string): BiographyOutline | null
 }
 
 /** 人生阶段分类：与 eventSync / biographyAssembler 的关键词口径保持一致 */
+// 统一传记八大写作框架（与客户约定一致）：无论行业，成稿固定按这 8 个篇章
 const STAGES: Array<{ title: string; summary: string; match: RegExp }> = [
-  { title: '童年记忆', summary: '记录童年时期的成长环境、家庭氛围与难忘往事。', match: /出生|童年|小时候|成长|玩耍/ },
-  { title: '求学岁月', summary: '回顾求学路上的关键节点、师友影响与青春选择。', match: /教育|大学|学校|考入|学习|老师|读书|毕业/ },
-  { title: '工作经历', summary: '梳理职业生涯的起点、成长与重要成就。', match: /工作|职业|工厂|机床|车间|技术/ },
-  { title: '创业之路', summary: '呈现创业抉择、艰难起步与事业发展的历程。', match: /创业|公司|合伙|业务|企业/ },
-  { title: '家庭生活', summary: '记录婚姻、子女与家庭相处中的温暖片段。', match: /结婚|婚姻|家庭|妻子|丈夫|女儿|儿子|子女/ },
-  { title: '人生感悟', summary: '沉淀一生的信念、家风与想留给后辈的话。', match: /家风|感悟|家训|教诲|传承|善良|正直/ },
+  { title: '故里童年 · 初心萌芽', summary: '籍贯、童年、家庭、家风与少年性格。', match: /出生|童年|小时候|成长|玩耍/ },
+  { title: '求学成长 · 岁月积淀', summary: '读书、成长、启蒙与人生转折点。', match: /教育|大学|学校|考入|学习|老师|读书|毕业/ },
+  { title: '择业入行 · 缘起初心', summary: '为什么进入这个行业，职业起点与初心。', match: /工作|职业|工厂|机床|车间|技术|入行|分配/ },
+  { title: '深耕岁月 · 历练成长', summary: '工作经历、创业经历与深耕故事。', match: /创业|公司|合伙|业务|企业|项目|深耕/ },
+  { title: '风雨磨砺 · 破局成长', summary: '人生挫折、困难、逆袭与蜕变。', match: /挫折|困难|失败|危机|逆袭|磨砺/ },
+  { title: '行业感悟 · 职业修为', summary: '多年行业沉淀与职业价值观。', match: /感悟|行业|职业|理念|匠心|诚信/ },
+  { title: '家风人生 · 温情生活', summary: '家庭、陪伴与做人准则。', match: /结婚|婚姻|家庭|妻子|丈夫|女儿|儿子|子女|家风|家训|传承/ },
+  { title: '人生回望 · 未来愿景', summary: '人生总结、人生格言与未来期许。', match: /退休|总结|回望|愿景|格言|公益/ },
 ];
 
 function classifyEvent(event: StoredTimelineEvent): string | null {
@@ -73,12 +76,6 @@ export function buildDraftOutline(archiveId: string, prev?: BiographyOutline | n
   });
 
   const chapters: OutlineChapter[] = [];
-  chapters.push({
-    id: nextChapterId(),
-    title: '前言',
-    summary: '交代传记的缘起、传主概况与家族背景。',
-    eventTitles: [],
-  });
 
   if (events.length > 0) {
     STAGES.forEach((s) => {
@@ -88,7 +85,6 @@ export function buildDraftOutline(archiveId: string, prev?: BiographyOutline | n
     });
   } else {
     biographyChapterTitles
-      .filter((t) => t !== '前言' && t !== '后记')
       .forEach((t) => {
         const stage = STAGES.find((s) => s.title === t);
         chapters.push({
@@ -99,13 +95,6 @@ export function buildDraftOutline(archiveId: string, prev?: BiographyOutline | n
         });
       });
   }
-
-  chapters.push({
-    id: nextChapterId(),
-    title: '后记',
-    summary: '总结传主的人生历程，寄语后辈。',
-    eventTitles: [],
-  });
 
   return {
     version: prev?.version ?? 0,
@@ -141,7 +130,7 @@ export function composeOutlineChapterContent(
       parts.push(`回顾${timeText}，${archiveName}经历过这样一件事：${e.title}。${e.desc}`);
       parts.push('');
     });
-  } else if (!base && chapter.title !== '前言' && chapter.title !== '后记') {
+  } else if (!base) {
     parts.push(`\n本章素材仍在收集中，可在采访中补充「${chapter.title}」相关经历后重新生成。`);
   }
 

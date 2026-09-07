@@ -1,9 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, ChevronRight, Trash2, UploadCloud } from 'lucide-react';
+import { BookOpen, ChevronRight } from 'lucide-react';
 import { getWorkStatus, type WorkStatus } from '../../utils/works';
-import PublishBookModal from '../../components/PublishBookModal';
-import Modal from '../../components/ui/Modal';
 import { archiveApi } from '../../api/archive';
 import Annotate from '../../components/annotation/Annotate';
 import './MobileWorks.css';
@@ -43,8 +41,6 @@ function extractYear(date?: string): string {
 export default function MobileWorks() {
   const navigate = useNavigate();
   const [works, setWorks] = useState<WorkItem[]>([]);
-  const [selected, setSelected] = useState<WorkItem | null>(null);
-  const [publishing, setPublishing] = useState<WorkItem | null>(null);
 
   useEffect(() => {
     // 与 Web 端一致：mock 档案与本地档案按 id 合并
@@ -74,23 +70,9 @@ export default function MobileWorks() {
     load();
   }, []);
 
-  const deleteWork = (work: WorkItem) => {
-    if (!window.confirm('确定要删除该作品及关联数据吗？此操作不可恢复。')) return;
-    const id = work.id;
-    const next = works.filter((item) => item.id !== id);
-    setWorks(next);
-    setSelected(null);
-    ['cj_events_', 'cj_event_tags_', 'cj_media_', 'cj_members_', 'cj_biography_', 'cj_biography_meta_', 'cj_interview_outline_', 'cj_interview_transcript_', 'cj_interview_transcript_mobile_', 'cj_interview_session_', 'cj_interview_answers_', 'cj_interview_notes_', 'cj_biography_comments_', 'cj_biography_likes_', 'cj_work_license_', 'cj_work_license_settings_'].forEach((prefix) => localStorage.removeItem(`${prefix}${id}`));
-    localStorage.setItem('cj_archives', JSON.stringify(next));
-    if (localStorage.getItem('cj_current_archive_id') === id) localStorage.setItem('cj_current_archive_id', next[0]?.id || '');
-  };
-
   const openWork = (work: WorkItem) => {
     localStorage.setItem('cj_current_archive_id', work.id);
-    setSelected(null);
-    if (work.status === '已完成') navigate('/biography/print');
-    else if (localStorage.getItem(`cj_biography_${work.id}`) || localStorage.getItem(`cj_biography_chapters_${work.id}`)) navigate('/biography');
-    else navigate('/interview');
+    navigate(`/m/works/${work.id}`);
   };
 
   return (
@@ -105,7 +87,7 @@ export default function MobileWorks() {
         <Annotate id="mobile-works.work-list">
         <div className="mobile-works-list">
           {works.map((work) => (
-            <div key={work.id} className="mobile-works-item" onClick={() => setSelected(work)}>
+            <div key={work.id} className="mobile-works-item" onClick={() => openWork(work)}>
               <div className="works-item-icon">
                 <BookOpen size={20} />
               </div>
@@ -122,51 +104,6 @@ export default function MobileWorks() {
         </Annotate>
       )}
 
-      <Modal
-        open={!!selected}
-        title="作品详情"
-        onClose={() => setSelected(null)}
-        footer={
-          <Annotate id="mobile-works.view-biography" inline>
-          <div className="mobile-works-actions">
-            <button className="mobile-modal-btn primary" onClick={() => selected && openWork(selected)}>
-              {selected?.status === '已完成' ? '查看传记' : '继续完成'}
-            </button>
-            {selected?.status === '已完成' && <button className="mobile-modal-btn" onClick={() => { setPublishing(selected); setSelected(null); }}><UploadCloud size={14} /> 上架</button>}
-            {selected && <button className="mobile-modal-btn danger" onClick={() => deleteWork(selected)}><Trash2 size={14} /> 删除</button>}
-          </div>
-          </Annotate>
-        }
-      >
-        {selected && (
-          <Annotate id="mobile-works.detail-modal">
-          <div className="works-detail">
-            <div className="works-detail-row">
-              <span>作品名</span>
-              <strong>{selected.name}的传记</strong>
-            </div>
-            <div className="works-detail-row">
-              <span>传主</span>
-              <strong>{selected.name}</strong>
-            </div>
-            <div className="works-detail-row">
-              <span>状态</span>
-              <strong>{selected.status}</strong>
-            </div>
-            <div className="works-detail-row">
-              <span>创建时间</span>
-              <strong>{selected.createdAt ? new Date(selected.createdAt).toLocaleString() : '—'}</strong>
-            </div>
-          </div>
-          </Annotate>
-        )}
-      </Modal>
-      {publishing && (
-        <PublishBookModal
-          archive={{ id: publishing.id, name: publishing.name, birthYear: publishing.birthYear, origin: publishing.origin, occupation: publishing.occupation }}
-          onClose={() => setPublishing(null)}
-        />
-      )}
     </div>
   );
 }

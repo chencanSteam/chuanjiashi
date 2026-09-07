@@ -21,13 +21,19 @@ import {
   TrendingUp,
   ChevronDown,
   ChevronUp,
+  ChevronRight,
   Info,
+  Phone,
+  Mail,
+  MessageCircle,
+  MapPin,
 } from 'lucide-react';
 import Avatar from '../components/ui/Avatar';
 import { useAuth } from '../hooks/useAuth';
 import { useVersion } from '../hooks/useVersion';
 import { useToast } from '../hooks/useToast';
 import { quotaApi } from '../api/quota';
+import { regions } from '../data/regions';
 import type { AIQuota } from '../mocks/types';
 import { openGuide } from '../components/GuideTour';
 import { commissionApi } from '../api/commission';
@@ -207,6 +213,8 @@ export default function Settings() {
 
   const [rewardsRefresh, setRewardsRefresh] = useState(0);
   const [savingAccount, setSavingAccount] = useState(false);
+  const [accountEdit, setAccountEdit] = useState<{ key: 'realName' | 'phone' | 'email' | 'nickname' | 'community'; label: string; value: string } | null>(null);
+  const [addrCascade, setAddrCascade] = useState({ province: '', city: '', district: '' });
 
   const toggleNotification = (i: number) => {
     setNotifications((prev) => {
@@ -287,81 +295,208 @@ export default function Settings() {
           {active === 'account' && (
             <Annotate id="settings.account">
             <div className="card settings-card">
-              <div className="card-header"><h3 className="card-title">账户信息</h3></div>
-              <div className="card-body settings-body">
-                <div className="profile-edit">
-                  <Avatar name={account.nickname} size={64} src={account.avatar || undefined} />
-                  <label className="btn btn-outline">
-                    更换头像
-                    <input
-                      type="file"
-                      accept="image/*"
-                      hidden
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (!file) return;
-                        const reader = new FileReader();
-                        reader.onload = () => {
-                          setAccount((a) => ({ ...a, avatar: reader.result as string }));
-                          addToast('头像已选择，保存后生效', 'success');
-                        };
-                        reader.readAsDataURL(file);
-                      }}
-                    />
-                  </label>
+              <div className="card-header"><h3 className="card-title">账号与安全</h3></div>
+              <div className="card-body settings-account-list">
+                <div className="settings-account-row">
+                  <div className="settings-account-icon"><User size={18} /></div>
+                  <div className="settings-account-main">
+                    <div className="settings-account-title">头像与昵称</div>
+                    <div className="settings-account-desc">{account.nickname || '未设置昵称'}</div>
+                  </div>
+                  <div className="settings-account-side settings-account-avatar-side">
+                    <Avatar name={account.nickname} size={36} src={account.avatar || undefined} />
+                    <button className="settings-account-action" onClick={() => setAccountEdit({ key: 'nickname', label: '昵称', value: account.nickname })}>
+                      修改昵称
+                    </button>
+                    <label className="settings-account-action">
+                      更换头像
+                      <input
+                        type="file"
+                        accept="image/*"
+                        hidden
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          const reader = new FileReader();
+                          reader.onload = () => {
+                            setAccount((a) => ({ ...a, avatar: reader.result as string }));
+                            addToast('头像已选择，保存后生效', 'success');
+                          };
+                          reader.readAsDataURL(file);
+                        }}
+                      />
+                    </label>
+                  </div>
                 </div>
-                <div className="form-row">
-                  <label>昵称</label>
-                  <input type="text" value={account.nickname} onChange={(e) => setAccount((a) => ({ ...a, nickname: e.target.value }))} />
+
+                <div className="settings-account-row">
+                  <div className="settings-account-icon"><Shield size={18} /></div>
+                  <div className="settings-account-main">
+                    <div className="settings-account-title">实名认证</div>
+                    <div className="settings-account-desc">{account.realName ? `${account.realName} · 已完成实名认证` : '实名认证后作为账号姓名展示'}</div>
+                  </div>
+                  <button className="settings-account-action" onClick={() => setAccountEdit({ key: 'realName', label: '真实姓名', value: account.realName })}>
+                    {account.realName ? '已认证' : '去认证'} <ChevronRight size={14} />
+                  </button>
                 </div>
-                <div className="form-row">
-                  <label>真实姓名</label>
-                  <input type="text" value={account.realName} onChange={(e) => setAccount((a) => ({ ...a, realName: e.target.value }))} placeholder="实名认证后作为账号姓名展示" />
+
+                <div className="settings-account-row">
+                  <div className="settings-account-icon"><MessageCircle size={18} /></div>
+                  <div className="settings-account-main">
+                    <div className="settings-account-title">绑定微信</div>
+                    <div className="settings-account-desc">已绑定，可使用微信快捷登录</div>
+                  </div>
+                  <span className="settings-account-status">已绑定</span>
                 </div>
-                <div className="form-row">
-                  <label>手机号码</label>
-                  <input type="text" value={account.phone} onChange={(e) => setAccount((a) => ({ ...a, phone: e.target.value }))} />
+
+                <div className="settings-account-row">
+                  <div className="settings-account-icon"><Phone size={18} /></div>
+                  <div className="settings-account-main">
+                    <div className="settings-account-title">绑定手机号</div>
+                    <div className="settings-account-desc">当前手机号 {account.phone || '未绑定'}</div>
+                  </div>
+                  <button className="settings-account-action" onClick={() => setAccountEdit({ key: 'phone', label: '手机号码', value: account.phone })}>
+                    更换 <ChevronRight size={14} />
+                  </button>
                 </div>
-                <div className="form-row">
-                  <label>电子邮箱</label>
-                  <input type="text" value={account.email} onChange={(e) => setAccount((a) => ({ ...a, email: e.target.value }))} />
+
+                <div className="settings-account-row">
+                  <div className="settings-account-icon"><Mail size={18} /></div>
+                  <div className="settings-account-main">
+                    <div className="settings-account-title">电子邮箱</div>
+                    <div className="settings-account-desc">{account.email || '未绑定邮箱'}</div>
+                  </div>
+                  <button className="settings-account-action" onClick={() => setAccountEdit({ key: 'email', label: '电子邮箱', value: account.email })}>
+                    {account.email ? '更换' : '绑定'} <ChevronRight size={14} />
+                  </button>
                 </div>
-                <div className="form-row">
-                  <label>所在社区</label>
-                  <input type="text" value={account.community} onChange={(e) => setAccount((a) => ({ ...a, community: e.target.value }))} placeholder="例如：余杭区" />
+
+                <div className="settings-account-row">
+                  <div className="settings-account-icon"><MapPin size={18} /></div>
+                  <div className="settings-account-main">
+                    <div className="settings-account-title">所在社区 / 小区</div>
+                    <div className="settings-account-desc">
+                      {account.community || account.neighborhood
+                        ? `${account.community || '未填写社区'} · ${account.neighborhood || '未填写小区'}`
+                        : '填写所在社区与小区，便于社区服务'}
+                    </div>
+                  </div>
+                  <button className="settings-account-action" onClick={() => { setAddrCascade({ province: '', city: '', district: '' }); setAccountEdit({ key: 'community', label: '所在社区 / 小区', value: '' }); }}>
+                    修改 <ChevronRight size={14} />
+                  </button>
                 </div>
-                <div className="form-row">
-                  <label>所在小区</label>
-                  <input type="text" value={account.neighborhood} onChange={(e) => setAccount((a) => ({ ...a, neighborhood: e.target.value }))} placeholder="例如：未来科技城社区" />
-                </div>
-                <div className="form-row">
-                  <label>绑定微信</label>
-                  <div className="bind-tag">已绑定</div>
-                </div>
-                <button
-                  className="btn btn-primary save-btn"
-                  disabled={savingAccount}
-                  onClick={async () => {
-                    try {
-                      setSavingAccount(true);
-                      // 账号姓名优先级：实名姓名 > 昵称 > 默认数字名
-                      updateUser({
-                        name: account.realName.trim() || account.nickname,
-                        community: account.community,
-                        neighborhood: account.neighborhood,
-                      });
-                      addToast('账户信息已保存', 'success');
-                    } catch (err: any) {
-                      addToast(err.message || '保存失败', 'error');
-                    } finally {
-                      setSavingAccount(false);
-                    }
-                  }}
-                >
-                  {savingAccount ? '保存中…' : '保存修改'}
-                </button>
               </div>
             </div>
+
+            {accountEdit && (
+              <div className="modal-overlay" onClick={() => setAccountEdit(null)}>
+                <div className="modal-content settings-account-edit-modal" onClick={(e) => e.stopPropagation()}>
+                  <div className="modal-header">
+                    <h4>{accountEdit.label}</h4>
+                    <button className="modal-close" onClick={() => setAccountEdit(null)}><X size={16} /></button>
+                  </div>
+                  <div className="modal-body">
+                    {accountEdit.key === 'community' ? (
+                      <>
+                        <div className="form-row">
+                          <label>所在地区</label>
+                          <div className="settings-account-cascade">
+                            <select
+                              value={addrCascade.province}
+                              onChange={(e) => setAddrCascade({ province: e.target.value, city: '', district: '' })}
+                            >
+                              <option value="">请选择省份</option>
+                              {regions.map((p) => (
+                                <option value={p.name} key={p.name}>{p.name}</option>
+                              ))}
+                            </select>
+                            <select
+                              value={addrCascade.city}
+                              onChange={(e) => setAddrCascade((prev) => ({ ...prev, city: e.target.value, district: '' }))}
+                              disabled={!addrCascade.province}
+                            >
+                              <option value="">{addrCascade.province ? '请选择城市' : '请先选择省份'}</option>
+                              {(regions.find((p) => p.name === addrCascade.province)?.cities || []).map((c) => (
+                                <option value={c.name} key={c.name}>{c.name}</option>
+                              ))}
+                            </select>
+                            <select
+                              value={addrCascade.district}
+                              onChange={(e) => setAddrCascade((prev) => ({ ...prev, district: e.target.value }))}
+                              disabled={!addrCascade.city}
+                            >
+                              <option value="">{addrCascade.city ? '请选择区/县' : '请先选择城市'}</option>
+                              {(regions.find((p) => p.name === addrCascade.province)?.cities.find((c) => c.name === addrCascade.city)?.districts || []).map((d) => (
+                                <option value={d} key={d}>{d}</option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                        <div className="form-row">
+                          <label>所在小区</label>
+                          <input
+                            type="text"
+                            value={account.neighborhood}
+                            placeholder="例如：未来科技城社区"
+                            onChange={(e) => setAccount((a) => ({ ...a, neighborhood: e.target.value }))}
+                          />
+                        </div>
+                      </>
+                    ) : (
+                      <div className="form-row">
+                        <label>{accountEdit.label}</label>
+                        <input
+                          type="text"
+                          value={accountEdit.value}
+                          autoFocus
+                          onChange={(e) => setAccountEdit((prev) => prev && { ...prev, value: e.target.value })}
+                        />
+                      </div>
+                    )}
+                    <div className="settings-account-edit-actions">
+                      <button className="btn btn-outline" onClick={() => setAccountEdit(null)}>取消</button>
+                      <button
+                        className="btn btn-primary"
+                        disabled={savingAccount}
+                        onClick={async () => {
+                          try {
+                            setSavingAccount(true);
+                            const next = { ...account };
+                            if (accountEdit.key === 'realName') next.realName = accountEdit.value;
+                            if (accountEdit.key === 'phone') next.phone = accountEdit.value;
+                            if (accountEdit.key === 'email') next.email = accountEdit.value;
+                            if (accountEdit.key === 'nickname') next.nickname = accountEdit.value;
+                            if (accountEdit.key === 'community') {
+                              if (!addrCascade.province || !addrCascade.city || !addrCascade.district) {
+                                addToast('请选择完整的省 / 市 / 区', 'error');
+                                setSavingAccount(false);
+                                return;
+                              }
+                              next.community = `${addrCascade.province} ${addrCascade.city} ${addrCascade.district}`;
+                            }
+                            setAccount(next);
+                            // 账号姓名优先级：实名姓名 > 昵称 > 默认数字名
+                            updateUser({
+                              name: next.realName.trim() || next.nickname,
+                              community: next.community,
+                              neighborhood: next.neighborhood,
+                            });
+                            addToast('账户信息已保存', 'success');
+                            setAccountEdit(null);
+                          } catch (err: any) {
+                            addToast(err.message || '保存失败', 'error');
+                          } finally {
+                            setSavingAccount(false);
+                          }
+                        }}
+                      >
+                        {savingAccount ? '保存中…' : '保存'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
             </Annotate>
           )}
 

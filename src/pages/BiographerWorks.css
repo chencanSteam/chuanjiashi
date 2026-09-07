@@ -1,0 +1,236 @@
+.biographer-works-page {
+  width: 100%;
+}
+
+.work-order-picker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted);
+}
+
+.work-order-picker select {
+  padding: 8px 12px;
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--text);
+  background: #fff;
+  outline: none;
+  min-width: 260px;
+}
+
+.work-layout {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.work-chapters-card {
+  position: sticky;
+  top: 20px;
+}
+
+.work-chapters-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+}
+
+.work-chapter-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.work-chapter-item:hover {
+  background: var(--bg-secondary);
+}
+
+.work-chapter-item.active {
+  background: var(--primary-50);
+  box-shadow: inset 0 0 0 1px var(--primary-100);
+}
+
+.work-chapter-index {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.work-chapter-item.active .work-chapter-index {
+  background: var(--primary);
+  color: #fff;
+}
+
+.work-chapter-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.work-chapter-title {
+  font-size: 13px;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.work-chapter-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+.work-chapter-status.empty {
+  color: var(--text-muted);
+}
+
+.work-chapter-status.draft {
+  color: #d97706;
+}
+
+.work-chapter-status.done {
+  color: #1B5E4B;
+}
+
+.work-chapter-actions {
+  display: none;
+  gap: 2px;
+}
+
+.work-chapter-item:hover .work-chapter-actions,
+.work-chapter-item.active .work-chapter-actions {
+  display: flex;
+}
+
+.work-chapter-actions button {
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.work-chapter-actions button:hover:not(:disabled) {
+  background: #fff;
+  color: var(--primary);
+}
+
+.work-chapter-actions button.danger:hover:not(:disabled) {
+  color: #c0392b;
+}
+
+.work-chapter-actions button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.work-editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.work-editor-title {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  background: transparent;
+  font-family: inherit;
+}
+
+.work-editor-words {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.work-editor-body {
+  padding: 0;
+}
+
+.work-editor-textarea {
+  width: 100%;
+  min-height: 420px;
+  border: none;
+  outline: none;
+  resize: vertical;
+  padding: 20px 24px;
+  font-size: 14px;
+  line-height: 1.9;
+  color: var(--text);
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.work-editor-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 12px 24px;
+  border-top: 1px solid var(--border-light);
+}
+
+.work-modal-input {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.work-modal-input:focus {
+  border-color: var(--primary);
+}
+
+.work-modal-hint {
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.8;
+  margin: 0;
+}
+
+.work-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+@media (max-width: 960px) {
+  .work-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .work-chapters-card {
+    position: static;
+  }
+}

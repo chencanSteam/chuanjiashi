@@ -27,47 +27,6 @@
   align-items: start;
 }
 
-.timeline-toggle {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  color: #6b7280;
-}
-
-.toggle-switch {
-  width: 34px;
-  height: 18px;
-  border-radius: 999px;
-  background: #d0d8d4;
-  position: relative;
-  cursor: pointer;
-}
-
-.toggle-switch.on {
-  background: #1B5E4B;
-}
-
-.toggle-switch::after {
-  content: '';
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: #fff;
-  transition: 0.2s;
-}
-
-.toggle-switch.on::after {
-  left: 18px;
-}
-
-.timeline-info {
-  color: #9ca3af;
-}
-
 .timeline-body {
   padding: 16px 20px 20px;
   position: relative;
@@ -805,22 +764,6 @@
   padding: 20px;
 }
 
-.privacy-template {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 20px;
-  font-size: 13px;
-  color: #6b7280;
-}
-
-.privacy-template select {
-  border: 1px solid #e8ecea;
-  border-radius: 8px;
-  padding: 6px 10px;
-  font-size: 12px;
-}
-
 .privacy-row {
   display: flex;
   align-items: center;
@@ -862,8 +805,7 @@
   border-color: #1B5E4B;
 }
 
-.privacy-options button:disabled,
-.privacy-template select:disabled {
+.privacy-options button:disabled {
   opacity: 0.55;
   cursor: not-allowed;
 }
@@ -1157,32 +1099,6 @@
 
 .timeline-empty p {
   margin: 0 0 12px;
-}
-
-.privacy-role {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 20px;
-  padding: 12px;
-  background: #f9fafb;
-  border-radius: 10px;
-  font-size: 13px;
-  flex-wrap: wrap;
-}
-
-.privacy-role select {
-  border: 1px solid #e8ecea;
-  border-radius: 8px;
-  padding: 6px 10px;
-  font-size: 13px;
-  outline: none;
-  background: #fff;
-}
-
-.role-hint {
-  color: #9ca3af;
-  font-size: 12px;
 }
 
 button:disabled,
@@ -1684,4 +1600,15 @@ select:disabled {
   color: #1B5E4B;
   border-radius: 999px;
   font-size: 12px;
+}
+
+/* 新建档案：日期/籍贯级联选择行 */
+.date-select-row {
+  display: flex;
+  gap: 8px;
+}
+
+.date-select-row select {
+  flex: 1;
+  min-width: 0;
 }

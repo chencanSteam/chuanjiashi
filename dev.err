@@ -1,0 +1,42 @@
+[2m17:45:34[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22m[api] 非 JSON 响应: /api/archives 200 <!doctype html>
+<html lang="zh-CN">
+  <head>
+    <script type="module">import { injectIntoGlobalHook } from "/@react-refresh";
+injectIntoGlobalHook(window);
+window.$RefreshReg$ = () => {};
+window.$Ref
+[2m17:45:34[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22m[api] 非 JSON 响应: /api/families/default/relations 200 <!doctype html>
+<html lang="zh-CN">
+  <head>
+    <script type="module">import { injectIntoGlobalHook } from "/@react-refresh";
+injectIntoGlobalHook(window);
+window.$RefreshReg$ = () => {};
+window.$Ref
+[2m17:45:34[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22m[api] 非 JSON 响应: /api/archives 200 <!doctype html>
+<html lang="zh-CN">
+  <head>
+    <script type="module">import { injectIntoGlobalHook } from "/@react-refresh";
+injectIntoGlobalHook(window);
+window.$RefreshReg$ = () => {};
+window.$Ref
+[2m17:45:34[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22m[api] 非 JSON 响应: /api/families/default/relations 200 <!doctype html>
+<html lang="zh-CN">
+  <head>
+    <script type="module">import { injectIntoGlobalHook } from "/@react-refresh";
+injectIntoGlobalHook(window);
+window.$RefreshReg$ = () => {};
+window.$Ref
+[2m17:45:37[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22m[api] 非 JSON 响应: /api/quota 200 <!doctype html>
+<html lang="zh-CN">
+  <head>
+    <script type="module">import { injectIntoGlobalHook } from "/@react-refresh";
+injectIntoGlobalHook(window);
+window.$RefreshReg$ = () => {};
+window.$Ref
+[2m17:45:37[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [2m[console.error] [22m[api] 非 JSON 响应: /api/quota 200 <!doctype html>
+<html lang="zh-CN">
+  <head>
+    <script type="module">import { injectIntoGlobalHook } from "/@react-refresh";
+injectIntoGlobalHook(window);
+window.$RefreshReg$ = () => {};
+window.$Ref

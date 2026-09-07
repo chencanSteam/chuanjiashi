@@ -1,3 +1,14 @@
+.profile-review-hint,
+.profile-review-status {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.profile-review-status.pending { color: #b8860b; }
+.profile-review-status.rejected { color: #b42318; }
+.profile-review-status.approved { color: #1b5e4b; }
+
 .biographer-edit-page {
   max-width: 720px;
   margin: 0 auto;
@@ -265,4 +276,24 @@
   justify-content: center;
   gap: 6px;
   font-size: 14px;
+}
+
+/* 嵌入「我的介绍页」编辑模式时的审核提示区 */
+.biographer-edit-review-hints {
+  margin-bottom: 16px;
+}
+
+.biographer-edit-radio-group {
+  display: flex;
+  gap: 16px;
+  padding: 9px 0;
+}
+
+.biographer-edit-radio {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #374151;
+  cursor: pointer;
 }

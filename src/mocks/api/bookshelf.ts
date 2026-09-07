@@ -2,7 +2,7 @@ import { http, type HttpHandler } from 'msw'
 import { success, fail, unauthorized, notFound } from '../utils/response'
 import { getItem, setItem, generateId, storeKeys } from '../utils/store'
 import { defaultBookComments } from '../data/seed'
-import { findSensitiveWord } from './dictionary'
+import { findSensitiveHit } from './dictionary'
 import type { PublicBook, Biography, BiographyChapter, Archive, BookComment } from '../types'
 
 function getCurrentUserId(): string | null {
@@ -21,7 +21,7 @@ function getDefaultPublicBooks(): PublicBook[] {
       intro: '从苏州老巷到创业舞台，记录一个普通中国家庭的奋斗与传承。',
       category: '企业家',
       occupationTags: ['企业家'],
-      lifeStageTags: ['创业之路', '家庭生活', '人生感悟'],
+      lifeStageTags: ['深耕岁月 · 历练成长', '家风人生 · 温情生活', '人生回望 · 未来愿景'],
       price: 0,
       isFree: true,
       status: 'approved',
@@ -88,6 +88,126 @@ function getDefaultPublicBooks(): PublicBook[] {
       likes: 0,
       collects: 0,
       shares: 0,
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: 'book_demo_005',
+      archiveId: 'default5',
+      userId: 'u_demo_005',
+      title: '铁血芳华：老兵陈建国',
+      author: '陈志远',
+      intro: '从战火纷飞到和平年代，一位老兵六十年不变的信仰与坚守。',
+      category: '军人',
+      occupationTags: ['军人'],
+      lifeStageTags: ['风雨磨砺 · 破局成长', '人生回望 · 未来愿景'],
+      price: 12.9,
+      isFree: false,
+      status: 'approved',
+      views: 892,
+      likes: 67,
+      sales: 128,
+      collects: 35,
+      shares: 11,
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: 'book_demo_006',
+      archiveId: 'default6',
+      userId: 'u_demo_006',
+      title: '匠心五十年：木匠徐长顺',
+      author: '徐晓东',
+      intro: '一把刨子、一根墨线，老木匠用双手丈量半个世纪的时光。',
+      category: '工匠',
+      occupationTags: ['手工艺人'],
+      lifeStageTags: ['深耕岁月 · 历练成长', '行业感悟 · 职业修为'],
+      price: 6.9,
+      isFree: false,
+      status: 'approved',
+      views: 445,
+      likes: 29,
+      sales: 73,
+      collects: 18,
+      shares: 5,
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: 'book_demo_007',
+      archiveId: 'default7',
+      userId: 'u_demo_007',
+      title: '白衣岁月：护士长林淑珍',
+      author: '林晓梅',
+      intro: '三十年护理生涯，记录一位普通护士长的仁心与坚守。',
+      category: '医生',
+      occupationTags: ['护士'],
+      lifeStageTags: ['择业入行 · 缘起初心', '家风人生 · 温情生活'],
+      price: 0,
+      isFree: true,
+      status: 'approved',
+      views: 673,
+      likes: 51,
+      sales: 158,
+      collects: 27,
+      shares: 9,
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: 'book_demo_008',
+      archiveId: 'default8',
+      userId: 'u_demo_008',
+      title: '粉笔人生：特级教师赵文渊',
+      author: '赵启明',
+      intro: '三尺讲台四十载，桃李满天下的人民教师人生实录。',
+      category: '教师',
+      occupationTags: ['教师'],
+      lifeStageTags: ['求学成长 · 岁月积淀', '行业感悟 · 职业修为'],
+      price: 8.9,
+      isFree: false,
+      status: 'approved',
+      views: 1024,
+      likes: 93,
+      sales: 187,
+      collects: 46,
+      shares: 17,
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: 'book_demo_009',
+      archiveId: 'default9',
+      userId: 'u_demo_009',
+      title: '田野守望者：农技员孙长富',
+      author: '孙立新',
+      intro: '扎根乡村四十年，把论文写在祖国大地上的老农技员。',
+      category: '其他',
+      occupationTags: ['农民'],
+      lifeStageTags: ['故里童年 · 初心萌芽', '风雨磨砺 · 破局成长'],
+      price: 0,
+      isFree: true,
+      status: 'approved',
+      views: 389,
+      likes: 24,
+      sales: 96,
+      collects: 14,
+      shares: 4,
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: 'book_demo_010',
+      archiveId: 'default10',
+      userId: 'u_demo_010',
+      title: '商海沉浮：民营企业家吴国栋',
+      author: '吴晓波',
+      intro: '从摆地摊到上市公司董事长，一部改革开放后的民营经济个人史。',
+      category: '企业家',
+      occupationTags: ['企业家'],
+      lifeStageTags: ['择业入行 · 缘起初心', '深耕岁月 · 历练成长'],
+      price: 19.9,
+      isFree: false,
+      status: 'approved',
+      views: 2150,
+      likes: 142,
+      sales: 312,
+      collects: 78,
+      shares: 26,
       createdAt: new Date().toISOString(),
     },
   ]
@@ -163,7 +283,7 @@ function ensureDemoBiographies(books: PublicBook[]): void {
     if (biographies.some((b) => b.archiveId === book.archiveId)) return
 
     const name = archives.find((a) => a.id === book.archiveId)?.name || book.title.slice(0, 6)
-    const chapterTitles = ['前言', '童年记忆', '求学岁月', '工作经历', '创业之路', '家庭生活', '人生感悟', '后记']
+    const chapterTitles = [  '故里童年 · 初心萌芽',  '求学成长 · 岁月积淀',  '择业入行 · 缘起初心',  '深耕岁月 · 历练成长',  '风雨磨砺 · 破局成长',  '行业感悟 · 职业修为',  '家风人生 · 温情生活',  '人生回望 · 未来愿景',]
     const chapters: BiographyChapter[] = chapterTitles.map((title, idx) => ({
       id: generateId(),
       order: idx,
@@ -211,6 +331,13 @@ function ensureBooks(): PublicBook[] {
   // 老数据兼容：示例书的作者占位字样（AI 整理/家属整理）与标签字段同步到最新种子值
   const defaults = getDefaultPublicBooks()
   let changed = false
+  // 新增的示例书追加进已有数据（保持既有阅读/收藏计数不变）
+  defaults.forEach((def) => {
+    if (!books.some((b) => b.id === def.id)) {
+      books.push({ ...def })
+      changed = true
+    }
+  })
   books = books.map((b) => {
     const def = defaults.find((d) => d.id === b.id)
     if (!def) return b
@@ -219,11 +346,11 @@ function ensureBooks(): PublicBook[] {
       next.author = def.author
       changed = true
     }
-    if (!next.occupationTags) {
+    if (JSON.stringify(next.occupationTags) !== JSON.stringify(def.occupationTags)) {
       next.occupationTags = def.occupationTags
       changed = true
     }
-    if (!next.lifeStageTags) {
+    if (JSON.stringify(next.lifeStageTags) !== JSON.stringify(def.lifeStageTags)) {
       next.lifeStageTags = def.lifeStageTags
       changed = true
     }
@@ -285,7 +412,8 @@ export const bookshelfHandlers: HttpHandler[] = [
     const category = url.searchParams.get('category') || ''
     const keyword = url.searchParams.get('keyword') || ''
     const userId = getCurrentUserId()
-    let books = ensureBooks().filter((b) => b.status === 'approved')
+    // 命中二级敏感词的传记不对外展示（仅本人在「我的」列表可见）
+    let books = ensureBooks().filter((b) => b.status === 'approved' && !b.restricted)
     if (category) books = books.filter((b) => b.category === category)
     if (keyword) {
       const lower = keyword.toLowerCase()
@@ -300,9 +428,12 @@ export const bookshelfHandlers: HttpHandler[] = [
     const books = ensureBooks()
     const book = books.find((b) => b.id === params.id)
     if (!book) return notFound('传记不存在')
+    // 受限内容仅上传者本人可见
+    const currentUserId = getCurrentUserId()
+    if (book.restricted && book.userId !== currentUserId) return notFound('该内容暂不可见')
     book.views += 1
     setItem(storeKeys.publicBooks, books)
-    return success(withUserFlags(book, getCurrentUserId()))
+    return success(withUserFlags(book, currentUserId))
   }),
 
   http.post('/api/bookshelf/:id/like', async ({ params }) => {
@@ -342,9 +473,10 @@ export const bookshelfHandlers: HttpHandler[] = [
     if (!userId) return unauthorized()
     const books = ensureBooks()
     const body = (await request.json()) as Partial<PublicBook>
-    // 敏感词拦截：标题与简介含敏感词时不允许提交上架
-    const hit = findSensitiveWord(`${body.title || ''} ${body.intro || ''}`)
-    if (hit) return fail(`内容包含敏感词“${hit}”，请修改后再提交`)
+    // 敏感词拦截：一级直接拒绝提交；二级允许提交但标记为仅自己可见
+    const hit = findSensitiveHit(`${body.title || ''} ${body.intro || ''}`)
+    if (hit?.level === 1) return fail(`内容包含敏感词“${hit.word}”，请修改后再提交`)
+    const restricted = hit?.level === 2
     const biography = getItem<Array<{ archiveId: string; status?: string }>>(storeKeys.biographies, []).find((item) => item.archiveId === body.archiveId)
     if (biography && biography.status !== 'final') return fail('传记尚未完成，不能上架')
     const idx = books.findIndex((b) => b.id === params.id && b.userId === userId)
@@ -356,6 +488,7 @@ export const bookshelfHandlers: HttpHandler[] = [
         title: body.title || '未命名传记',
         author: body.author || '匿名',
         intro: body.intro || '',
+        cover: body.cover,
         category: body.category || '其他',
         occupationTags: body.occupationTags,
         lifeStageTags: body.lifeStageTags,
@@ -367,6 +500,7 @@ export const bookshelfHandlers: HttpHandler[] = [
         collects: 0,
         shares: 0,
         trialWords: body.trialWords,
+        restricted,
         createdAt: new Date().toISOString(),
       }
       Object.assign(book, buildBookContent(book))
@@ -375,7 +509,7 @@ export const bookshelfHandlers: HttpHandler[] = [
       setItem(storeKeys.publicBooks, books)
       return success(book, '提交审核成功')
     }
-    const merged: PublicBook = { ...books[idx], ...body, status: 'pending' }
+    const merged: PublicBook = { ...books[idx], ...body, status: 'pending', restricted }
     // 价格/试看字数等变化后重新生成试读内容；全本内容仅在免费时随试读一起更新
     const content = buildBookContent(merged)
     merged.trialContent = content.trialContent
@@ -427,10 +561,12 @@ export const bookshelfHandlers: HttpHandler[] = [
     return success(books[idx], status === 'approved' ? '审核通过' : status === 'rejected' ? '已拒绝' : '已下架')
   }),
 
-  // 评论列表
+  // 评论列表（命中二级敏感词的评论仅发表者自己可见）
   http.get('/api/bookshelf/:id/comments', async ({ params }) => {
+    const currentUserId = getCurrentUserId()
     const comments = ensureBookComments()
       .filter((c) => c.bookId === params.id)
+      .filter((c) => !c.restricted || c.userId === currentUserId)
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
     return success(comments)
   }),
@@ -444,8 +580,9 @@ export const bookshelfHandlers: HttpHandler[] = [
     if (!book) return notFound('传记不存在')
     const { content } = (await request.json()) as { content?: string }
     if (!content || !content.trim()) return fail('评论内容不能为空')
-    const hit = findSensitiveWord(content)
-    if (hit) return fail(`评论包含敏感词“${hit}”，请修改后再发表`)
+    // 敏感词拦截：一级直接拒绝；二级允许发表但仅自己可见
+    const hit = findSensitiveHit(content)
+    if (hit?.level === 1) return fail(`评论包含敏感词“${hit.word}”，请修改后再发表`)
     // 付费传记仅已购用户可评论，评论携带购买时间
     const unlock = findUnlock(user.id, book.id)
     if (!book.isFree && !book.unlocked && !unlock) return fail('购买本书后才能发表评论')
@@ -453,11 +590,13 @@ export const bookshelfHandlers: HttpHandler[] = [
     const comment: BookComment = {
       id: generateId(),
       bookId: book.id,
+      userId: user.id,
       userNickname: user.nickname || '匿名用户',
       content: content.trim(),
       createdAt: new Date().toISOString(),
       likes: 0,
       purchasedAt: unlock?.unlockedAt || undefined,
+      restricted: hit?.level === 2 || undefined,
     }
     comments.unshift(comment)
     setItem(storeKeys.bookComments, comments)

@@ -4,12 +4,14 @@ import { Phone, Lock, ArrowRight, User, Briefcase, Shield, PenLine, Smartphone, 
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/useToast';
 import { useVersion } from '../hooks/useVersion';
+import { ensureDemoContent } from '../data/demoContent';
 import Modal from '../components/ui/Modal';
 import Annotate from '../components/annotation/Annotate';
 import './Login.css';
 
 const DEMO_PHONE = '13800138000';
 const USER_PHONE = '13800138003';
+const BIOGRAPHER_PHONE = '13900139001';
 
 type AgreementType = 'user' | 'privacy';
 
@@ -46,17 +48,20 @@ function hasArchives(): boolean {
 }
 
 function ensureDemoArchive() {
-  if (hasArchives()) return;
-  const defaultArchive = {
-    id: 'default',
-    name: '张明远',
-    gender: '男' as const,
-    birthYear: '1958',
-    origin: '江苏省苏州市',
-    occupation: '企业家 / 高级工程师',
-  };
-  localStorage.setItem('cj_archives', JSON.stringify([defaultArchive]));
-  localStorage.setItem('cj_current_archive_id', 'default');
+  if (!hasArchives()) {
+    const defaultArchive = {
+      id: 'default',
+      name: '张明远',
+      gender: '男' as const,
+      birthYear: '1958',
+      origin: '江苏省苏州市',
+      occupation: '企业家 / 高级工程师',
+    };
+    localStorage.setItem('cj_archives', JSON.stringify([defaultArchive]));
+    localStorage.setItem('cj_current_archive_id', 'default');
+  }
+  // 无论档案是否新建，都补齐缺失的演示传记/采访数据（已有内容不覆盖）
+  ensureDemoContent();
 }
 
 export default function Login() {
@@ -219,7 +224,7 @@ export default function Login() {
             <span className="portal-name">管理后台</span>
             <span className="portal-desc">合伙人、传记师、分润审核</span>
           </button>
-          <button type="button" className="portal-card biographer" onClick={() => enterPortal(DEMO_PHONE, '/biographer', { addBiographerRole: true })}>
+          <button type="button" className="portal-card biographer" onClick={() => enterPortal(BIOGRAPHER_PHONE, '/biographer', { addBiographerRole: true, name: '李传记' })}>
             <PenLine size={24} />
             <span className="portal-name">传记师端</span>
             <span className="portal-desc">订单管理、传记服务</span>

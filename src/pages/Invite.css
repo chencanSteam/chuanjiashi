@@ -1,0 +1,144 @@
+.invite-page {
+  width: 100%;
+}
+
+.invite-hero {
+  border-radius: 14px;
+  padding: 36px 40px;
+  background: linear-gradient(120deg, #1B5E4B 0%, #2D7A66 55%, #3D7A64 100%);
+  color: #fff;
+  margin-bottom: 20px;
+}
+
+.invite-hero-copy h2 {
+  margin: 0 0 8px;
+  font-size: 24px;
+}
+
+.invite-hero-copy p {
+  margin: 0;
+  opacity: 0.85;
+  font-size: 14px;
+}
+
+.invite-hero-code {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin: 22px 0 16px;
+}
+
+.invite-hero-code span {
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+.invite-hero-code strong {
+  font-size: 32px;
+  letter-spacing: 4px;
+  font-weight: 700;
+}
+
+.invite-hero-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.invite-hero-actions .btn-primary {
+  background: #fff;
+  color: #1B5E4B;
+  border-color: #fff;
+}
+
+.invite-hero-outline {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  color: #fff;
+}
+
+.invite-hero-outline:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.invite-stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.invite-stat-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 22px;
+}
+
+.invite-stat-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.invite-stat-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.invite-reward-amount {
+  color: #1B5E4B;
+  font-weight: 600;
+}
+
+.invite-withdraw-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.invite-withdraw-balance {
+  font-size: 13px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.invite-withdraw-balance strong {
+  color: var(--primary);
+  font-size: 16px;
+}
+
+.invite-withdraw-row input {
+  flex: 1;
+  max-width: 240px;
+  padding: 9px 12px;
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+}
+
+.invite-withdraw-row input:focus {
+  border-color: var(--primary);
+}
+
+.invite-rules-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
+  font-family: inherit;
+}
+
+.invite-rules-list {
+  margin: 12px 0 0;
+  padding-left: 18px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 2;
+}

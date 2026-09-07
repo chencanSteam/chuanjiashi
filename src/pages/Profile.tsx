@@ -1,11 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  BookMarked,
-  ClipboardList,
-  Sparkles,
-  Share2,
-  Settings as SettingsIcon,
   LogOut,
   ShieldCheck,
   ChevronRight,
@@ -15,7 +10,6 @@ import {
 import Avatar from '../components/ui/Avatar';
 import Modal from '../components/ui/Modal';
 import { useAuth } from '../hooks/useAuth';
-import { useVersion } from '../hooks/useVersion';
 import { useToast } from '../hooks/useToast';
 import Annotate from '../components/annotation/Annotate';
 import './Profile.css';
@@ -51,7 +45,6 @@ function maskIdCard(id: string): string {
 
 export default function Profile() {
   const { user, logout, updateUser } = useAuth();
-  const { isV1 } = useVersion();
   const { addToast } = useToast();
   const navigate = useNavigate();
   const displayName = user?.name || user?.phone || '用户';
@@ -147,14 +140,28 @@ export default function Profile() {
     addToast('手机号绑定成功', 'success');
   };
 
-  const menuItems = [
-    { to: '/my-works', icon: BookMarked, label: '我的传记', desc: '查看已生成的传记作品' },
-    { to: '/my-orders', icon: ClipboardList, label: '我的订单', desc: '实体书与服务订单' },
-    { to: '/settings/quota', icon: Sparkles, label: 'AI 额度', desc: '套餐与用量明细', fullOnly: true },
-    { to: '/settings/invite', icon: Share2, label: '我的邀请', desc: '邀请好友得奖励', fullOnly: true },
-    { to: '/settings/account', icon: SettingsIcon, label: '账户设置', desc: '昵称、真实姓名、手机号' },
-  ];
-  const visibleMenuItems = menuItems.filter((item) => !item.fullOnly || !isV1);
+  // 注销账户：二次确认后删除账号记录并退出登录（演示环境清除本地数据）
+  const [showDeleteAccount, setShowDeleteAccount] = useState(false);
+
+  const handleDeleteAccount = async () => {
+    if (user?.phone) {
+      try {
+        const raw = localStorage.getItem('cj_mock_users');
+        const users = raw ? JSON.parse(raw) as Array<{ phone?: string }> : [];
+        localStorage.setItem('cj_mock_users', JSON.stringify(users.filter((u) => u.phone !== user.phone)));
+        const registered = localStorage.getItem('cj_registered_users');
+        const registeredList = registered ? JSON.parse(registered) as Array<{ phone?: string }> : [];
+        localStorage.setItem('cj_registered_users', JSON.stringify(registeredList.filter((u) => u.phone !== user.phone)));
+        localStorage.removeItem(`cj_security_${user.phone}`);
+      } catch {
+        // ignore
+      }
+    }
+    await logout();
+    setShowDeleteAccount(false);
+    addToast('账户已注销', 'info');
+    navigate('/login', { replace: true });
+  };
 
   const handleLogout = async () => {
     await logout();
@@ -225,24 +232,15 @@ export default function Profile() {
         </Annotate>
       </div>
 
-      <Annotate id="profile.menu-list">
-      <div className="card profile-menu-card">
-        {visibleMenuItems.map((item) => (
-          <div className="profile-menu-item" key={item.to} onClick={() => navigate(item.to)}>
-            <div className="profile-menu-icon"><item.icon size={18} /></div>
-            <div className="profile-menu-info">
-              <div className="profile-menu-label">{item.label}</div>
-              <div className="profile-menu-desc">{item.desc}</div>
-            </div>
-            <ChevronRight size={16} className="profile-menu-arrow" />
-          </div>
-        ))}
-      </div>
-      </Annotate>
-
       <Annotate id="profile.logout">
       <button className="btn btn-outline profile-logout" onClick={handleLogout}>
         <LogOut size={14} /> 退出登录
+      </button>
+      </Annotate>
+
+      <Annotate id="profile.delete-account">
+      <button className="btn profile-delete-account" onClick={() => setShowDeleteAccount(true)}>
+        注销账户
       </button>
       </Annotate>
 
@@ -306,6 +304,24 @@ export default function Profile() {
               {phoneCountdown > 0 ? `${phoneCountdown}s` : '获取验证码'}
             </button>
           </div>
+        </div>
+      </Modal>
+
+      <Modal
+        open={showDeleteAccount}
+        title="注销账户"
+        onClose={() => setShowDeleteAccount(false)}
+        footer={
+          <div className="import-modal-footer">
+            <button className="btn btn-outline" onClick={() => setShowDeleteAccount(false)}>取消</button>
+            <button className="btn btn-danger" onClick={handleDeleteAccount}>确认注销</button>
+          </div>
+        }
+      >
+        <div className="profile-form">
+          <p style={{ color: '#6b7280', fontSize: 13, lineHeight: 1.8, margin: 0 }}>
+            注销后，当前账号及本地的档案、传记、订单等数据将被清除，且无法恢复。确认注销账户「{displayName}」（{user?.phone}）吗？
+          </p>
         </div>
       </Modal>
     </div>

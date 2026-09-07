@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Send, Sparkles, CheckCircle2, ChevronDown, Mic, Square } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { generateInterviewTopics } from '../../utils/interviewTopics';
+import { useAuth } from '../../hooks/useAuth';
+import { generateInterviewTopics, loadTopicProposals, submitTopicProposal, reviewTopicProposal, saveCustomTopic, type InterviewTopicProposal } from '../../utils/interviewTopics';
+import { findCollaboratorForUser, addSupplementAnswer, getInterviewTranscriptKey, getInterviewSessionKey } from '../../data/interviewCollaboration';
 import { followUpQuestionsPool } from '../../data/aiMock';
 import { quotaApi } from '../../api/quota';
 import { useToast } from '../../hooks/useToast';
@@ -118,13 +120,18 @@ function migrateLegacyTranscript(archiveId: string, userName: string) {
 export default function MobileInterview() {
   const navigate = useNavigate();
   const { addToast } = useToast();
+  const { user } = useAuth();
   const scrollRef = useRef<HTMLDivElement>(null);
   const seededRef = useRef(false);
 
   const [archive] = useState<Archive | null>(() => loadCurrentArchive());
   const archiveId = archive?.id || '';
   const subjectName = archive?.name || '受访者';
+  const collaborator = findCollaboratorForUser(archiveId, user);
+  const isCollaborator = !!collaborator;
+  const currentUserName = isCollaborator ? collaborator?.name || subjectName : subjectName;
   const allArchives = useMemo(() => loadArchives(), []);
+  const topicProposals = useMemo<InterviewTopicProposal[]>(() => loadTopicProposals(archiveId), [archiveId]);
 
   // 主题与 Web 端一致：同一套 generateInterviewTopics（含后台配置、标签主题、自定义主题）
   const topics = useMemo(
@@ -133,9 +140,10 @@ export default function MobileInterview() {
   );
 
   // 与 Web 端共用同一组 key
+  const respondentId = collaborator?.id;
   const answersKey = `cj_interview_answers_${archiveId}`;
-  const sessionKey = `cj_interview_session_${archiveId}`;
-  const transcriptKey = `cj_interview_transcript_${archiveId}`;
+  const sessionKey = getInterviewSessionKey(archiveId, respondentId);
+  const transcriptKey = getInterviewTranscriptKey(archiveId, respondentId);
 
   const [session, setSession] = useState<InterviewSessionState>(() =>
     loadJson<InterviewSessionState>(sessionKey, {
@@ -148,7 +156,7 @@ export default function MobileInterview() {
   );
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
     if (!archiveId) return [];
-    migrateLegacyTranscript(archiveId, subjectName);
+    if (!isCollaborator) migrateLegacyTranscript(archiveId, subjectName);
     const stored = transcriptToMessages(loadJson<TranscriptLine[]>(transcriptKey, []));
     // 兼容旧数据：没有 topicId 的消息按 category（主题名）补挂到对应主题
     return stored.map((m) =>
@@ -156,6 +164,8 @@ export default function MobileInterview() {
     );
   });
   const [input, setInput] = useState('');
+  const [topicReviewOpen, setTopicReviewOpen] = useState(false);
+  const [topicReviewReason, setTopicReviewReason] = useState('');
   const [generatingFollowUp, setGeneratingFollowUp] = useState(false);
   // 当前待答的延伸问题下标（对应当前主问题的 followUps 列表），与 Web 端 activeFollowUpIndex 同义
   const [activeFollowUpIndex, setActiveFollowUpIndex] = useState<number | null>(null);
@@ -236,8 +246,8 @@ export default function MobileInterview() {
 
   // 转写保存到与 Web 端共用的 key，两端对话互相可见
   useEffect(() => {
-    if (archiveId) saveJson(transcriptKey, messagesToTranscript(messages, subjectName));
-  }, [messages, transcriptKey, archiveId, subjectName]);
+    if (archiveId) saveJson(transcriptKey, messagesToTranscript(messages, currentUserName));
+  }, [messages, transcriptKey, archiveId, currentUserName]);
 
   // 语音录制计时（与 Web 端一致）
   useEffect(() => {
@@ -364,6 +374,39 @@ export default function MobileInterview() {
     }, 800);
   };
 
+  const handleReviewProposal = (proposal: InterviewTopicProposal, decision: 'approved' | 'rejected') => {
+    const reason = topicReviewReason.trim();
+    if (decision === 'rejected' && !reason) {
+      addToast('请填写拒绝原因', 'error');
+      return;
+    }
+    reviewTopicProposal(archiveId, proposal.id, decision, { name: user?.name || subjectName, phone: user?.phone }, reason);
+    setTopicReviewReason('');
+    setTopicReviewOpen(false);
+    addToast(decision === 'approved' ? `已通过主题「${proposal.topic.title}」` : `已拒绝主题「${proposal.topic.title}」`, 'success');
+    window.location.reload();
+  };
+
+  const handleAddTopic = () => {
+    const title = window.prompt(isCollaborator ? '请输入想补充的采访主题' : '请输入新的采访主题')?.trim();
+    if (!title || !archiveId) return;
+    const summary = window.prompt('主题说明（可选）')?.trim() || '';
+    if (isCollaborator && collaborator) {
+      submitTopicProposal(archiveId, {
+        id: collaborator.id,
+        name: collaborator.name,
+        phone: collaborator.phone,
+        relation: collaborator.relation,
+      }, { title, summary });
+      addToast(`主题「${title}」已提交，待本人确认`, 'success');
+    } else {
+      // 本人新增主题仍直接进入正式主题列表
+      saveCustomTopic(archiveId, { title, summary });
+      addToast(`主题「${title}」已添加`, 'success');
+    }
+    window.location.reload();
+  };
+
   const handleSend = async () => {
     const answerText = input.trim();
     if (!answerText || !archive || !currentTopic || !currentQuestion || isCompleted || generatingFollowUp) return;
@@ -406,7 +449,7 @@ export default function MobileInterview() {
     // 回答主问题（与 Web 端一致：首次回答消耗 interviewQuestion 额度，不足则拦截不保存）
     const qid = currentQuestion.id;
     const firstAnswer = !session.answeredIds.includes(qid);
-    if (firstAnswer) {
+    if (firstAnswer && !isCollaborator) {
       try {
         await quotaApi.consume('interviewQuestion');
       } catch (err) {
@@ -417,11 +460,20 @@ export default function MobileInterview() {
     }
 
     // 回答写入与 Web 端共用的 key，Web 端采访整理与传记生成可直接使用
-    saveJson(answersKey, { ...loadJson<Record<string, string>>(answersKey, {}), [qid]: answerText });
+    if (isCollaborator && collaborator) {
+      addSupplementAnswer(archiveId, qid, {
+        respondentId: collaborator.id,
+        respondentName: collaborator.name,
+        relation: collaborator.relation,
+        text: answerText,
+      });
+    } else {
+      saveJson(answersKey, { ...loadJson<Record<string, string>>(answersKey, {}), [qid]: answerText });
+    }
     const newAnsweredIds = firstAnswer ? [...session.answeredIds, qid] : session.answeredIds;
     setSession((prev) => ({
       ...prev,
-      answeredIds: newAnsweredIds,
+      answeredIds: isCollaborator ? prev.answeredIds : newAnsweredIds,
       skippedIds: prev.skippedIds.filter((id) => id !== qid),
     }));
     setMessages((prev) => [
@@ -429,8 +481,12 @@ export default function MobileInterview() {
       { id: `u_${Date.now()}`, role: 'user', text: answerText, time: nowTime(), topicId: currentTopic.id },
     ]);
 
-    // 与 Web 端一致：主问题回答后自动生成延伸问题
-    generateFollowUps(qid, newAnsweredIds);
+    // 协助人使用自己的 session 记录进度，不推进档案创建者的采访进度
+    if (isCollaborator) {
+      setMessages((prev) => appendNextMainQuestion([...prev], newAnsweredIds, qid));
+    } else {
+      generateFollowUps(qid, newAnsweredIds);
+    }
   };
 
   // 语音回答：与 Web 端一致，浏览器支持时用 Web Speech API 实时转写；不支持时回退模拟转写
@@ -543,8 +599,22 @@ export default function MobileInterview() {
             {t.title}
           </button>
         ))}
+        <button type="button" className="mobile-interview-add-topic" onClick={handleAddTopic}>＋ 添加主题</button>
       </div>
       </Annotate>
+      {!isCollaborator && topicProposals.some((proposal) => proposal.status === 'pending') && (
+        <button type="button" className="mobile-interview-review-topics" onClick={() => setTopicReviewOpen(true)}>
+          待确认主题 {topicProposals.filter((proposal) => proposal.status === 'pending').length} 个
+        </button>
+      )}
+      {isCollaborator && topicProposals.some((proposal) => proposal.proposerId === collaborator?.id) && (
+        <div className="mobile-interview-proposals">
+          <strong>我提出的主题</strong>
+          {topicProposals.filter((proposal) => proposal.proposerId === collaborator?.id).map((proposal) => (
+            <span key={proposal.id}>{proposal.topic.title} · {proposal.status === 'pending' ? '待本人确认' : proposal.status === 'approved' ? '已通过' : proposal.status === 'rejected' ? `已拒绝${proposal.rejectionReason ? `：${proposal.rejectionReason}` : ''}` : '已撤回'}</span>
+          ))}
+        </div>
+      )}
 
       <Annotate id="mobile-interview.chat">
       <div className="mobile-interview-chat" ref={scrollRef}>
@@ -580,7 +650,7 @@ export default function MobileInterview() {
             <CheckCircle2 size={16} /> 采访已全部完成
           </div>
           <div className="mobile-interview-done-actions">
-            <button className="mobile-interview-done-btn secondary" onClick={() => navigate('/interview-review')}>
+            <button className="mobile-interview-done-btn secondary" onClick={() => navigate('/m/interview-review')}>
               查看采访记录
             </button>
             <button className="mobile-interview-done-btn primary" onClick={() => navigate('/biography')}>
@@ -614,6 +684,29 @@ export default function MobileInterview() {
         </button>
       </div>
       </Annotate>
+      )}
+      {topicReviewOpen && !isCollaborator && (
+        <div className="mobile-interview-modal-backdrop" onClick={() => setTopicReviewOpen(false)}>
+          <div className="mobile-interview-topic-review" onClick={(event) => event.stopPropagation()}>
+            <div className="mobile-interview-topic-review-head">
+              <strong>协助人新增主题</strong>
+              <button type="button" onClick={() => setTopicReviewOpen(false)}>×</button>
+            </div>
+            {topicProposals.filter((proposal) => proposal.status === 'pending').map((proposal) => (
+              <div className="mobile-interview-topic-proposal" key={proposal.id}>
+                <strong>{proposal.topic.title}</strong>
+                <small>{proposal.proposerName} · {proposal.proposerRelation}</small>
+                <p>{proposal.topic.summary || '暂无主题说明'}</p>
+                <ol>{proposal.topic.questions.map((question) => <li key={question.id}>{question.text}</li>)}</ol>
+                <input value={topicReviewReason} onChange={(event) => setTopicReviewReason(event.target.value)} placeholder="拒绝原因（拒绝时必填）" />
+                <div>
+                  <button type="button" className="mobile-interview-done-btn primary" onClick={() => handleReviewProposal(proposal, 'approved')}>通过</button>
+                  <button type="button" className="mobile-interview-done-btn secondary" onClick={() => handleReviewProposal(proposal, 'rejected')}>拒绝</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
     </div>
   );

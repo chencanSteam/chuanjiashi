@@ -1,9 +1,5 @@
 import { useEffect, useState } from 'react';
 import {
-  Wallet,
-  Clock,
-  Percent,
-  CircleAlert,
   DollarSign,
 } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
@@ -52,6 +48,10 @@ export default function BiographerEarnings() {
       addToast('请输入正确的提现金额', 'error');
       return;
     }
+    if (amount < 100) {
+      addToast('单笔提现金额不能低于 ¥100', 'error');
+      return;
+    }
     if (amount > settlement.availableAmount) {
       addToast('提现金额不能超过可结算金额', 'error');
       return;
@@ -87,42 +87,46 @@ export default function BiographerEarnings() {
     );
   }
 
+  const totalIncome = settlement.incomes.reduce((sum, item) => sum + item.amount, 0);
+  const totalWithdrawn = settlement.withdrawals
+    .filter((w) => w.status === 'paid')
+    .reduce((sum, w) => sum + w.amount, 0);
+  const fmtMoney = (n: number) => n.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
   return (
     <div className="biographer-earnings-page">
       <header className="page-header">
         <div>
           <h1 className="page-title">结算提现</h1>
-          <p className="page-subtitle">订单收入由平台托管，服务完成后转入可结算金额</p>
+          <p className="page-subtitle">订单收入由平台托管，服务完成后转入可提现金额</p>
         </div>
-        <Annotate id="biographer-earnings.withdraw-entry" inline>
-        <button className="btn btn-primary" onClick={() => setShowWithdraw(true)}>
-          <DollarSign size={14} /> 申请提现
-        </button>
-        </Annotate>
       </header>
 
-      <Annotate id="biographer-earnings.stats">
-      <div className="earnings-stats">
-        <div className="card earnings-stat">
-          <Clock size={20} color="#d97706" />
-          <div>
-            <div className="earnings-stat-value">¥{settlement.escrowAmount.toFixed(2)}</div>
-            <div className="earnings-stat-label">托管中金额</div>
-          </div>
+      <Annotate id="biographer-earnings.overview">
+      <div className="card earnings-overview-card">
+        <div className="earnings-overview-item earnings-overview-main">
+          <div className="earnings-overview-label">可提现金额（元）</div>
+          <div className="earnings-overview-value primary">¥{fmtMoney(settlement.availableAmount)}</div>
+          <Annotate id="biographer-earnings.withdraw-entry" inline>
+          <button className="btn btn-primary btn-sm" onClick={() => setShowWithdraw(true)}>
+            <DollarSign size={14} /> 申请提现
+          </button>
+          </Annotate>
         </div>
-        <div className="card earnings-stat">
-          <Wallet size={20} color="#1B5E4B" />
-          <div>
-            <div className="earnings-stat-value">¥{settlement.availableAmount.toFixed(2)}</div>
-            <div className="earnings-stat-label">可结算金额</div>
-          </div>
+        <div className="earnings-overview-item">
+          <div className="earnings-overview-label">托管中金额</div>
+          <div className="earnings-overview-value">¥{fmtMoney(settlement.escrowAmount)}</div>
+          <div className="earnings-overview-sub">服务完成确认后转入可提现</div>
         </div>
-        <div className="card earnings-stat">
-          <Percent size={20} color="#2563eb" />
-          <div>
-            <div className="earnings-stat-value">{(settlement.commissionRate * 100).toFixed(0)}%</div>
-            <div className="earnings-stat-label">平台抽佣比例</div>
-          </div>
+        <div className="earnings-overview-item">
+          <div className="earnings-overview-label">累计收入</div>
+          <div className="earnings-overview-value">¥{fmtMoney(totalIncome)}</div>
+          <div className="earnings-overview-sub">共 {settlement.incomes.length} 单</div>
+        </div>
+        <div className="earnings-overview-item">
+          <div className="earnings-overview-label">累计已提现</div>
+          <div className="earnings-overview-value">¥{fmtMoney(totalWithdrawn)}</div>
+          <div className="earnings-overview-sub">平台服务费率 {(settlement.commissionRate * 100).toFixed(0)}%，入账时已扣除</div>
         </div>
       </div>
       </Annotate>
@@ -146,66 +150,70 @@ export default function BiographerEarnings() {
         <div className="earnings-list">
           {activeTab === 'incomes' &&
             (settlement.incomes.length === 0 ? (
-              <div className="earnings-empty">暂无收入明细</div>
+              <div className="admin-table-empty">暂无收入明细</div>
             ) : (
-              settlement.incomes.map((item) => (
-                <div className="earnings-row" key={item.orderNo}>
-                  <div className="earnings-row-main">
-                    <div className="earnings-row-title">订单 {item.orderNo}</div>
-                    <div className="earnings-row-meta">
-                      入账时间：{new Date(item.createdAt).toLocaleString()}
-                    </div>
-                  </div>
-                  <div className="earnings-row-amounts">
-                    <span className="earnings-amount income">+¥{item.amount.toFixed(2)}</span>
-                    <span className="earnings-commission">平台抽佣 ¥{item.commission.toFixed(2)}</span>
-                  </div>
-                </div>
-              ))
+              <div className="admin-table-wrap">
+              <table className="admin-table">
+                <thead>
+                  <tr><th>订单号</th><th>入账金额</th><th>平台抽佣</th><th>入账时间</th></tr>
+                </thead>
+                <tbody>
+                  {settlement.incomes.map((item) => (
+                    <tr key={item.orderNo}>
+                      <td>{item.orderNo}</td>
+                      <td><span className="earnings-amount income">+¥{item.amount.toFixed(2)}</span></td>
+                      <td><span className="earnings-commission">¥{item.commission.toFixed(2)}</span></td>
+                      <td>{new Date(item.createdAt).toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              </div>
             ))}
 
           {activeTab === 'withdrawals' &&
             (settlement.withdrawals.length === 0 ? (
-              <div className="earnings-empty">暂无提现记录</div>
+              <div className="admin-table-empty">暂无提现记录</div>
             ) : (
-              settlement.withdrawals.map((w) => (
-                <div className="earnings-row" key={w.id}>
-                  <div className="earnings-row-main">
-                    <div className="earnings-row-title">
-                      提现 ¥{w.amount.toFixed(2)}
-                      <span className={`earnings-status ${w.status}`}>{withdrawalStatusLabels[w.status]}</span>
-                    </div>
-                    <div className="earnings-row-meta">
-                      申请时间：{new Date(w.appliedAt).toLocaleString()}
-                      {w.paidAt && ` · 打款时间：${new Date(w.paidAt).toLocaleString()}`}
-                    </div>
-                  </div>
-                  <div className="earnings-row-amounts">
-                    <span className="earnings-amount">-¥{w.amount.toFixed(2)}</span>
-                  </div>
-                </div>
-              ))
+              <div className="admin-table-wrap">
+              <table className="admin-table">
+                <thead>
+                  <tr><th>提现金额</th><th>状态</th><th>申请时间</th><th>打款时间</th></tr>
+                </thead>
+                <tbody>
+                  {settlement.withdrawals.map((w) => (
+                    <tr key={w.id}>
+                      <td><span className="earnings-amount">-¥{w.amount.toFixed(2)}</span></td>
+                      <td><span className={`earnings-status ${w.status}`}>{withdrawalStatusLabels[w.status]}</span></td>
+                      <td>{new Date(w.appliedAt).toLocaleString()}</td>
+                      <td>{w.paidAt ? new Date(w.paidAt).toLocaleString() : <span className="admin-table-muted">—</span>}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              </div>
             ))}
 
           {activeTab === 'penalties' &&
             (settlement.penalties.length === 0 ? (
-              <div className="earnings-empty earnings-empty-safe">
-                <CircleAlert size={16} /> 暂无违规扣款记录，请继续保持良好服务
-              </div>
+              <div className="admin-table-empty">暂无违规扣款记录，请继续保持良好服务</div>
             ) : (
-              settlement.penalties.map((p) => (
-                <div className="earnings-row" key={p.id}>
-                  <div className="earnings-row-main">
-                    <div className="earnings-row-title">{p.reason}</div>
-                    <div className="earnings-row-meta">
-                      扣款时间：{new Date(p.createdAt).toLocaleString()}
-                    </div>
-                  </div>
-                  <div className="earnings-row-amounts">
-                    <span className="earnings-amount penalty">-¥{p.amount.toFixed(2)}</span>
-                  </div>
-                </div>
-              ))
+              <div className="admin-table-wrap">
+              <table className="admin-table">
+                <thead>
+                  <tr><th>扣款原因</th><th>扣款金额</th><th>扣款时间</th></tr>
+                </thead>
+                <tbody>
+                  {settlement.penalties.map((p) => (
+                    <tr key={p.id}>
+                      <td className="admin-table-text-left">{p.reason}</td>
+                      <td><span className="earnings-amount penalty">-¥{p.amount.toFixed(2)}</span></td>
+                      <td>{new Date(p.createdAt).toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              </div>
             ))}
         </div>
       </div>
@@ -225,8 +233,12 @@ export default function BiographerEarnings() {
         }
       >
         <div className="earnings-withdraw-form">
+          <div className="earnings-withdraw-account">
+            <span>收款账户</span>
+            <strong>微信零钱（当前登录账号）</strong>
+          </div>
           <p className="earnings-withdraw-tip">
-            当前可结算金额 <strong>¥{settlement.availableAmount.toFixed(2)}</strong>，提现申请将在 1-3 个工作日内审核打款。
+            当前可提现 <strong>¥{settlement.availableAmount.toFixed(2)}</strong>。单笔最低 ¥100，申请提交后平台 1-3 个工作日内审核打款；平台服务费（{(settlement.commissionRate * 100).toFixed(0)}%）已在入账时扣除，提现不再重复收费。
           </p>
           <div className="earnings-withdraw-row">
             <label>提现金额（元）</label>

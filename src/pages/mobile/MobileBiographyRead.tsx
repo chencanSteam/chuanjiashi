@@ -1,0 +1,6 @@
+import { ArrowLeft, BookOpen } from 'lucide-react'
+import { useMemo } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
+import { loadLegacyArchives } from '../../utils/mobileArchives'
+import './MobileCommerce.css'
+export default function MobileBiographyRead() { const navigate = useNavigate(); const { id } = useParams(); const archive = useMemo(() => loadLegacyArchives().find((item) => item.id === id), [id]); const chapters = useMemo(() => { try { return JSON.parse(localStorage.getItem(`cj_biography_chapters_${id}`) || '[]') as Array<{ title: string; content: string }> } catch { return [] } }, [id]); return <div className="mobile-commerce mobile-biography-read"><div className="mobile-subpage-bar"><button type="button" onClick={() => navigate(`/m/works/${id}`)}><ArrowLeft size={18} /></button><strong>阅读传记</strong><span /></div><header className="mobile-biography-title"><BookOpen size={25} /><h1>{archive?.name || '我的'}的传记</h1><p>人生故事记录</p></header>{chapters.length ? chapters.map((chapter, index) => <article className="mobile-biography-chapter" key={`${chapter.title}-${index}`}><h2>第{index + 1}章 {chapter.title}</h2><p>{chapter.content}</p></article>) : <div className="mobile-commerce-state"><p>传记内容正在整理中</p></div>}</div> }

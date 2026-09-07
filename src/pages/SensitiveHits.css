@@ -1,0 +1,147 @@
+.sensitive-hits-page .page-header {
+  margin-bottom: 20px;
+}
+
+.sh-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.sh-stat-card {
+  text-align: center;
+  padding: 20px;
+}
+
+.sh-stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.sh-stat-value.sh-stat-pending { color: #92400e; }
+.sh-stat-value.sh-stat-blocked { color: #dc2626; }
+.sh-stat-value.sh-stat-released { color: #1B5E4B; }
+
+.sh-stat-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.sh-list-card {
+  overflow: hidden;
+}
+
+.sh-list-header {
+  padding: 16px 20px;
+}
+
+.sh-filters {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.sh-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+  padding: 0 12px;
+  min-width: 260px;
+  color: var(--text-muted);
+}
+
+.sh-search input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 8px 0;
+  font-size: 14px;
+  outline: none;
+  color: var(--text);
+}
+
+.sh-filters select {
+  padding: 8px 12px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+  background: var(--card-bg);
+  font-size: 14px;
+  color: var(--text);
+  outline: none;
+  cursor: pointer;
+}
+
+.sh-list-body {
+  padding: 0;
+}
+
+.sh-word {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+  color: #dc2626;
+  white-space: nowrap;
+}
+
+/* 分类徽标 */
+.sh-badge {
+  display: inline-block;
+  font-size: 12px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.sh-badge.cat-politics { background: rgba(220, 38, 38, 0.08); color: #dc2626; }
+.sh-badge.cat-porn { background: rgba(147, 51, 234, 0.08); color: #9333ea; }
+.sh-badge.cat-violence { background: rgba(234, 88, 12, 0.08); color: #ea580c; }
+.sh-badge.cat-ads { background: rgba(37, 99, 235, 0.08); color: #2563eb; }
+.sh-badge.cat-abuse { background: rgba(219, 39, 119, 0.08); color: #db2777; }
+.sh-badge.cat-custom { background: #f3f4f6; color: #6b7280; }
+
+/* 状态徽标 */
+.sh-status {
+  display: inline-block;
+  font-size: 12px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.sh-status.pending { background: #fef3c7; color: #92400e; }
+.sh-status.blocked { background: rgba(220, 38, 38, 0.08); color: #dc2626; }
+.sh-status.released { background: rgba(27, 94, 75, 0.08); color: #1B5E4B; }
+
+.sh-source {
+  max-width: 200px;
+  font-size: 13px;
+}
+
+.sh-context {
+  max-width: 340px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.sh-context mark {
+  background: rgba(220, 38, 38, 0.1);
+  color: #dc2626;
+  font-weight: 700;
+  padding: 0 2px;
+  border-radius: 3px;
+}
+
+@media (max-width: 768px) {
+  .sh-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

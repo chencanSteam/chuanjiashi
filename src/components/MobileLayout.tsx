@@ -23,8 +23,18 @@ function MobileHeader() {
     '/m/profile': '我的',
     '/m/works': '我的作品',
     '/m/photo-restore': '照片修复',
+    '/m/payment': '收银台',
+    '/m/orders': '我的订单',
+    '/m/after-sale': '售后服务',
+    '/m/after-sale/apply': '申请退款',
+    '/m/after-sale/result': '售后结果',
+    '/m/address': '收货地址',
+    '/m/notifications': '消息通知',
+    '/m/invite': '我的邀请',
+    '/m/account': '账号与隐私',
+    '/m/works/': '作品详情',
   };
-  const title = titleMap[location.pathname] || '传家世';
+  const title = titleMap[location.pathname] || (location.pathname.startsWith('/m/works/') ? (location.pathname.endsWith('/read') ? '阅读传记' : '作品详情') : '传家世');
 
   return (
     <header className="mobile-header">

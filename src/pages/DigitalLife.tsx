@@ -11,7 +11,6 @@ import {
   Mic,
   Brain,
   MessageCircle,
-  Briefcase,
   Play,
   Volume2,
   MoreHorizontal,
@@ -23,7 +22,6 @@ import {
   ArrowLeft,
   ArrowRight,
   Check,
-  Crown,
 } from 'lucide-react';
 import Avatar from '../components/ui/Avatar';
 import Modal from '../components/ui/Modal';
@@ -36,14 +34,6 @@ import {
 import { getArchiveBasedDigitalAnswer } from '../utils/digitalAnswer';
 import Annotate from '../components/annotation/Annotate';
 import './DigitalLife.css';
-
-const stats = [
-  { icon: Users, label: '数字人物数量', value: '8人', trend: '2' },
-  { icon: Mic, label: '声音克隆进度', value: '72%', trend: '18%' },
-  { icon: Brain, label: '人格训练完成度', value: '68%', trend: '15%' },
-  { icon: MessageCircle, label: '活跃对话次数', value: '1,248次', trend: '320' },
-  { icon: Briefcase, label: '数字遗产配置数', value: '6个', trend: '1' },
-];
 
 const tabs = [
   { key: 'clone', label: '形象与声音克隆' },
@@ -624,36 +614,12 @@ export default function DigitalLife() {
       <header className="page-header digital-header">
         <h1 className="page-title">数字人</h1>
         <div className="page-actions">
-          <button className="btn btn-outline" style={{ color: '#b8860b', borderColor: 'rgba(184,134,11,0.3)' }} onClick={() => navigate('/store?category=digital_person')}>
-            <Crown size={14} /> 升级陪伴版
-          </button>
           <Annotate id="digital-life.create-wizard" inline>
           <button className="btn btn-primary" onClick={openWizard}><Plus size={14} /> 创建数字亲人</button>
           </Annotate>
           <button className="btn btn-outline" onClick={() => navigate('/settings/help')}>使用指南</button>
         </div>
       </header>
-
-      <Annotate id="digital-life.stats">
-      <div className="digital-stats-row">
-        {stats.map((s, i) => {
-          const statPaths = ['/digital-person', '/digital-person', '/digital-person/training-records', '/digital-person', '/government'];
-          // V1.0 模式下训练记录与政务服务未开放，点击统计卡统一回到数字人首页（与训练记录按钮的处理一致）
-          const mvpBlocked = statPaths[i] === '/government' || statPaths[i] === '/digital-person/training-records';
-          const target = isV1 && mvpBlocked ? '/digital-person' : statPaths[i];
-          return (
-            <div className="card digital-stat" key={i} onClick={() => navigate(target)}>
-              <div className="card-body">
-                <div className="digital-stat-icon"><s.icon size={22} color="#1B5E4B" /></div>
-                <div className="digital-stat-label">{s.label}</div>
-                <div className="digital-stat-value">{s.label === '数字人物数量' ? `${relativesList.length}人` : s.value}</div>
-                <div className="digital-stat-trend">较上月 <ChevronRight size={10} className="trend-up" /> {s.trend}</div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-      </Annotate>
 
       {relativesList.length === 0 ? (
         <div className="empty-state">

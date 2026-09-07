@@ -1,6 +1,8 @@
 import { interviewTopics, type InterviewTopic } from '../data/aiMock';
 import { loadTopicConfig } from '../data/interviewTopicConfig';
 
+import type { Collaborator } from '../data/interviewCollaboration';
+
 interface ArchiveInfo {
   name: string;
   gender?: '男' | '女';
@@ -9,6 +11,23 @@ interface ArchiveInfo {
   occupation: string;
   tags?: string[];
 }
+
+export interface InterviewTopicProposal {
+  id: string;
+  archiveId: string;
+  proposerId: string;
+  proposerName: string;
+  proposerPhone?: string;
+  proposerRelation: string;
+  topic: InterviewTopic;
+  status: 'pending' | 'approved' | 'rejected' | 'withdrawn';
+  createdAt: string;
+  reviewedAt?: string;
+  reviewerName?: string;
+  rejectionReason?: string;
+}
+
+const topicProposalsKey = (archiveId: string) => `cj_interview_topic_proposals_${archiveId}`;
 
 function getAge(birthYear: string): number {
   const year = Number(birthYear);
@@ -72,12 +91,9 @@ export function loadCustomTopics(archiveId: string): InterviewTopic[] {
   return [];
 }
 
-export function saveCustomTopic(archiveId: string, input: { title: string; summary?: string }): InterviewTopic {
-  const existing = loadCustomTopics(archiveId);
-  const id = `custom_${Date.now()}`;
+function buildCustomTopic(input: { title: string; summary?: string }, id = `custom_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`): InterviewTopic {
   const title = input.title.trim();
-  // 自定义主题没有预设题库，由 AI 根据主题名称生成开场问题
-  const topic: InterviewTopic = {
+  return {
     id,
     title,
     summary: (input.summary || '').trim(),
@@ -87,8 +103,83 @@ export function saveCustomTopic(archiveId: string, input: { title: string; summa
       { id: `${id}_q3`, text: `${title}这段经历对您后来的生活或想法有什么影响？`, mockAnswer: '' },
     ],
   };
+}
+
+export function saveCustomTopic(archiveId: string, input: { title: string; summary?: string }): InterviewTopic {
+  const topic = buildCustomTopic(input);
+  const existing = loadCustomTopics(archiveId);
   localStorage.setItem(customTopicsKey(archiveId), JSON.stringify([...existing, topic]));
   return topic;
+}
+
+export function loadTopicProposals(archiveId: string): InterviewTopicProposal[] {
+  try {
+    const raw = localStorage.getItem(topicProposalsKey(archiveId));
+    return raw ? JSON.parse(raw) as InterviewTopicProposal[] : [];
+  } catch {
+    return [];
+  }
+}
+
+export function submitTopicProposal(
+  archiveId: string,
+  proposer: Pick<Collaborator, 'id' | 'name' | 'phone' | 'relation'>,
+  input: { title: string; summary?: string }
+): InterviewTopicProposal {
+  const title = input.title.trim();
+  const existing = loadTopicProposals(archiveId);
+  const duplicate = existing.find((p) => p.status === 'pending' && p.proposerId === proposer.id && p.topic.title === title);
+  if (duplicate) return duplicate;
+  const proposal: InterviewTopicProposal = {
+    id: `proposal_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+    archiveId,
+    proposerId: proposer.id,
+    proposerName: proposer.name,
+    proposerPhone: proposer.phone,
+    proposerRelation: proposer.relation,
+    topic: buildCustomTopic({ title, summary: input.summary }, `custom_collab_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`),
+    status: 'pending',
+    createdAt: new Date().toISOString(),
+  };
+  localStorage.setItem(topicProposalsKey(archiveId), JSON.stringify([proposal, ...existing]));
+  return proposal;
+}
+
+export function reviewTopicProposal(
+  archiveId: string,
+  proposalId: string,
+  decision: 'approved' | 'rejected',
+  reviewer: { name: string; phone?: string },
+  rejectionReason?: string
+): InterviewTopicProposal | null {
+  const proposals = loadTopicProposals(archiveId);
+  const proposal = proposals.find((item) => item.id === proposalId);
+  if (!proposal || proposal.status !== 'pending') return proposal || null;
+  if (decision === 'approved') {
+    const official = loadCustomTopics(archiveId);
+    if (!official.some((topic) => topic.id === proposal.topic.id)) {
+      localStorage.setItem(customTopicsKey(archiveId), JSON.stringify([...official, proposal.topic]));
+    }
+  }
+  proposal.status = decision;
+  proposal.reviewedAt = new Date().toISOString();
+  proposal.reviewerName = reviewer.name;
+  proposal.rejectionReason = decision === 'rejected' ? rejectionReason?.trim() || undefined : undefined;
+  localStorage.setItem(topicProposalsKey(archiveId), JSON.stringify(proposals));
+  return proposal;
+}
+
+export function withdrawTopicProposal(archiveId: string, proposalId: string, proposerId: string): boolean {
+  const proposals = loadTopicProposals(archiveId);
+  const proposal = proposals.find((item) => item.id === proposalId && item.proposerId === proposerId && item.status === 'pending');
+  if (!proposal) return false;
+  proposal.status = 'withdrawn';
+  localStorage.setItem(topicProposalsKey(archiveId), JSON.stringify(proposals));
+  return true;
+}
+
+export function getPendingTopicProposalCount(archiveId: string): number {
+  return loadTopicProposals(archiveId).filter((item) => item.status === 'pending').length;
 }
 
 export function deleteCustomTopic(archiveId: string, topicId: string) {

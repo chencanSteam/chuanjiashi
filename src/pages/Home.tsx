@@ -2,7 +2,6 @@ import {
   Mic,
   Users,
   ChevronRight,
-  ShoppingBag,
   TreePine,
   Cpu,
   ArrowRight,
@@ -14,6 +13,8 @@ import {
   BookOpen,
   Eye,
   Flame,
+  Upload,
+  BadgeCheck,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useMemo, useEffect, useState } from 'react';
@@ -58,13 +59,17 @@ interface Archive {
   name: string;
   gender?: '男' | '女';
   birthYear: string;
+  birthDate?: string;
   origin: string;
+  originDetail?: string;
+  industry?: string;
   occupation: string;
   tags?: string[];
   createdAt?: string;
 }
 
-import { presetLifeTags } from '../data/lifeTags';
+import { regions } from '../data/regions';
+import { industryOptions, industryOccupations } from '../data/occupations';
 
 function loadArchives(): Archive[] {
   try {
@@ -76,18 +81,42 @@ function loadArchives(): Archive[] {
   return [];
 }
 
-function loadCurrentArchive(): Archive | null {
-  const archives = loadArchives();
-  const currentId = localStorage.getItem('cj_current_archive_id');
-  if (!currentId) return null;
-  return archives.find((a) => a.id === currentId) || null;
-}
-
 function saveArchive(archive: Archive) {
   const existing = loadArchives();
   const filtered = existing.filter((a) => a.id !== archive.id);
   localStorage.setItem('cj_archives', JSON.stringify([...filtered, archive]));
   localStorage.setItem('cj_current_archive_id', archive.id);
+}
+
+/** 新建档案表单的空初始值 */
+const EMPTY_BASIC_FORM = {
+  name: '',
+  gender: '男' as '男' | '女',
+  birthYear: '',
+  birthMonth: '',
+  birthDay: '',
+  originProvince: '',
+  originCity: '',
+  originDistrict: '',
+  originDetail: '',
+  industry: '',
+  occupation: '',
+};
+
+// 出生日期下拉的年份范围：1900 至今
+const currentYear = new Date().getFullYear();
+const birthYearOptions = Array.from({ length: currentYear - 1900 + 1 }, (_, i) => String(currentYear - i));
+
+/** 该档案是否已有智能采访记录（采访逐字稿非空即视为已采访） */
+function hasInterviewSession(archiveId: string): boolean {
+  try {
+    const raw = localStorage.getItem(`cj_interview_transcript_${archiveId}`);
+    if (!raw) return false;
+    const list = JSON.parse(raw);
+    return Array.isArray(list) && list.length > 0;
+  } catch {
+    return false;
+  }
 }
 
 export default function Home() {
@@ -255,50 +284,46 @@ export default function Home() {
   ];
 
   const [showBasicModal, setShowBasicModal] = useState(false);
-  const [basicStep, setBasicStep] = useState<1 | 2>(1);
-  const [basicForm, setBasicForm] = useState({
-    name: '',
-    gender: '男' as '男' | '女',
-    birthYear: '',
-    origin: '',
-    occupation: '',
-  });
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [customTag, setCustomTag] = useState('');
+  const [showArchivePicker, setShowArchivePicker] = useState(false);
 
+  // 开始智能采访：① 已有采访记录 → 直接进采访页；② 无采访但有档案 → 弹窗选择档案；③ 无档案 → 新建档案后开始
   const handleStartInterview = () => {
-    const archive = loadCurrentArchive();
-    setBasicForm({
-      name: archive?.name || '',
-      gender: archive?.gender || '男',
-      birthYear: archive?.birthYear || '',
-      origin: archive?.origin || '',
-      occupation: archive?.occupation || '',
-    });
-    setSelectedTags(archive?.tags || []);
-    setCustomTag('');
-    setBasicStep(1);
+    const archives = loadArchives();
+    const withInterview = archives.filter((a) => hasInterviewSession(a.id));
+    if (withInterview.length > 0) {
+      const currentId = localStorage.getItem('cj_current_archive_id');
+      const target = withInterview.find((a) => a.id === currentId) || withInterview[0];
+      localStorage.setItem('cj_current_archive_id', target.id);
+      navigate('/interview');
+      return;
+    }
+    if (archives.length > 0) {
+      setShowArchivePicker(true);
+      return;
+    }
+    setBasicForm(EMPTY_BASIC_FORM);
     setShowBasicModal(true);
   };
 
-  const toggleTag = (tag: string) => {
-    setSelectedTags((prev) =>
-      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
-    );
+  const handlePickArchive = (archive: Archive) => {
+    localStorage.setItem('cj_current_archive_id', archive.id);
+    setShowArchivePicker(false);
+    navigate('/interview');
   };
-
-  const addCustomTag = () => {
-    const tag = customTag.trim();
-    if (!tag) return;
-    if (!selectedTags.includes(tag)) {
-      setSelectedTags((prev) => [...prev, tag]);
-    }
-    setCustomTag('');
-  };
+  const [basicForm, setBasicForm] = useState({ ...EMPTY_BASIC_FORM });
 
   const handleSaveBasicInfo = () => {
-    if (!basicForm.name.trim() || !basicForm.birthYear.trim()) {
-      addToast('请填写姓名和出生年份', 'error');
+    if (!basicForm.name.trim()) {
+      addToast('请填写姓名', 'error');
+      return;
+    }
+    if (!basicForm.originProvince || !basicForm.originCity || !basicForm.originDistrict) {
+      addToast('请选择完整的籍贯（省 / 市 / 区）', 'error');
+      return;
+    }
+    const birthParts = [basicForm.birthYear, basicForm.birthMonth, basicForm.birthDay];
+    if (birthParts.some(Boolean) && !birthParts.every(Boolean)) {
+      addToast('请完整选择出生日期（年 / 月 / 日）', 'error');
       return;
     }
     const archiveId = localStorage.getItem('cj_current_archive_id') || `archive_${Date.now()}`;
@@ -306,16 +331,17 @@ export default function Home() {
       id: archiveId,
       name: basicForm.name.trim(),
       gender: basicForm.gender,
-      birthYear: basicForm.birthYear.trim(),
-      origin: basicForm.origin.trim(),
-      occupation: basicForm.occupation.trim(),
-      tags: selectedTags,
+      birthYear: basicForm.birthYear,
+      birthDate: basicForm.birthYear ? `${basicForm.birthYear}-${basicForm.birthMonth}-${basicForm.birthDay}` : undefined,
+      origin: `${basicForm.originProvince}${basicForm.originCity}${basicForm.originDistrict}`,
+      originDetail: basicForm.originDetail.trim() || undefined,
+      industry: basicForm.industry || undefined,
+      occupation: basicForm.occupation,
     });
     setShowBasicModal(false);
     addToast('基础信息已保存，开始 AI 采访', 'success');
     navigate('/interview');
   };
-
 
   return (
     <div className="home-page">
@@ -348,6 +374,7 @@ export default function Home() {
           <p>AI数字人生 · 家庭记忆沉淀 · 家风传承 · 数字陪伴</p>
           <div className="hero-actions">
             <button className="btn btn-primary" onClick={handleStartInterview}><Mic size={16} /> 开始智能采访</button>
+            <button className="btn btn-hero-secondary" onClick={() => navigate('/polish')}><Upload size={16} /> 已有传记上传</button>
             {!isV1 && <button className="btn btn-hero-secondary" onClick={() => navigate('/family')}><Users size={16} /> 进入家庭空间</button>}
           </div>
         </div>
@@ -472,7 +499,9 @@ export default function Home() {
                   <p>
                     {inv.kind === 'relation'
                       ? `${inv.inviterName} 邀请你与「${inv.subjectName}」建立「${inv.relation}」关系`
-                      : `${inv.inviterName} 邀请你以「${inv.relation}」身份协助采访`}
+                      : inv.scope === 'edit'
+                        ? `${inv.inviterName} 邀请你以「${inv.relation}」身份协助修改传记`
+                        : `${inv.inviterName} 邀请你以「${inv.relation}」身份协助采访`}
                   </p>
                 </div>
                 <div className="home-invite-actions">
@@ -516,14 +545,6 @@ export default function Home() {
       )}
 
       <section className="home-services">
-        <div className="service-card" onClick={() => navigate('/store')}>
-          <div className="service-icon" style={{ background: 'rgba(184,134,11,0.1)', color: '#b8860b' }}><ShoppingBag size={22} /></div>
-          <div className="service-info">
-            <h4>传承商城</h4>
-            <p>实体书 · 纪念册 · 家风礼盒 · 永久二维码</p>
-          </div>
-          <ArrowRight size={16} className="service-arrow" />
-        </div>
         {!isV1 && (
           <>
             <div className="service-card" onClick={() => navigate('/family-hall')}>
@@ -590,11 +611,19 @@ export default function Home() {
           </div>
           <ArrowRight size={16} className="service-arrow" />
         </div>
+        <div className="service-card" onClick={() => navigate('/biographer-apply')}>
+          <div className="service-icon" style={{ background: 'rgba(13,148,136,0.1)', color: '#0d9488' }}><BadgeCheck size={22} /></div>
+          <div className="service-info">
+            <h4>传记师入驻</h4>
+            <p>入驻认证 · 在线接单 · 服务结算</p>
+          </div>
+          <ArrowRight size={16} className="service-arrow" />
+        </div>
         <div className="service-card" onClick={() => navigate('/partner/apply')}>
           <div className="service-icon" style={{ background: 'rgba(79,70,229,0.1)', color: '#4f46e5' }}><Handshake size={22} /></div>
           <div className="service-info">
-            <h4>传记师/服务商入驻</h4>
-            <p>入驻认证 · 接单结算 · 合作共赢</p>
+            <h4>合伙人申请</h4>
+            <p>区域合伙 · 分润结算 · 合作共赢</p>
           </div>
           <ArrowRight size={16} className="service-arrow" />
         </div>
@@ -702,125 +731,151 @@ export default function Home() {
       <Annotate id="home.basic-info-modal">
       <Modal
         open={showBasicModal}
-        title={basicStep === 1 ? '完善基础信息' : '选择人生标签'}
+        title="新建档案"
         onClose={() => setShowBasicModal(false)}
         footer={
           <div className="basic-info-modal-footer">
-            {basicStep === 2 && (
-              <button className="btn btn-outline" onClick={() => setBasicStep(1)}>上一步</button>
-            )}
             <button className="btn btn-outline" onClick={() => setShowBasicModal(false)}>取消</button>
-            {basicStep === 1 ? (
-              <button
-                className="btn btn-primary"
-                onClick={() => {
-                  if (!basicForm.name.trim() || !basicForm.birthYear.trim()) {
-                    addToast('请填写姓名和出生年份', 'error');
-                    return;
-                  }
-                  setBasicStep(2);
-                }}
-              >
-                下一步
-              </button>
-            ) : (
-              <button className="btn btn-primary" onClick={handleSaveBasicInfo}>保存并开始采访</button>
-            )}
+            <button className="btn btn-primary" onClick={handleSaveBasicInfo}>保存并开始采访</button>
           </div>
         }
       >
-        {basicStep === 1 ? (
-          <div className="basic-info-form">
-            <div className="basic-info-row">
-              <label>姓名 <span className="basic-info-required">*</span></label>
-              <input
-                type="text"
-                value={basicForm.name}
-                onChange={(e) => setBasicForm({ ...basicForm, name: e.target.value })}
-                placeholder="请输入姓名"
-              />
-            </div>
-            <div className="basic-info-row">
-              <label>性别</label>
-              <select
-                value={basicForm.gender}
-                onChange={(e) => setBasicForm({ ...basicForm, gender: e.target.value as '男' | '女' })}
-              >
-                <option value="男">男</option>
-                <option value="女">女</option>
+        <div className="basic-info-form">
+          <div className="basic-info-row">
+            <label>姓名 <span className="basic-info-required">*</span></label>
+            <input
+              type="text"
+              value={basicForm.name}
+              onChange={(e) => setBasicForm({ ...basicForm, name: e.target.value })}
+              placeholder="请输入姓名"
+            />
+          </div>
+          <div className="basic-info-row">
+            <label>性别</label>
+            <select
+              value={basicForm.gender}
+              onChange={(e) => setBasicForm({ ...basicForm, gender: e.target.value as '男' | '女' })}
+            >
+              <option value="男">男</option>
+              <option value="女">女</option>
+            </select>
+          </div>
+          <div className="basic-info-row">
+            <label>出生日期</label>
+            <div className="basic-info-date-row">
+              <select value={basicForm.birthYear} onChange={(e) => setBasicForm({ ...basicForm, birthYear: e.target.value })}>
+                <option value="">年</option>
+                {birthYearOptions.map((y) => (
+                  <option value={y} key={y}>{y} 年</option>
+                ))}
+              </select>
+              <select value={basicForm.birthMonth} onChange={(e) => setBasicForm({ ...basicForm, birthMonth: e.target.value })}>
+                <option value="">月</option>
+                {Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0')).map((m) => (
+                  <option value={m} key={m}>{Number(m)} 月</option>
+                ))}
+              </select>
+              <select value={basicForm.birthDay} onChange={(e) => setBasicForm({ ...basicForm, birthDay: e.target.value })}>
+                <option value="">日</option>
+                {Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, '0')).map((d) => (
+                  <option value={d} key={d}>{Number(d)} 日</option>
+                ))}
               </select>
             </div>
-            <div className="basic-info-row">
-              <label>出生年份 <span className="basic-info-required">*</span></label>
-              <input
-                type="text"
-                value={basicForm.birthYear}
-                onChange={(e) => setBasicForm({ ...basicForm, birthYear: e.target.value })}
-                placeholder="如：1958"
-              />
-            </div>
-            <div className="basic-info-row">
-              <label>籍贯</label>
-              <input
-                type="text"
-                value={basicForm.origin}
-                onChange={(e) => setBasicForm({ ...basicForm, origin: e.target.value })}
-                placeholder="如：江苏省苏州市"
-              />
-            </div>
-            <div className="basic-info-row">
-              <label>职业</label>
-              <input
-                type="text"
-                value={basicForm.occupation}
-                onChange={(e) => setBasicForm({ ...basicForm, occupation: e.target.value })}
-                placeholder="如：教师"
-              />
-            </div>
           </div>
-        ) : (
-          <div className="basic-info-form">
-            <p className="life-tags-hint">勾选符合的人生经历，AI 会根据这些标签生成更贴合的采访问题。</p>
-            <div className="life-tags">
-              {presetLifeTags.map((tag) => (
-                <button
-                  key={tag}
-                  className={`life-tag ${selectedTags.includes(tag) ? 'active' : ''}`}
-                  onClick={() => toggleTag(tag)}
-                  type="button"
-                >
-                  {tag}
-                </button>
-              ))}
-            </div>
-            <div className="custom-tag-row">
-              <input
-                type="text"
-                value={customTag}
-                onChange={(e) => setCustomTag(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    addCustomTag();
-                  }
-                }}
-                placeholder="输入自定义标签，按回车添加"
-              />
-              <button className="btn btn-outline" onClick={addCustomTag}>添加</button>
-            </div>
-            {selectedTags.length > 0 && (
-              <div className="selected-tags">
-                <span>已选择：</span>
-                {selectedTags.map((tag) => (
-                  <span className="selected-tag" key={tag}>
-                    {tag}
-                    <button onClick={() => toggleTag(tag)} type="button">×</button>
-                  </span>
+          <div className="basic-info-row">
+            <label>籍贯 <span className="basic-info-required">*</span></label>
+            <div className="basic-info-date-row">
+              <select value={basicForm.originProvince} onChange={(e) => setBasicForm({ ...basicForm, originProvince: e.target.value, originCity: '', originDistrict: '' })}>
+                <option value="">省份</option>
+                {regions.map((p) => (
+                  <option value={p.name} key={p.name}>{p.name}</option>
                 ))}
-              </div>
-            )}
+              </select>
+              <select value={basicForm.originCity} onChange={(e) => setBasicForm({ ...basicForm, originCity: e.target.value, originDistrict: '' })} disabled={!basicForm.originProvince}>
+                <option value="">城市</option>
+                {(regions.find((p) => p.name === basicForm.originProvince)?.cities || []).map((c) => (
+                  <option value={c.name} key={c.name}>{c.name}</option>
+                ))}
+              </select>
+              <select value={basicForm.originDistrict} onChange={(e) => setBasicForm({ ...basicForm, originDistrict: e.target.value })} disabled={!basicForm.originCity}>
+                <option value="">区/县</option>
+                {(regions.find((p) => p.name === basicForm.originProvince)?.cities.find((c) => c.name === basicForm.originCity)?.districts || []).map((d) => (
+                  <option value={d} key={d}>{d}</option>
+                ))}
+              </select>
+            </div>
           </div>
-        )}
+          <div className="basic-info-row">
+            <label>详细地址</label>
+            <input
+              type="text"
+              value={basicForm.originDetail}
+              onChange={(e) => setBasicForm({ ...basicForm, originDetail: e.target.value })}
+              placeholder="选填，如：平江路 12 号"
+            />
+          </div>
+          <div className="basic-info-row">
+            <label>行业</label>
+            <select
+              value={basicForm.industry}
+              onChange={(e) => setBasicForm({ ...basicForm, industry: e.target.value, occupation: '' })}
+            >
+              <option value="">请选择行业</option>
+              {industryOptions.map((i) => (
+                <option value={i} key={i}>{i}</option>
+              ))}
+            </select>
+          </div>
+          <div className="basic-info-row">
+            <label>职业</label>
+            <select
+              value={basicForm.occupation}
+              onChange={(e) => setBasicForm({ ...basicForm, occupation: e.target.value })}
+              disabled={!basicForm.industry}
+            >
+              <option value="">{basicForm.industry ? '请选择职业' : '请先选择行业'}</option>
+              {(industryOccupations[basicForm.industry] || []).map((o) => (
+                <option value={o} key={o}>{o}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </Modal>
+      </Annotate>
+
+      <Annotate id="home.archive-picker">
+      <Modal
+        open={showArchivePicker}
+        title="选择采访档案"
+        onClose={() => setShowArchivePicker(false)}
+        footer={
+          <div className="basic-info-modal-footer">
+            <button className="btn btn-outline" onClick={() => setShowArchivePicker(false)}>取消</button>
+            <button
+              className="btn btn-outline"
+              onClick={() => {
+                setShowArchivePicker(false);
+                setBasicForm({ ...EMPTY_BASIC_FORM });
+                setShowBasicModal(true);
+              }}
+            >
+              新建档案
+            </button>
+          </div>
+        }
+      >
+        <p className="life-tags-hint">选择要为谁开始智能采访，也可以新建一份档案。</p>
+        <div className="archive-picker-list">
+          {loadArchives().map((a) => (
+            <button type="button" className="archive-picker-item" key={a.id} onClick={() => handlePickArchive(a)}>
+              <div className="archive-picker-name">{a.name}</div>
+              <div className="archive-picker-meta">
+                {[a.gender, a.birthYear && `${a.birthYear} 年生`, a.origin, a.occupation].filter(Boolean).join(' · ') || '未完善基础信息'}
+              </div>
+            </button>
+          ))}
+        </div>
       </Modal>
       </Annotate>
     </div>

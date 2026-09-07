@@ -19,20 +19,20 @@ export const biographerOrdersAnnotations: PageAnnotations = {
     {
       id: 'biographer-orders.order-status',
       target: '订单状态标签',
-      logic: `① 订单状态共 9 种：待付定金/已付定金/已预约采访/已提交初稿/修改中/已提交终稿/已付尾款/已完成/售后中，由 statusMap 统一映射文案与颜色。
-② 已预约采访的订单在卡片上额外展示采访时间与地点（order.schedule.time / address），未预约的不显示该行。`,
+      logic: `① 订单状态共 7 种：待预约采访/已预约采访/已提交初稿/修改中/已提交终稿/已完成/售后中，由 statusMap 统一映射文案与颜色。
+② 已预约采访的订单在列表中展示采访时间与地点（order.schedule.time / address），未预约的显示「待安排」。`,
     },
     {
       id: 'biographer-orders.progress',
       target: '服务进度条',
-      logic: `① 服务流程固定 6 个节点：支付定金 → 预约采访 → 提交初稿 → 修改完善 → 支付尾款 → 交付定稿。
-② 进度百分比 = order.progress 中 status=done 的节点数 ÷ 6，已完成节点显示对勾图标；节点数据由后端（原型 mock）随订单维护。`,
+      logic: `① 服务流程固定 4 个节点：预约采访 → 提交初稿 → 修改完善 → 交付定稿（传记订单为全额支付，无定金/尾款环节）。
+② 进度百分比 = order.progress 中 status=done 的节点数 ÷ 4；节点数据由后端（原型 mock）随订单维护。`,
     },
     {
       id: 'biographer-orders.next-action',
       target: '下一步操作按钮',
-      logic: `① 取 order.progress 中第一个 status=pending 的节点作为当前待办，按钮文案与图标随节点变化（如「确认定金已付」「提交初稿」「交付定稿」）；全部节点完成时按钮不再显示。
-② 除「预约采访」外，点击直接调 biographerApi.updateProgress(orderId, 节点名) 推进流程并刷新列表；「预约采访」需先在弹窗中填写时间与地点。
+      logic: `① 取 order.progress 中第一个 status=pending 的节点作为当前待办，按钮文案随节点变化（如「预约采访时间」「提交初稿」「交付定稿」）；全部节点完成时显示「—」。每行另有「详情」按钮，弹出订单详情（基础信息 + 各节点完成时间）。
+② 除「预约采访」外，点击先弹确认框，确认后调 biographerApi.updateProgress(orderId, 节点名) 推进流程并刷新列表；「预约采访」需先在弹窗中填写时间与地点。
 ③ 请求处理中按钮置灰禁用，防止重复提交。`,
     },
     {

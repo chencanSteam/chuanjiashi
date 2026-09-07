@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft, Image, Play, FileText, Music, Plus, Download, Search, Trash2 } from 'lucide-react';
+import { ArrowLeft, Image, Play, FileText, Music, Plus, Download, Search, Trash2, Pencil, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../hooks/useToast';
 import { generateImageDataUrl, generateVideoPoster, generateAudioUrl } from '../utils/mediaPlaceholder';
@@ -8,7 +8,6 @@ import './ArchiveMedia.css';
 
 const STORAGE_KEY_CURRENT_ARCHIVE = 'cj_current_archive_id';
 const STORAGE_KEY_MEDIA_PREFIX = 'cj_media_';
-const STORAGE_KEY_ROLE = 'cj_current_role';
 
 const DEFAULT_ARCHIVE_ID = 'default';
 
@@ -55,14 +54,6 @@ function saveMediaItems(archiveId: string, items: MediaItem[]) {
   } catch { /* ignore */ }
 }
 
-function getRole(): string {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY_ROLE);
-    if (saved) return saved;
-  } catch { /* ignore */ }
-  return '';
-}
-
 function deriveType(name: string): MediaItem['type'] {
   const ext = name.split('.').pop()?.toLowerCase() ?? '';
   const imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'];
@@ -87,13 +78,13 @@ export default function ArchiveMedia() {
   const navigate = useNavigate();
   const { addToast } = useToast();
   const archiveId = getArchiveId();
-  const role = getRole();
-  const isObserver = role === '观察者';
 
   const [items, setItems] = useState<MediaItem[]>(() => loadMediaItems(archiveId));
   const [mediaFilter, setMediaFilter] = useState('全部');
   const [search, setSearch] = useState('');
   const [preview, setPreview] = useState<MediaItem | null>(null);
+  const [renaming, setRenaming] = useState<MediaItem | null>(null);
+  const [renameValue, setRenameValue] = useState('');
 
   useEffect(() => {
     saveMediaItems(archiveId, items);
@@ -125,6 +116,24 @@ export default function ArchiveMedia() {
     e.stopPropagation();
     setItems((prev) => prev.filter((item) => item.id !== id));
     addToast('素材已删除', 'success');
+  };
+
+  const openRename = (e: React.MouseEvent, item: MediaItem) => {
+    e.stopPropagation();
+    setRenaming(item);
+    setRenameValue(item.title);
+  };
+
+  const handleRename = () => {
+    if (!renaming) return;
+    const value = renameValue.trim();
+    if (!value) {
+      addToast('名称不能为空', 'error');
+      return;
+    }
+    setItems((prev) => prev.map((item) => (item.id === renaming.id ? { ...item, title: value } : item)));
+    setRenaming(null);
+    addToast('素材已重命名', 'success');
   };
 
   const renderThumb = (item: MediaItem) => {
@@ -160,14 +169,12 @@ export default function ArchiveMedia() {
       <div className="card">
         <div className="card-header">
           <h3 className="card-title">全部素材（{items.length}）</h3>
-          {!isObserver && (
-            <Annotate id="archive-media.upload" inline>
-            <label className="btn btn-primary">
-              <Plus size={14} /> 上传素材
-              <input type="file" hidden accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt" onChange={handleUpload} />
-            </label>
-            </Annotate>
-          )}
+          <Annotate id="archive-media.upload" inline>
+          <label className="btn btn-primary">
+            <Plus size={14} /> 上传素材
+            <input type="file" hidden accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt" onChange={handleUpload} />
+          </label>
+          </Annotate>
         </div>
         <div className="card-body">
           <Annotate id="archive-media.filter-search">
@@ -188,12 +195,10 @@ export default function ArchiveMedia() {
             <div className="archive-media-empty">
               <Image size={40} />
               <p>暂无符合条件的素材</p>
-              {!isObserver && (
-                <label className="btn btn-primary archive-media-empty-upload">
-                  <Plus size={14} /> 上传素材
-                  <input type="file" hidden accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt" onChange={handleUpload} />
-                </label>
-              )}
+              <label className="btn btn-primary archive-media-empty-upload">
+                <Plus size={14} /> 上传素材
+                <input type="file" hidden accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt" onChange={handleUpload} />
+              </label>
             </div>
           ) : (
             <Annotate id="archive-media.grid">
@@ -204,12 +209,13 @@ export default function ArchiveMedia() {
                   <div className="archive-media-title">{m.title}</div>
                   <div className="archive-media-date">{m.date}</div>
                   {m.stage && <div className="archive-media-stage">{m.stage}</div>}
-                  <button className="archive-media-download" onClick={(e) => { e.stopPropagation(); addToast('开始下载素材', 'success'); }}><Download size={14} /></button>
-                  {!isObserver && (
-                    <button className="archive-media-delete" onClick={(e) => handleDelete(e, m.id)} title="删除">
-                      <Trash2 size={14} />
-                    </button>
-                  )}
+                  <button className="archive-media-download" onClick={(e) => { e.stopPropagation(); addToast('开始下载素材', 'success'); }} title="下载"><Download size={14} /></button>
+                  <button className="archive-media-rename" onClick={(e) => openRename(e, m)} title="重命名">
+                    <Pencil size={14} />
+                  </button>
+                  <button className="archive-media-delete" onClick={(e) => handleDelete(e, m.id)} title="删除">
+                    <Trash2 size={14} />
+                  </button>
                 </div>
               ))}
             </div>
@@ -217,6 +223,32 @@ export default function ArchiveMedia() {
           )}
         </div>
       </div>
+      {renaming && (
+        <div className="modal-overlay" onClick={() => setRenaming(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h4>重命名素材</h4>
+              <button className="modal-close" onClick={() => setRenaming(null)}><X size={16} /></button>
+            </div>
+            <div className="modal-body">
+              <label className="archive-media-rename-label">素材名称</label>
+              <input
+                className="archive-media-rename-input"
+                type="text"
+                value={renameValue}
+                autoFocus
+                onChange={(e) => setRenameValue(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleRename(); }}
+                placeholder="请输入素材名称"
+              />
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 12 }}>
+                <button className="btn btn-outline" onClick={() => setRenaming(null)}>取消</button>
+                <button className="btn btn-primary" onClick={handleRename}>确定</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {preview && (
         <div className="modal-overlay" onClick={() => setPreview(null)}>
           <Annotate id="archive-media.preview">

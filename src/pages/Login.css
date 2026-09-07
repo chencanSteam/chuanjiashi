@@ -405,6 +405,15 @@
   color: #c45c26;
 }
 
+.portal-card.collaborator:hover {
+  border-color: #0e7a5f;
+  background: #eef7f4;
+}
+
+.portal-card.collaborator svg {
+  color: #0e7a5f;
+}
+
 .portal-name {
   font-size: 15px;
   font-weight: 700;

@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { MapPin, Star, Award, Phone, Mail, BookOpen, Image, CheckCircle, MessageCircle, Calendar, Briefcase, Edit2, ArrowLeft, X, ThumbsUp, Users, User, Clock, FileText, Home } from 'lucide-react';
+import { MapPin, Star, Award, Phone, Mail, BookOpen, Image, MessageCircle, Calendar, Briefcase, Edit2, Eye, X, Users, User, Clock, FileText, Home } from 'lucide-react';
 import { biographerApi } from '../api/biographer';
 import { paymentApi } from '../api/payment';
 import { useToast } from '../hooks/useToast';
 import { useAuth } from '../hooks/useAuth';
 import type { Biographer as MockBiographer, BiographerReview, BiographerService, BiographerBookingForm } from '../mocks/types';
+import BiographerProfileEdit from './BiographerProfileEdit';
 import Annotate from '../components/annotation/Annotate';
 import './BiographerProfile.css';
 
@@ -72,6 +73,20 @@ export default function BiographerProfile({ biographerId, embedded, onClose, onB
 
   const isOwnProfile = !id || (biographer && user?.phone === biographer.phone);
 
+  // 编辑 / 预览 切换（仅自己的介绍页且非嵌入模式显示）
+  const [mode, setMode] = useState<'preview' | 'edit'>('preview');
+
+  const modeSwitch = (
+    <div className="biographer-profile-mode-switch">
+      <button type="button" className={mode === 'preview' ? 'active' : ''} onClick={() => setMode('preview')}>
+        <Eye size={14} /> 预览
+      </button>
+      <button type="button" className={mode === 'edit' ? 'active' : ''} onClick={() => setMode('edit')}>
+        <Edit2 size={14} /> 编辑资料
+      </button>
+    </div>
+  );
+
   const recommendedIndex = useMemo(() => {
     const services = biographer?.services;
     if (!services || services.length === 0) return -1;
@@ -81,12 +96,12 @@ export default function BiographerProfile({ biographerId, embedded, onClose, onB
 
   useEffect(() => {
     const fetchBio = id ? biographerApi.get(id) : biographerApi.me();
-    const fetchReviews = id ? biographerApi.getReviews(id) : Promise.resolve([]);
     const fetchContactAccess = id ? biographerApi.getContactAccess(id) : Promise.resolve({ unlocked: true });
-    Promise.all([fetchBio, fetchReviews, fetchContactAccess])
-      .then(([bio, revs, contactAccess]) => {
+    Promise.all([fetchBio, fetchContactAccess])
+      .then(async ([bio, contactAccess]) => {
+        const revs = await biographerApi.getReviews(bio.id).catch(() => [] as BiographerReview[]);
         setBiographer(bio);
-        setReviews(revs as BiographerReview[]);
+        setReviews(revs);
         setContactUnlocked(contactAccess.unlocked);
         if (user?.phone && !bookingForm.contactPhone) {
           setBookingForm((prev) => ({ ...prev, contactPhone: user.phone || '' }));
@@ -99,6 +114,18 @@ export default function BiographerProfile({ biographerId, embedded, onClose, onB
       })
       .finally(() => setLoading(false));
   }, [id, user?.phone]);
+
+  if (isOwnProfile && !embedded && mode === 'edit') {
+    return (
+      <div className="biographer-profile-page">
+        <div className="biographer-profile-toolbar">
+          <h1 className="page-title">我的介绍页</h1>
+          {modeSwitch}
+        </div>
+        <BiographerProfileEdit embedded onExit={() => setMode('preview')} />
+      </div>
+    );
+  }
 
   if (loading) {
     return <div className="partner-center-page"><div className="card"><div className="card-body">加载中...</div></div></div>;
@@ -113,14 +140,6 @@ export default function BiographerProfile({ biographerId, embedded, onClose, onB
   ) : (
     biographer.name.charAt(0)
   );
-
-  const statCards = [
-    { value: `${biographer.experience || 0}`, label: '从业年限' },
-    { value: `${biographer.completedOrders ?? 0}`, label: '完成订单' },
-    { value: `${biographer.reviewCount || 0}`, label: '累计评价' },
-    { value: `${(biographer.rating || 5).toFixed(1)}`, label: '用户评分' },
-    { value: `${Math.round((biographer.rating || 5) / 5 * 100)}%`, label: '好评率' },
-  ];
 
   const handleBookClick = (service: BiographerService) => {
     setBookingService(service);
@@ -143,7 +162,7 @@ export default function BiographerProfile({ biographerId, embedded, onClose, onB
       } else {
         const { order } = await biographerApi.createOrder(biographer.id, bookingService.id, bookingForm);
         await paymentApi.pay((order as any).id, 'wechat');
-        addToast(`预约成功，请支付定金 ¥${biographer.deposit || Math.round(bookingService.price * 0.3)}`, 'success');
+        addToast('预约成功，等待传记师确认采访时间', 'success');
       }
       setBookingService(null);
       if (embedded && onClose) onClose();
@@ -154,22 +173,26 @@ export default function BiographerProfile({ biographerId, embedded, onClose, onB
     }
   };
 
-  const comparisonRights = ['采访次数', '传记字数', '交付周期', '实体书', '影像资料', '修改次数'];
+  const comparisonRights: { label: string; key: 'interviewCount' | 'wordCount' | 'deliveryPeriod' | 'physicalBook' | 'mediaMaterial' | 'revisionCount' }[] = [
+    { label: '采访次数', key: 'interviewCount' },
+    { label: '传记字数', key: 'wordCount' },
+    { label: '交付周期', key: 'deliveryPeriod' },
+    { label: '实体书', key: 'physicalBook' },
+    { label: '影像资料', key: 'mediaMaterial' },
+    { label: '修改次数', key: 'revisionCount' },
+  ];
 
   return (
     <div className="biographer-profile-page">
+      {isOwnProfile && !embedded && (
+        <div className="biographer-profile-toolbar">
+          <h1 className="page-title">我的介绍页</h1>
+          {modeSwitch}
+        </div>
+      )}
       <div className="biographer-profile-cover" />
       <Annotate id="biographer-profile.header">
       <div className="biographer-profile-header-card">
-        {!embedded && (
-          <button
-            className="btn btn-outline"
-            style={{ position: 'absolute', top: -71, left: 16, padding: '6px 12px', fontSize: 13 }}
-            onClick={() => navigate(-1)}
-          >
-            <ArrowLeft size={14} /> 返回
-          </button>
-        )}
         {embedded && onClose && (
           <button
             className="btn btn-outline"
@@ -178,15 +201,6 @@ export default function BiographerProfile({ biographerId, embedded, onClose, onB
             aria-label="关闭"
           >
             <X size={16} />
-          </button>
-        )}
-        {isOwnProfile && !embedded && (
-          <button
-            className="btn btn-outline"
-            style={{ position: 'absolute', top: 16, right: 16 }}
-            onClick={() => navigate('/biographer/profile/edit')}
-          >
-            <Edit2 size={14} /> 编辑资料
           </button>
         )}
         <div className="biographer-profile-header-main">
@@ -214,15 +228,6 @@ export default function BiographerProfile({ biographerId, embedded, onClose, onB
         </div>
       </div>
       </Annotate>
-
-      <div className="biographer-profile-stats">
-        {statCards.map((s) => (
-          <div key={s.label} className="biographer-profile-stat-card">
-            <div className="biographer-profile-stat-value">{s.value}</div>
-            <div className="biographer-profile-stat-label">{s.label}</div>
-          </div>
-        ))}
-      </div>
 
       <div className="biographer-profile-section">
         <h3 className="biographer-profile-section-title"><MessageCircle size={18} /> 个人简介</h3>
@@ -277,12 +282,12 @@ export default function BiographerProfile({ biographerId, embedded, onClose, onB
                 ))}
               </div>
               {comparisonRights.map((right) => (
-                <div key={right} className="biographer-profile-comparison-row" style={{ gridTemplateColumns: `120px repeat(${biographer.services.length}, 1fr)` }}>
-                  <div className="biographer-profile-comparison-cell label">{right}</div>
+                <div key={right.key} className="biographer-profile-comparison-row" style={{ gridTemplateColumns: `120px repeat(${biographer.services.length}, 1fr)` }}>
+                  <div className="biographer-profile-comparison-cell label">{right.label}</div>
                   {biographer.services.map((s) => (
                     <div key={s.id} className={`biographer-profile-comparison-cell ${s.id === biographer.services[recommendedIndex]?.id ? 'recommended' : ''}`}>
-                      {s.description.includes(right.replace('采访', '').replace('次数', '')) ? (
-                        <CheckCircle size={14} className="biographer-profile-comparison-check" />
+                      {s[right.key] ? (
+                        <span>{s[right.key]}</span>
                       ) : (
                         <span className="biographer-profile-comparison-dash">—</span>
                       )}
@@ -347,30 +352,6 @@ export default function BiographerProfile({ biographerId, embedded, onClose, onB
               );
             })}
           </div>
-        </div>
-        <div className="biographer-profile-reviews">
-          {reviews.slice(0, 6).map((r) => (
-            <div key={r.id} className="biographer-profile-review">
-              <div className="biographer-profile-review-header">
-                <div className="biographer-profile-review-avatar">{r.userName.charAt(0)}</div>
-                <div>
-                  <div className="biographer-profile-review-name">{r.userName}</div>
-                  <div className="biographer-profile-review-stars">{'★'.repeat(r.rating)}</div>
-                </div>
-              </div>
-              <div className="biographer-profile-review-text">{r.content}</div>
-              {r.tags && r.tags.length > 0 && (
-                <div className="biographer-profile-review-tags">
-                  {r.tags.map((tag) => (
-                    <span key={tag} className="biographer-profile-review-tag"><ThumbsUp size={10} /> {tag}</span>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
-          {reviews.length === 0 && (
-            <div className="biographer-profile-review-empty">暂无评价</div>
-          )}
         </div>
       </div>
       </Annotate>
@@ -443,10 +424,6 @@ export default function BiographerProfile({ biographerId, embedded, onClose, onB
                   <span>服务价格</span>
                   <strong>¥{bookingService.price.toLocaleString()}</strong>
                 </div>
-                <div className="biographer-booking-deposit">
-                  <span>需先支付定金</span>
-                  <strong>¥{biographer.deposit || Math.round(bookingService.price * 0.3)}</strong>
-                </div>
               </div>
 
               <div className="form-row">
@@ -516,7 +493,7 @@ export default function BiographerProfile({ biographerId, embedded, onClose, onB
                 disabled={bookingSubmitting}
                 onClick={handleBookingSubmit}
               >
-                {bookingSubmitting ? '提交中…' : `确认预约并支付定金 ¥${biographer.deposit || Math.round(bookingService.price * 0.3)}`}
+                {bookingSubmitting ? '提交中…' : `确认预约并支付 ¥${bookingService.price.toLocaleString()}`}
               </button>
             </div>
           </div>

@@ -20,15 +20,15 @@ import {
   loadCollaborators,
   saveCollaborators,
   removeCollaborator,
+  loadInterviewTranscript,
   loadSupplementAnswers,
   saveSupplementAnswers,
   addSupplementAnswer,
-  setSupplementInvalid,
-  getCollaboratorAnswerCounts,
   createCollabInvite,
   invitesForArchive,
   revokeCollabInvite,
   findAccountByPhoneOrIdCard,
+  findCollaboratorForUser,
   type Collaborator,
   type SupplementAnswer,
 } from '../data/interviewCollaboration';
@@ -39,7 +39,15 @@ import {
   buildReviewData,
   type AIQuota,
 } from '../data/aiMock';
-import { generateInterviewTopics, saveCustomTopic, removeTopicForArchive } from '../utils/interviewTopics';
+import {
+  generateInterviewTopics,
+  saveCustomTopic,
+  removeTopicForArchive,
+  loadTopicProposals,
+  submitTopicProposal,
+  reviewTopicProposal,
+  type InterviewTopicProposal,
+} from '../utils/interviewTopics';
 import { syncReviewEventToTimeline } from '../utils/eventSync';
 import Annotate from '../components/annotation/Annotate';
 import './AIInterview.css';
@@ -60,6 +68,8 @@ interface TranscriptLine {
   speaker: string;
   time: string;
   text: string;
+  /** 该条对话所属的采访主题 */
+  topic?: string;
 }
 
 interface InterviewSession {
@@ -68,13 +78,6 @@ interface InterviewSession {
   answeredIds: string[];
   skippedIds: string[];
   followUps: Record<string, { question: string; userAnswer?: string; answered: boolean }[]>;
-}
-
-interface ChatMsg {
-  role: 'ai' | 'user';
-  text: string;
-  invalid?: boolean;
-  qid?: string;
 }
 
 interface RespondentInfo {
@@ -124,8 +127,8 @@ export default function AIInterview() {
   const archiveId = archive?.id || 'default';
   const subjectName = archive?.name || '张家声';
 
-  // 当前账号在该档案的协作者名单中 → 协助模式（回答计入补充素材）；否则为创建人（档案由本账号创建）
-  const collaboratorRecord = loadCollaborators(archiveId).find((c) => c.name === user?.name);
+  // 当前账号在该档案的协作者名单中 → 协助模式（回答计入补充素材）；否则为创建者（档案由本账号创建）
+  const collaboratorRecord = findCollaboratorForUser(archiveId, user);
   const myCollaborator: RespondentInfo | null = collaboratorRecord
     ? {
         id: collaboratorRecord.id,
@@ -137,20 +140,27 @@ export default function AIInterview() {
   const currentRespondent: RespondentInfo = myCollaborator ?? {
     id: 'subject',
     name: subjectName,
-    relation: '创建人',
+    relation: '创建者',
     isSubject: true,
   };
   const isSubjectMode = currentRespondent.isSubject;
 
-  // 每个回答者独立抽题与进度：AI 按各自对话生成问题，创建人与协助者的问题互不相同
+  // 每个回答者独立抽题与进度：AI 按各自对话生成问题，创建者与协助者的问题互不相同
   const respondentSuffix = myCollaborator ? `_${myCollaborator.id}` : '';
+  const [topicRevision, setTopicRevision] = useState(0);
   const interviewTopics = generateInterviewTopics(archive, archiveId);
+  const topicProposals = useMemo<InterviewTopicProposal[]>(
+    () => loadTopicProposals(archiveId),
+    [archiveId, topicRevision]
+  );
+  const transcriptCountFor = (collaboratorId: string) => loadInterviewTranscript(archiveId, collaboratorId).length;
+  const pendingTopicProposals = topicProposals.filter((proposal) => proposal.status === 'pending');
 
-  // 创建人=主导本传记的采访；协作者=协助传主的传记
+  // 创建者=主导本传记的采访；协作者=协助传主的传记
   const respondentLabel = (r: RespondentInfo) =>
-    r.isSubject ? `${r.name} · 创建人（主导本传记的采访）` : `${r.name} · ${r.relation}（协助${subjectName}的传记）`;
+    r.isSubject ? `${r.name} · 创建者（主导本传记的采访）` : `${r.name} · ${r.relation}（协助${subjectName}的传记）`;
 
-  // 传记选择：本账号创建的传记显示创建人，被邀请协助的传记显示协助；切换后重载页面以载入对应档案数据
+  // 传记选择：本账号创建的传记显示创建者，被邀请协助的传记显示协助；切换后重载页面以载入对应档案数据
   const allArchives = useMemo(() => loadJson<Archive[]>('cj_archives', []), []);
   const archiveOptions = allArchives.map((a) => {
     const collab = loadCollaborators(a.id).find((c) => c.name === user?.name);
@@ -158,7 +168,7 @@ export default function AIInterview() {
       id: a.id,
       label: collab
         ? `${a.name} 的传记 · 协助（我是${collab.relation || '协作人'}）`
-        : `${a.name} 的传记 · 创建人`,
+        : `${a.name} 的传记 · 创建者`,
     };
   });
   const handleSwitchArchive = (id: string) => {
@@ -229,8 +239,7 @@ export default function AIInterview() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [archiveId, invitesRefresh, collaborators]
   );
-  // 创建人视角：在主题区切换查看某位协助人的问答
-  const [viewRespondentId, setViewRespondentId] = useState<'subject' | string>('subject');
+  // 创建者视角：在主题区切换查看某位协助人的问答
 
   const voiceTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -239,8 +248,8 @@ export default function AIInterview() {
   const currentQuestion = currentTopic?.questions[session.currentQuestionIndex];
 
   useEffect(() => {
-    saveJson(`cj_interview_answers_${archiveId}`, answers);
-  }, [answers, archiveId]);
+    if (isSubjectMode) saveJson(`cj_interview_answers_${archiveId}`, answers);
+  }, [answers, archiveId, isSubjectMode]);
 
   useEffect(() => {
     saveJson(transcriptKey, transcript);
@@ -268,19 +277,6 @@ export default function AIInterview() {
     return () => { if (voiceTimerRef.current) clearInterval(voiceTimerRef.current); };
   }, [recordingVoice]);
 
-  const collaboratorAnswerCounts = useMemo(
-    () => getCollaboratorAnswerCounts(archiveId, collaborators),
-    [archiveId, collaborators, supplementAnswers]
-  );
-
-  // 正在查看的协助人：TA 有独立的问题集与问答记录（AI 按 TA 的回答生成）
-  const viewingCollaborator =
-    isSubjectMode && viewRespondentId !== 'subject'
-      ? collaborators.find((c) => c.id === viewRespondentId) ?? null
-      : null;
-  const viewedTopics = viewingCollaborator
-    ? generateInterviewTopics(archive, archiveId)
-    : interviewTopics;
   const currentFollowUps = currentQuestion ? session.followUps[currentQuestion.id] || [] : [];
   const activeFollowUp = activeFollowUpIndex !== null ? currentFollowUps[activeFollowUpIndex] : null;
 
@@ -292,30 +288,12 @@ export default function AIInterview() {
   const [chatInput, setChatInput] = useState('');
   const chatBodyRef = useRef<HTMLDivElement>(null);
 
-  const chatMessages: ChatMsg[] = viewingCollaborator
-    ? viewedTopics
-        .flatMap((t) => t.questions)
-        .flatMap((q) => {
-          const supp = (supplementAnswers[q.id] || []).find((a) => a.respondentId === viewingCollaborator.id);
-          if (!supp) return [];
-          return [
-            { role: 'ai' as const, text: q.text },
-            { role: 'user' as const, text: supp.text, invalid: supp.invalid, qid: q.id },
-          ];
-        })
-    : transcript.map((l) => ({
-        role: (l.speaker.startsWith('AI采访官') ? 'ai' : 'user') as 'ai' | 'user',
-        text: l.text,
-      }));
-
   // AI 正在问的问题：优先延伸问题，其次当前未答主问题
-  const pendingChatQuestion = viewingCollaborator
-    ? null
-    : activeFollowUp
-      ? activeFollowUp.question
-      : currentQuestion && !session.answeredIds.includes(currentQuestion.id)
-        ? currentQuestion.text
-        : null;
+  const pendingChatQuestion = activeFollowUp
+    ? activeFollowUp.question
+    : currentQuestion && !session.answeredIds.includes(currentQuestion.id)
+      ? currentQuestion.text
+      : null;
 
   // 发送回答：延伸问题回答或主问题回答
   const handleChatSend = () => {
@@ -331,41 +309,11 @@ export default function AIInterview() {
     }
   };
 
-  // 作废/恢复协助者某题的问答：作废后不作为传记参考
-  const toggleSupplementInvalidByQid = (qid: string, respondentId: string, next: boolean) => {
-    setSupplementInvalid(archiveId, qid, respondentId, next);
-    setSupplementAnswers((prev) => ({
-      ...prev,
-      [qid]: (prev[qid] || []).map((a) => (a.respondentId === respondentId ? { ...a, invalid: next } : a)),
-    }));
-    addToast(next ? '已作废，该回答不作为传记参考' : '已恢复，该回答可作为传记参考', 'info');
-  };
-
   // 对话自动滚动到底部
   useEffect(() => {
     const el = chatBodyRef.current;
     if (el) el.scrollTop = el.scrollHeight;
-  }, [chatMessages.length, pendingChatQuestion, generatingFollowUp]);
-
-  // 当前主题下有补充回答的协助者（协助按主题划分，如发小协助童年、配偶协助婚姻家庭）
-  const topicCollaborators = useMemo(() => {
-    if (!isSubjectMode || !currentTopic) return [];
-    return collaborators.filter((c) => {
-      const theirTopic = generateInterviewTopics(archive, archiveId).find(
-        (t) => t.id === currentTopic.id
-      );
-      return (theirTopic?.questions || []).some((q) =>
-        (supplementAnswers[q.id] || []).some((a) => a.respondentId === c.id)
-      );
-    });
-  }, [isSubjectMode, collaborators, currentTopic, supplementAnswers, archive, archiveId]);
-
-  // 切换主题后，若当前查看的协助者在该主题下没有回答，自动切回创建人
-  useEffect(() => {
-    if (viewRespondentId !== 'subject' && !topicCollaborators.some((c) => c.id === viewRespondentId)) {
-      setViewRespondentId('subject');
-    }
-  }, [topicCollaborators, viewRespondentId]);
+  }, [pendingChatQuestion, generatingFollowUp]);
 
   const nowTime = () =>
     new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
@@ -413,8 +361,8 @@ export default function AIInterview() {
 
     setTranscript((prev) => [
       ...prev,
-      { speaker: 'AI采访官', time: nowTime(), text: currentQuestion.text },
-      { speaker: currentRespondent.name, time: nowTime(), text },
+      { speaker: 'AI采访官', time: nowTime(), text: currentQuestion.text, topic: currentTopic?.title },
+      { speaker: currentRespondent.name, time: nowTime(), text, topic: currentTopic?.title },
     ]);
 
     addToast(isSubject ? '本段已保存' : `${currentRespondent.name} 的补充回答已保存`, 'success');
@@ -640,11 +588,22 @@ export default function AIInterview() {
       addToast('请输入主题名称', 'error');
       return;
     }
-    saveCustomTopic(archiveId, { title, summary: customTopicSummary.trim() });
+    if (myCollaborator) {
+      submitTopicProposal(archiveId, {
+        id: myCollaborator.id,
+        name: myCollaborator.name,
+        phone: collaboratorRecord?.phone,
+        relation: myCollaborator.relation,
+      }, { title, summary: customTopicSummary.trim() });
+      addToast(`主题「${title}」已提交，待本人确认后进入正式采访`, 'success');
+    } else {
+      saveCustomTopic(archiveId, { title, summary: customTopicSummary.trim() });
+      addToast(`已添加自定义主题「${title}」`, 'success');
+    }
     setCustomTopicTitle('');
     setCustomTopicSummary('');
     setShowCustomTopic(false);
-    addToast(`已添加自定义主题「${title}」`, 'success');
+    setTopicRevision((v) => v + 1);
     forceUpdate();
   };
 
@@ -681,13 +640,13 @@ export default function AIInterview() {
 
     setTranscript((prev) => [
       ...prev,
-      { speaker: 'AI采访官·延伸', time: nowTime(), text: questionText },
-      { speaker: currentRespondent.name, time: nowTime(), text },
+      { speaker: 'AI采访官·延伸', time: nowTime(), text: questionText, topic: currentTopic?.title },
+      { speaker: currentRespondent.name, time: nowTime(), text, topic: currentTopic?.title },
     ]);
     setActiveFollowUpIndex(null);
     setFollowUpAnswer('');
 
-    // 创建人回答追问后，AI 可继续衍生新问题（仍受每题 3 次追问上限约束）
+    // 创建者回答追问后，AI 可继续衍生新问题（仍受每题 3 次追问上限约束）
     if (currentRespondent.isSubject) {
       generateFollowUps(currentQuestion.id, 1);
       // 对话流收尾：没有更多待答追问时，自动进入下一道主问题
@@ -736,6 +695,7 @@ export default function AIInterview() {
     if (!inviteFound) return;
     createCollabInvite({
       kind: 'collab',
+      scope: 'interview',
       archiveId,
       archiveName: subjectName,
       subjectName,
@@ -750,17 +710,16 @@ export default function AIInterview() {
     addToast('邀请已发送，待对方同意后即可协助采访', 'success');
   };
 
+  const handleReviewTopicProposal = (proposal: InterviewTopicProposal, decision: 'approved' | 'rejected') => {
+    reviewTopicProposal(archiveId, proposal.id, decision, { name: user?.name || subjectName, phone: user?.phone });
+    setTopicRevision((v) => v + 1);
+    addToast(decision === 'approved' ? `已通过主题「${proposal.topic.title}」` : `已拒绝主题「${proposal.topic.title}」`, 'success');
+  };
+
   const handleRemoveCollaborator = (id: string) => {
     removeCollaborator(archiveId, id);
     setCollaborators((prev) => prev.filter((c) => c.id !== id));
-    setSupplementAnswers((prev) => {
-      const next: Record<string, SupplementAnswer[]> = {};
-      Object.entries(prev).forEach(([qid, list]) => {
-        next[qid] = list.filter((a) => a.respondentId !== id);
-      });
-      return next;
-    });
-    addToast('协作者已移除', 'info');
+    addToast('协作者已移除，历史采访记录仍会保留', 'info');
   };
 
   return (
@@ -837,7 +796,7 @@ export default function AIInterview() {
           </div>
           <Annotate id="interview.topic-list">
           <div className="card-body topic-body">
-            {viewedTopics.map((topic, ti) => {
+            {interviewTopics.map((topic, ti) => {
               const active = ti === session.currentTopicIndex;
               return (
                 <button
@@ -896,29 +855,30 @@ export default function AIInterview() {
             )}
           </div>
           </Annotate>
+          {myCollaborator && topicProposals.filter((p) => p.proposerId === myCollaborator.id).length > 0 && (
+            <div className="topic-proposal-panel my-topic-proposals">
+              <div className="topic-proposal-panel-title">我提出的主题</div>
+              {topicProposals.filter((p) => p.proposerId === myCollaborator.id).map((proposal) => (
+                <div className="topic-proposal-status" key={proposal.id}>
+                  <strong>{proposal.topic.title}</strong>
+                  <span className={`proposal-status ${proposal.status}`}>
+                    {proposal.status === 'pending' ? '待本人确认' : proposal.status === 'approved' ? '已通过' : proposal.status === 'rejected' ? `已拒绝${proposal.rejectionReason ? `：${proposal.rejectionReason}` : ''}` : '已撤回'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <Annotate id="interview.chat">
         <div className="card chat-card">
           <div className="card-header">
             <h3 className="card-title">
-              <Mic size={16} /> {viewingCollaborator ? `${viewingCollaborator.name}（${viewingCollaborator.relation}）的采访对话` : '采访对话'}
+              <Mic size={16} /> 采访对话
             </h3>
-            {topicCollaborators.length > 0 && (
-              <select
-                className="topic-collab-select"
-                value={viewRespondentId}
-                onChange={(e) => setViewRespondentId(e.target.value)}
-              >
-                <option value="subject">创建人回答</option>
-                {topicCollaborators.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}（{c.relation}）的补充</option>
-                ))}
-              </select>
-            )}
           </div>
           <div className="chat-body" ref={chatBodyRef}>
-            {!currentQuestion && !viewingCollaborator ? (
+            {!currentQuestion ? (
               <div className="interview-done">
                 <CheckCircle2 size={48} color="#1B5E4B" />
                 <h3>本阶段采访问题已全部完成</h3>
@@ -927,8 +887,8 @@ export default function AIInterview() {
                   <FolderOpen size={14} /> 结束采访并整理
                 </button>
               </div>
-            ) : !viewingCollaborator ? (
-              // 创建人模式：中间只显示 AI 当前正在问的问题，历史见右侧对话记录
+            ) : (
+              // 中间只显示 AI 当前正在问的问题，历史见右侧对话记录
               <div className="chat-question-stage">
                 <Avatar name="AI" size={72} />
                 <div className="chat-question-name">AI 采访官</div>
@@ -941,30 +901,9 @@ export default function AIInterview() {
                   <div className="chat-question-typing">正在根据回答思考延伸问题…</div>
                 )}
               </div>
-            ) : chatMessages.length === 0 ? (
-              <div className="chat-empty">TA 还没有回答任何主题的问题</div>
-            ) : (
-              <>
-                {chatMessages.map((m, i) => (
-                  <div className={`chat-msg ${m.role}`} key={i}>
-                    {m.role === 'ai' && <Avatar name="AI" size={32} />}
-                    <div className="chat-msg-main">
-                      <div className={`chat-bubble ${m.invalid ? 'invalid' : ''}`}>{m.text}</div>
-                      {viewingCollaborator && m.role === 'user' && m.qid && (
-                        <button
-                          className="chat-invalid-btn"
-                          onClick={() => toggleSupplementInvalidByQid(m.qid!, viewingCollaborator.id, !m.invalid)}
-                        >
-                          {m.invalid ? '取消作废' : '作废'}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </>
-            )}
+                        )}
           </div>
-          {!viewingCollaborator && currentQuestion && (
+          {currentQuestion && (
             recordingVoice ? (
               <div className="chat-recording-bar">
                 <span className="chat-recording-dot" />
@@ -999,11 +938,6 @@ export default function AIInterview() {
               </button>
             </div>
             )
-          )}
-          {viewingCollaborator && (
-            <div className="collab-mode-tip chat-view-tip">
-              正在查看 {viewingCollaborator.name}（{viewingCollaborator.relation}）的采访对话，只读；作废的回答不作为传记参考。
-            </div>
           )}
         </div>
         </Annotate>
@@ -1131,6 +1065,21 @@ export default function AIInterview() {
                 <div className="collab-empty">暂无协作者，点击「邀请补充」查找并邀请家人或朋友。</div>
               ) : (
                 <>
+                  {isSubjectMode && pendingTopicProposals.length > 0 && (
+                    <div className="topic-proposal-panel">
+                      <div className="topic-proposal-panel-title">协助人新增主题待确认 ({pendingTopicProposals.length})</div>
+                      {pendingTopicProposals.map((proposal) => (
+                        <div className="topic-proposal-item" key={proposal.id}>
+                          <div className="topic-proposal-head"><strong>{proposal.topic.title}</strong><span>{proposal.proposerName} · {proposal.proposerRelation}</span></div>
+                          <p>{proposal.topic.summary || '暂无主题说明'}</p>
+                          <div className="topic-proposal-actions">
+                            <button className="btn btn-primary btn-sm" onClick={() => handleReviewTopicProposal(proposal, 'approved')}>通过</button>
+                            <button className="btn btn-ghost btn-sm danger" onClick={() => handleReviewTopicProposal(proposal, 'rejected')}>拒绝</button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   {collaborators.length > 0 && (
                     <div className="collab-list">
                       {collaborators.map((c) => (
@@ -1138,9 +1087,12 @@ export default function AIInterview() {
                           <div className="collab-info">
                             <strong>{c.name}</strong>
                             <span>{c.relation}</span>
-                            <span className="collab-count">已补充 {collaboratorAnswerCounts[c.id] || 0} 题</span>
+                            <span className="collab-count">对话 {transcriptCountFor(c.id)} 条</span>
                           </div>
                           <div className="collab-actions">
+                            <button className="btn btn-outline btn-sm" onClick={() => { setShowCollaborators(false); navigate(`/interview-review?respondent=${c.id}`); }}>
+                              查看对话
+                            </button>
                             <button className="btn btn-ghost btn-sm danger" onClick={() => handleRemoveCollaborator(c.id)}>
                               移除
                             </button>
@@ -1157,7 +1109,7 @@ export default function AIInterview() {
                           <div className="collab-info">
                             <strong>{i.targetPhone}</strong>
                             <span>{i.relation}</span>
-                            <span className="collab-count">等待对方同意</span>
+                            <span className="collab-count">{i.scope === 'edit' ? '邀请协助修改传记' : '邀请协助采访'} · 等待对方同意</span>
                           </div>
                           <div className="collab-actions">
                             <button

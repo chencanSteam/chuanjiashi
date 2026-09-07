@@ -71,7 +71,7 @@ export default function ArchiveManagement() {
               <Search size={16} />
               <input
                 type="text"
-                placeholder="搜索主人姓名、创建人…"
+                placeholder="搜索主人姓名、创建者…"
                 value={keyword}
                 onChange={(e) => setKeyword(e.target.value)}
               />
@@ -96,7 +96,7 @@ export default function ArchiveManagement() {
             <div className="am-table">
               <div className="am-row am-header">
                 <div className="am-cell">主人姓名</div>
-                <div className="am-cell">创建人</div>
+                <div className="am-cell">创建者</div>
                 <div className="am-cell">素材（图/音/文）</div>
                 <div className="am-cell">隐私状态</div>
                 <div className="am-cell">完整度</div>
@@ -156,7 +156,7 @@ export default function ArchiveManagement() {
               <div className="am-detail-section">
                 <div className="am-detail-title"><FolderOpen size={14} /> 基础信息</div>
                 <div className="am-detail-row"><span>主人姓名</span><span>{detail.ownerName}</span></div>
-                <div className="am-detail-row"><span>创建人</span><span>{detail.creatorNickname}</span></div>
+                <div className="am-detail-row"><span>创建者</span><span>{detail.creatorNickname}</span></div>
                 <div className="am-detail-row"><span>完整度</span><span>{detail.completion}%</span></div>
                 <div className="am-detail-row"><span>创建时间</span><span>{new Date(detail.createdAt).toLocaleString()}</span></div>
               </div>

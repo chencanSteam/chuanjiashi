@@ -30,13 +30,6 @@ export const biographyAnnotations: PageAnnotations = {
 ② 保存后跳转 /my-works；传记印刷页优先读这份快照，未保存过则回退读章节草稿。`,
     },
     {
-      id: 'biography.simulate-pay',
-      target: '「模拟支付 ¥99」按钮',
-      logic: `① V1.0 起显示（出版购买流程）；未登录（无手机号）直接拦截提示。
-② 调 orderApi.create 创建 ¥99「AI 传记标准版」订单（关联当前档案），再用 paymentApi.pay 模拟微信支付。
-③ 成功 toast 显示交易号后 8 位；失败提示原因。原型为 mock 支付，不产生真实扣款。`,
-    },
-    {
       id: 'biography.chapter-tree',
       target: '章节目录',
       logic: `① 章节结构优先采用「已确认的传记大纲」；检测到大纲升版（version 变化）时按新大纲重建目录，同名章节保留已生成内容与状态。

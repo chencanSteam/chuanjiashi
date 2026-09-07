@@ -8,9 +8,9 @@ export const productManagementAnnotations: PageAnnotations = {
   items: [
     {
       id: 'product-management.groups',
-      target: '分组产品列表（按类型）',
-      logic: `① 产品按类型分组展示：AI 传记 / 数字人 / 短视频 / 码记二维码 / 精装书 / 传记师服务 / 机器人预售。
-② 每个分组可单独「新增套餐」；卡片显示权益标签、现价/原价、销量、热销与下架标记。
+      target: '产品套餐列表',
+      logic: `① 产品以表格展示，支持按名称/描述搜索、按分类（AI 传记 / 实体书）与上下架状态筛选，按 sortOrder 排序。
+② 行内操作：预览宣传页、编辑、上架/下架、删除；热销套餐带「热销」角标，下架行置灰。
 ③ 下架后用户端商城不再展示该套餐，再次点击可重新上架。`,
     },
     {

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Search, TrendingUp, Calendar, User, Save, Snowflake, Settings2, Landmark, Receipt } from 'lucide-react';
+import { Search, TrendingUp, Save, Snowflake, Settings2, Landmark, Receipt } from 'lucide-react';
 import { commissionApi } from '../api/commission';
 import { partnerApi } from '../api/partner';
 import { getCommissionStatusLabel } from '../data/partnerData';
@@ -112,9 +112,6 @@ export default function CommissionRecords() {
     });
   }, [records, keyword, selectedPartner]);
 
-  const totalCommission = useMemo(() => filtered.reduce((sum, r) => sum + r.commission, 0), [filtered]);
-  const totalAmount = useMemo(() => filtered.reduce((sum, r) => sum + r.amount, 0), [filtered]);
-
   const getPartner = (id: string) => partners.find((p) => p.id === id);
 
   const handleSaveRules = async () => {
@@ -153,30 +150,6 @@ export default function CommissionRecords() {
 
       {activeTab === 'flow' && (
         <>
-          <div className="commission-stats">
-            <div className="card commission-stat">
-              <TrendingUp size={20} color="#1B5E4B" />
-              <div>
-                <div className="commission-stat-value">¥{totalCommission.toFixed(2)}</div>
-                <div className="commission-stat-label">分佣总额</div>
-              </div>
-            </div>
-            <div className="card commission-stat">
-              <Calendar size={20} color="#2563eb" />
-              <div>
-                <div className="commission-stat-value">¥{totalAmount.toFixed(2)}</div>
-                <div className="commission-stat-label">订单总额</div>
-              </div>
-            </div>
-            <div className="card commission-stat">
-              <User size={20} color="#7c3aed" />
-              <div>
-                <div className="commission-stat-value">{filtered.length}</div>
-                <div className="commission-stat-label">流水笔数</div>
-              </div>
-            </div>
-          </div>
-
           <div className="card">
             <div className="card-header commission-header">
               <Annotate id="commission-records.flow-filter" inline>
@@ -199,34 +172,40 @@ export default function CommissionRecords() {
               {filtered.length === 0 ? (
                 <div className="commission-empty">暂无分润流水</div>
               ) : (
-                <div className="commission-table">
-                  <div className="commission-row commission-header-row">
-                    <div className="commission-cell">订单号</div>
-                    <div className="commission-cell">合伙人</div>
-                    <div className="commission-cell">客户</div>
-                    <div className="commission-cell">服务类型</div>
-                    <div className="commission-cell">订单金额</div>
-                    <div className="commission-cell">佣金</div>
-                    <div className="commission-cell">状态</div>
-                    <div className="commission-cell">时间</div>
-                  </div>
-                  {filtered.map((r) => {
-                    const p = getPartner(r.partnerId);
-                    return (
-                      <div className="commission-row" key={r.id}>
-                        <div className="commission-cell">{r.orderId}</div>
-                        <div className="commission-cell">{p?.name || '未知'}</div>
-                        <div className="commission-cell">{r.userId}</div>
-                        <div className="commission-cell">{getTypeLabel(r.type)}</div>
-                        <div className="commission-cell">¥{r.amount.toFixed(2)}</div>
-                        <div className="commission-cell commission-money">¥{r.commission.toFixed(2)}</div>
-                        <div className="commission-cell">
-                          <span className={`commission-status ${r.status}`}>{getCommissionStatusLabel(r.status)}</span>
-                        </div>
-                        <div className="commission-cell">{new Date(r.createdAt).toLocaleString()}</div>
-                      </div>
-                    );
-                  })}
+                <div className="admin-table-wrap">
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>订单号</th>
+                      <th>合伙人</th>
+                      <th>客户</th>
+                      <th>服务类型</th>
+                      <th>订单金额</th>
+                      <th>佣金</th>
+                      <th>状态</th>
+                      <th>时间</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.map((r) => {
+                      const p = getPartner(r.partnerId);
+                      return (
+                        <tr key={r.id}>
+                          <td>{r.orderId}</td>
+                          <td>{p?.name || '未知'}</td>
+                          <td>{r.userId}</td>
+                          <td>{getTypeLabel(r.type)}</td>
+                          <td>¥{r.amount.toFixed(2)}</td>
+                          <td><span className="commission-money">¥{r.commission.toFixed(2)}</span></td>
+                          <td>
+                            <span className={`commission-status ${r.status}`}>{getCommissionStatusLabel(r.status)}</span>
+                          </td>
+                          <td>{new Date(r.createdAt).toLocaleString()}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
                 </div>
               )}
             </div>
@@ -301,27 +280,33 @@ export default function CommissionRecords() {
             <h3 className="card-title"><Landmark size={16} /> 服务商分成核算</h3>
           </div>
           <div className="card-body commission-body">
-            <div className="commission-table">
-              <div className="commission-row commission-header-row">
-                <div className="commission-cell">分成类型</div>
-                <div className="commission-cell">服务商</div>
-                <div className="commission-cell">区域</div>
-                <div className="commission-cell">结算周期</div>
-                <div className="commission-cell">金额</div>
-                <div className="commission-cell">状态</div>
-              </div>
-              {mockPartnerShares.map((s) => (
-                <div className="commission-row" key={s.id}>
-                  <div className="commission-cell">{s.level}</div>
-                  <div className="commission-cell">{s.name}</div>
-                  <div className="commission-cell">{s.region}</div>
-                  <div className="commission-cell">{s.period}</div>
-                  <div className="commission-cell commission-money">¥{s.amount.toLocaleString()}</div>
-                  <div className="commission-cell">
-                    <span className={`commission-status ${s.status === '已发放' ? 'settled' : 'pending'}`}>{s.status}</span>
-                  </div>
-                </div>
-              ))}
+            <div className="admin-table-wrap">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>分成类型</th>
+                  <th>服务商</th>
+                  <th>区域</th>
+                  <th>结算周期</th>
+                  <th>金额</th>
+                  <th>状态</th>
+                </tr>
+              </thead>
+              <tbody>
+                {mockPartnerShares.map((s) => (
+                  <tr key={s.id}>
+                    <td>{s.level}</td>
+                    <td>{s.name}</td>
+                    <td>{s.region}</td>
+                    <td>{s.period}</td>
+                    <td><span className="commission-money">¥{s.amount.toLocaleString()}</span></td>
+                    <td>
+                      <span className={`commission-status ${s.status === '已发放' ? 'settled' : 'pending'}`}>{s.status}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
             </div>
           </div>
         </div>
@@ -335,27 +320,33 @@ export default function CommissionRecords() {
             <h3 className="card-title"><Receipt size={16} /> 月度对账</h3>
           </div>
           <div className="card-body commission-body">
-            <div className="commission-table">
-              <div className="commission-row commission-header-row">
-                <div className="commission-cell">月份</div>
-                <div className="commission-cell">订单总额</div>
-                <div className="commission-cell">分润总额</div>
-                <div className="commission-cell">平台毛利</div>
-                <div className="commission-cell">状态</div>
-              </div>
-              {mockReconciles.map((r) => (
-                <div className="commission-row" key={r.month}>
-                  <div className="commission-cell">{r.month}</div>
-                  <div className="commission-cell">¥{r.orderTotal.toLocaleString()}</div>
-                  <div className="commission-cell">¥{r.commissionTotal.toLocaleString()}</div>
-                  <div className="commission-cell commission-money">¥{r.platformGross.toLocaleString()}</div>
-                  <div className="commission-cell">
-                    <span className={`commission-status ${r.status === '已对账' ? 'settled' : r.status === '对账中' ? 'pending' : 'withdrawn'}`}>
-                      {r.status}
-                    </span>
-                  </div>
-                </div>
-              ))}
+            <div className="admin-table-wrap">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>月份</th>
+                  <th>订单总额</th>
+                  <th>分润总额</th>
+                  <th>平台毛利</th>
+                  <th>状态</th>
+                </tr>
+              </thead>
+              <tbody>
+                {mockReconciles.map((r) => (
+                  <tr key={r.month}>
+                    <td>{r.month}</td>
+                    <td>¥{r.orderTotal.toLocaleString()}</td>
+                    <td>¥{r.commissionTotal.toLocaleString()}</td>
+                    <td><span className="commission-money">¥{r.platformGross.toLocaleString()}</span></td>
+                    <td>
+                      <span className={`commission-status ${r.status === '已对账' ? 'settled' : r.status === '对账中' ? 'pending' : 'withdrawn'}`}>
+                        {r.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
             </div>
           </div>
         </div>
@@ -385,23 +376,29 @@ export default function CommissionRecords() {
               {mockDeducts.length === 0 ? (
                 <div className="commission-empty">暂无扣回记录</div>
               ) : (
-                <div className="commission-table">
-                  <div className="commission-row commission-header-row">
-                    <div className="commission-cell">对象</div>
-                    <div className="commission-cell">关联订单</div>
-                    <div className="commission-cell">扣回原因</div>
-                    <div className="commission-cell">扣回金额</div>
-                    <div className="commission-cell">时间</div>
-                  </div>
-                  {mockDeducts.map((d) => (
-                    <div className="commission-row" key={d.id}>
-                      <div className="commission-cell">{d.partnerName}</div>
-                      <div className="commission-cell">{d.orderId}</div>
-                      <div className="commission-cell">{d.reason}</div>
-                      <div className="commission-cell commission-deduct">-¥{d.amount.toLocaleString()}</div>
-                      <div className="commission-cell">{d.createdAt}</div>
-                    </div>
-                  ))}
+                <div className="admin-table-wrap">
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>对象</th>
+                      <th>关联订单</th>
+                      <th>扣回原因</th>
+                      <th>扣回金额</th>
+                      <th>时间</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {mockDeducts.map((d) => (
+                      <tr key={d.id}>
+                        <td>{d.partnerName}</td>
+                        <td>{d.orderId}</td>
+                        <td className="admin-table-text-left">{d.reason}</td>
+                        <td><span className="commission-deduct">-¥{d.amount.toLocaleString()}</span></td>
+                        <td>{d.createdAt}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
                 </div>
               )}
             </div>

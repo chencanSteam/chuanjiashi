@@ -57,32 +57,6 @@
   background: transparent;
 }
 
-.biography-shelf-categories {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 10px;
-  margin-bottom: 28px;
-}
-
-.biography-shelf-category-chip {
-  padding: 6px 14px;
-  border: 1px solid #e5e7eb;
-  border-radius: 20px;
-  background: #fff;
-  color: #4b5563;
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.biography-shelf-category-chip:hover,
-.biography-shelf-category-chip.active {
-  border-color: #1b5e4b;
-  background: #1b5e4b;
-  color: #fff;
-}
-
 .biography-shelf-loading,
 .biography-shelf-empty {
   text-align: center;
@@ -444,108 +418,6 @@
   flex-shrink: 0;
 }
 
-/* 评论区 */
-.biography-shelf-comments {
-  margin-top: 24px;
-  padding: 28px;
-  background: #fff;
-  border-radius: 20px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
-}
-
-.biography-shelf-comment-form {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-bottom: 20px;
-}
-
-.biography-shelf-comment-form textarea {
-  padding: 12px 14px;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  font-size: 14px;
-  color: #374151;
-  outline: none;
-  resize: vertical;
-  font-family: inherit;
-}
-
-.biography-shelf-comment-form textarea:focus {
-  border-color: #1b5e4b;
-}
-
-.biography-shelf-comment-form .btn {
-  align-self: flex-end;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.biography-shelf-comment-empty {
-  padding: 32px 0;
-  text-align: center;
-  color: #9ca3af;
-  font-size: 13px;
-}
-
-.biography-shelf-comment-list {
-  display: flex;
-  flex-direction: column;
-}
-
-.biography-shelf-comment {
-  padding: 14px 0;
-  border-bottom: 1px solid #f3f4f6;
-}
-
-.biography-shelf-comment:last-child {
-  border-bottom: none;
-}
-
-.biography-shelf-comment-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 6px;
-}
-
-.biography-shelf-comment-user {
-  font-size: 13px;
-  font-weight: 600;
-  color: #1b5e4b;
-}
-
-.biography-shelf-comment-time {
-  font-size: 12px;
-  color: #9ca3af;
-}
-
-.biography-shelf-comment-purchased {
-  font-size: 11px;
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: rgba(184, 134, 11, 0.08);
-  color: #b8860b;
-}
-
-.biography-shelf-comment-locked {
-  padding: 14px;
-  border: 1px dashed #e5e7eb;
-  border-radius: 10px;
-  text-align: center;
-  font-size: 13px;
-  color: #9ca3af;
-  margin-bottom: 14px;
-}
-
-.biography-shelf-comment-text {
-  margin: 0;
-  font-size: 14px;
-  line-height: 1.7;
-  color: #374151;
-}
-
 /* 热度榜单（参照起点/当当：名次 + 封面 + 书名 + 热度信息） */
 .biography-shelf-rank {
   margin-bottom: 24px;
@@ -676,4 +548,104 @@
 .biography-shelf-rank-price {
   color: #b8860b;
   font-weight: 600;
+}
+
+.biography-shelf-pay {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.biography-shelf-pay-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  color: #1f2937;
+  padding: 10px 12px;
+  background: #f9fafb;
+  border-radius: 8px;
+}
+
+.biography-shelf-pay-row > span:first-child {
+  color: #6b7280;
+}
+
+.biography-shelf-pay-price {
+  color: #b8860b;
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.biography-shelf-pay-methods {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.biography-shelf-pay-label {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.biography-shelf-pay-method {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid #e8ecea;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #1f2937;
+  cursor: pointer;
+}
+
+.biography-shelf-pay-method.active {
+  border-color: #1b5e4b;
+  background: #f0f7f4;
+}
+
+.biography-shelf-pay-tip {
+  margin: 0;
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+/* 行业-职业级联筛选 */
+.biography-shelf-cascade {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 28px;
+}
+
+.biography-shelf-cascade select {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 8px 14px;
+  font-size: 13px;
+  color: #374151;
+  background: #fff;
+  outline: none;
+  cursor: pointer;
+  min-width: 140px;
+}
+
+.biography-shelf-cascade select:focus {
+  border-color: #1b5e4b;
+}
+
+.biography-shelf-cascade select:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* 上传的书籍封面 */
+.biography-shelf-card-cover img,
+.biography-shelf-rank-cover img,
+.biography-shelf-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }

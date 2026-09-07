@@ -22,6 +22,7 @@ import { biographerCenterAnnotations } from './biographer-center';
 import { biographerEarningsAnnotations } from './biographer-earnings';
 import { biographerListAnnotations } from './biographer-list';
 import { biographerOrdersAnnotations } from './biographer-orders';
+import { biographerWorksAnnotations } from './biographer-works';
 import { biographerProfileEditAnnotations } from './biographer-profile-edit';
 import { biographerProfileAnnotations } from './biographer-profile';
 import { biographyOutlineAnnotations } from './biography-outline';
@@ -67,6 +68,7 @@ import { hallProjectAnnotations } from './hall-project';
 import { homeAnnotations } from './home';
 import { interviewReviewAnnotations } from './interview-review';
 import { interviewAnnotations } from './interview';
+import { inviteAnnotations } from './invite';
 import { lifeArchiveAnnotations } from './life-archive';
 import { loginAnnotations } from './login';
 import { memorialDetailAnnotations } from './memorial-detail';
@@ -88,17 +90,17 @@ import { partnerApplicationAnnotations } from './partner-application';
 import { partnerCenterAnnotations } from './partner-center';
 import { photoRestoreAnnotations } from './photo-restore';
 import { policyListAnnotations } from './policy-list';
-import { productDetailAnnotations } from './product-detail';
 import { productManagementAnnotations } from './product-management';
 import { profileAnnotations } from './profile';
 import { registerAnnotations } from './register';
 import { settingsAnnotations } from './settings';
-import { storeAnnotations } from './store';
+import { sensitiveWordsAnnotations, sensitiveHitsAnnotations } from './sensitiveWords';
 import { storyDetailAnnotations } from './story-detail';
 import { storyLibraryAnnotations } from './story-library';
 import { trainingRecordsAnnotations } from './training-records';
 import { trainingReportAnnotations } from './training-report';
 import { userInvitesAnnotations } from './user-invites';
+import { userPartnerAnnotations } from './user-partner';
 import { withdrawalManagementAnnotations } from './withdrawalManagement';
 
 /**
@@ -130,6 +132,7 @@ export const annotationPages: PageAnnotations[] = [
   biographerEarningsAnnotations,
   biographerListAnnotations,
   biographerOrdersAnnotations,
+  biographerWorksAnnotations,
   biographerProfileEditAnnotations,
   biographerProfileAnnotations,
   biographyOutlineAnnotations,
@@ -175,6 +178,7 @@ export const annotationPages: PageAnnotations[] = [
   homeAnnotations,
   interviewReviewAnnotations,
   interviewAnnotations,
+  inviteAnnotations,
   lifeArchiveAnnotations,
   loginAnnotations,
   memorialDetailAnnotations,
@@ -196,17 +200,18 @@ export const annotationPages: PageAnnotations[] = [
   partnerCenterAnnotations,
   photoRestoreAnnotations,
   policyListAnnotations,
-  productDetailAnnotations,
   productManagementAnnotations,
   profileAnnotations,
   registerAnnotations,
   settingsAnnotations,
-  storeAnnotations,
+  sensitiveWordsAnnotations,
+  sensitiveHitsAnnotations,
   storyDetailAnnotations,
   storyLibraryAnnotations,
   trainingRecordsAnnotations,
   trainingReportAnnotations,
   userInvitesAnnotations,
+  userPartnerAnnotations,
   withdrawalManagementAnnotations,
 ];
 

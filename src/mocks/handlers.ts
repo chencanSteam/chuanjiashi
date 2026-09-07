@@ -22,6 +22,7 @@ import { adminArchiveHandlers } from './api/adminArchives'
 import { aiTaskHandlers } from './api/aiTasks'
 import { complianceHandlers } from './api/compliance'
 import { contentReviewHandlers } from './api/contentReview'
+import { sensitiveWordsHandlers } from './api/sensitiveWords'
 import { biographerEarningsHandlers } from './api/biographerEarnings'
 
 export const handlers = [
@@ -49,5 +50,6 @@ export const handlers = [
   ...aiTaskHandlers,
   ...complianceHandlers,
   ...contentReviewHandlers,
+  ...sensitiveWordsHandlers,
   ...biographerEarningsHandlers,
 ]

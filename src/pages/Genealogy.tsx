@@ -2,9 +2,6 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Search,
-  Users,
-  GitFork,
-  Landmark,
   FileText,
   ChevronRight,
   Plus,
@@ -28,14 +25,6 @@ const tabs = [
   { key: 'culture', label: '姓氏文化' },
   { key: 'collab', label: '修谱协作' },
   { key: 'export', label: '家谱导出' },
-];
-
-const stats = [
-  { icon: Users, label: '收录成员', value: '326', trend: '18' },
-  { icon: GitFork, label: '家族分支', value: '12', trend: '2' },
-  { icon: Landmark, label: '已补全世代', value: '8', trend: '1' },
-  { icon: FileText, label: '文献资料', value: '86', trend: '9' },
-  { icon: Users, label: '协作修谱人数', value: '23', trend: '4' },
 ];
 
 const treeGens = [
@@ -146,24 +135,6 @@ export default function Genealogy() {
       <Annotate id="genealogy.tabs">
       <div className="tabs">
         {tabs.map((t) => <button key={t.key} className={`tab ${activeTab === t.key ? 'active' : ''}`} onClick={() => setActiveTab(t.key)}>{t.label}</button>)}
-      </div>
-      </Annotate>
-
-      <Annotate id="genealogy.stats">
-      <div className="genealogy-stats-row">
-        {stats.map((s, i) => (
-          <div className="card genealogy-stat" key={i} onClick={() => {
-            const paths = ['/family/members', '/family/relations', '/family', '/genealogy/documents', '/family/relations'];
-            navigate(paths[i]);
-          }}>
-            <div className="card-body">
-              <div className="genealogy-stat-icon"><s.icon size={20} color="#1B5E4B" /></div>
-              <div className="genealogy-stat-label">{s.label}</div>
-              <div className="genealogy-stat-value">{s.value}</div>
-              <div className="genealogy-stat-trend">较上月 <ChevronRight size={10} className="trend-up" /> {s.trend}</div>
-            </div>
-          </div>
-        ))}
       </div>
       </Annotate>
 

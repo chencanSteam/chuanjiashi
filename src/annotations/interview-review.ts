@@ -18,9 +18,9 @@ export const interviewReviewAnnotations: PageAnnotations = {
     {
       id: 'interview-review.records',
       target: '采访记录列表',
-      logic: `① 读取当前档案的创建人和协作者 transcript（cj_interview_transcript_<archiveId>[_<respondentId>])，列表只显示被采访人、关系、采访时间和对话条数。
+      logic: `① 读取当前档案的创建者和协作者 transcript（cj_interview_transcript_<archiveId>[_<respondentId>])，列表只显示被采访人、关系、采访时间和对话条数。
 ② 没有 transcript 但有采访回答时，根据题目与答案生成可读的回退记录；完全没有数据时显示空态并提供返回 AI 智能采访入口。
-③ 点击记录打开详情弹窗，完整展示 AI 提问和被采访人回答；详情内部滚动，不修改原始采访数据。`,
+③ 点击记录打开详情弹窗，完整展示 AI 提问和被采访人回答；回答行提供「修改」入口，编辑后写回对应逐字稿（cj_interview_transcript_<archiveId>[_<respondentId>]），回退记录（由回答生成）不可编辑；协作者记录的回答另有「废弃/取消废弃」，废弃标注存于逐字稿行上（行内删除线置灰 + 「已废弃」标签），不作为传记参考。`,
     },
     {
       id: 'interview-review.events',

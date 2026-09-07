@@ -26,7 +26,7 @@ export const orderSuccessAnnotations: PageAnnotations = {
       id: 'order-success.actions',
       target: '底部操作按钮',
       logic: `① 「查看我的订单」跳转 /my-orders，可继续查看支付状态与后续履约。
-② 「继续逛逛」返回 /store 商城列表。`,
+② 「返回首页」跳转 /home（商城已下线，原「继续逛逛」入口移除）。`,
     },
   ],
 };

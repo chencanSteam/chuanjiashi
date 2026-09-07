@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   ArrowRight,
+  BookOpen,
   CheckCircle2,
   Circle,
-  Download,
   FileText,
   History,
   Pencil,
@@ -13,12 +13,11 @@ import {
   Sparkles,
   Trash2,
   Upload,
-  Wand2,
 } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 import { quotaApi } from '../api/quota';
-import { loadJson, saveJson } from '../data/aiMock';
-import { readDocumentText, splitIntoChapters } from '../utils/documentImport';
+import { biographyChapterTitles, loadJson, saveJson } from '../data/aiMock';
+import { readDocumentText, splitIntoChapters, suggestFrameworkChapter } from '../utils/documentImport';
 import Annotate from '../components/annotation/Annotate';
 import Modal from '../components/ui/Modal';
 import './BiographyPolish.css';
@@ -34,6 +33,15 @@ interface PolishDoc {
   docName: string;
   updatedAt: string;
   chapters: PolishChapter[];
+  /** 用户选择「跳过」八大篇章归类时保持原文结构 */
+  skipFramework?: boolean;
+}
+
+interface ClassifyItem {
+  title: string;
+  content: string;
+  /** 建议归入的篇章；空字符串表示待确认 */
+  mappedTo: string;
 }
 
 interface PolishVersion {
@@ -43,6 +51,12 @@ interface PolishVersion {
   createdAt: string;
   docName: string;
   chapters: PolishChapter[];
+}
+
+interface TextSelection {
+  start: number;
+  end: number;
+  text: string;
 }
 
 interface Archive {
@@ -60,13 +74,6 @@ function loadCurrentArchive(): Archive | null {
     return null;
   }
 }
-
-const POLISH_STYLES = [
-  { key: 'warm', label: '温情叙事' },
-  { key: 'plain', label: '朴实自然' },
-  { key: 'classic', label: '典雅文雅' },
-  { key: 'news', label: '新闻纪实' },
-];
 
 /** 原型阶段的「AI 润色」：用词与句式层面的模拟改写 */
 const POLISH_RULES: Array<[RegExp, string]> = [
@@ -97,10 +104,6 @@ function countWords(text: string): number {
   return text.replace(/\s/g, '').length;
 }
 
-function escapeHtml(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
-
 function getErrorMessage(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message : fallback;
 }
@@ -115,7 +118,6 @@ export default function BiographyPolish() {
 
   const [doc, setDoc] = useState<PolishDoc | null>(() => loadJson<PolishDoc | null>(storageKey, null));
   const [activeIndex, setActiveIndex] = useState(0);
-  const [style, setStyle] = useState('warm');
   const [polishing, setPolishing] = useState(false);
   const [pasteText, setPasteText] = useState('');
   const [editingTitleIndex, setEditingTitleIndex] = useState<number | null>(null);
@@ -124,6 +126,12 @@ export default function BiographyPolish() {
   const [versionLabel, setVersionLabel] = useState('');
   const [saveVersionOpen, setSaveVersionOpen] = useState(false);
   const [activeVersionId, setActiveVersionId] = useState<string | null>(null);
+  const [selection, setSelection] = useState<TextSelection>({ start: 0, end: 0, text: '' });
+  const [polishOpen, setPolishOpen] = useState(false);
+  const [finishOpen, setFinishOpen] = useState(false);
+  const [polishFeedback, setPolishFeedback] = useState('');
+  const [classifyItems, setClassifyItems] = useState<ClassifyItem[] | null>(null);
+  const [pendingDocName, setPendingDocName] = useState('');
 
   useEffect(() => {
     saveJson(versionsKey, versions);
@@ -139,32 +147,72 @@ export default function BiographyPolish() {
 
   const chapters = doc?.chapters ?? [];
   const activeChapter = chapters[activeIndex] ?? null;
+  const isUnsplitText = chapters.length === 1 && chapters[0]?.title === '全文';
+  // 上传/粘贴后先进入八大篇章归类预览：确认归类 or 跳过保持原文结构
   const loadText = (text: string, docName: string) => {
     const parsed = splitIntoChapters(text);
     if (parsed.length === 0) {
       addToast('没有读到文字，请重新上传或粘贴传记内容', 'error');
       return;
     }
-    const isSingleUnsplitChapter = parsed.length === 1 && ['全文', '开篇'].includes(parsed[0].title);
+    setPendingDocName(docName);
+    setClassifyItems(parsed.map((chapter) => ({
+      title: chapter.title,
+      content: chapter.content,
+      mappedTo: suggestFrameworkChapter(chapter),
+    })));
+  };
+
+  const openEditorWith = (docChapters: PolishChapter[], skipFramework: boolean) => {
     setDoc({
-      docName,
+      docName: pendingDocName,
       updatedAt: new Date().toLocaleString('zh-CN'),
-      chapters: parsed.map((chapter) => ({
-        title: isSingleUnsplitChapter ? '全文' : chapter.title,
-        original: chapter.content,
-        content: chapter.content,
-        status: 'original',
-      })),
+      chapters: docChapters,
+      skipFramework,
     });
+    setClassifyItems(null);
     setActiveIndex(0);
     setActiveVersionId(null);
-    addToast(
-      isSingleUnsplitChapter
-        ? '文字已放入“全文”，暂时没有找到明显的章节标题，您可以手动新增章节'
-        : `已整理出 ${parsed.length} 个章节，请先检查章节内容`,
-      'success'
-    );
+    setSelection({ start: 0, end: 0, text: '' });
   };
+
+  // 确认归类：按八大篇章合并同篇章内容，空篇章不生成
+  const confirmClassify = () => {
+    if (!classifyItems) return;
+    const unmapped = classifyItems.filter((item) => !item.mappedTo);
+    if (unmapped.length > 0) {
+      addToast(`还有 ${unmapped.length} 章待确认归类，请选择篇章或跳过`, 'error');
+      return;
+    }
+    const grouped = new Map<string, string[]>();
+    classifyItems.forEach((item) => {
+      grouped.set(item.mappedTo, [...(grouped.get(item.mappedTo) || []), item.content]);
+    });
+    const docChapters: PolishChapter[] = biographyChapterTitles
+      .filter((title) => grouped.has(title))
+      .map((title) => {
+        const content = grouped.get(title)!.filter(Boolean).join('\n\n');
+        return { title, original: content, content, status: 'original' as const };
+      });
+    openEditorWith(docChapters, false);
+    addToast(`已按八大篇章归类为 ${docChapters.length} 章`, 'success');
+  };
+
+  // 跳过归类：保持原文结构，平台只提供润色/排版/储存/素材绑定
+  const skipClassify = () => {
+    if (!classifyItems) return;
+    openEditorWith(
+      classifyItems.map((item) => ({
+        title: item.title,
+        original: item.content,
+        content: item.content,
+        status: 'original' as const,
+      })),
+      true,
+    );
+    addToast('已保持原文结构，不套用八大篇章', 'success');
+  };
+
 
   const handleFile = async (file: File | undefined) => {
     if (!file) return;
@@ -209,6 +257,7 @@ export default function BiographyPolish() {
         : prev
     );
     setActiveIndex(newIndex);
+    setSelection({ start: 0, end: 0, text: '' });
     addToast('已新增一个空白章节，请填写章节名称和内容', 'success');
   };
 
@@ -235,6 +284,7 @@ export default function BiographyPolish() {
     setActiveIndex((currentIndex) =>
       currentIndex > index ? currentIndex - 1 : Math.min(currentIndex, nextChapters.length - 1)
     );
+    setSelection({ start: 0, end: 0, text: '' });
     addToast(`已删除“${title}”`, 'success');
   };
 
@@ -248,23 +298,52 @@ export default function BiographyPolish() {
     }
   };
 
-  const polishOne = async (index: number) => {
-    const chapter = chapters[index];
-    if (!chapter || !chapter.content.trim()) {
-      addToast('这一章还没有内容，请先补充文字', 'info');
+  const openPolishDialog = () => {
+    if (!activeChapter || !selection.text.trim()) {
+      addToast('请先在正文中拖动选中一段文字', 'info');
+      return;
+    }
+    setPolishFeedback('');
+    setPolishOpen(true);
+  };
+
+  const polishSelection = async () => {
+    setPolishOpen(false);
+    const chapter = chapters[activeIndex];
+    const selectedText = selection.text;
+    if (!chapter || !selectedText.trim()) {
+      addToast('请先在正文中拖动选中一段文字', 'info');
       return;
     }
     if (!(await consumeQuota())) return;
-    const styleLabel = POLISH_STYLES.find((item) => item.key === style)?.label || '温情叙事';
+    const { start, end } = selection;
+    const feedback = polishFeedback.trim();
     setPolishing(true);
     setTimeout(() => {
-      const { result, changes } = mockPolish(chapter.content);
-      updateChapter(index, { content: result, status: 'polished' });
+      const { result, changes } = mockPolish(selectedText);
+      setDoc((prev) =>
+        prev
+          ? {
+              ...prev,
+              updatedAt: new Date().toLocaleString('zh-CN'),
+              chapters: prev.chapters.map((item, index) =>
+                index === activeIndex
+                  ? {
+                      ...item,
+                      content: item.content.slice(0, start) + result + item.content.slice(end),
+                      status: 'polished',
+                    }
+                  : item
+              ),
+            }
+          : prev
+      );
+      setSelection({ start: 0, end: 0, text: '' });
       setPolishing(false);
       addToast(
         changes > 0
-          ? `“${chapter.title}”已完成${styleLabel}润色，优化了 ${changes} 处表达`
-          : `“${chapter.title}”的文字已经比较顺了，暂时没有改动`,
+          ? `选中的内容已完成润色，优化了 ${changes} 处表达${feedback ? `（已参考修改意见：${feedback}）` : ''}`
+          : feedback ? `已参考修改意见完成处理：${feedback}` : '选中的文字已经比较顺了，暂时没有改动',
         'success'
       );
     }, 900);
@@ -275,12 +354,6 @@ export default function BiographyPolish() {
     if (!chapter) return;
     updateChapter(index, { content: chapter.original, status: 'original' });
     addToast(`“${chapter.title}”已恢复到最初的文字`, 'info');
-  };
-
-  const saveDoc = () => {
-    if (!doc) return;
-    saveJson(storageKey, doc);
-    addToast('当前进度已保存，下次打开还能继续', 'success');
   };
 
   const saveVersion = () => {
@@ -323,36 +396,43 @@ export default function BiographyPolish() {
   };
 
   const resetDoc = () => {
-    if (!window.confirm('要换一份传记吗？当前还没有保存的修改会被清掉。')) return;
+    if (!window.confirm('要上传一份新的传记吗？当前草稿会被清除，但已完成的传记仍会保留在“我的传记”中。')) return;
     setDoc(null);
     setPasteText('');
+    setClassifyItems(null);
     setActiveIndex(0);
     setActiveVersionId(null);
     localStorage.removeItem(storageKey);
   };
 
-  const exportWord = () => {
-    if (!doc) return;
-    const body = chapters
-      .map(
-        (chapter) =>
-          `<h2>${escapeHtml(chapter.title)}</h2>` +
-          chapter.content
-            .split(/\n+/)
-            .filter((paragraph) => paragraph.trim())
-            .map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`)
-            .join('')
-      )
-      .join('');
-    const html = `<html><head><meta charset="utf-8" /></head><body>${body}</body></html>`;
-    const blob = new Blob(['﻿', html], { type: 'application/msword' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${doc.docName || `${archiveName}传记`}_润色稿.doc`;
-    link.click();
-    URL.revokeObjectURL(url);
-    addToast('润色稿已导出，可以在 Word 里继续修改', 'success');
+  const finishPolishedBiography = () => {
+    if (!doc || !chapters.some((chapter) => chapter.content.trim())) {
+      addToast('请先上传或填写传记内容，再完成传记', 'error');
+      return;
+    }
+    saveJson(`cj_biography_${archiveId}`, {
+      title: `${archiveName}传记`,
+      author: '用户上传整理',
+      source: 'polish',
+      createdAt: new Date().toLocaleString('zh-CN'),
+      completedAt: new Date().toISOString(),
+      status: 'final',
+      chapters: chapters.map((chapter) => ({ title: chapter.title, content: chapter.content })),
+    });
+    setFinishOpen(false);
+    setDoc(null);
+    setPasteText('');
+    setActiveIndex(0);
+    setActiveVersionId(null);
+    setSelection({ start: 0, end: 0, text: '' });
+    localStorage.removeItem(storageKey);
+    addToast('传记已完成，可以继续上传下一份传记', 'success');
+  };
+
+  const saveChapter = () => {
+    if (!doc || !activeChapter) return;
+    saveJson(storageKey, doc);
+    addToast(`“${activeChapter.title || `第 ${activeIndex + 1} 章`}”已保存`, 'success');
   };
 
   const statusBadge = (status: PolishChapter['status']) => {
@@ -365,7 +445,7 @@ export default function BiographyPolish() {
     <div className="polish-page">
       <header className="page-header polish-page-header">
         <div>
-          <h1 className="page-title">已有传记上传</h1>
+          <h1 className="page-title">传记润色</h1>
         </div>
         <div className="page-actions">
           {doc && (
@@ -373,11 +453,6 @@ export default function BiographyPolish() {
               <Annotate id="biography-polish.reupload" inline>
                 <button className="btn btn-outline" onClick={resetDoc}>
                   <Upload size={14} /> 换一份传记
-                </button>
-              </Annotate>
-              <Annotate id="biography-polish.export-word" inline>
-                <button className="btn btn-outline" onClick={exportWord}>
-                  <Download size={14} /> 导出润色稿
                 </button>
               </Annotate>
               <Annotate id="biography-polish.versions" inline>
@@ -390,17 +465,60 @@ export default function BiographyPolish() {
                   <Save size={14} /> 保存版本
                 </button>
               </Annotate>
-              <Annotate id="biography-polish.save" inline>
-                <button className="btn btn-primary" onClick={saveDoc}>
-                  <Save size={14} /> 保存进度
-                </button>
-              </Annotate>
+              <button className="btn btn-primary" onClick={() => setFinishOpen(true)}>
+                <CheckCircle2 size={14} /> 完成传记
+              </button>
             </>
           )}
         </div>
       </header>
 
-      {!doc ? (
+      {!doc && classifyItems ? (
+        <Annotate id="biography-polish.classify">
+        <div className="card polish-classify-card">
+          <div className="card-header polish-upload-header">
+            <div>
+              <h3 className="card-title">章节归类</h3>
+              <p>AI 已按统一八大篇章为您归类。归类后家人阅读更清晰、便于后续 AI 续写补充；也可以跳过，保持原文结构。</p>
+            </div>
+            <span className="polish-upload-badge">第 2 步</span>
+          </div>
+          <div className="card-body">
+            <div className="admin-table-wrap">
+            <table className="admin-table">
+              <thead>
+                <tr><th>原章节</th><th>内容摘要</th><th>归入篇章</th></tr>
+              </thead>
+              <tbody>
+                {classifyItems.map((item, index) => (
+                  <tr key={index}>
+                    <td>{item.title}</td>
+                    <td className="admin-table-text-left"><span className="polish-classify-summary">{item.content.replace(/\s/g, '').slice(0, 50) || '（空）'}</span></td>
+                    <td>
+                      <select
+                        value={item.mappedTo}
+                        onChange={(e) => setClassifyItems((prev) => prev ? prev.map((it, i) => (i === index ? { ...it, mappedTo: e.target.value } : it)) : prev)}
+                      >
+                        <option value="">待确认</option>
+                        {biographyChapterTitles.map((t) => (
+                          <option value={t} key={t}>{t}</option>
+                        ))}
+                      </select>
+                      {!item.mappedTo && <span className="polish-classify-pending">待确认</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            </div>
+            <div className="polish-classify-actions">
+              <button className="btn btn-outline" onClick={skipClassify}>跳过，保持原文结构</button>
+              <button className="btn btn-primary" onClick={confirmClassify}>确认归类</button>
+            </div>
+          </div>
+        </div>
+        </Annotate>
+      ) : !doc ? (
         <div className="polish-start-layout">
           <section className="polish-start-copy" aria-label="使用步骤">
             <span className="polish-eyebrow">从手写稿开始</span>
@@ -488,7 +606,12 @@ export default function BiographyPolish() {
                 <div className="card-header polish-tree-header">
                   <div>
                     <h3 className="card-title">章节</h3>
-                    <span className="polish-tree-count">共 {chapters.length} 章</span>
+                    <span className="polish-tree-count">
+                      共 {chapters.length} 章
+                      {doc?.skipFramework
+                        ? <span className="polish-framework-tag plain">原文结构</span>
+                        : <span className="polish-framework-tag">八大篇章</span>}
+                    </span>
                   </div>
                   <Annotate id="biography-polish.add-chapter" inline>
                     <button className="icon-btn polish-add-chapter" title="新增章节" aria-label="新增章节" onClick={addChapter}>
@@ -497,6 +620,12 @@ export default function BiographyPolish() {
                   </Annotate>
                 </div>
                 <div className="card-body polish-tree-body">
+                  {isUnsplitText && (
+                    <div className="polish-manual-note">
+                      <BookOpen size={15} />
+                      <p>暂时没有找到章节。可以先点击右上角“+”新增章节，再把文字分别放进去。</p>
+                    </div>
+                  )}
                   <div className="polish-chapter-list">
                     {chapters.map((chapter, index) => (
                       <div className="polish-chapter-row" key={`${chapter.title}-${index}`}>
@@ -505,6 +634,7 @@ export default function BiographyPolish() {
                           className={`polish-chapter-item ${activeIndex === index ? 'active' : ''}`}
                           onClick={() => {
                             setActiveIndex(index);
+                            setSelection({ start: 0, end: 0, text: '' });
                             setEditingTitleIndex(null);
                           }}
                         >
@@ -591,26 +721,25 @@ export default function BiographyPolish() {
                       className="polish-editor"
                       value={activeChapter.content}
                       onChange={(event) => updateChapter(activeIndex, { content: event.target.value, status: 'edited' })}
+                      onSelect={(event) => {
+                        const { selectionStart, selectionEnd, value } = event.currentTarget;
+                        setSelection({
+                          start: selectionStart,
+                          end: selectionEnd,
+                          text: value.slice(selectionStart, selectionEnd),
+                        });
+                      }}
                       placeholder="把这一章的文字写在这里……"
                     />
                     <div className="polish-toolbar">
                       <div className="polish-style-select">
-                        <span>希望文字感觉</span>
-                        <div className="polish-style-options">
-                          {POLISH_STYLES.map((item) => (
-                            <button
-                              key={item.key}
-                              className={`polish-style-chip ${style === item.key ? 'active' : ''}`}
-                              onClick={() => setStyle(item.key)}
-                            >
-                              {item.label}
-                            </button>
-                          ))}
-                        </div>
                       </div>
                       <div className="polish-toolbar-actions">
-                        <button className="btn btn-primary" disabled={polishing} onClick={() => polishOne(activeIndex)}>
-                          <Wand2 size={14} /> {polishing ? '正在润色……' : '润色这一章'}
+                        <button className="btn btn-primary" disabled={polishing} onClick={openPolishDialog}>
+                          <Sparkles size={14} /> {polishing ? '正在润色……' : 'AI 润色选中内容'}
+                        </button>
+                        <button className="btn btn-outline" onClick={saveChapter}>
+                          <Save size={14} /> 保存本章
                         </button>
                         <button
                           className="btn btn-ghost"
@@ -628,6 +757,36 @@ export default function BiographyPolish() {
           </div>
         </div>
       )}
+
+      <Modal open={finishOpen} title="确认完成传记" onClose={() => setFinishOpen(false)} footer={
+        <div className="version-modal-actions">
+          <button className="btn btn-outline" onClick={() => setFinishOpen(false)}>再检查一下</button>
+          <button className="btn btn-primary" onClick={finishPolishedBiography}>完成传记</button>
+        </div>
+      }>
+        <div className="version-save-form">
+          <p>确认完成后，当前传记会保存到“我的传记”，之后可以继续阅读、排版和制作实体书。</p>
+        </div>
+      </Modal>
+
+      <Modal open={polishOpen} title="AI 润色" onClose={() => setPolishOpen(false)} footer={
+        <div className="version-modal-actions">
+          <button className="btn btn-outline" onClick={() => setPolishOpen(false)}>取消</button>
+          <button className="btn btn-primary" onClick={polishSelection}>开始润色</button>
+        </div>
+      }>
+        <div className="version-save-form">
+          <label htmlFor="polish-feedback">修改意见（可选）</label>
+          <textarea
+            id="polish-feedback"
+            value={polishFeedback}
+            onChange={(event) => setPolishFeedback(event.target.value)}
+            placeholder="例如：语气更温暖一些，突出这段经历的细节……"
+            rows={5}
+          />
+          <p>请告诉 AI 希望如何修改选中的内容，留空则进行常规润色。</p>
+        </div>
+      </Modal>
 
       <Modal open={saveVersionOpen} title="保存当前版本" onClose={() => setSaveVersionOpen(false)} footer={
         <div className="version-modal-actions">

@@ -48,34 +48,6 @@
   color: var(--text-muted);
 }
 
-.groupbuy-table {
-  display: table;
-  width: 100%;
-  min-width: 860px;
-}
-
-.groupbuy-row {
-  display: table-row;
-}
-
-.groupbuy-header-row {
-  background: var(--bg-secondary);
-  font-weight: 500;
-  color: var(--text-secondary);
-  font-size: 13px;
-}
-
-.groupbuy-row:not(.groupbuy-header-row) {
-  border-bottom: 1px solid var(--border-light);
-}
-
-.groupbuy-cell {
-  display: table-cell;
-  padding: 12px 14px;
-  vertical-align: middle;
-  font-size: 13px;
-}
-
 .groupbuy-money {
   color: #1B5E4B;
   font-weight: 600;
@@ -128,25 +100,4 @@
 .groupbuy-status.refunded {
   background: rgba(124, 58, 237, 0.08);
   color: #7c3aed;
-}
-
-.groupbuy-refund-btn {
-  padding: 4px 12px;
-  font-size: 12px;
-}
-
-@media (max-width: 960px) {
-  .groupbuy-table {
-    min-width: unset;
-    display: block;
-  }
-
-  .groupbuy-row,
-  .groupbuy-cell {
-    display: block;
-  }
-
-  .groupbuy-header-row {
-    display: none;
-  }
 }

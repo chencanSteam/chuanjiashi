@@ -1,7 +1,9 @@
 import type { PageAnnotations } from './types';
 
 /**
- * 内容审核页（/admin/content-review）的逻辑标注。
+ * 内容审核页（/admin/content-review/:section）的逻辑标注。
+ * 审核模块拆为侧边栏独立菜单：传记内容审核 books / 素材审核 media / 退款审核 refunds；
+ * 敏感词审核已独立为敏感词库（/admin/sensitive-words）与敏感词命中（/admin/sensitive-hits）两个页面。
  * 编号 = 数组顺序，改顺序即改编号；新增标注在页面代码里加 <Annotate id="..."> 即可。
  */
 export const contentReviewAnnotations: PageAnnotations = {
@@ -9,13 +11,6 @@ export const contentReviewAnnotations: PageAnnotations = {
   pageName: '内容审核',
   route: '/admin/content-review',
   items: [
-    {
-      id: 'content-review.tabs',
-      target: '审核分类标签页',
-      logic: `① 五个标签页互斥切换，仅为前端状态，不跳转路由。
-② 切到「公开传记审核 / 素材审核 / 举报管理 / 内容下架管理」时分别请求对应列表接口；「敏感词检测」用页面内置静态演示数据，不发请求。
-③ 任一列表接口失败时降级为空列表，展示「暂无」占位，不报错中断。`,
-    },
     {
       id: 'content-review.book-review',
       target: '待审核公开传记（通过 / 驳回）',
@@ -31,24 +26,11 @@ export const contentReviewAnnotations: PageAnnotations = {
 ③ 审核完成后按钮变为「已通过 / 已驳回」状态标签，不可重复操作。`,
     },
     {
-      id: 'content-review.sensitive-hits',
-      target: '敏感词命中记录',
-      logic: `① 当前为页面内置 mock 数据，仅展示敏感词、命中来源、上下文、命中时间，无人工处置入口。
-② 正式逻辑：传记章节、数字馆留言、采访转写文本在发布 / 保存时过敏感词库，命中即记录并拦截展示，转人工复核后放行或处理。`,
-    },
-    {
-      id: 'content-review.report-process',
-      target: '举报管理（标记已处理）',
-      logic: `① contentReviewApi.reportList()（GET /api/admin/content-review/reports）拉取用户举报，含举报人、被举报内容、原因、时间。
-② status = pending 的举报显示「标记已处理」按钮；点击调 processReport（PATCH /api/admin/content-review/reports/:id，status = processed），用返回对象局部更新该行。
-③ 处理后显示「已处理」标签，按钮消失，不可重复处理。`,
-    },
-    {
-      id: 'content-review.offshelf-restore',
-      target: '已下架内容（恢复上架）',
-      logic: `① 进入该标签页调 bookshelfApi.adminList({ status: 'off_shelf' }) 拉取已下架传记。
-② 「恢复上架」复用 bookshelfApi.review(id, 'approved')，将状态改回已上架；成功后 toast 提示并重新拉取下架列表，该条从列表消失。
-③ 失败时 toast 错误信息，内容仍留在下架列表。`,
+      id: 'content-review.refund-review',
+      target: '退款审核（通过 / 驳回）',
+      logic: `① 进入该标签页调 orderApi.adminList（GET /api/admin/orders），前端筛出带 refundRequest 的订单，按申请时间倒序展示；状态筛选（全部 / 待审核 / 已驳回 / 已完成）为纯前端过滤。
+② 「通过退款」需 confirm 二次确认，调 orderApi.adminApproveRefund，退款完成后订单状态变为已退款；「驳回」弹窗必须填写驳回原因，调 adminRejectRefund，客户可见该原因并可重新申请。
+③ 与订单管理页的退款审核共用同一组接口，两处操作结果互通；操作成功后重新拉取列表。`,
     },
   ],
 };

@@ -96,3 +96,27 @@ export function splitIntoChapters(text: string): ImportedChapter[] {
   }
   return chapters;
 }
+
+/** 章节内容 → 八大篇章的关键词归类规则（按框架顺序匹配） */
+const FRAMEWORK_RULES: Array<{ title: string; match: RegExp }> = [
+  { title: '故里童年 · 初心萌芽', match: /童年|小时候|儿时|幼年|出生|故乡|家乡|老家|发小/ },
+  { title: '求学成长 · 岁月积淀', match: /求学|读书|上学|学校|老师|同学|大学|毕业|考入|课堂/ },
+  { title: '择业入行 · 缘起初心', match: /入行|第一份工作|分配|职业|工作|就业|学徒|师傅/ },
+  { title: '深耕岁月 · 历练成长', match: /创业|公司|企业|事业|项目|开店|办厂|经营/ },
+  { title: '风雨磨砺 · 破局成长', match: /困难|挫折|失败|危机|低谷|磨难|困境|坚持/ },
+  { title: '行业感悟 · 职业修为', match: /感悟|体会|行业|匠心|诚信|敬业|职业/ },
+  { title: '家风人生 · 温情生活', match: /家庭|婚姻|妻子|丈夫|子女|孩子|父亲|母亲|家风|家训|结婚/ },
+  { title: '人生回望 · 未来愿景', match: /人生|退休|展望|愿望|总结|格言|晚年|期许/ },
+];
+
+/**
+ * 按八大篇章建议章节归属：标题精确命中优先，其次按标题+正文前 200 字关键词匹配。
+ * 返回空字符串表示无法自动归类（页面上标注「待确认」）。
+ */
+export function suggestFrameworkChapter(chapter: ImportedChapter): string {
+  const title = chapter.title.trim();
+  if ((biographyChapterTitles as string[]).includes(title)) return title;
+  const text = `${title}\n${chapter.content.slice(0, 200)}`;
+  const rule = FRAMEWORK_RULES.find((r) => r.match.test(text));
+  return rule ? rule.title : '';
+}

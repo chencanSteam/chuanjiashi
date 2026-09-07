@@ -2,77 +2,127 @@
   padding: 20px;
 }
 
-.achievement-add {
+
+.achievement-layout {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr;
-  gap: 10px;
-  margin-bottom: 18px;
-  padding: 16px;
-  background: #f8f9f9;
-  border-radius: 10px;
-  border: 1px dashed #d6ddd9;
-}
-
-.achievement-add textarea {
-  grid-column: 1 / -1;
-  border: 1px solid #e8ecea;
-  border-radius: 6px;
-  padding: 8px 10px;
-  font-size: 13px;
-  resize: vertical;
-}
-
-.achievement-add input,
-.achievement-add select {
-  border: 1px solid #e8ecea;
-  border-radius: 6px;
-  padding: 8px 10px;
-  font-size: 13px;
-  outline: none;
-}
-
-.achievement-add-actions {
-  grid-column: 1 / -1;
-  display: flex;
-  gap: 10px;
-  justify-content: flex-end;
+  grid-template-columns: minmax(280px, 0.9fr) minmax(0, 1.1fr);
+  gap: 16px;
+  align-items: start;
 }
 
 .achievement-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .achievement-item {
   display: flex;
-  align-items: flex-start;
-  gap: 14px;
-  padding: 14px 16px;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
   border: 1px solid #f0f2f1;
   border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: all 0.15s;
 }
 
-.achievement-year {
-  width: 56px;
+.achievement-item:hover {
+  border-color: #d6ddd9;
+}
+
+.achievement-item.active {
+  border-color: #1B5E4B;
+  background: rgba(27, 94, 75, 0.04);
+}
+
+.achievement-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
   flex-shrink: 0;
+  background: #d1d5db;
+}
+
+.achievement-dot.事业 { background: #1B5E4B; }
+.achievement-dot.荣誉 { background: #d97706; }
+.achievement-dot.公益 { background: #7c3aed; }
+.achievement-dot.作品 { background: #db2777; }
+
+.achievement-item-year {
   font-size: 13px;
   font-weight: 700;
   color: #1B5E4B;
-  margin-top: 2px;
+  flex-shrink: 0;
 }
 
-.achievement-main {
-  flex: 1;
+.achievement-item-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: #1f2937;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.achievement-title {
+.achievement-detail-year {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1B5E4B;
+  margin-bottom: 6px;
+}
+
+.achievement-detail-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #1f2937;
   display: flex;
   align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.achievement-detail-desc {
+  font-size: 13px;
+  color: #4b5563;
+  line-height: 1.8;
+  margin: 0 0 16px;
+}
+
+.achievement-detail-materials {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.achievement-upload-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  padding: 8px 14px;
+  border: 1px dashed #d6ddd9;
+  border-radius: 8px;
+  background: #faf9f6;
+  color: #1B5E4B;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.achievement-detail-actions {
+  display: flex;
+  justify-content: flex-end;
   gap: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  color: #1f2937;
+  border-top: 1px solid #f0f2f1;
+  padding-top: 14px;
+}
+
+.achievement-detail-delete {
+  color: #dc2626;
 }
 
 .achievement-category {
@@ -102,15 +152,50 @@
 }
 
 @media (max-width: 900px) {
-  .achievement-add {
+  .achievement-layout {
     grid-template-columns: 1fr;
   }
-  .achievement-item {
-    flex-direction: column;
-    gap: 10px;
-  }
-  .achievement-actions {
-    width: 100%;
-    justify-content: flex-end;
-  }
+}
+
+/* 证明材料 */
+.achievement-materials {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.achievement-material {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border: 1px solid var(--border-light, #e8e4dd);
+  border-radius: 6px;
+  background: #faf9f6;
+  font-size: 11px;
+  color: var(--text-muted, #9ca3af);
+}
+
+.achievement-material button {
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--text-muted, #9ca3af);
+  cursor: pointer;
+  display: inline-flex;
+}
+
+.achievement-material-upload {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.achievement-empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-muted, #9ca3af);
+  font-size: 13px;
 }

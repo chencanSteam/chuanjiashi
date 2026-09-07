@@ -13,27 +13,56 @@ function getCurrentUserId(): string | null {
   return user?.id || null
 }
 
-function ensureBiographers(): Biographer[] {
-  const biographers = getItem<Biographer[]>(storeKeys.biographers, [])
-  if (biographers.length === 0) {
-    setItem(storeKeys.biographers, defaultBiographers)
-    return defaultBiographers
+function profileSnapshot(b: Biographer) {
+  return {
+    name: b.name, phone: b.phone, email: b.email, avatar: b.avatar, city: b.city, intro: b.intro,
+    title: b.title, specialties: b.specialties, experience: b.experience, serviceAreas: b.serviceAreas,
+    education: b.education, certificates: b.certificates, tags: b.tags, services: b.services, cases: b.cases,
   }
-  // 老数据回填新增字段（完成订单数、荣誉证书），以种子数据中同 id 的记录为准
-  let changed = false
-  const merged = biographers.map((b) => {
+}
+
+function ensureBiographers(): Biographer[] {
+  const stored = getItem<Biographer[]>(storeKeys.biographers, [])
+  // 首次初始化和已有浏览器数据都要补齐新增 seed，避免旧 localStorage 永远看不到新 mock。
+  const existingIds = new Set(stored.map((b) => b.id))
+  const missingSeeds = defaultBiographers
+    .filter((seed) => !existingIds.has(seed.id))
+    .map((seed) => ({
+      ...seed,
+      profileReviewStatus: seed.profileReviewStatus || (seed.publishedProfile ? 'approved' : 'unsubmitted'),
+      publishedProfile: seed.publishedProfile || (seed.status === 'approved' ? profileSnapshot(seed) : undefined),
+    }))
+  let changed = missingSeeds.length > 0
+  const merged = stored.map((b) => {
     const seed = defaultBiographers.find((d) => d.id === b.id)
     if (!seed) return b
     const completedOrders = b.completedOrders ?? seed.completedOrders
-    const certificates = b.certificates?.length ? b.certificates : seed.certificates
-    if (completedOrders !== b.completedOrders || certificates !== b.certificates) {
+    const mergedFields = {
+      email: b.email || seed.email,
+      avatar: b.avatar || seed.avatar,
+      city: b.city || seed.city,
+      intro: b.intro || seed.intro,
+      title: b.title || seed.title,
+      education: b.education || seed.education,
+      specialties: b.specialties?.length ? b.specialties : seed.specialties,
+      serviceAreas: b.serviceAreas?.length ? b.serviceAreas : seed.serviceAreas,
+      tags: b.tags?.length ? b.tags : seed.tags,
+      services: b.services?.length ? b.services : seed.services,
+      cases: b.cases?.length ? b.cases : seed.cases,
+      certificates: b.certificates?.length ? b.certificates : seed.certificates,
+    }
+    const publishedProfile = b.publishedProfile || (b.status === 'approved' ? profileSnapshot({ ...b, ...mergedFields }) : undefined)
+    const profileReviewStatus = b.profileReviewStatus || (publishedProfile ? 'approved' : 'unsubmitted')
+    if (completedOrders !== b.completedOrders || publishedProfile !== b.publishedProfile || profileReviewStatus !== b.profileReviewStatus
+      || Object.entries(mergedFields).some(([key, value]) => value !== b[key as keyof Biographer])) {
       changed = true
-      return { ...b, completedOrders, certificates }
+      return { ...b, ...mergedFields, completedOrders, publishedProfile, profileReviewStatus }
     }
     return b
   })
-  if (changed) setItem(storeKeys.biographers, merged)
-  return merged
+  const result = [...merged, ...missingSeeds]
+  if (changed) setItem(storeKeys.biographers, result)
+  return result
 }
 
 function saveBiographers(biographers: Biographer[]): void {
@@ -72,11 +101,12 @@ function recalcBiographerRating(biographerId: string): void {
 
 function getCurrentBiographer(): Biographer | null {
   const biographers = ensureBiographers()
-  const currentUser = getItem<{ phone?: string } | null>(storeKeys.currentUser, null)
-  let biographer = biographers.find((b) => b.phone && b.phone === currentUser?.phone)
-  if (!biographer) biographer = biographers.find((b) => b.status === 'approved')
-  if (!biographer) biographer = biographers[0]
-  return biographer || null
+  const currentUser = getItem<{ id?: string; phone?: string } | null>(storeKeys.currentUser, null)
+  // 演示环境兜底：当前账号未绑定传记师资料时回退到演示传记师，保证传记师端各页面有数据
+  return biographers.find((b) => b.userId === currentUser?.id)
+    || biographers.find((b) => b.phone && b.phone === currentUser?.phone)
+    || biographers.find((b) => b.id === 'bio_001')
+    || null
 }
 
 function hasPaidDeposit(userId: string): boolean {
@@ -87,20 +117,16 @@ function hasPaidDeposit(userId: string): boolean {
 }
 
 const nextProgressMap: Record<string, string> = {
-  '支付定金': '预约采访',
   '预约采访': '提交初稿',
   '提交初稿': '修改完善',
-  '修改完善': '支付尾款',
-  '支付尾款': '交付定稿',
+  '修改完善': '交付定稿',
 }
 
+// 完成某节点后订单进入的状态（按下一个待办节点映射；最后一个节点完成即 completed）
 const statusByNode: Record<string, BiographerOrder['status']> = {
-  '支付定金': 'pending_deposit',
-  '预约采访': 'paid_deposit',
   '提交初稿': 'interview_scheduled',
   '修改完善': 'draft_submitted',
-  '支付尾款': 'modifying',
-  '交付定稿': 'paid_full',
+  '交付定稿': 'final_submitted',
 }
 
 export const biographerHandlers: HttpHandler[] = [
@@ -114,7 +140,8 @@ export const biographerHandlers: HttpHandler[] = [
   http.get('/api/biographers', async ({ request }) => {
     const url = new URL(request.url)
     const city = url.searchParams.get('city') || ''
-    let list = ensureBiographers().filter((b) => b.status === 'approved')
+    let list = ensureBiographers().filter((b) => b.status === 'approved' && b.profileReviewStatus === 'approved' && b.publishedProfile)
+    list = list.map((b) => ({ ...b, ...b.publishedProfile, id: b.id, userId: b.userId, status: b.status }))
     if (city) list = list.filter((b) => b.city.includes(city))
     return success(list)
   }),
@@ -137,8 +164,8 @@ export const biographerHandlers: HttpHandler[] = [
   http.get('/api/biographers/:id', async ({ params }) => {
     const list = ensureBiographers()
     const item = list.find((b) => b.id === params.id)
-    if (!item) return notFound('传记师不存在')
-    return success(item)
+    if (!item || item.status !== 'approved' || item.profileReviewStatus !== 'approved' || !item.publishedProfile) return notFound('传记师主页暂未开放')
+    return success({ ...item, ...item.publishedProfile, id: item.id, userId: item.userId, status: item.status })
   }),
 
   http.get('/api/biographers/:id/reviews', async ({ params }) => {
@@ -181,18 +208,15 @@ export const biographerHandlers: HttpHandler[] = [
       serviceId,
       serviceName: service.name,
       amount: service.price,
-      deposit: Math.round(service.price * 0.3),
-      status: 'pending_deposit',
+      status: 'pending_schedule',
       schedule: {
         time: body.preferredTime || '',
         address: body.location || '',
       },
       progress: [
-        { node: '支付定金', status: 'pending' },
         { node: '预约采访', status: 'pending' },
         { node: '提交初稿', status: 'pending' },
         { node: '修改完善', status: 'pending' },
-        { node: '支付尾款', status: 'pending' },
         { node: '交付定稿', status: 'pending' },
       ],
       createdAt: new Date().toISOString(),
@@ -249,11 +273,11 @@ export const biographerHandlers: HttpHandler[] = [
     })
 
     const nextNode = nextProgressMap[node]
-    const nextStatus = statusByNode[nextNode || '']
+    const nextStatus = nextNode ? statusByNode[nextNode] : 'completed'
 
     orders[idx] = {
       ...orders[idx],
-      status: nextStatus || orders[idx].status,
+      status: nextStatus,
       progress,
       updatedAt: new Date().toISOString(),
     }
@@ -387,9 +411,12 @@ export const biographerHandlers: HttpHandler[] = [
     const userId = getCurrentUserId()
     if (!userId) return unauthorized()
     const biographers = ensureBiographers()
+    const currentUser = getItem<{ id?: string; phone?: string } | null>(storeKeys.currentUser, null)
     const biographer = biographers.find((b) => b.userId === userId)
+      || biographers.find((b) => b.phone && b.phone === currentUser?.phone)
     return success({
-      depositPaid: hasPaidDeposit(userId),
+      // 传记师演示账号已有历史押金，避免首次进入认证页出现空白申请表。
+      depositPaid: hasPaidDeposit(userId) || Boolean(biographer?.deposit),
       application: biographer
         ? {
             status: biographer.status,
@@ -418,105 +445,128 @@ export const biographerHandlers: HttpHandler[] = [
     const userId = getCurrentUserId()
     if (!userId) return unauthorized()
     const biographer = getCurrentBiographer()
-    if (!biographer) return notFound('您还不是传记师')
+    if (!biographer) return notFound('当前账号尚未绑定传记师资料，请从登录页选择传记师端演示账号')
 
     let orders = getItem<BiographerOrder[]>(storeKeys.biographerOrders, []).filter(
       (o) => o.biographerId === biographer.id
     )
 
-    // 演示环境：没有订单时自动生成几个
-    if (orders.length === 0) {
-      const demoOrders: BiographerOrder[] = [
-        {
-          id: generateId(),
-          userId: 'u_demo_001',
-          orderId: 'ord_demo_001',
-          biographerId: biographer.id,
-          serviceId: 'svc_001',
-          serviceName: '家族传记标准版',
-          amount: 2999,
-          deposit: 900,
-          status: 'interview_scheduled',
-          schedule: { time: '2024-07-20 14:00', address: '杭州市西湖区某某小区' },
-          progress: [
-            { node: '支付定金', status: 'done' },
-            { node: '预约采访', status: 'done', time: new Date().toISOString() },
-            { node: '提交初稿', status: 'pending' },
-            { node: '修改完善', status: 'pending' },
-            { node: '支付尾款', status: 'pending' },
-            { node: '交付定稿', status: 'pending' },
-          ],
-          createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-        {
-          id: generateId(),
-          userId: 'u_demo_002',
-          orderId: 'ord_demo_002',
-          biographerId: biographer.id,
-          serviceId: 'svc_002',
-          serviceName: '个人回忆录长篇版',
-          amount: 5999,
-          deposit: 1800,
-          status: 'modifying',
-          schedule: { time: '2024-07-10 10:00', address: '线上视频采访' },
-          progress: [
-            { node: '支付定金', status: 'done' },
-            { node: '预约采访', status: 'done', time: new Date().toISOString() },
-            { node: '提交初稿', status: 'done', time: new Date().toISOString() },
-            { node: '修改完善', status: 'done', time: new Date().toISOString() },
-            { node: '支付尾款', status: 'pending' },
-            { node: '交付定稿', status: 'pending' },
-          ],
-          createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-        {
-          id: generateId(),
-          userId: 'u_demo_003',
-          orderId: 'ord_demo_003',
-          biographerId: biographer.id,
-          serviceId: 'svc_003',
-          serviceName: '企业家传记',
-          amount: 9999,
-          deposit: 3000,
-          status: 'completed',
-          schedule: { time: '2024-06-15 09:30', address: '北京市朝阳区' },
-          progress: [
-            { node: '支付定金', status: 'done' },
-            { node: '预约采访', status: 'done', time: new Date().toISOString() },
-            { node: '提交初稿', status: 'done', time: new Date().toISOString() },
-            { node: '修改完善', status: 'done', time: new Date().toISOString() },
-            { node: '支付尾款', status: 'done', time: new Date().toISOString() },
-            { node: '交付定稿', status: 'done', time: new Date().toISOString() },
-          ],
-          createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-      ]
-      const allOrders = getItem<BiographerOrder[]>(storeKeys.biographerOrders, [])
-      allOrders.push(...demoOrders)
-      setItem(storeKeys.biographerOrders, allOrders)
-      orders = demoOrders
+    // 演示环境：为每位传记师幂等补齐演示订单；旧版含「支付定金/支付尾款」节点的演示订单直接替换为新流程版本
+    const dayMs = 24 * 60 * 60 * 1000
+    const doneNode = (node: string): BiographerOrder['progress'][number] => ({ node, status: 'done', time: new Date().toISOString() })
+    const pendingNode = (node: string): BiographerOrder['progress'][number] => ({ node, status: 'pending' })
+    const buildProgress = (doneCount: number) =>
+      ['预约采访', '提交初稿', '修改完善', '交付定稿'].map((node, i) => (i < doneCount ? doneNode(node) : pendingNode(node)))
+    const demoOrders: BiographerOrder[] = [
+      {
+        id: generateId(), userId: 'u_demo_001', customerName: '张先生',
+        deadline: new Date(Date.now() + 4 * dayMs).toISOString(),
+        remark: '希望重点记录父亲的创业经历和家庭教育。',
+        orderId: 'ord_demo_001', biographerId: biographer.id, serviceId: 'svc_001',
+        serviceName: '家族传记标准版', amount: 2999, status: 'interview_scheduled',
+        schedule: { time: new Date(Date.now() + dayMs).toLocaleString('zh-CN', { hour12: false }), address: '杭州市西湖区某某小区' },
+        progress: buildProgress(1),
+        createdAt: new Date(Date.now() - 2 * dayMs).toISOString(), updatedAt: new Date().toISOString(),
+      },
+      {
+        id: generateId(), userId: 'u_demo_002', customerName: '王女士',
+        deadline: new Date(Date.now() + 8 * dayMs).toISOString(),
+        remark: '初稿希望保留口述中的原有语气。',
+        orderId: 'ord_demo_002', biographerId: biographer.id, serviceId: 'svc_002',
+        serviceName: '个人回忆录长篇版', amount: 5999, status: 'modifying',
+        schedule: { time: new Date(Date.now() - 5 * dayMs).toLocaleString('zh-CN', { hour12: false }), address: '线上视频采访' },
+        progress: buildProgress(2),
+        createdAt: new Date(Date.now() - 10 * dayMs).toISOString(), updatedAt: new Date().toISOString(),
+      },
+      {
+        id: generateId(), userId: 'u_demo_003', customerName: '陈先生',
+        deadline: new Date(Date.now() - 10 * dayMs).toISOString(),
+        remark: '项目已完成，客户已确认交付。',
+        orderId: 'ord_demo_003', biographerId: biographer.id, serviceId: 'svc_003',
+        serviceName: '企业家传记', amount: 9999, status: 'completed',
+        schedule: { time: new Date(Date.now() - 20 * dayMs).toLocaleString('zh-CN', { hour12: false }), address: '北京市朝阳区（客户提供资料）' },
+        progress: buildProgress(4),
+        createdAt: new Date(Date.now() - 30 * dayMs).toISOString(), updatedAt: new Date().toISOString(),
+      },
+      {
+        id: generateId(), userId: 'u_demo_004', customerName: '赵女士',
+        deadline: new Date(Date.now() + 6 * dayMs).toISOString(),
+        remark: '刚完成下单，等待确认采访时间。',
+        orderId: 'ord_demo_004', biographerId: biographer.id, serviceId: 'svc_001',
+        serviceName: '基础采访套餐', amount: 1999, status: 'pending_schedule',
+        progress: buildProgress(0),
+        createdAt: new Date(Date.now() - dayMs).toISOString(), updatedAt: new Date().toISOString(),
+      },
+      {
+        id: generateId(), userId: 'u_demo_006', customerName: '孙女士',
+        deadline: new Date(Date.now() + 3 * dayMs).toISOString(),
+        remark: '终稿已发送，等待客户确认后交付。',
+        orderId: 'ord_demo_006', biographerId: biographer.id, serviceId: 'svc_002',
+        serviceName: '深度定制套餐', amount: 5999, status: 'final_submitted',
+        schedule: { time: new Date(Date.now() - 12 * dayMs).toLocaleString('zh-CN', { hour12: false }), address: '线上视频采访' },
+        progress: buildProgress(3),
+        createdAt: new Date(Date.now() - 18 * dayMs).toISOString(), updatedAt: new Date().toISOString(),
+      },
+      {
+        id: generateId(), userId: 'u_demo_007', customerName: '周先生',
+        deadline: new Date(Date.now() - 2 * dayMs).toISOString(),
+        remark: '客户提出两处文字修改，已进入售后跟进。',
+        orderId: 'ord_demo_007', biographerId: biographer.id, serviceId: 'svc_002',
+        serviceName: '深度定制套餐', amount: 5999, status: 'after_sales',
+        schedule: { time: new Date(Date.now() - 26 * dayMs).toLocaleString('zh-CN', { hour12: false }), address: '杭州市西湖区' },
+        progress: buildProgress(4),
+        createdAt: new Date(Date.now() - 40 * dayMs).toISOString(), updatedAt: new Date().toISOString(),
+      },
+      {
+        id: generateId(), userId: 'u_demo_008', customerName: '吴女士',
+        deadline: new Date(Date.now() + 6 * dayMs).toISOString(),
+        remark: '初稿已收到，正在按客户意见修改完善。',
+        orderId: 'ord_demo_008', biographerId: biographer.id, serviceId: 'svc_001',
+        serviceName: '基础采访套餐', amount: 1999, status: 'draft_submitted',
+        schedule: { time: new Date(Date.now() - 6 * dayMs).toLocaleString('zh-CN', { hour12: false }), address: '线上视频采访' },
+        progress: buildProgress(2),
+        createdAt: new Date(Date.now() - 8 * dayMs).toISOString(), updatedAt: new Date().toISOString(),
+      },
+    ]
+    const allOrders = getItem<BiographerOrder[]>(storeKeys.biographerOrders, [])
+    // 清掉旧流程（含定金/尾款节点）的演示订单
+    const cleaned = allOrders.filter(
+      (o) => !(String(o.orderId || '').startsWith('ord_demo_') && o.progress.some((p) => p.node === '支付定金' || p.node === '支付尾款'))
+    )
+    const existingIds = new Set(cleaned.map((order) => order.orderId))
+    const missingDemoOrders = demoOrders.filter((order) => !existingIds.has(order.orderId))
+    if (missingDemoOrders.length > 0 || cleaned.length !== allOrders.length) {
+      cleaned.push(...missingDemoOrders)
+      setItem(storeKeys.biographerOrders, cleaned)
+      orders = cleaned.filter((o) => o.biographerId === biographer.id)
     }
 
     return success(orders)
   }),
 
-  // 传记师更新自己资料
+  // 传记师提交主页内容审核：新内容先进入草稿，不覆盖线上主页
   http.put('/api/biographer/me', async ({ request }) => {
     const userId = getCurrentUserId()
     if (!userId) return unauthorized()
     const body = (await request.json()) as Partial<Biographer>
     const biographers = ensureBiographers()
-    const currentUser = getItem<{ phone?: string } | null>(storeKeys.currentUser, null)
-    let idx = biographers.findIndex((b) => b.phone && b.phone === currentUser?.phone)
-    if (idx < 0) idx = biographers.findIndex((b) => b.status === 'approved')
+    const currentUser = getItem<{ id?: string; phone?: string } | null>(storeKeys.currentUser, null)
+    const idx = biographers.findIndex((b) => b.userId === currentUser?.id || (b.phone && b.phone === currentUser?.phone))
     if (idx < 0) return notFound('您还不是传记师')
-
-    biographers[idx] = { ...biographers[idx], ...body, id: biographers[idx].id, updatedAt: new Date().toISOString() }
+    if (biographers[idx].status !== 'approved') return fail('请先通过入驻审核')
+    const source = { ...biographers[idx], ...body }
+    const draft = {
+      name: source.name, phone: source.phone, email: source.email, avatar: source.avatar, city: source.city, intro: source.intro,
+      title: source.title, specialties: source.specialties, experience: source.experience, serviceAreas: source.serviceAreas,
+      education: source.education, certificates: source.certificates, tags: source.tags, services: source.services, cases: source.cases,
+    }
+    biographers[idx] = {
+      ...biographers[idx], profileDraft: draft, profileReviewStatus: 'pending',
+      profileRejectReason: undefined, profileSubmittedAt: new Date().toISOString(),
+      profileRevision: (biographers[idx].profileRevision || 0) + 1, updatedAt: new Date().toISOString(),
+    }
     saveBiographers(biographers)
-    return success(biographers[idx])
+    return success(biographers[idx], '主页已提交平台审核')
   }),
 
   // ===== 管理后台接口 =====
@@ -559,7 +609,7 @@ export const biographerHandlers: HttpHandler[] = [
     return success(biographer)
   }),
 
-  // 更新传记师
+  // 更新传记师（后台维护账号/运营字段；主页内容不应通过此接口直接发布）
   http.put('/api/biographers/:id', async ({ params, request }) => {
     const userId = getCurrentUserId()
     if (!userId) return unauthorized()
@@ -592,6 +642,26 @@ export const biographerHandlers: HttpHandler[] = [
     }
     saveBiographers(biographers)
     return success(biographers[idx], action === 'approve' ? '已通过审核' : '已驳回申请')
+  }),
+
+  // 审核主页内容（与入驻审核独立）
+  http.patch('/api/biographers/:id/profile-review', async ({ params, request }) => {
+    const userId = getCurrentUserId()
+    if (!userId) return unauthorized()
+    const { action, reason } = (await request.json()) as { action?: 'approve' | 'reject'; reason?: string }
+    if (action !== 'approve' && action !== 'reject') return fail('参数错误')
+    const biographers = ensureBiographers()
+    const idx = biographers.findIndex((b) => b.id === params.id)
+    if (idx < 0) return notFound('传记师不存在')
+    const item = biographers[idx]
+    if (item.profileReviewStatus !== 'pending' || !item.profileDraft) return fail('该主页不在待审核状态')
+    if (action === 'approve') {
+      biographers[idx] = { ...item, ...item.profileDraft, publishedProfile: item.profileDraft, profileDraft: undefined, profileReviewStatus: 'approved', profileRejectReason: undefined, profileReviewedAt: new Date().toISOString(), profileReviewedBy: userId, updatedAt: new Date().toISOString() }
+    } else {
+      biographers[idx] = { ...item, profileReviewStatus: 'rejected', profileRejectReason: reason?.trim() || '主页内容不符合平台规范，请修改后重新提交。', profileReviewedAt: new Date().toISOString(), profileReviewedBy: userId, updatedAt: new Date().toISOString() }
+    }
+    saveBiographers(biographers)
+    return success(biographers[idx], action === 'approve' ? '主页审核已通过' : '主页审核已驳回')
   }),
 
   // 删除传记师

@@ -6,27 +6,19 @@
   padding: 0;
 }
 
-.review-empty {
-  text-align: center;
-  padding: 48px 20px;
-  color: var(--text-muted);
-}
-
-.review-book-item {
+.review-book-cell {
   display: flex;
-  align-items: flex-start;
-  gap: 16px;
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--border-light);
+  align-items: center;
+  gap: 12px;
 }
 
-.review-book-item:last-child {
-  border-bottom: none;
+.review-book-cell-info {
+  min-width: 0;
 }
 
 .review-book-cover {
-  width: 64px;
-  height: 84px;
+  width: 40px;
+  height: 54px;
   border-radius: var(--radius);
   background: var(--bg-secondary);
   display: flex;
@@ -43,21 +35,10 @@
   object-fit: cover;
 }
 
-.review-book-info {
-  flex: 1;
-  min-width: 0;
-}
-
 .review-book-title {
   font-size: 14px;
   font-weight: 600;
   color: var(--text);
-}
-
-.review-book-meta {
-  font-size: 12px;
-  color: var(--text-secondary);
-  margin-top: 4px;
 }
 
 .review-book-intro {
@@ -70,64 +51,10 @@
   overflow: hidden;
 }
 
-.review-book-time {
-  font-size: 12px;
-  color: var(--text-muted);
-  margin-top: 6px;
-}
-
-.review-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
-.review-action-btn {
-  padding: 6px 14px;
-  font-size: 13px;
-}
-
-.review-media-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 16px;
-  padding: 20px;
-}
-
-.review-media-card {
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius);
-  padding: 16px;
-}
-
-.review-media-thumb {
-  height: 120px;
-  border-radius: var(--radius);
-  background: var(--bg-secondary);
-  display: flex;
+.review-media-type {
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  color: var(--text-muted);
-  margin-bottom: 12px;
-}
-
-.review-media-title {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text);
-}
-
-.review-media-meta {
-  font-size: 12px;
-  color: var(--text-muted);
-  margin-top: 4px;
-}
-
-.review-media-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 12px;
+  gap: 4px;
 }
 
 .review-status {
@@ -135,18 +62,11 @@
   font-size: 12px;
   padding: 3px 10px;
   border-radius: 999px;
-  margin-top: 12px;
 }
 
 .review-status.approved {
   background: rgba(27, 94, 75, 0.08);
   color: #1B5E4B;
-  margin-top: 0;
-}
-
-.review-media-card .review-status.approved,
-.review-media-card .review-status.rejected {
-  margin-top: 12px;
 }
 
 .review-status.rejected {
@@ -154,69 +74,47 @@
   color: #dc2626;
 }
 
-.review-table {
-  display: table;
-  width: 100%;
-  min-width: 860px;
+.review-status.pending {
+  background: #fef3c7;
+  color: #92400e;
 }
 
-.review-row {
-  display: table-row;
+.review-status.offshelf {
+  background: #f3f4f6;
+  color: #6b7280;
 }
 
-.review-header-row {
-  background: var(--bg-secondary);
-  font-weight: 500;
-  color: var(--text-secondary);
+.review-books-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.review-books-header select {
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  padding: 7px 10px;
   font-size: 13px;
+  color: var(--text);
+  background: #fff;
 }
 
-.review-row:not(.review-header-row) {
-  border-bottom: 1px solid var(--border-light);
-}
-
-.review-cell {
-  display: table-cell;
-  padding: 12px 14px;
-  vertical-align: middle;
-  font-size: 13px;
-}
-
-.review-context {
-  color: var(--text-secondary);
-  max-width: 320px;
-}
-
-.review-sensitive-word {
-  display: inline-block;
+.review-refund-sub {
   font-size: 12px;
-  padding: 3px 10px;
-  border-radius: 999px;
-  background: rgba(220, 38, 38, 0.08);
-  color: #dc2626;
-  font-weight: 600;
+  color: var(--text-muted);
+  margin-top: 2px;
 }
 
-@media (max-width: 960px) {
-  .review-table {
-    min-width: unset;
-    display: block;
-  }
+.review-refund-reject-hint {
+  color: var(--text-muted);
+  font-size: 13px;
+  margin: 0 0 10px;
+}
 
-  .review-row,
-  .review-cell {
-    display: block;
-  }
-
-  .review-header-row {
-    display: none;
-  }
-
-  .review-book-item {
-    flex-direction: column;
-  }
-
-  .review-actions {
-    flex-direction: row;
-  }
+.review-refund-reject-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
 }

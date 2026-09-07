@@ -102,53 +102,23 @@
   font-size: 14px;
 }
 
-.bio-table {
-  display: table;
-  width: 100%;
-  min-width: 720px;
-}
-
-.bio-row {
-  display: table-row;
-}
-
-.bio-header {
-  background: var(--bg-secondary);
-  font-weight: 500;
-  color: var(--text-secondary);
-  font-size: 13px;
-}
-
-.bio-row:not(.bio-header) {
-  border-bottom: 1px solid var(--border-light);
-}
-
-.bio-row:last-child {
-  border-bottom: none;
-}
-
-.bio-cell {
-  display: table-cell;
-  padding: 14px 16px;
-  vertical-align: middle;
-}
-
-.bio-cell-name {
+.bio-name-cell {
   display: flex;
   align-items: center;
   gap: 12px;
   min-width: 220px;
+  text-align: left;
 }
 
-.bio-cell-name.bio-cell-clickable {
+.bio-name-cell.bio-cell-clickable {
   cursor: pointer;
 }
 
-.bio-cell-name.bio-cell-clickable:hover .bio-name {
+.bio-name-cell.bio-cell-clickable:hover .bio-name {
   color: var(--primary);
 }
 
-.bio-cell-name.bio-cell-clickable:hover .bio-avatar {
+.bio-name-cell.bio-cell-clickable:hover .bio-avatar {
   box-shadow: 0 0 0 2px var(--primary-200);
 }
 
@@ -291,30 +261,33 @@
   color: #6b7280;
 }
 
-.bio-cell-action {
+.bio-penalty-history {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border: 1px solid #f0e6d2;
+  border-radius: 8px;
+  background: #fdf9f0;
+}
+
+.bio-penalty-history-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #92610f;
+  margin-bottom: 6px;
+}
+
+.bio-penalty-history-item {
   display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.bio-cell-action .icon-btn {
-  width: 30px;
-  height: 30px;
-  border-radius: 6px;
-  border: 1px solid var(--border-light);
-  background: var(--card-bg);
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
   color: var(--text-secondary);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
+  padding: 3px 0;
 }
 
-.bio-cell-action .icon-btn:hover {
-  background: var(--bg-secondary);
-  color: var(--primary);
-  border-color: var(--primary-200);
+.bio-penalty-history-item small {
+  color: var(--text-muted);
+  white-space: nowrap;
 }
 
 /* Modal styles */
@@ -519,6 +492,9 @@
   margin-top: 16px;
 }
 
+.profile-review-modal-body { max-height: 65vh; overflow-y: auto; padding: 0 18px; }
+.profile-review-modal-actions { display: flex; justify-content: flex-end; gap: 10px; padding: 14px 18px; border-top: 1px solid #eeeae2; }
+
 .bio-profile-modal {
   max-width: 840px;
   width: 92vw;
@@ -548,7 +524,10 @@
 }
 
 @media (max-width: 640px) {
-  .bio-profile-modal {
+  .profile-review-modal-body { max-height: 65vh; overflow-y: auto; padding: 0 18px; }
+.profile-review-modal-actions { display: flex; justify-content: flex-end; gap: 10px; padding: 14px 18px; border-top: 1px solid #eeeae2; }
+
+.bio-profile-modal {
     width: 100vw;
     max-height: 100vh;
     border-radius: 0;
@@ -560,42 +539,5 @@
   .bio-stats {
     grid-template-columns: repeat(2, 1fr);
   }
-
-  .bio-table {
-    min-width: unset;
-    display: block;
-  }
-
-  .bio-row,
-  .bio-cell {
-    display: block;
-  }
-
-  .bio-header {
-    display: none;
-  }
-
-  .bio-row:not(.bio-header) {
-    padding: 14px 16px;
-    border-bottom: 1px solid var(--border-light);
-  }
-
-  .bio-cell {
-    padding: 6px 0;
-  }
-
-  .bio-cell-name {
-    padding-top: 0;
-  }
-
-  .bio-cell-action {
-    padding-bottom: 0;
-  }
 }
 
-/* 押金/处罚表格按钮 */
-.bio-cell-action .btn-sm {
-  padding: 4px 10px;
-  font-size: 12px;
-  white-space: nowrap;
-}

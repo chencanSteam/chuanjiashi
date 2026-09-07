@@ -26,7 +26,7 @@ export const registerAnnotations: PageAnnotations = {
       target: '注册提交',
       logic: `① 校验顺序：协议勾选 → 手机号格式 → 已获取验证码 → 验证码一致，任一不满足即拦截。
 ② 提交中按钮禁用并显示「注册中…」，防止重复提交。
-③ 调用 login(isRegister: true) 创建账号：自动标记为新用户（isNewUser）、分配角色并生成邀请码；成功 toast 后跳转 /onboarding 新手引导。`,
+③ 演示环境仅走流程：模拟延迟后提示「注册流程演示完成」，不创建/记录任何账号，跳转回登录页。`,
     },
     {
       id: 'register.back',

@@ -20,8 +20,6 @@ import {
   ChevronDown,
   Share2,
   User,
-  Bell as BellIcon,
-  Shield as ShieldIcon,
   Database,
   Sparkles,
   Wand2,
@@ -31,6 +29,7 @@ import {
   TicketPercent,
   Building2,
   Gem,
+  Handshake,
 } from 'lucide-react';
 import Avatar from './ui/Avatar';
 import { useAuth } from '../hooks/useAuth';
@@ -82,11 +81,10 @@ const lifeGroupItemsFull: NavItem[] = [
   { to: '/family-hall', icon: Landmark, label: 'AI家风馆' },
 ];
 
-// 「服务与商城」组（V1.0 包含传记书城、找传记师、传家商城、我的订单；「拼团活动」仅完整版）
+// 「服务与商城」组（V1.0 包含传记书城、找传记师、我的订单；「拼团活动」仅完整版）
 const servicesGroupItemsV1: NavItem[] = [
   { to: '/biography-shelf', icon: BookMarked, label: '传记书城' },
   { to: '/biographers', icon: UserCheck, label: '找传记师' },
-  { to: '/store', icon: ShoppingBag, label: '传家商城' },
   { to: '/my-orders', icon: ClipboardList, label: '我的订单' },
 ];
 
@@ -94,7 +92,6 @@ const servicesGroupItemsFull: NavItem[] = [
   { to: '/biography-shelf', icon: BookMarked, label: '传记书城' },
   { to: '/biographers', icon: UserCheck, label: '找传记师' },
   { to: '/group-buy', icon: TicketPercent, label: '拼团活动' },
-  { to: '/store', icon: ShoppingBag, label: '传家商城' },
   { to: '/my-orders', icon: ClipboardList, label: '我的订单' },
 ];
 
@@ -104,23 +101,20 @@ const digitalHumanGroupItemsFull: NavItem[] = [
   { to: '/digital-companion', icon: MessageCircleHeart, label: '数字陪伴' },
 ];
 
-// 「系统设置」组（V1.0 包含账户信息、通知设置、隐私与安全、帮助与反馈；邀请/AI额度/家庭成员/存储备份仅完整版）
+// 「系统设置」组（V1.0 包含账户信息、邀请有礼、合伙人；AI额度/家庭成员/存储备份仅完整版）
 const settingsGroupItemsV1: NavItem[] = [
   { to: '/settings/account', icon: User, label: '账户信息' },
-  { to: '/settings/notification', icon: BellIcon, label: '通知设置' },
-  { to: '/settings/privacy', icon: ShieldIcon, label: '隐私与安全' },
-  { to: '/settings/help', icon: HelpCircle, label: '帮助与反馈' },
+  { to: '/invite', icon: Share2, label: '邀请有礼' },
+  { to: '/my-partner', icon: Handshake, label: '合伙人' },
 ];
 
 const settingsGroupItemsFull: NavItem[] = [
   { to: '/settings/account', icon: User, label: '账户信息' },
-  { to: '/settings/invite', icon: Share2, label: '我的邀请' },
+  { to: '/invite', icon: Share2, label: '邀请有礼' },
+  { to: '/my-partner', icon: Handshake, label: '合伙人' },
   { to: '/settings/quota', icon: Sparkles, label: 'AI额度' },
-  { to: '/settings/notification', icon: BellIcon, label: '通知设置' },
-  { to: '/settings/privacy', icon: ShieldIcon, label: '隐私与安全' },
   { to: '/settings/family', icon: Users, label: '家庭成员' },
   { to: '/settings/storage', icon: Database, label: '存储与备份' },
-  { to: '/settings/help', icon: HelpCircle, label: '帮助与反馈' },
 ];
 
 function isGroupActive(group: NavGroup, pathname: string): boolean {

@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
+  ArrowLeft,
   ShieldCheck,
   UploadCloud,
   Wallet,
@@ -31,8 +33,9 @@ const specialtyOptions = [
   '纪念文集',
 ];
 
-export default function BiographerApply() {
+export default function BiographerApply({ standalone }: { standalone?: boolean } = {}) {
   const { addToast } = useToast();
+  const navigate = useNavigate();
   const [record, setRecord] = useState<BiographerApplicationInfo | null>(null);
   const [form, setForm] = useState({
     name: '',
@@ -165,6 +168,11 @@ export default function BiographerApply() {
     return (
       <div className="biographer-apply-page">
         <header className="page-header">
+          {standalone && (
+            <button className="btn btn-ghost" onClick={() => navigate('/home')}>
+              <ArrowLeft size={16} /> 返回首页
+            </button>
+          )}
           <h1 className="page-title">传记师入驻认证</h1>
           <p className="page-subtitle">认证通过后即可接单，为更多家庭记录人生故事</p>
         </header>
@@ -240,6 +248,11 @@ export default function BiographerApply() {
   return (
     <div className="biographer-apply-page">
       <header className="page-header">
+        {standalone && (
+          <button className="btn btn-ghost" onClick={() => navigate('/home')}>
+            <ArrowLeft size={16} /> 返回首页
+          </button>
+        )}
         <h1 className="page-title">传记师入驻认证</h1>
         <p className="page-subtitle">完成实名认证与资质审核，成为平台认证传记师</p>
       </header>

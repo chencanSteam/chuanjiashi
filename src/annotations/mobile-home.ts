@@ -36,7 +36,7 @@ export const mobileHomeAnnotations: PageAnnotations = {
     {
       id: 'mobile-home.goods',
       target: '传记服务',
-      logic: `① 三张服务卡为固定配置：传记实体书跳转传家商城（/store），传记编写跳转传记编写页（/biography），找传记师跳转传记师列表（/biographers）。
+      logic: `① 两张服务卡为固定配置：传记编写跳转采访页（/m/interview），找传记师跳转移动端首页（/m）。（传记实体书卡已随商城下线移除）
 ② 卡片只保留服务名称和简短说明，不展示区块介绍文案、查看全部和「去看看」按钮。`,
     },
   ],

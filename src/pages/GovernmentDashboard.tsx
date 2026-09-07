@@ -1,14 +1,7 @@
-import { ArrowLeft, FileCheck, Clock, AlertCircle, Smile } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Annotate from '../components/annotation/Annotate';
 import './GovernmentDashboard.css';
-
-const stats = [
-  { label: '已办结', value: 12, Icon: FileCheck, color: '#1B5E4B' },
-  { label: '办理中', value: 3, Icon: Clock, color: '#d97706' },
-  { label: '待补充', value: 1, Icon: AlertCircle, color: '#ef4444' },
-  { label: '满意度', value: '98%', Icon: Smile, color: '#4CA88E' },
-];
 
 const tasks = [
   { title: '亲属关系证明', status: '已办结', date: '2024-05-10' },
@@ -29,22 +22,6 @@ export default function GovernmentDashboard() {
         </Annotate>
         <h1 className="page-title">政务数据看板</h1>
       </header>
-
-      <Annotate id="government-dashboard.stats">
-      <div className="gov-stats">
-        {stats.map((s, i) => (
-          <div className="card gov-stat-card" key={i}>
-            <div className="card-body">
-              <div className="gov-stat-icon" style={{ color: s.color, background: `${s.color}14` }}>
-                <s.Icon size={22} />
-              </div>
-              <div className="gov-stat-value">{s.value}</div>
-              <div className="gov-stat-label">{s.label}</div>
-            </div>
-          </div>
-        ))}
-      </div>
-      </Annotate>
 
       <Annotate id="government-dashboard.tasks">
       <div className="card">

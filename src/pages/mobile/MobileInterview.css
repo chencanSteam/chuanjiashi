@@ -46,6 +46,77 @@
 }
 
 /* 主题选择（横向滑动） */
+.mobile-interview-review-topics,
+.mobile-interview-add-topic {
+  border: 1px solid rgba(184, 134, 11, .35);
+  border-radius: 8px;
+  background: #fffaf0;
+  color: #8a641c;
+  padding: 7px 10px;
+  font-size: 12px;
+}
+
+.mobile-interview-review-topics {
+  display: block;
+  margin: 8px 0 0;
+}
+
+.mobile-interview-proposals {
+  display: grid;
+  gap: 5px;
+  margin: 8px 0;
+  padding: 9px 10px;
+  border-radius: 8px;
+  background: #f7f5ef;
+  color: #68635b;
+  font-size: 12px;
+}
+
+.mobile-interview-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(25, 30, 28, .45);
+}
+
+.mobile-interview-topic-review {
+  width: min(100%, 420px);
+  max-height: 85vh;
+  overflow: auto;
+  padding: 16px;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.mobile-interview-topic-review-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.mobile-interview-topic-review-head button {
+  border: 0;
+  background: transparent;
+  color: #888;
+  font-size: 22px;
+}
+
+.mobile-interview-topic-proposal {
+  padding: 12px 0;
+  border-top: 1px solid #eeeae2;
+}
+
+.mobile-interview-topic-proposal > * { max-width: 100%; }
+.mobile-interview-topic-proposal small { display: block; margin-top: 4px; color: #888; }
+.mobile-interview-topic-proposal p { color: #666; font-size: 12px; line-height: 1.6; }
+.mobile-interview-topic-proposal ol { padding-left: 20px; color: #555; font-size: 12px; line-height: 1.6; }
+.mobile-interview-topic-proposal input { width: 100%; box-sizing: border-box; margin: 8px 0; padding: 8px; border: 1px solid #ddd; border-radius: 7px; }
+.mobile-interview-topic-proposal > div { display: flex; gap: 8px; }
+
 .mobile-interview-topics {
   display: flex;
   gap: 8px;
@@ -55,6 +126,18 @@
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   flex-shrink: 0;
+}
+
+/* 标注模式下 Annotate 包裹层会把主题行/输入栏撑高，这里压回去 */
+.mobile-interview .annotate-wrap:has(> .mobile-interview-topics),
+.mobile-interview .annotate-wrap:has(> .mobile-interview-inputbar) {
+  flex: 0 0 auto;
+  align-self: auto;
+}
+
+.mobile-interview .annotate-wrap > .mobile-interview-topics,
+.mobile-interview .annotate-wrap > .mobile-interview-inputbar {
+  flex: 0 0 auto;
 }
 
 .mobile-interview-topics::-webkit-scrollbar {

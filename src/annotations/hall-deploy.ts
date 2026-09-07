@@ -23,9 +23,8 @@ export const hallDeployAnnotations: PageAnnotations = {
     },
     {
       id: 'hall-deploy.qrcode',
-      target: '二维码访问（含升级购买入口）',
-      logic: `① 二维码为图标占位，非真实生成；提示微信扫码访问家风馆。
-② 「购买永久二维码」为付费升级引导，跳转 /store?category=qrcode（衍生品商城），对应高清永久码、访问统计、铭牌授权等增值服务。`,
+      target: '二维码访问',
+      logic: `① 二维码为图标占位，非真实生成；提示微信扫码访问家风馆。（商城下线后，原「购买永久二维码」付费升级入口已移除）`,
     },
     {
       id: 'hall-deploy.poster',

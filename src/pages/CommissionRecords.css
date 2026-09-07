@@ -79,34 +79,6 @@
   color: var(--text-muted);
 }
 
-.commission-table {
-  display: table;
-  width: 100%;
-  min-width: 900px;
-}
-
-.commission-row {
-  display: table-row;
-}
-
-.commission-header-row {
-  background: var(--bg-secondary);
-  font-weight: 500;
-  color: var(--text-secondary);
-  font-size: 13px;
-}
-
-.commission-row:not(.commission-header-row) {
-  border-bottom: 1px solid var(--border-light);
-}
-
-.commission-cell {
-  display: table-cell;
-  padding: 12px 14px;
-  vertical-align: middle;
-  font-size: 13px;
-}
-
 .commission-money {
   color: #1B5E4B;
   font-weight: 600;
@@ -176,19 +148,5 @@
 @media (max-width: 960px) {
   .commission-stats {
     grid-template-columns: 1fr;
-  }
-
-  .commission-table {
-    min-width: unset;
-    display: block;
-  }
-
-  .commission-row,
-  .commission-cell {
-    display: block;
-  }
-
-  .commission-header-row {
-    display: none;
   }
 }

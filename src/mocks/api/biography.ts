@@ -34,14 +34,14 @@ function getInterviewAnswers(archiveId: string): string {
 }
 
 const defaultChapterTitles = [
-  '前言',
-  '童年记忆',
-  '求学岁月',
-  '工作经历',
-  '创业之路',
-  '家庭生活',
-  '人生感悟',
-  '后记',
+  '故里童年 · 初心萌芽',
+  '求学成长 · 岁月积淀',
+  '择业入行 · 缘起初心',
+  '深耕岁月 · 历练成长',
+  '风雨磨砺 · 破局成长',
+  '行业感悟 · 职业修为',
+  '家风人生 · 温情生活',
+  '人生回望 · 未来愿景',
 ]
 
 function generateChapterContent(title: string, name: string, answers: string, style: string, wordCount: string): string {
