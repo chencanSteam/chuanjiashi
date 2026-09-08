@@ -50,7 +50,7 @@ const biographyProcess = [
   { label: '多维增补', path: '/archive-enrichment' },
   { label: '提纲确认', path: '/biography/outline' },
   { label: '智能访谈', path: '/interview' },
-  { label: '单篇精修', path: '/polish' },
+  { label: '单篇精修', path: '/biography' },
   { label: '全书合成', path: '/biography' },
   { label: '审稿校对', path: '/biography' },
   { label: '终稿传世', path: '/my-works' },
