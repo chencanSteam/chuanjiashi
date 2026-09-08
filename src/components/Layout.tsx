@@ -57,8 +57,8 @@ const homeNavItem: NavItem = { to: '/home', icon: LayoutDashboard, label: '首�
 const creationGroupItemsV1: NavItem[] = [
   { to: '/biography/outline', icon: ClipboardList, label: '生成传记提纲' },
   { to: '/interview', icon: Mic, label: 'AI智能采访' },
+  { to: '/biography', icon: BookOpen, label: 'AI传记生成' },
   { to: '/polish', icon: Wand2, label: '已有传记上传' },
-  { to: '/biography', icon: BookOpen, label: '章节生成' },
   { to: '/my-works', icon: BookMarked, label: '我的传记' },
 ];
 
