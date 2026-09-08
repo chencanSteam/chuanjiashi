@@ -315,7 +315,7 @@ export default function BiographerManagement() {
                       <button className="admin-table-link" onClick={() => setSelectedProfileReview(item)}>主页审核</button>
                     )}
                     <button className="admin-table-link" onClick={() => openEdit(item)}>编辑</button>
-                    {item.status !== 'suspended' && <button className="admin-table-link danger" onClick={() => setShowDelete(item)}>停用</button>}
+                    {item.status !== 'inactive' && <button className="admin-table-link danger" onClick={() => setShowDelete(item)}>停用</button>}
                   </td>
                 </tr>
                 );
