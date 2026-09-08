@@ -624,6 +624,7 @@ export interface PartnerCustomer {
   hasPaid: boolean
   totalOrderAmount: number
   createdAt: string
+  registeredAt?: string
 }
 
 // ========== 后台管理类型 ==========

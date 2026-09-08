@@ -47,6 +47,8 @@ const BiographyOutline = lazy(() => import('./pages/BiographyOutline'));
 const BiographyPolish = lazy(() => import('./pages/BiographyPolish'));
 const MyWorks = lazy(() => import('./pages/MyWorks'));
 const LifeArchive = lazy(() => import('./pages/LifeArchive'));
+const LifeEvents = lazy(() => import('./pages/LifeEvents'));
+const ArchiveEnrichment = lazy(() => import('./pages/ArchiveEnrichment'));
 const FamilySpace = lazy(() => import('./pages/FamilySpace'));
 const Genealogy = lazy(() => import('./pages/Genealogy'));
 const AIFamilyHall = lazy(() => import('./pages/AIFamilyHall'));
@@ -264,6 +266,10 @@ function App() {
                 <Route path="interview-review" element={<InterviewReview />} />
                 <Route path="biography" element={<AIBiography />} />
                 <Route path="biography/outline" element={<BiographyOutline />} />
+                <Route path="biography/edit" element={<Navigate to="/biography" replace />} />
+                <Route path="biography/draft" element={<Navigate to="/biography" replace />} />
+                <Route path="biography/review" element={<Navigate to="/biography" replace />} />
+                <Route path="biography/delivery" element={<Navigate to="/my-works" replace />} />
                 <Route path="polish" element={<BiographyPolish />} />
                 <Route path="biography/print" element={<BiographyPrint />} />
                 <Route path="my-works" element={<MyWorks />} />
@@ -279,6 +285,8 @@ function App() {
                 <Route path="order-success" element={<OrderSuccess />} />
                 <Route path="photo-restore" element={<V1Redirect><PhotoRestore /></V1Redirect>} />
                 <Route path="archive" element={<LifeArchive />} />
+                <Route path="life-events" element={<LifeEvents />} />
+                <Route path="archive-enrichment" element={<ArchiveEnrichment />} />
                 <Route path="family" element={<V1Redirect><FamilySpace /></V1Redirect>} />
                 <Route path="genealogy" element={<V1Redirect><Genealogy /></V1Redirect>} />
                 <Route path="family-hall" element={<V1Redirect><AIFamilyHall /></V1Redirect>} />

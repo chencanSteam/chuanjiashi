@@ -15,13 +15,7 @@ const STORAGE_KEY = 'cj_annotation_mode';
 
 /** 全局"逻辑标注模式"开关，状态持久化到 localStorage */
 export default function AnnotationProvider({ children }: { children: ReactNode }) {
-  const [enabled, setEnabled] = useState(() => {
-    try {
-      return localStorage.getItem(STORAGE_KEY) === '1';
-    } catch {
-      return false;
-    }
-  });
+  const [enabled, setEnabled] = useState(false);
 
   useEffect(() => {
     try {

@@ -163,10 +163,10 @@ export const partnerHandlers: HttpHandler[] = [
       .filter((c) => c.partnerId === partner.id)
     if (customers.length === 0) {
       const demoCustomers: PartnerCustomer[] = [
-        { id: generateId(), partnerId: partner.id, userId: 'u_cus_001', userName: '张先生', userPhone: '138****0001', bindType: 'invite_code', hasPaid: true, totalOrderAmount: 599, createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString() },
-        { id: generateId(), partnerId: partner.id, userId: 'u_cus_002', userName: '李女士', userPhone: '139****0002', bindType: 'invite_code', hasPaid: true, totalOrderAmount: 299, createdAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString() },
-        { id: generateId(), partnerId: partner.id, userId: 'u_cus_003', userName: '王先生', userPhone: '137****0003', bindType: 'manual', hasPaid: false, totalOrderAmount: 0, createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString() },
-        { id: generateId(), partnerId: partner.id, userId: 'u_cus_004', userName: '陈女士', userPhone: '136****0004', bindType: 'invite_code', hasPaid: true, totalOrderAmount: 999, createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString() },
+        { id: generateId(), partnerId: partner.id, userId: 'u_cus_001', userName: '张先生', userPhone: '138****0001', bindType: 'invite_code', hasPaid: true, totalOrderAmount: 599, createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(), registeredAt: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString() },
+        { id: generateId(), partnerId: partner.id, userId: 'u_cus_002', userName: '李女士', userPhone: '139****0002', bindType: 'invite_code', hasPaid: true, totalOrderAmount: 299, createdAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString(), registeredAt: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString() },
+        { id: generateId(), partnerId: partner.id, userId: 'u_cus_003', userName: '王先生', userPhone: '137****0003', bindType: 'manual', hasPaid: false, totalOrderAmount: 0, createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), registeredAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString() },
+        { id: generateId(), partnerId: partner.id, userId: 'u_cus_004', userName: '陈女士', userPhone: '136****0004', bindType: 'invite_code', hasPaid: true, totalOrderAmount: 999, createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), registeredAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString() },
       ]
       const allCustomers = getItem<PartnerCustomer[]>(storeKeys.partnerCustomers, [])
       allCustomers.push(...demoCustomers)

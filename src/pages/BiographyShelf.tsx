@@ -33,7 +33,6 @@ export default function BiographyShelf() {
   const [keyword, setKeyword] = useState('');
   const [activeIndustry, setActiveIndustry] = useState('');
   const [activeOccupation, setActiveOccupation] = useState('');
-  const [activeChapter, setActiveChapter] = useState('');
   const [sort, setSort] = useState('default');
   const [activeTab, setActiveTab] = useState<'all' | 'collected' | 'purchased'>('all');
   const [unlocking, setUnlocking] = useState(false);
@@ -76,9 +75,6 @@ export default function BiographyShelf() {
       const occupations = industryOccupations[activeIndustry] || [];
       list = list.filter((b) => (b.occupationTags || []).some((t) => occupations.includes(t)));
     }
-    if (activeChapter) {
-      list = list.filter((b) => (b.lifeStageTags || []).includes(activeChapter));
-    }
     if (keyword.trim()) {
       const q = keyword.trim().toLowerCase();
       list = list.filter(
@@ -97,9 +93,7 @@ export default function BiographyShelf() {
     if (sort === 'sales-high') list.sort((a, b) => sales(b) - sales(a));
     if (sort === 'sales-low') list.sort((a, b) => sales(a) - sales(b));
     return list;
-  }, [books, activeTab, activeIndustry, activeOccupation, activeChapter, keyword, sort]);
-
-  const chapterOptions = useMemo(() => Array.from(new Set(books.flatMap((b) => b.lifeStageTags || []))), [books]);
+  }, [books, activeTab, activeIndustry, activeOccupation, keyword, sort]);
 
   const handleCollect = async (bookId: string) => {
     if (!user) {
@@ -231,7 +225,7 @@ export default function BiographyShelf() {
         <div className="biography-shelf-content">
           <h2 className="biography-shelf-section-title">
             {canReadFull ? <Unlock size={16} /> : <Lock size={16} />}
-            {canReadFull ? '全本阅读' : book.trialWords ? `前 ${book.trialWords} 字 · 免费试读` : '第一章 · 免费试读'}
+            {canReadFull ? '全本阅读' : book.trialWords ? `前 ${book.trialWords} 字 · 免费试读` : '免费试读'}
           </h2>
           <div className="biography-shelf-reader">
             {readerText.split(/\n+/).map((p, i) => (
@@ -347,10 +341,6 @@ export default function BiographyShelf() {
             <option value={o} key={o}>{o}</option>
           ))}
         </select>
-        <select value={activeChapter} onChange={(e) => setActiveChapter(e.target.value)}>
-          <option value="">全部章节</option>
-          {chapterOptions.map((chapter) => <option value={chapter} key={chapter}>{chapter}</option>)}
-        </select>
         <select value={sort} onChange={(e) => setSort(e.target.value)} aria-label="排序方式">
           <option value="default">综合排序</option>
           <option value="newest">上架时间：最新</option>
@@ -435,9 +425,6 @@ export default function BiographyShelf() {
               <div className="biography-shelf-card-body">
                 <div className="biography-shelf-card-tags">
                   <span className="biography-shelf-card-category">{b.category || '其他'}</span>
-                  {b.lifeStageTags?.map((tag) => (
-                    <span className="biography-shelf-card-stage" key={tag}>{tag}</span>
-                  ))}
                 </div>
                 <h3 className="biography-shelf-card-title">{b.title}</h3>
                 <p className="biography-shelf-card-intro">{b.intro}</p>

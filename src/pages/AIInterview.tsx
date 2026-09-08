@@ -49,6 +49,8 @@ import {
   type InterviewTopicProposal,
 } from '../utils/interviewTopics';
 import { syncReviewEventToTimeline } from '../utils/eventSync';
+import { loadConfirmedOutline } from '../utils/biographyOutline';
+import { biographyChapterTitles } from '../data/aiMock';
 import Annotate from '../components/annotation/Annotate';
 import './AIInterview.css';
 
@@ -147,11 +149,38 @@ export default function AIInterview() {
 
   // 每个回答者独立抽题与进度：AI 按各自对话生成问题，创建者与协助者的问题互不相同
   const respondentSuffix = myCollaborator ? `_${myCollaborator.id}` : '';
+  const confirmedOutline = useMemo(() => loadConfirmedOutline(archiveId), [archiveId]);
+  const chapterOptions = confirmedOutline?.chapters.length
+    ? confirmedOutline.chapters
+    : biographyChapterTitles.map((title) => ({ id: `legacy_${title}`, title }));
+  const [activeChapterId] = useState(() => {
+    const requested = new URLSearchParams(window.location.search).get('chapter');
+    return requested && chapterOptions.some((chapter) => chapter.id === requested)
+      ? requested
+      : chapterOptions[0]?.id || 'all';
+  });
+  const activeChapter = chapterOptions.find((chapter) => chapter.id === activeChapterId) || chapterOptions[0];
+  const interviewStorageId = `${archiveId}_${activeChapterId}`;
   const [topicRevision, setTopicRevision] = useState(0);
-  const interviewTopics = generateInterviewTopics(archive, archiveId);
+  const generatedTopics = generateInterviewTopics(archive, interviewStorageId);
+  const interviewTopics = activeChapter
+    ? [{
+        id: `chapter_topic_${activeChapterId}`,
+        title: activeChapter.title,
+        summary: '围绕本章节主题，采访并整理相关的人生经历、关键人物与真实细节。',
+        questions: generatedTopics
+          .flatMap((topic) => topic.questions)
+          .slice(0, 5)
+          .map((question, index) => ({
+            ...question,
+            id: `${interviewStorageId}_question_${index + 1}`,
+            text: question.text.replace(/这段经历|这个阶段|这段工作/g, activeChapter.title),
+          })),
+      }]
+    : generatedTopics;
   const topicProposals = useMemo<InterviewTopicProposal[]>(
-    () => loadTopicProposals(archiveId),
-    [archiveId, topicRevision]
+    () => loadTopicProposals(interviewStorageId),
+    [interviewStorageId, topicRevision]
   );
   const transcriptCountFor = (collaboratorId: string) => loadInterviewTranscript(archiveId, collaboratorId).length;
   const pendingTopicProposals = topicProposals.filter((proposal) => proposal.status === 'pending');
@@ -177,6 +206,11 @@ export default function AIInterview() {
     window.location.reload();
   };
 
+  const handleSwitchChapter = (id: string) => {
+    if (id === activeChapterId) return;
+    window.location.href = `/interview?chapter=${encodeURIComponent(id)}`;
+  };
+
   const [quota, setQuota] = useState<AIQuota | null>(null);
 
   useEffect(() => {
@@ -185,11 +219,11 @@ export default function AIInterview() {
     });
   }, []);
   const [answers, setAnswers] = useState<Record<string, string>>(() =>
-    loadJson<Record<string, string>>(`cj_interview_answers_${archiveId}`, {})
+    loadJson<Record<string, string>>(`cj_interview_answers_${interviewStorageId}`, {})
   );
   // 转写/进度/视频按回答者独立存储
-  const transcriptKey = `cj_interview_transcript_${archiveId}${respondentSuffix}`;
-  const sessionKey = `cj_interview_session_${archiveId}${respondentSuffix}`;
+  const transcriptKey = `cj_interview_transcript_${interviewStorageId}${respondentSuffix}`;
+  const sessionKey = `cj_interview_session_${interviewStorageId}${respondentSuffix}`;
   const [transcript, setTranscript] = useState<TranscriptLine[]>(() =>
     loadJson<TranscriptLine[]>(transcriptKey, [])
   );
@@ -209,7 +243,7 @@ export default function AIInterview() {
       const supps = loadSupplementAnswers(archiveId)[firstQuestion.id] || [];
       return supps.find((a) => a.respondentId === myCollaborator.id)?.text || '';
     }
-    return loadJson<Record<string, string>>(`cj_interview_answers_${archiveId}`, {})[firstQuestion.id] || firstQuestion.mockAnswer;
+    return loadJson<Record<string, string>>(`cj_interview_answers_${interviewStorageId}`, {})[firstQuestion.id] || firstQuestion.mockAnswer;
   });
   const [generatingFollowUp, setGeneratingFollowUp] = useState(false);
   const [recordingVoice, setRecordingVoice] = useState(false);
@@ -248,8 +282,8 @@ export default function AIInterview() {
   const currentQuestion = currentTopic?.questions[session.currentQuestionIndex];
 
   useEffect(() => {
-    if (isSubjectMode) saveJson(`cj_interview_answers_${archiveId}`, answers);
-  }, [answers, archiveId, isSubjectMode]);
+    if (isSubjectMode) saveJson(`cj_interview_answers_${interviewStorageId}`, answers);
+  }, [answers, interviewStorageId, isSubjectMode]);
 
   useEffect(() => {
     saveJson(transcriptKey, transcript);
@@ -258,6 +292,21 @@ export default function AIInterview() {
   useEffect(() => {
     saveJson(sessionKey, session);
   }, [session, sessionKey]);
+
+  useEffect(() => {
+    const key = `cj_interview_chapter_progress_${archiveId}`;
+    const progress = loadJson<Record<string, { answered: number; total: number; status: string }>>(key, {});
+    const total = interviewTopics.reduce((sum, topic) => sum + topic.questions.length, 0);
+    const answered = session.answeredIds.length;
+    saveJson(key, {
+      ...progress,
+      [activeChapterId]: {
+        answered,
+        total,
+        status: total > 0 && answered >= total ? 'completed' : answered > 0 ? 'inProgress' : 'notStarted',
+      },
+    });
+  }, [activeChapterId, archiveId, interviewTopics, session.answeredIds]);
 
   useEffect(() => {
     saveCollaborators(archiveId, collaborators);
@@ -526,9 +575,9 @@ export default function AIInterview() {
   // 删除主题（预设/标签/自定义均可删除，按档案记录，刷新后仍隐藏）
   const handleRemoveTopic = (topic: { id: string; title: string }) => {
     if (!window.confirm(`确定删除主题「${topic.title}」吗？该主题的问题与回答进度将一并隐藏。`)) return;
-    removeTopicForArchive(archiveId, topic.id);
+    removeTopicForArchive(interviewStorageId, topic.id);
     // 回到第一个主题并刷新其回答内容
-    const freshTopics = generateInterviewTopics(archive, archiveId);
+    const freshTopics = generateInterviewTopics(archive, interviewStorageId);
     const firstQ = freshTopics[0]?.questions[0];
     setSession((prev) => ({ ...prev, currentTopicIndex: 0, currentQuestionIndex: 0 }));
     setCurrentAnswer(firstQ ? (myCollaborator ? '' : answers[firstQ.id] || firstQ.mockAnswer) : '');
@@ -589,7 +638,7 @@ export default function AIInterview() {
       return;
     }
     if (myCollaborator) {
-      submitTopicProposal(archiveId, {
+      submitTopicProposal(interviewStorageId, {
         id: myCollaborator.id,
         name: myCollaborator.name,
         phone: collaboratorRecord?.phone,
@@ -597,7 +646,7 @@ export default function AIInterview() {
       }, { title, summary: customTopicSummary.trim() });
       addToast(`主题「${title}」已提交，待本人确认后进入正式采访`, 'success');
     } else {
-      saveCustomTopic(archiveId, { title, summary: customTopicSummary.trim() });
+      saveCustomTopic(interviewStorageId, { title, summary: customTopicSummary.trim() });
       addToast(`已添加自定义主题「${title}」`, 'success');
     }
     setCustomTopicTitle('');
@@ -711,7 +760,7 @@ export default function AIInterview() {
   };
 
   const handleReviewTopicProposal = (proposal: InterviewTopicProposal, decision: 'approved' | 'rejected') => {
-    reviewTopicProposal(archiveId, proposal.id, decision, { name: user?.name || subjectName, phone: user?.phone });
+    reviewTopicProposal(interviewStorageId, proposal.id, decision, { name: user?.name || subjectName, phone: user?.phone });
     setTopicRevision((v) => v + 1);
     addToast(decision === 'approved' ? `已通过主题「${proposal.topic.title}」` : `已拒绝主题「${proposal.topic.title}」`, 'success');
   };
@@ -737,6 +786,14 @@ export default function AIInterview() {
             </select>
           </div>
           </Annotate>
+          <div className="archive-switch-row header-switch">
+            <span className="respondent-label">当前章节</span>
+            <select value={activeChapterId} onChange={(e) => handleSwitchChapter(e.target.value)}>
+              {chapterOptions.map((chapter) => (
+                <option key={chapter.id} value={chapter.id}>{chapter.title}</option>
+              ))}
+            </select>
+          </div>
           {isSubjectMode && (
             <Annotate id="interview.end-interview" inline>
             <button className="btn btn-primary end-interview-btn" onClick={endInterview}>

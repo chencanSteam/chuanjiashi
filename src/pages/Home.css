@@ -481,6 +481,320 @@
 .home-hero-empty h2::after {
   display: none;
 }
+
+/* 首页生成流程与品牌主张 */
+.home-section-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.home-section-kicker {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.8px;
+}
+
+.home-section-heading h3,
+.home-promise-lead h3 {
+  margin: 0;
+  color: var(--primary-dark);
+  font-family: var(--font-family);
+  font-size: 24px;
+  line-height: 1.35;
+}
+
+.home-section-heading p {
+  margin: 8px 0 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.home-process-section,
+.home-promise-section,
+.home-biographer-section {
+  padding: 28px 30px;
+  background: #fff;
+  border: 1px solid #e8ecea;
+  border-radius: 18px;
+}
+
+.home-process-track {
+  display: flex;
+  align-items: flex-start;
+  margin-top: 28px;
+  overflow-x: auto;
+  padding-bottom: 5px;
+}
+
+.home-process-step {
+  position: relative;
+  display: flex;
+  flex: 1 0 105px;
+  flex-direction: column;
+  align-items: center;
+  gap: 9px;
+  min-width: 92px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-family: inherit;
+  text-align: center;
+}
+
+.home-process-step:hover .home-process-index {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: #fff;
+  transform: translateY(-2px);
+}
+
+.home-process-step:hover .home-process-label {
+  color: var(--primary);
+}
+
+.home-process-index {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--primary-200);
+  border-radius: 50%;
+  background: var(--primary-50);
+  color: var(--primary);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .5px;
+  transition: all .2s ease;
+}
+
+.home-process-label {
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.home-process-arrow {
+  position: absolute;
+  top: 10px;
+  right: -9px;
+  color: var(--accent);
+}
+
+.home-promise-section {
+  display: grid;
+  grid-template-columns: minmax(230px, .8fr) 1.4fr;
+  gap: 38px;
+  align-items: center;
+  background: linear-gradient(110deg, #f0f7f4, #fffdf8);
+}
+
+.home-promise-lead h3 {
+  max-width: 330px;
+  font-size: 21px;
+}
+
+.home-promise-list {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+
+.home-promise-item {
+  display: flex;
+  gap: 12px;
+  padding-left: 14px;
+  border-left: 1px solid var(--primary-200);
+}
+
+.home-promise-item > span {
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.home-promise-item strong {
+  display: block;
+  color: var(--primary-dark);
+  font-size: 14px;
+}
+
+.home-promise-item p {
+  margin: 5px 0 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.home-biographer-heading {
+  align-items: center;
+}
+
+.home-biographer-heading .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.home-biographer-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+  margin-top: 24px;
+}
+
+.home-biographer-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid #e8ecea;
+  border-radius: 14px;
+  background: #fff;
+  color: inherit;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  transition: all .22s ease;
+}
+
+.home-biographer-card:hover {
+  border-color: var(--primary-200);
+  box-shadow: 0 8px 20px rgba(45, 90, 74, .08);
+  transform: translateY(-2px);
+}
+
+.home-biographer-avatar {
+  flex-shrink: 0;
+}
+
+.home-biographer-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.home-biographer-name-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.home-biographer-name-row strong {
+  color: var(--primary-dark);
+  font-size: 16px;
+}
+
+.home-biographer-name-row span {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.home-biographer-title {
+  margin-top: 4px;
+  color: var(--accent);
+  font-size: 12px;
+}
+
+.home-biographer-copy p {
+  display: -webkit-box;
+  overflow: hidden;
+  margin: 8px 0 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.6;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.home-biographer-arrow {
+  flex-shrink: 0;
+  color: var(--border-medium);
+}
+
+.home-biographer-modal-profile {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.home-biographer-modal-profile h4 {
+  margin: 0;
+  color: var(--primary-dark);
+  font-size: 20px;
+}
+
+.home-biographer-modal-profile p {
+  margin: 6px 0 0;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.home-biographer-modal-intro {
+  margin: 22px 0 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+.home-biographer-modal-meta,
+.home-biographer-modal-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin-top: 18px;
+}
+
+.home-biographer-modal-meta span {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.home-biographer-modal-tags span {
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: var(--primary-50);
+  color: var(--primary);
+  font-size: 12px;
+}
+
+@media (max-width: 1100px) {
+  .home-promise-section {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+}
+
+@media (max-width: 720px) {
+  .home-process-section,
+  .home-promise-section,
+  .home-biographer-section {
+    padding: 22px 18px;
+  }
+
+  .home-section-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .home-promise-list,
+  .home-biographer-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .home-biographer-heading {
+    gap: 16px;
+  }
+}
+
 /* AI使用概览 */
 .ai-usage-section {
   display: grid;
@@ -775,8 +1089,7 @@
 }
 
 /* 热门传记推荐 */
-.home-hot-books,
-.home-cases {
+.home-hot-books {
   background: #fff;
   border: 1px solid #e8ecea;
   border-radius: 16px;
@@ -784,7 +1097,6 @@
 }
 
 .home-hot-books .surface-header h3,
-.home-cases .surface-header h3,
 .home-collab .surface-header h3 {
   display: inline-flex;
   align-items: center;
@@ -880,18 +1192,6 @@
   text-align: center;
   font-size: 13px;
   color: var(--text-muted);
-}
-
-/* 平台案例展示 */
-.home-cases-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  padding: 20px 24px;
-}
-
-.home-cases-grid .service-card {
-  border: 1px solid #e8ecea;
 }
 
 /* 采访档案选择弹窗 */

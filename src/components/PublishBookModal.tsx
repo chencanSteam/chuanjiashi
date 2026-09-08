@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { X, BookOpen, DollarSign, FileText, Image, User } from 'lucide-react';
+import { X, BookOpen, DollarSign, FileText, Image, User, Briefcase } from 'lucide-react';
 import { bookshelfApi } from '../api/bookshelf';
 import { useToast } from '../hooks/useToast';
 import { useAuth } from '../hooks/useAuth';
+import { industryOccupations, industryOptions } from '../data/occupations';
 import type { PublicBook } from '../mocks/types';
 import './PublishBookModal.css';
 
@@ -20,6 +21,13 @@ interface PublishBookModalProps {
   onPublished?: () => void;
 }
 
+function findIndustryForOccupation(occupation?: string): string {
+  if (!occupation) return '';
+  return industryOptions.find((industry) =>
+    industryOccupations[industry].some((item) => occupation === item || occupation.includes(item))
+  ) || '';
+}
+
 export default function PublishBookModal({ archive, onClose, onPublished }: PublishBookModalProps) {
   const { addToast } = useToast();
   const { user } = useAuth();
@@ -28,12 +36,18 @@ export default function PublishBookModal({ archive, onClose, onPublished }: Publ
   const [form, setForm] = useState({
     title: `${archive.name}的传记`,
     author: user?.name || '本人/家属整理',
+    industry: findIndustryForOccupation(archive.occupation),
+    occupation: archive.occupation || '',
     intro: '',
     cover: '',
     isFree: true,
     price: '',
     trialWords: 1000,
   });
+  const occupations = industryOccupations[form.industry] || [];
+  const occupationSelectOptions = form.occupation && !occupations.includes(form.occupation)
+    ? [form.occupation, ...occupations]
+    : occupations;
 
   useEffect(() => {
     setLoading(true);
@@ -46,6 +60,8 @@ export default function PublishBookModal({ archive, onClose, onPublished }: Publ
           setForm({
             title: found.title,
             author: found.author,
+            industry: findIndustryForOccupation(found.occupationTags?.[0] || archive.occupation),
+            occupation: found.occupationTags?.[0] || archive.occupation || '',
             intro: found.intro,
             cover: found.cover || '',
             isFree: found.isFree,
@@ -80,6 +96,14 @@ export default function PublishBookModal({ archive, onClose, onPublished }: Publ
       addToast('请填写简介', 'error');
       return;
     }
+    if (!form.industry) {
+      addToast('请选择行业', 'error');
+      return;
+    }
+    if (!form.occupation) {
+      addToast('请选择职业', 'error');
+      return;
+    }
     if (!form.isFree) {
       const priceNum = parseFloat(form.price);
       if (isNaN(priceNum) || priceNum < 0) {
@@ -97,6 +121,7 @@ export default function PublishBookModal({ archive, onClose, onPublished }: Publ
         intro: form.intro,
         cover: form.cover || undefined,
         category: '其他',
+        occupationTags: [form.occupation],
         isFree: form.isFree,
         price: form.isFree ? 0 : parseFloat(form.price),
         trialWords: form.trialWords,
@@ -156,6 +181,33 @@ export default function PublishBookModal({ archive, onClose, onPublished }: Publ
                   onChange={(e) => setForm((prev) => ({ ...prev, author: e.target.value }))}
                   placeholder="作者署名"
                 />
+              </div>
+
+              <div className="form-row">
+                <label><Briefcase size={14} /> 行业</label>
+                <select
+                  value={form.industry}
+                  onChange={(e) => setForm((prev) => ({ ...prev, industry: e.target.value, occupation: '' }))}
+                >
+                  <option value="">请选择行业</option>
+                  {industryOptions.map((industry) => (
+                    <option value={industry} key={industry}>{industry}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-row">
+                <label><User size={14} /> 职业</label>
+                <select
+                  value={form.occupation}
+                  onChange={(e) => setForm((prev) => ({ ...prev, occupation: e.target.value }))}
+                  disabled={!form.industry}
+                >
+                  <option value="">{form.industry ? '请选择职业' : '请先选择行业'}</option>
+                  {occupationSelectOptions.map((occupation) => (
+                    <option value={occupation} key={occupation}>{occupation}</option>
+                  ))}
+                </select>
               </div>
 
               <div className="form-row">

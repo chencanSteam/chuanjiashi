@@ -501,6 +501,9 @@ export default function AIBiography() {
   }, [versions, archiveId]);
 
   const generatedCount = chapters.filter((c) => c.status !== 'notGenerated').length;
+  const allChaptersCompleted = chapters.length > 0 && chapters.every(
+    (chapter) => chapter.status !== 'notGenerated' && chapter.content.trim()
+  );
 
   const statusBadge = (status: ChapterData['status']) => {
     if (status === 'generated') return <span className="chapter-status generated"><CheckCircle2 size={12} /> 已生成</span>;
@@ -596,7 +599,6 @@ export default function AIBiography() {
     addToast(`以「${styleLabel}」文风生成`, 'info');
 
     try {
-      const isFirstGenerate = chapters.every((c) => c.status === 'notGenerated');
       if (confirmedOutline) {
         // 大纲模式：按已确认的章节结构与关联素材组装正文，不走 mock 接口
         const events = loadTimelineEvents(archiveId);
@@ -606,49 +608,26 @@ export default function AIBiography() {
           return oc ? composeOutlineChapterContent(subjectName, oc, events) : '';
         };
         await new Promise((r) => setTimeout(r, 800));
-        if (isFirstGenerate) {
-          setChapters(
-            chapters.map((c) => ({
-              ...c,
-              content: buildContent(c.title),
-              status: 'generated' as const,
-              updatedAt: now,
-            }))
-          );
-          addToast(`已按大纲 v${confirmedOutline.version} 生成全部章节（${styleLabel}）`, 'success');
-        } else {
-          updateChapter(activeIndex, {
-            status: 'generated',
-            content: buildContent(activeChapter.title),
-            updatedAt: now,
-          });
-          addToast(`「${activeChapter.title}」已按大纲 v${confirmedOutline.version} 与${styleLabel}文风重新生成`, 'success');
-        }
+        updateChapter(activeIndex, {
+          status: 'generated',
+          content: buildContent(activeChapter.title),
+          updatedAt: now,
+        });
+        addToast(`「${activeChapter.title}」已按大纲 v${confirmedOutline.version} 与${styleLabel}文风生成`, 'success');
         return;
       }
-      if (isFirstGenerate) {
-        const biography = await biographyApi.generate(archiveId, biographyStyle);
-        setChapters(
-          biography.chapters.map((ch) => ({
-            title: ch.title,
-            content: ch.content,
-            status: 'generated' as const,
-            materials: ch.images.length || 5,
-            updatedAt: new Date().toLocaleString('zh-CN'),
-          }))
-        );
-        addToast(`传记全部章节已生成（${styleLabel}）`, 'success');
-      } else {
-        const biography = await biographyApi.regenerateChapter(archiveId, activeChapter.title);
-        const regenerated = biography.chapters.find((c) => c.title === activeChapter.title);
-        if (regenerated) {
-          updateChapter(activeIndex, {
-            status: 'generated',
-            content: regenerated.content,
-            updatedAt: new Date().toLocaleString('zh-CN'),
-          });
-          addToast(`「${activeChapter.title}」已按${styleLabel}文风重新生成`, 'success');
-        }
+      const biography = activeChapter.status === 'notGenerated'
+        ? await biographyApi.generate(archiveId, biographyStyle)
+        : await biographyApi.regenerateChapter(archiveId, activeChapter.title);
+      const generated = biography.chapters.find((ch) => ch.title === activeChapter.title) || biography.chapters[0];
+      if (generated) {
+        updateChapter(activeIndex, {
+          status: 'generated',
+          content: generated.content,
+          materials: generated.images.length || activeChapter.materials || 5,
+          updatedAt: new Date().toLocaleString('zh-CN'),
+        });
+        addToast(`「${activeChapter.title}」已按${styleLabel}文风生成`, 'success');
       }
     } catch (err: any) {
       addToast(err.message || '生成失败', 'error');
@@ -659,8 +638,7 @@ export default function AIBiography() {
 
   // 首次生成且材料不足时，先提示但不拦截
   const handleGenerate = () => {
-    const isFirstGenerate = chapters.every((c) => c.status === 'notGenerated');
-    if (isFirstGenerate && completionPercent < 40) {
+    if (activeChapter.status === 'notGenerated' && completionPercent < 40) {
       setShowLowMaterial(true);
       return;
     }
@@ -733,8 +711,8 @@ export default function AIBiography() {
       navigate('/biography/print');
       return;
     }
-    if (!chapters.some((chapter) => chapter.content.trim())) {
-      addToast('请先生成或填写传记内容', 'error');
+    if (!allChaptersCompleted) {
+      addToast(`请先完成全部章节（当前 ${generatedCount}/${chapters.length} 章）`, 'error');
       return;
     }
     // mock 定稿接口仅覆盖「在线生成」路径；大纲/导入等本地路径没有对应记录，
@@ -920,8 +898,8 @@ export default function AIBiography() {
           )}
           <Annotate id="biography.save-works" inline>
           {!collabMode && !isFinalized && (
-            <button className="btn btn-primary" onClick={() => setFinishOpen(true)}>
-              <BookOpen size={14} /> 完成传记
+            <button className="btn btn-primary" onClick={() => setFinishOpen(true)} disabled={!allChaptersCompleted} title={allChaptersCompleted ? '合成全书' : `请先完成全部章节（${generatedCount}/${chapters.length}）`}>
+              <BookOpen size={14} /> 合成全书
             </button>
           )}
           </Annotate>
@@ -985,8 +963,8 @@ export default function AIBiography() {
               </button>
             )}
           </div>
-          <div className="chapter-progress">
-            <div className="progress-text">完成度 {Math.round((generatedCount / chapters.length) * 100)}%</div>
+            <div className="chapter-progress">
+            <div className="progress-text">已完成 {generatedCount} / {chapters.length} 章</div>
             <div className="progress-bar"><div className="progress-fill" style={{ width: `${(generatedCount / chapters.length) * 100}%` }} /></div>
             {confirmedOutline && (
               <div className="progress-text">大纲 v{confirmedOutline.version} · 已确认</div>
@@ -1267,15 +1245,15 @@ export default function AIBiography() {
         </div>
       )}
 
-      <Modal open={finishOpen} title="确认完成传记" onClose={() => setFinishOpen(false)} footer={
+      <Modal open={finishOpen} title="确认合成全书" onClose={() => setFinishOpen(false)} footer={
         <div className="version-modal-actions">
           <button className="btn btn-outline" onClick={() => setFinishOpen(false)}>再检查一下</button>
-          <button className="btn btn-primary" onClick={saveToMyWorks}>完成传记</button>
+          <button className="btn btn-primary" onClick={saveToMyWorks}>合成全书</button>
         </div>
       }>
         <div className="version-save-form">
-          <p>完成后作品会进入“我的传记”的已完成状态，可查看、排版和制作实体书。</p>
-          <p>完成后将进入只读状态，不能继续编辑。如需修改，请重新创建一份传记草稿。</p>
+          <p>确认后将把全部已完成章节合成为一本完整传记，并进入“我的传记”。</p>
+          <p>合成后作品进入只读状态，可继续查看、排版和制作实体书。</p>
         </div>
       </Modal>
 

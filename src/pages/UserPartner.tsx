@@ -22,6 +22,12 @@ const withdrawalStatusLabels: Record<string, string> = {
   paid: '已打款',
 };
 
+const rewardUserNames: Record<string, string> = {
+  u_cus_001: '张先生',
+  u_cus_002: '李女士',
+  u_cus_004: '陈女士',
+};
+
 export default function UserPartner() {
   const { addToast } = useToast();
   const [partner, setPartner] = useState<Partner | null>(null);
@@ -123,19 +129,18 @@ export default function UserPartner() {
             <div className="admin-table-wrap">
               <table className="admin-table">
                 <thead>
-                  <tr><th>用户</th><th>手机号</th><th>绑定方式</th><th>累计消费</th><th>我的分成</th><th>绑定时间</th></tr>
+                  <tr><th>用户</th><th>手机号</th><th>累计消费</th><th>我的分成</th><th>注册时间</th></tr>
                 </thead>
                 <tbody>
                   {filteredCustomers.map((c) => (
                     <tr key={c.id}>
                       <td>{c.userName || c.userId}</td>
                       <td>{c.userPhone || '-'}</td>
-                      <td>{c.bindType === 'invite_code' ? '邀请码' : c.bindType === 'region_auto' ? '区域自动' : '手动绑定'}</td>
                       <td>{c.hasPaid ? `¥${c.totalOrderAmount.toFixed(2)}` : '暂无消费'}</td>
                       <td className="user-partner-commission">
                         {c.hasPaid ? `+¥${(Math.round(c.totalOrderAmount * rate * 100) / 100).toFixed(2)}` : '-'}
                       </td>
-                      <td>{new Date(c.createdAt).toLocaleDateString()}</td>
+                      <td>{new Date(c.registeredAt || c.createdAt).toLocaleDateString()}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -182,7 +187,7 @@ export default function UserPartner() {
                 <tbody>
                   {rewards.map((r) => (
                     <tr key={r.id}>
-                      <td>{r.fromUserPhone || r.fromUserId || '-'}</td>
+                      <td>{r.fromUserPhone || (r.fromUserId ? rewardUserNames[r.fromUserId] : '') || '未知用户'}</td>
                       <td>{r.orderId}</td>
                       <td>¥{r.amount.toFixed(2)}</td>
                       <td className="user-partner-commission">+¥{r.commission.toFixed(2)}</td>
@@ -204,6 +209,7 @@ export default function UserPartner() {
           <h3 className="card-title"><CreditCard size={16} /> 奖励提现</h3>
         </div>
         <div className="card-body">
+          <div className="user-partner-current-balance">当前余额：<strong>¥{availableBalance.toFixed(2)}</strong></div>
           <div className="user-partner-withdraw-input">
             <input
               type="number"

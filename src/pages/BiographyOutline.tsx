@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  ArrowLeft,
   BookOpen,
   CheckCircle2,
   ChevronDown,
@@ -152,9 +151,6 @@ export default function BiographyOutline() {
       <header className="page-header">
         <h1 className="page-title">传记大纲 · {archiveName}</h1>
         <div className="page-actions">
-          <button className="btn btn-outline" onClick={() => navigate('/biography')}>
-            <ArrowLeft size={14} /> 返回传记生成
-          </button>
           <Annotate id="biography-outline.rebuild" inline>
           <button className="btn btn-outline" onClick={rebuildDraft}>
             <RefreshCw size={14} /> AI 重新规划

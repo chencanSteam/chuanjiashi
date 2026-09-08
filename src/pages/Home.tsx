@@ -33,6 +33,7 @@ import { loadJson, type ChapterData } from '../data/aiMock';
 import { loadRecentActivities, type ActivityItem } from '../utils/activities';
 import { generateInterviewTopics } from '../utils/interviewTopics';
 import type { PublicBook } from '../mocks/types';
+import { defaultBiographers } from '../mocks/data/seed';
 import Annotate from '../components/annotation/Annotate';
 import './Home.css';
 
@@ -42,6 +43,29 @@ interface TodoItem {
   count: number;
   path: string;
 }
+
+const biographyProcess = [
+  { label: '信息建档', path: '/archive' },
+  { label: '大事梳理', path: '/life-events' },
+  { label: '多维增补', path: '/archive-enrichment' },
+  { label: '提纲确认', path: '/biography/outline' },
+  { label: '智能访谈', path: '/interview' },
+  { label: '单篇精修', path: '/polish' },
+  { label: '全书合成', path: '/biography' },
+  { label: '审稿校对', path: '/biography' },
+  { label: '终稿传世', path: '/my-works' },
+];
+
+const homePromises = [
+  { title: '素材采集', desc: '收录真实人生' },
+  { title: '框架搭建', desc: '梳理人生脉络' },
+  { title: '多维增补', desc: '还原时代人情' },
+  { title: '精修定稿', desc: '成就传世传记' },
+];
+
+const featuredBiographers = defaultBiographers
+  .filter((biographer) => biographer.status === 'approved' && biographer.intro)
+  .slice(0, 4);
 
 function hasArchives(): boolean {
   try {
@@ -256,35 +280,9 @@ export default function Home() {
       .catch(() => setHotBooks([]));
   }, []);
 
-  const platformCases = [
-    {
-      icon: BookOpen,
-      color: '#b8860b',
-      bg: 'rgba(184,134,11,0.1)',
-      title: '样例传记',
-      desc: '《父亲的创业之路》—— AI 采访生成的完整人物传记',
-      path: '/biography-shelf',
-    },
-    {
-      icon: Landmark,
-      color: '#7c3aed',
-      bg: 'rgba(124,58,237,0.1)',
-      title: '示例数字馆',
-      desc: '时间轴、相册、荣誉一站式呈现的人生数字博物馆',
-      path: '/museum',
-    },
-    {
-      icon: Cpu,
-      color: '#3b82f6',
-      bg: 'rgba(59,130,246,0.1)',
-      title: '数字人示例',
-      desc: '基于生平资料训练的数字人格，随时对话陪伴',
-      path: '/digital-person',
-    },
-  ];
-
   const [showBasicModal, setShowBasicModal] = useState(false);
   const [showArchivePicker, setShowArchivePicker] = useState(false);
+  const [selectedBiographer, setSelectedBiographer] = useState<(typeof featuredBiographers)[number] | null>(null);
 
   // 开始智能采访：① 已有采访记录 → 直接进采访页；② 无采访但有档案 → 弹窗选择档案；③ 无档案 → 新建档案后开始
   const handleStartInterview = () => {
@@ -370,8 +368,8 @@ export default function Home() {
       <Annotate id="home.start-interview">
       <section className="home-hero">
         <div className="hero-copy">
-          <h2>用 AI 记录人生故事，<br />传承家风温度</h2>
-          <p>AI数字人生 · 家庭记忆沉淀 · 家风传承 · 数字陪伴</p>
+          <h2>八维立体录岁月，<br />一人一书传家风</h2>
+          <p>从真实素材采集，到人生脉络梳理，陪你把一生写成一本传世传记。</p>
           <div className="hero-actions">
             <button className="btn btn-primary" onClick={handleStartInterview}><Mic size={16} /> 开始智能采访</button>
             <button className="btn btn-hero-secondary" onClick={() => navigate('/polish')}><Upload size={16} /> 已有传记上传</button>
@@ -483,6 +481,70 @@ export default function Home() {
         </div>
       </section>
       </Annotate>
+
+      <section className="home-process-section">
+        <div className="home-section-heading">
+          <div>
+            <h3>传记生成流程</h3>
+          </div>
+        </div>
+        <div className="home-process-track">
+          {biographyProcess.map((stage, index) => (
+            <button className="home-process-step" key={stage.label} type="button" onClick={() => navigate(stage.path)} title={`前往${stage.label}`}>
+              <div className="home-process-index">{String(index + 1).padStart(2, '0')}</div>
+              <div className="home-process-label">{stage.label}</div>
+              {index < biographyProcess.length - 1 && <ArrowRight className="home-process-arrow" size={16} />}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className="home-promise-section">
+        <div className="home-promise-lead">
+          <h3>把零散记忆，整理成可以传下去的家风。</h3>
+        </div>
+        <div className="home-promise-list">
+          {homePromises.map((promise, index) => (
+            <div className="home-promise-item" key={promise.title}>
+              <span>0{index + 1}</span>
+              <div>
+                <strong>{promise.title}</strong>
+                <p>{promise.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="home-biographer-section">
+        <div className="home-section-heading home-biographer-heading">
+          <div>
+            <h3>专业传记师，陪你把故事写深</h3>
+          </div>
+          <button className="btn btn-ghost" onClick={() => navigate('/biographers')}>查看全部传记师 <ChevronRight size={15} /></button>
+        </div>
+        <div className="home-biographer-grid">
+          {featuredBiographers.map((biographer) => (
+            <button
+              className="home-biographer-card"
+              key={biographer.id}
+              type="button"
+              onClick={() => setSelectedBiographer(biographer)}
+            >
+              <Avatar name={biographer.name} src={biographer.avatar} size={64} className="home-biographer-avatar" />
+              <div className="home-biographer-copy">
+                <div className="home-biographer-name-row">
+                  <strong>{biographer.name}</strong>
+                  <span>{biographer.city}</span>
+                </div>
+                <div className="home-biographer-title">{biographer.title || '传记师'}</div>
+                <p>{biographer.intro}</p>
+              </div>
+              <ChevronRight className="home-biographer-arrow" size={18} />
+            </button>
+          ))}
+        </div>
+      </section>
 
       {pendingInvites.length > 0 && (
         <Annotate id="home.collab-invites">
@@ -659,24 +721,6 @@ export default function Home() {
       </section>
       </Annotate>
 
-      <section className="home-cases">
-        <div className="surface-header">
-          <h3>平台案例展示</h3>
-        </div>
-        <div className="home-cases-grid">
-          {platformCases.filter((c) => !isV1 || c.path === '/biography-shelf').map((c) => (
-            <div className="service-card" key={c.title} onClick={() => navigate(c.path)}>
-              <div className="service-icon" style={{ background: c.bg, color: c.color }}><c.icon size={22} /></div>
-              <div className="service-info">
-                <h4>{c.title}</h4>
-                <p>{c.desc}</p>
-              </div>
-              <ArrowRight size={16} className="service-arrow" />
-            </div>
-          ))}
-        </div>
-      </section>
-
       <section className="workspace">
         <Annotate id="home.activities">
         <div className="surface activity-surface">
@@ -727,6 +771,39 @@ export default function Home() {
         </div>
         </Annotate>
       </section>
+
+      <Modal
+        open={Boolean(selectedBiographer)}
+        title={selectedBiographer ? `${selectedBiographer.name} · 传记师简介` : '传记师简介'}
+        onClose={() => setSelectedBiographer(null)}
+        footer={
+          <div className="basic-info-modal-footer">
+            <button className="btn btn-outline" onClick={() => setSelectedBiographer(null)}>关闭</button>
+            <button className="btn btn-primary" onClick={() => { setSelectedBiographer(null); navigate('/biographers'); }}>查看传记师详情</button>
+          </div>
+        }
+      >
+        {selectedBiographer && (
+          <div className="home-biographer-modal">
+            <div className="home-biographer-modal-profile">
+              <Avatar name={selectedBiographer.name} src={selectedBiographer.avatar} size={76} />
+              <div>
+                <h4>{selectedBiographer.name}</h4>
+                <p>{selectedBiographer.title || '传记师'} · {selectedBiographer.city}</p>
+              </div>
+            </div>
+            <p className="home-biographer-modal-intro">{selectedBiographer.intro}</p>
+            <div className="home-biographer-modal-meta">
+              <span>从业 {selectedBiographer.experience} 年</span>
+              <span>服务 {selectedBiographer.completedOrders || 0} 个家庭</span>
+              <span>评分 {selectedBiographer.rating.toFixed(1)}</span>
+            </div>
+            <div className="home-biographer-modal-tags">
+              {(selectedBiographer.specialties || []).map((specialty) => <span key={specialty}>{specialty}</span>)}
+            </div>
+          </div>
+        )}
+      </Modal>
 
       <Annotate id="home.basic-info-modal">
       <Modal

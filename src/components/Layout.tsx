@@ -35,7 +35,6 @@ import Avatar from './ui/Avatar';
 import { useAuth } from '../hooks/useAuth';
 import { useVersion } from '../hooks/useVersion';
 import GuideTour, { openGuide } from './GuideTour';
-import AnnotationToggle from './annotation/AnnotationToggle';
 import './Layout.css';
 
 interface NavItem {
@@ -56,9 +55,10 @@ const homeNavItem: NavItem = { to: '/home', icon: LayoutDashboard, label: '首�
 
 // 「传记创作」组（V1.0 包含 AI智能采访、已有传记上传、AI传记生成、我的传记；「数字资产」仅完整版）
 const creationGroupItemsV1: NavItem[] = [
+  { to: '/biography/outline', icon: ClipboardList, label: '生成传记提纲' },
   { to: '/interview', icon: Mic, label: 'AI智能采访' },
   { to: '/polish', icon: Wand2, label: '已有传记上传' },
-  { to: '/biography', icon: BookOpen, label: 'AI传记生成' },
+  { to: '/biography', icon: BookOpen, label: '章节生成' },
   { to: '/my-works', icon: BookMarked, label: '我的传记' },
 ];
 
@@ -70,6 +70,8 @@ const creationGroupItemsFull: NavItem[] = [
 // 「人生记录」组（V1.0 仅保留人生档案；完整版额外包含老照片修复、数字博物馆、家庭空间、数字家谱、AI家风馆）
 const lifeGroupItemsV1: NavItem[] = [
   { to: '/archive', icon: FolderOpen, label: '人生档案' },
+  { to: '/life-events', icon: ClipboardList, label: '人生大事件' },
+  { to: '/archive-enrichment', icon: Sparkles, label: '多维增补' },
 ];
 
 const lifeGroupItemsFull: NavItem[] = [
@@ -101,15 +103,13 @@ const digitalHumanGroupItemsFull: NavItem[] = [
   { to: '/digital-companion', icon: MessageCircleHeart, label: '数字陪伴' },
 ];
 
-// 「系统设置」组（V1.0 包含账户信息、邀请有礼、合伙人；AI额度/家庭成员/存储备份仅完整版）
+// 「系统设置」组（V1.0 包含邀请有礼、合伙人；AI额度/家庭成员/存储备份仅完整版）
 const settingsGroupItemsV1: NavItem[] = [
-  { to: '/settings/account', icon: User, label: '账户信息' },
   { to: '/invite', icon: Share2, label: '邀请有礼' },
   { to: '/my-partner', icon: Handshake, label: '合伙人' },
 ];
 
 const settingsGroupItemsFull: NavItem[] = [
-  { to: '/settings/account', icon: User, label: '账户信息' },
   { to: '/invite', icon: Share2, label: '邀请有礼' },
   { to: '/my-partner', icon: Handshake, label: '合伙人' },
   { to: '/settings/quota', icon: Sparkles, label: 'AI额度' },
@@ -119,6 +119,15 @@ const settingsGroupItemsFull: NavItem[] = [
 
 function isGroupActive(group: NavGroup, pathname: string): boolean {
   return group.items.some((item) => pathname.startsWith(item.to));
+}
+
+/** 同组内存在嵌套路由时，只高亮最长匹配项，避免父级菜单和当前子菜单同时选中。 */
+function isNavItemActive(item: NavItem, items: NavItem[], pathname: string): boolean {
+  const matchedItems = items.filter((candidate) =>
+    pathname === candidate.to || pathname.startsWith(`${candidate.to}/`)
+  );
+  const longestMatch = matchedItems.sort((a, b) => b.to.length - a.to.length)[0];
+  return longestMatch?.to === item.to;
 }
 
 interface NoticeItem {
@@ -143,15 +152,15 @@ function getNavGroups(isV1: boolean): NavGroup[] {
   // V1.0 版：传记创作、人生记录、服务与商城、系统设置（家庭空间 V1.2、数字家谱/AI家风馆 V2.0、数字人 V3.0 不开放）
   if (isV1) {
     return [
-      { key: 'creation', icon: BookOpen, label: '传记创作', items: creationGroupItemsV1 },
       { key: 'life', icon: FolderOpen, label: '人生记录', items: lifeGroupItemsV1 },
+      { key: 'creation', icon: BookOpen, label: '传记创作', items: creationGroupItemsV1 },
       { key: 'services', icon: ShoppingBag, label: '服务与商城', items: servicesGroupItemsV1 },
       { key: 'settings', icon: Settings, label: '系统设置', items: settingsGroupItemsV1 },
     ];
   }
   return [
-    { key: 'creation', icon: BookOpen, label: '传记创作', items: creationGroupItemsFull },
     { key: 'life', icon: FolderOpen, label: '人生记录', items: lifeGroupItemsFull },
+    { key: 'creation', icon: BookOpen, label: '传记创作', items: creationGroupItemsFull },
     { key: 'services', icon: ShoppingBag, label: '服务与商城', items: servicesGroupItemsFull },
     { key: 'digital-human', icon: UserCircle2, label: 'AI 数字人', items: digitalHumanGroupItemsFull },
     { key: 'settings', icon: Settings, label: '系统设置', items: settingsGroupItemsFull },
@@ -277,7 +286,7 @@ export default function Layout() {
                       <li className="nav-sub-item" key={item.to}>
                         <NavLink
                           to={item.to}
-                          className={({ isActive }) => `nav-sub-link ${isActive ? 'active' : ''}`}
+                          className={() => `nav-sub-link ${isNavItemActive(item, group.items, pathname) ? 'active' : ''}`}
                         >
                           <item.icon className="nav-icon" size={16} />
                           <span>{item.label}</span>
@@ -359,7 +368,6 @@ export default function Layout() {
         </main>
       </div>
       <GuideTour />
-      <AnnotationToggle />
     </div>
   );
 }
