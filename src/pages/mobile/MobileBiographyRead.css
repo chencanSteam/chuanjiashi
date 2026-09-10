@@ -1,0 +1,247 @@
+.mobile-biography-read {
+  padding-bottom: 34px;
+  background: #f6f1e7;
+}
+
+.mobile-read-bar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: rgba(255, 253, 248, .96);
+  backdrop-filter: blur(8px);
+}
+
+.mobile-read-bar button:last-child {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  color: #8e7047;
+  padding: 3px;
+}
+
+.mobile-read-cover {
+  margin: 16px 0 12px;
+  padding: 30px 20px 25px;
+  border: 1px solid #dfcbaa;
+  border-radius: 17px;
+  background: linear-gradient(145deg, #fffdf8, #eee0c6);
+  box-shadow: 0 7px 18px rgba(90, 70, 40, .09);
+  text-align: center;
+}
+
+.mobile-read-book-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 62px;
+  height: 62px;
+  margin: 0 auto 18px;
+  border-radius: 11px 16px 16px 11px;
+  background: #8e7047;
+  color: #fff9ed;
+  box-shadow: 5px 5px 0 #d6bd91;
+}
+
+.mobile-read-cover-title {
+  color: #4c3923;
+  font-family: 'Songti SC', 'STSong', 'SimSun', serif;
+  font-size: 25px;
+  font-weight: 600;
+  letter-spacing: 2px;
+}
+
+.mobile-read-cover p {
+  margin: 9px 0 16px;
+  color: #8d7a63;
+  font-size: 12px;
+}
+
+.mobile-read-cover-meta {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  color: #8e7047;
+  font-size: 11px;
+}
+
+.mobile-read-cover-meta span {
+  padding: 5px 9px;
+  border-radius: 12px;
+  background: rgba(255, 253, 248, .76);
+}
+
+.mobile-read-intro,
+.mobile-read-toc {
+  margin-bottom: 12px;
+  padding: 14px;
+  border: 1px solid #eadfce;
+  border-radius: 14px;
+  background: #fffdf8;
+}
+
+.mobile-read-intro {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+}
+
+.mobile-read-intro-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  border-radius: 9px;
+  background: #f1e6d3;
+  color: #8e7047;
+}
+
+.mobile-read-intro strong {
+  display: block;
+  margin-top: 2px;
+  color: #4c3923;
+  font-size: 13px;
+}
+
+.mobile-read-intro p {
+  margin: 5px 0 0;
+  color: #8d7a63;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.mobile-read-section-title,
+.mobile-read-progress-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mobile-read-section-title {
+  padding-bottom: 10px;
+  border-bottom: 1px solid #f0e7d9;
+  color: #4c3923;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.mobile-read-section-title span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.mobile-read-section-title small,
+.mobile-read-progress-label {
+  color: #a18b70;
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.mobile-read-toc-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.mobile-read-toc-list button {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 11px 0;
+  border: 0;
+  border-bottom: 1px solid #f4ecdf;
+  background: transparent;
+  color: #625343;
+  font-size: 12px;
+  text-align: left;
+}
+
+.mobile-read-toc-list button:last-child {
+  border-bottom: 0;
+  padding-bottom: 1px;
+}
+
+.mobile-read-toc-list button svg {
+  margin-left: auto;
+  color: #bea47d;
+}
+
+.mobile-read-toc-index {
+  color: #b8860b;
+  font-family: Georgia, serif;
+  font-size: 12px;
+}
+
+.mobile-read-progress {
+  height: 4px;
+  margin: 16px 2px 7px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: #e5d8c1;
+}
+
+.mobile-read-progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #8e7047;
+}
+
+.mobile-read-progress-label {
+  margin: 0 2px 12px;
+}
+
+.mobile-read-progress-label strong {
+  color: #8e7047;
+  font-weight: 600;
+}
+
+.mobile-read-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mobile-biography-chapter {
+  scroll-margin-top: 58px;
+  padding: 18px 16px 20px;
+  border: 1px solid #eadfce;
+  border-radius: 14px;
+  background: #fffdf8;
+  box-shadow: 0 2px 7px rgba(90, 70, 40, .04);
+}
+
+.mobile-read-chapter-kicker {
+  margin-bottom: 6px;
+  color: #b8860b;
+  font-family: Georgia, serif;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+}
+
+.mobile-biography-chapter h2 {
+  margin: 0 0 13px;
+  color: #4c3923;
+  font-family: 'Songti SC', 'STSong', 'SimSun', serif;
+  font-size: 18px;
+  line-height: 1.4;
+}
+
+.mobile-read-chapter-text {
+  color: #5e5042;
+  font-size: 14px;
+  line-height: 1.95;
+}
+
+.mobile-read-chapter-text p {
+  margin: 0 0 12px;
+  text-indent: 2em;
+}
+
+.mobile-read-chapter-text p:last-child {
+  margin-bottom: 0;
+}

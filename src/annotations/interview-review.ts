@@ -11,7 +11,7 @@ export const interviewReviewAnnotations: PageAnnotations = {
   items: [
     {
       id: 'interview-review.generate-btn',
-      target: '「去生成传记」按钮',
+      target: '「去生成初稿」按钮',
       logic: `① 页头与右侧栏底部各有一个入口，均直接跳转 /biography（AI传记生成）。
 ② 不强制要求事件全部确认；已确认事件已同步进人生档案时间轴，生成页按已确认大纲或默认章节结构生成。`,
     },

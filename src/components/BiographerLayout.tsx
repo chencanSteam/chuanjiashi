@@ -8,12 +8,12 @@ import {
   UserCircle,
   LogOut,
   ChevronDown,
-  BadgeCheck,
   Wallet,
   BookOpen,
 } from 'lucide-react';
 import Avatar from './ui/Avatar';
 import { useAuth } from '../hooks/useAuth';
+import { useVersion } from '../hooks/useVersion';
 import AnnotationToggle from './annotation/AnnotationToggle';
 import './Layout.css';
 
@@ -28,16 +28,18 @@ const biographerNavItems: NavItem[] = [
   { to: '/biographer/orders', icon: ClipboardList, label: '我的订单' },
   { to: '/biographer/works', icon: BookOpen, label: '传记修改' },
   { to: '/biographer/earnings', icon: Wallet, label: '结算提现' },
-  { to: '/biographer/apply', icon: BadgeCheck, label: '入驻认证' },
   { to: '/biographer/profile', icon: UserCircle, label: '我的介绍页' },
 ];
 
 export default function BiographerLayout() {
   const { user, logout } = useAuth();
+  const { isV1 } = useVersion();
   const navigate = useNavigate();
   const location = useLocation();
   const displayName = user?.name || user?.phone || '传记师';
   const [showUserMenu, setShowUserMenu] = useState(false);
+  // V1.0 不开放「工作台」
+  const navItems = isV1 ? biographerNavItems.filter((item) => item.to !== '/biographer') : biographerNavItems;
 
   useEffect(() => {
     setShowUserMenu(false);
@@ -63,7 +65,7 @@ export default function BiographerLayout() {
 
         <nav className="nav">
           <ul className="nav-list">
-            {biographerNavItems.map((item) => (
+            {navItems.map((item) => (
               <li className="nav-item" key={item.to}>
                 <NavLink
                   to={item.to}

@@ -27,11 +27,14 @@ function ensureBiographers(): Biographer[] {
   const existingIds = new Set(stored.map((b) => b.id))
   const missingSeeds = defaultBiographers
     .filter((seed) => !existingIds.has(seed.id))
-    .map((seed) => ({
-      ...seed,
-      profileReviewStatus: seed.profileReviewStatus || (seed.publishedProfile ? 'approved' : 'unsubmitted'),
-      publishedProfile: seed.publishedProfile || (seed.status === 'approved' ? profileSnapshot(seed) : undefined),
-    }))
+    .map((seed) => {
+      const publishedProfile = seed.publishedProfile || (seed.status === 'approved' ? profileSnapshot(seed) : undefined)
+      return {
+        ...seed,
+        profileReviewStatus: seed.profileReviewStatus || (publishedProfile ? 'approved' : 'unsubmitted'),
+        publishedProfile,
+      }
+    })
   let changed = missingSeeds.length > 0
   const merged = stored.map((b) => {
     const seed = defaultBiographers.find((d) => d.id === b.id)
@@ -52,7 +55,10 @@ function ensureBiographers(): Biographer[] {
       certificates: b.certificates?.length ? b.certificates : seed.certificates,
     }
     const publishedProfile = b.publishedProfile || (b.status === 'approved' ? profileSnapshot({ ...b, ...mergedFields }) : undefined)
-    const profileReviewStatus = b.profileReviewStatus || (publishedProfile ? 'approved' : 'unsubmitted')
+    // 兼容旧数据：已生成线上主页但状态停留在 unsubmitted 的，自动视为已通过
+    const profileReviewStatus: Biographer['profileReviewStatus'] = b.profileReviewStatus && b.profileReviewStatus !== 'unsubmitted'
+      ? b.profileReviewStatus
+      : (publishedProfile ? 'approved' : 'unsubmitted')
     if (completedOrders !== b.completedOrders || publishedProfile !== b.publishedProfile || profileReviewStatus !== b.profileReviewStatus
       || Object.entries(mergedFields).some(([key, value]) => value !== b[key as keyof Biographer])) {
       changed = true
@@ -140,8 +146,9 @@ export const biographerHandlers: HttpHandler[] = [
   http.get('/api/biographers', async ({ request }) => {
     const url = new URL(request.url)
     const city = url.searchParams.get('city') || ''
-    let list = ensureBiographers().filter((b) => b.status === 'approved' && b.profileReviewStatus === 'approved' && b.publishedProfile)
-    list = list.map((b) => ({ ...b, ...b.publishedProfile, id: b.id, userId: b.userId, status: b.status }))
+    // 原型演示：不做审核状态过滤，凡是在册的传记师都可见可点开
+    let list = ensureBiographers()
+    list = list.map((b) => ({ ...b, ...(b.publishedProfile || profileSnapshot(b)), id: b.id, userId: b.userId, status: b.status }))
     if (city) list = list.filter((b) => b.city.includes(city))
     return success(list)
   }),
@@ -164,8 +171,8 @@ export const biographerHandlers: HttpHandler[] = [
   http.get('/api/biographers/:id', async ({ params }) => {
     const list = ensureBiographers()
     const item = list.find((b) => b.id === params.id)
-    if (!item || item.status !== 'approved' || item.profileReviewStatus !== 'approved' || !item.publishedProfile) return notFound('传记师主页暂未开放')
-    return success({ ...item, ...item.publishedProfile, id: item.id, userId: item.userId, status: item.status })
+    if (!item) return notFound('传记师不存在')
+    return success({ ...item, ...(item.publishedProfile || profileSnapshot(item)), id: item.id, userId: item.userId, status: item.status })
   }),
 
   http.get('/api/biographers/:id/reviews', async ({ params }) => {
@@ -529,13 +536,24 @@ export const biographerHandlers: HttpHandler[] = [
       },
     ]
     const allOrders = getItem<BiographerOrder[]>(storeKeys.biographerOrders, [])
-    // 清掉旧流程（含定金/尾款节点）的演示订单
+    // 清掉需要替换的演示订单：旧流程（含定金/尾款节点）或归属其他传记师的历史残留
     const cleaned = allOrders.filter(
-      (o) => !(String(o.orderId || '').startsWith('ord_demo_') && o.progress.some((p) => p.node === '支付定金' || p.node === '支付尾款'))
+      (o) => !(String(o.orderId || '').startsWith('ord_demo_') && (
+        o.progress.some((p) => p.node === '支付定金' || p.node === '支付尾款') || o.biographerId !== biographer.id
+      ))
     )
     const existingIds = new Set(cleaned.map((order) => order.orderId))
+    const currentStatuses = new Set(cleaned.filter((order) => order.biographerId === biographer.id).map((order) => order.status))
     const missingDemoOrders = demoOrders.filter((order) => !existingIds.has(order.orderId))
-    if (missingDemoOrders.length > 0 || cleaned.length !== allOrders.length) {
+    const restoredDemoOrders = demoOrders.filter((order) => {
+      if (currentStatuses.has(order.status)) return false
+      const index = cleaned.findIndex((item) => item.orderId === order.orderId && item.biographerId === biographer.id)
+      if (index < 0) return false
+      cleaned[index] = { ...cleaned[index], status: order.status, progress: order.progress, schedule: order.schedule }
+      currentStatuses.add(order.status)
+      return true
+    })
+    if (missingDemoOrders.length > 0 || restoredDemoOrders.length > 0 || cleaned.length !== allOrders.length) {
       cleaned.push(...missingDemoOrders)
       setItem(storeKeys.biographerOrders, cleaned)
       orders = cleaned.filter((o) => o.biographerId === biographer.id)

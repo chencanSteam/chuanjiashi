@@ -17,6 +17,7 @@ function MobileHeader() {
   const location = useLocation();
   const titleMap: Record<string, string> = {
     '/m': '传家世',
+    '/m/onboarding': '创建传记',
     '/m/interview': 'AI 智能采访',
     '/m/archive': '人生档案',
     '/m/family': '家庭空间',
@@ -45,14 +46,15 @@ function MobileHeader() {
 
 export default function MobileLayout() {
   const { isV1 } = useVersion();
+  const location = useLocation();
   const visibleTabs = tabs.filter((tab) => !tab.fullOnly || !isV1);
   return (
     <div className="mobile-layout">
-      <MobileHeader />
+      {location.pathname !== '/m/onboarding' && <MobileHeader />}
       <main className="mobile-layout-content">
         <Outlet />
       </main>
-      <nav className="mobile-tab-bar">
+      {location.pathname !== '/m/onboarding' && <nav className="mobile-tab-bar">
         {visibleTabs.map((tab) => {
           const Icon = tab.icon;
           return (
@@ -69,8 +71,8 @@ export default function MobileLayout() {
             </NavLink>
           );
         })}
-      </nav>
-      <AnnotationToggle />
+      </nav>}
+      {location.pathname !== '/m/onboarding' && <AnnotationToggle />}
     </div>
   );
 }

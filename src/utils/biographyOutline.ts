@@ -24,6 +24,18 @@ export interface BiographyOutline {
 
 const OUTLINE_KEY = (archiveId: string) => `cj_biography_outline_${archiveId}`;
 
+/** 演示话题：档案还没有保存提纲时，采访页为每个章节预置的话题 */
+export const demoChapterTopics: Record<string, string[]> = {
+  '故里童年 · 初心萌芽': ['出生在苏州老巷', '巷口的大樟树', '父亲树下讲《三国演义》', '“再穷不能穷教育”的家训'],
+  '求学成长 · 岁月积淀': ['实验小学的班主任王老师', '拆闹钟装收音机的少年', '泡在学校小工厂的日子', '1976 年考入苏州市中学'],
+  '择业入行 · 缘起初心': ['放弃机关分配，主动要求到一线', '师傅的第一句话：“机器不会骗人”'],
+  '深耕岁月 · 历练成长': ['跟着车间主任跑了三年一线', '1988 年首条技改产线投产', '1992 年创办明远机械'],
+  '风雨磨砺 · 破局成长': ['账上只剩几千块的至暗时刻', '1994 年大额订单险些被退回', '三个月攻坚通过严苛复检'],
+  '行业感悟 · 职业修为': ['“认真”二字永远不会过时', '手上要有功夫，心里要有敬畏'],
+  '家风人生 · 温情生活': ['1980 年与晓如的简朴婚礼', '长子子涵出生', '女儿雨桐出生', '每周日从不缺席的家庭晚餐'],
+  '人生回望 · 未来愿景': ['2008 年设立明远助学基金', '想传给后辈的八个字'],
+};
+
 export function loadOutline(archiveId: string): BiographyOutline | null {
   return loadJson<BiographyOutline | null>(OUTLINE_KEY(archiveId), null);
 }

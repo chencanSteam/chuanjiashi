@@ -31,7 +31,7 @@ const emptyForm: BiographerFormData = {
   intro: '',
   specialties: [],
   experience: 0,
-  status: 'pending',
+  status: 'active',
   certificationLevel: 'standard',
 };
 
@@ -43,7 +43,6 @@ export default function BiographerManagement() {
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<Biographer | null>(null);
   const [form, setForm] = useState<BiographerFormData>(emptyForm);
-  const [specialtyInput, setSpecialtyInput] = useState('');
   const [showDelete, setShowDelete] = useState<Biographer | null>(null);
   const [selectedBiographerId, setSelectedBiographerId] = useState<string | null>(null);
   const [selectedProfileReview, setSelectedProfileReview] = useState<Biographer | null>(null);
@@ -73,7 +72,6 @@ export default function BiographerManagement() {
   const openCreate = () => {
     setEditing(null);
     setForm(emptyForm);
-    setSpecialtyInput('');
     setShowModal(true);
   };
 
@@ -112,7 +110,6 @@ export default function BiographerManagement() {
       status: item.status,
       certificationLevel: item.certificationLevel || 'standard',
     });
-    setSpecialtyInput('');
     setShowModal(true);
   };
 
@@ -193,21 +190,6 @@ export default function BiographerManagement() {
     }
   };
 
-  const addSpecialty = () => {
-    const value = specialtyInput.trim();
-    if (!value) return;
-    if (form.specialties.includes(value)) {
-      addToast('该专长已存在', 'error');
-      return;
-    }
-    setForm((prev) => ({ ...prev, specialties: [...prev.specialties, value] }));
-    setSpecialtyInput('');
-  };
-
-  const removeSpecialty = (value: string) => {
-    setForm((prev) => ({ ...prev, specialties: prev.specialties.filter((s) => s !== value) }));
-  };
-
   return (
     <div className="biographer-management-page">
       <header className="page-header">
@@ -235,7 +217,6 @@ export default function BiographerManagement() {
             <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as BiographerStatus | 'all')}>
               <option value="all">全部状态</option>
               <option value="active">已启用</option>
-              <option value="pending">待审核</option>
               <option value="inactive">已停用</option>
             </select>
           </div>
@@ -252,7 +233,6 @@ export default function BiographerManagement() {
                 <tr>
                   <th>传记师</th>
                   <th>联系方式</th>
-                  <th>专长</th>
                   <th>经验</th>
                   <th>状态</th>
                   <th>操作</th>
@@ -289,13 +269,6 @@ export default function BiographerManagement() {
                   <td>
                     <div className="bio-contact-item"><Phone size={12} /> {item.phone}</div>
                     <div className="bio-contact-item"><Mail size={12} /> {item.email}</div>
-                  </td>
-                  <td>
-                    <div className="bio-tags">
-                      {item.specialties.map((tag) => (
-                        <span className="bio-tag" key={tag}>{tag}</span>
-                      ))}
-                    </div>
                   </td>
                   <td>{item.experience} 年</td>
                   <td>
@@ -384,7 +357,6 @@ export default function BiographerManagement() {
               <div className="form-row">
                 <label>状态</label>
                 <select value={form.status} onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value as BiographerStatus }))}>
-                  <option value="pending">待审核</option>
                   <option value="active">已启用</option>
                   <option value="inactive">已停用</option>
                 </select>
@@ -396,27 +368,6 @@ export default function BiographerManagement() {
                   <option value="silver">银牌认证</option>
                   <option value="standard">标准认证</option>
                 </select>
-              </div>
-              <div className="form-row">
-                <label>专长标签</label>
-                <div className="bio-specialty-input">
-                  <input
-                    type="text"
-                    value={specialtyInput}
-                    onChange={(e) => setSpecialtyInput(e.target.value)}
-                    placeholder="输入专长后按回车添加"
-                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addSpecialty(); } }}
-                  />
-                  <button className="btn btn-outline" onClick={addSpecialty}>添加</button>
-                </div>
-                <div className="bio-tags" style={{ marginTop: 8 }}>
-                  {form.specialties.map((tag) => (
-                    <span className="bio-tag editable" key={tag}>
-                      {tag}
-                      <button onClick={() => removeSpecialty(tag)}><X size={10} /></button>
-                    </span>
-                  ))}
-                </div>
               </div>
               <div className="form-row">
                 <label>个人简介</label>

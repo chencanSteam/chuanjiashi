@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Search, RefreshCw, CreditCard, Package, CheckCircle, AlertCircle, Clock, XCircle, X, UserCheck, Calendar, MapPin, Truck, Upload, FileText, ExternalLink, Paperclip } from 'lucide-react';
-import { orderApi, type AdminOrder } from '../api/order';
-import { biographerApi } from '../api/biographer';
-import { uploadFile } from '../api/client';
+import { Search, RefreshCw, CreditCard, Package, CheckCircle, AlertCircle, Clock, XCircle, X, UserCheck, Calendar, MapPin, Truck, Upload, FileText, ExternalLink, Paperclip, Download, RotateCcw } from 'lucide-react';
+import type { AdminOrder } from '../api/order';
 import { useToast } from '../hooks/useToast';
 import type { BiographerOrder, Deliverable, OrderLogistics } from '../mocks/types';
 import Annotate from '../components/annotation/Annotate';
@@ -11,13 +9,9 @@ import './OrderManagement.css';
 const typeOptions: Array<{ value: AdminOrder['type'] | 'all'; label: string }> = [
   { value: 'all', label: '全部类型' },
   { value: 'book', label: '实体书' },
-  { value: 'derivative', label: '衍生品' },
   { value: 'qrcode', label: '二维码' },
-  { value: 'video', label: '纪念视频' },
-  { value: 'digital_person', label: '数字人' },
-  { value: 'biography', label: '传记服务' },
   { value: 'biographer_service', label: '传记师服务' },
-  { value: 'group_buy', label: '团购' },
+  { value: 'biography', label: '传记导出' },
 ];
 
 const statusOptions: Array<{ value: AdminOrder['status'] | 'all'; label: string }> = [
@@ -39,8 +33,16 @@ const statusMap: Record<AdminOrder['status'], { label: string; className: string
   closed: { label: '已关闭', className: 'order-status-closed', icon: XCircle },
 };
 
+const afterSaleOptions = [
+  { value: 'all', label: '全部售后' },
+  { value: 'none', label: '无售后' },
+  { value: 'pending', label: '退款待审核' },
+  { value: 'rejected', label: '退款已驳回' },
+  { value: 'completed', label: '已退款' },
+] as const;
+
 const typeLabelMap: Record<AdminOrder['type'], string> = {
-  biography: '传记服务',
+  biography: '传记导出',
   digital_person: '数字人',
   video: '视频',
   qrcode: '二维码',
@@ -75,13 +77,55 @@ const fileDeliverableAccept: Partial<Record<Deliverable['type'], string>> = {
   image: 'image/*',
 };
 
+// 订单管理页只用于前端原型展示，直接使用静态 mock，不依赖账号、权限或订单接口。
+const DEMO_ORDERS: AdminOrder[] = [
+  {
+    id: 'ord_demo_001', userId: 'u_demo_001', userName: '张明远', userPhone: '138****8003',
+    type: 'biography', productId: 'download_default', productName: '张明远的传记 · 下载 PDF', amount: 9.9, quantity: 1,
+    status: 'completed', payTime: '2026-09-01T10:20:00', createdAt: '2026-09-01T10:18:00', updatedAt: '2026-09-01T10:30:00',
+    deliverables: [{ type: 'pdf', name: '张明远的传记.pdf', url: '#', createdAt: '2026-09-01T10:30:00' }],
+  },
+  {
+    id: 'ord_demo_002', userId: 'u_demo_002', userName: '李女士', userPhone: '139****8002',
+    type: 'book', productId: 'publish_default', productName: '张明远的传记 · 出版实体书', amount: 59, quantity: 2,
+    status: 'delivering', payTime: '2026-09-02T14:05:00', createdAt: '2026-09-02T14:02:00', updatedAt: '2026-09-03T09:10:00',
+    address: { name: '李女士', phone: '139****8002', province: '江苏省', city: '苏州市', district: '姑苏区', detail: '平江路 12 号' },
+    logistics: { company: '顺丰速运', trackingNo: 'SF20260903002', shippedAt: '2026-09-03T09:10:00' },
+  },
+  {
+    id: 'ord_demo_003', userId: 'u_demo_003', userName: '王先生', userPhone: '137****8003',
+    type: 'qrcode', productId: 'qrcode_default', productName: '张明远的传记 · 生成二维码', amount: 19.9, quantity: 1,
+    status: 'completed', payTime: '2026-09-03T16:40:00', createdAt: '2026-09-03T16:38:00', updatedAt: '2026-09-03T16:45:00',
+    deliverables: [{ type: 'qrcode', name: '家风纪念馆二维码', url: '#', createdAt: '2026-09-03T16:45:00' }],
+  },
+  {
+    id: 'ord_demo_004', userId: 'u_demo_004', userName: '陈女士', userPhone: '136****8004',
+    type: 'biographer_service', productId: 'bio_service_001', productName: '传记师深度采访服务', amount: 1999, quantity: 1,
+    status: 'paid', payTime: '2026-09-04T09:15:00', createdAt: '2026-09-04T09:12:00', updatedAt: '2026-09-04T09:15:00',
+  },
+  {
+    id: 'ord_demo_005', userId: 'u_demo_005', userName: '赵女士', userPhone: '135****8005',
+    type: 'book', productId: 'publish_default', productName: '家风传记 · 实体书精装版', amount: 288, quantity: 1,
+    status: 'paid', payTime: '2026-09-05T11:25:00', createdAt: '2026-09-05T11:20:00', updatedAt: '2026-09-05T11:25:00',
+  },
+  {
+    id: 'ord_demo_006', userId: 'u_demo_006', userName: '刘先生', userPhone: '134****8006',
+    type: 'biography', productId: 'download_default', productName: '家族传记 · 下载 PDF', amount: 9.9, quantity: 1,
+    status: 'refunded', payTime: '2026-09-06T13:10:00', createdAt: '2026-09-06T13:08:00', updatedAt: '2026-09-06T15:00:00',
+    refundRequest: { reason: '不需要该商品', reasonOptionLabel: '不需要该商品', status: 'completed', createdAt: '2026-09-06T14:20:00', processedAt: '2026-09-06T15:00:00' },
+  },
+];
+
 export default function OrderManagement() {
   const { addToast } = useToast();
-  const [orders, setOrders] = useState<AdminOrder[]>([]);
+  const [orders, setOrders] = useState<AdminOrder[]>(DEMO_ORDERS);
   const [keyword, setKeyword] = useState('');
   const [statusFilter, setStatusFilter] = useState<AdminOrder['status'] | 'all'>('all');
   const [typeFilter, setTypeFilter] = useState<AdminOrder['type'] | 'all'>('all');
-  const [loading, setLoading] = useState(true);
+  const [afterSaleFilter, setAfterSaleFilter] = useState<(typeof afterSaleOptions)[number]['value']>('all');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [loading, setLoading] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(null);
   const [selectedBiographerOrder, setSelectedBiographerOrder] = useState<BiographerOrder | null>(null);
   const [loadingBioOrder, setLoadingBioOrder] = useState(false);
@@ -104,10 +148,9 @@ export default function OrderManagement() {
     if (!file) return;
     try {
       setDeliverableUploading(true);
-      const list = await uploadFile([file]);
       setDeliverable((prev) => ({
         ...prev,
-        url: list[0].url,
+        url: URL.createObjectURL(file),
         name: prev.name.trim() || file.name.replace(/\.[^.]+$/, ''),
       }));
       addToast('文件已上传', 'success');
@@ -133,20 +176,9 @@ export default function OrderManagement() {
 
   const loadOrders = () => {
     setLoading(true);
-    orderApi
-      .adminList()
-      .then((list) => {
-        setOrders(list);
-        setSelectedIds((prev) => {
-          const next = new Set<string>();
-          prev.forEach((id) => {
-            if (list.some((o) => o.id === id)) next.add(id);
-          });
-          return next;
-        });
-      })
-      .catch(() => setOrders([]))
-      .finally(() => setLoading(false));
+    setOrders(DEMO_ORDERS);
+    setSelectedIds(new Set());
+    window.setTimeout(() => setLoading(false), 180);
   };
 
   const handleBatchDeliver = async () => {
@@ -160,20 +192,14 @@ export default function OrderManagement() {
     }
     try {
       setBatchSubmitting(true);
-      await Promise.all(
-        physicalSelected.map((order, idx) =>
-          orderApi.adminDeliver(order.id, {
-            company: batchCompany,
-            trackingNo: `SF${Date.now().toString().slice(-6)}${idx.toString().padStart(2, '0')}`,
-            shippedAt: new Date().toISOString(),
-          })
-        )
-      );
+      const shippedAt = new Date().toISOString();
+      setOrders((prev) => prev.map((order, idx) => physicalSelected.some((item) => item.id === order.id)
+        ? { ...order, status: 'delivering', updatedAt: shippedAt, logistics: { company: batchCompany, trackingNo: `SF${Date.now().toString().slice(-6)}${idx.toString().padStart(2, '0')}`, shippedAt } }
+        : order));
       addToast(`已批量发货 ${physicalSelected.length} 单`, 'success');
       setBatchDeliverModal(false);
       setBatchCompany('');
       setSelectedIds(new Set());
-      loadOrders();
     } catch (err: any) {
       addToast(err.message || '批量发货失败', 'error');
     } finally {
@@ -192,22 +218,15 @@ export default function OrderManagement() {
     }
     try {
       setBatchSubmitting(true);
-      await Promise.all(
-        digitalSelected.map((order) =>
-          orderApi.adminAddDeliverable(order.id, {
-            type: batchDeliverableType,
-            name: batchDeliverableName,
-            url: batchDeliverableUrl,
-            createdAt: new Date().toISOString(),
-          })
-        )
-      );
+      const createdAt = new Date().toISOString();
+      setOrders((prev) => prev.map((order) => digitalSelected.some((item) => item.id === order.id)
+        ? { ...order, status: 'delivering', updatedAt: createdAt, deliverables: [...(order.deliverables || []), { type: batchDeliverableType, name: batchDeliverableName, url: batchDeliverableUrl, createdAt }] }
+        : order));
       addToast(`已批量上传交付物 ${digitalSelected.length} 单`, 'success');
       setBatchDeliverableModal(false);
       setBatchDeliverableName('');
       setBatchDeliverableUrl('');
       setSelectedIds(new Set());
-      loadOrders();
     } catch (err: any) {
       addToast(err.message || '批量上传失败', 'error');
     } finally {
@@ -225,9 +244,58 @@ export default function OrderManagement() {
         o.userPhone?.includes(keyword);
       const matchStatus = statusFilter === 'all' || o.status === statusFilter;
       const matchType = typeFilter === 'all' || o.type === typeFilter;
-      return matchKeyword && matchStatus && matchType;
+      const refundStatus = o.refundRequest?.status || 'none';
+      const matchAfterSale = afterSaleFilter === 'all' || refundStatus === afterSaleFilter;
+      const orderDate = o.createdAt.slice(0, 10);
+      const matchDateFrom = !dateFrom || orderDate >= dateFrom;
+      const matchDateTo = !dateTo || orderDate <= dateTo;
+      return matchKeyword && matchStatus && matchType && matchAfterSale && matchDateFrom && matchDateTo;
     });
-  }, [orders, keyword, statusFilter, typeFilter]);
+  }, [orders, keyword, statusFilter, typeFilter, afterSaleFilter, dateFrom, dateTo]);
+
+  const resetFilters = () => {
+    setKeyword('');
+    setStatusFilter('all');
+    setTypeFilter('all');
+    setAfterSaleFilter('all');
+    setDateFrom('');
+    setDateTo('');
+  };
+
+  const exportFilteredOrders = () => {
+    const header = ['订单号', '客户', '商品/服务', '类型', '数量', '实付金额', '订单状态', '售后状态', '下单时间', '支付时间'];
+    const rows = filtered.map((item) => [
+      item.id,
+      item.userName || `用户${item.userId.slice(-4)}`,
+      item.productName,
+      typeLabelMap[item.type],
+      String(item.quantity || 1),
+      item.amount.toFixed(2),
+      statusMap[item.status].label,
+      item.refundRequest ? (item.refundRequest.status === 'pending' ? '退款待审核' : item.refundRequest.status === 'rejected' ? '退款已驳回' : '已退款') : '无售后',
+      new Date(item.createdAt).toLocaleString('zh-CN'),
+      item.payTime ? new Date(item.payTime).toLocaleString('zh-CN') : '-',
+    ]);
+    const csv = [header, ...rows].map((row) => row.map((cell) => `"${cell.replace(/"/g, '""')}"`).join(',')).join('\n');
+    const url = URL.createObjectURL(new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `订单列表-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    addToast(`已导出 ${filtered.length} 条订单`, 'success');
+  };
+
+  const fulfillmentLabel = (item: AdminOrder) => {
+    if (item.status === 'paid') {
+      if (isPhysicalProduct(item.type)) return '待发货';
+      if (item.type === 'biographer_service') return '待开始服务';
+      return '待交付';
+    }
+    if (item.status === 'delivering' && isPhysicalProduct(item.type)) return '已发货';
+    if (item.status === 'delivering') return '服务中';
+    return '';
+  };
 
   const toggleSelect = (id: string) => {
     setSelectedIds((prev) => {
@@ -249,34 +317,26 @@ export default function OrderManagement() {
   const physicalSelected = useMemo(() => filtered.filter((o) => selectedIds.has(o.id) && isPhysicalProduct(o.type) && o.status === 'paid'), [filtered, selectedIds]);
   const digitalSelected = useMemo(() => filtered.filter((o) => selectedIds.has(o.id) && isDigitalProduct(o.type) && o.status === 'paid'), [filtered, selectedIds]);
 
-  const executeAction = async () => {
+  const executeAction = () => {
     if (!confirmAction) return;
     const { order, action } = confirmAction;
-    try {
-      await orderApi.adminUpdateStatus(order.id, action.status);
-      addToast('订单状态已更新', 'success');
-      setConfirmAction(null);
-      loadOrders();
-    } catch (err: any) {
-      addToast(err.message || '操作失败', 'error');
-    }
+    setOrders((prev) => prev.map((item) => item.id === order.id ? { ...item, status: action.status, updatedAt: new Date().toISOString() } : item));
+    addToast('订单状态已更新', 'success');
+    setConfirmAction(null);
   };
 
-  const handleApproveRefund = async (order: AdminOrder) => {
+  const handleApproveRefund = (order: AdminOrder) => {
     try {
       setRefundSubmitting(true);
-      await orderApi.adminApproveRefund(order.id);
+      setOrders((prev) => prev.map((item) => item.id === order.id ? { ...item, status: 'refunded', refundRequest: item.refundRequest ? { ...item.refundRequest, status: 'completed', processedAt: new Date().toISOString() } : item.refundRequest } : item));
       addToast('退款审核通过，退款已完成', 'success');
       setSelectedOrder((current) => current?.id === order.id ? { ...current, status: 'refunded', refundRequest: current.refundRequest ? { ...current.refundRequest, status: 'completed' } : current.refundRequest } : current);
-      loadOrders();
-    } catch (err: any) {
-      addToast(err.message || '退款审核失败', 'error');
     } finally {
       setRefundSubmitting(false);
     }
   };
 
-  const handleRejectRefund = async () => {
+  const handleRejectRefund = () => {
     if (!refundRejectOrder) return;
     if (!refundRejectionReason.trim()) {
       addToast('请填写驳回原因', 'error');
@@ -284,67 +344,45 @@ export default function OrderManagement() {
     }
     try {
       setRefundSubmitting(true);
-      await orderApi.adminRejectRefund(refundRejectOrder.id, refundRejectionReason.trim());
+      setOrders((prev) => prev.map((item) => item.id === refundRejectOrder.id ? { ...item, refundRequest: item.refundRequest ? { ...item.refundRequest, status: 'rejected', rejectionReason: refundRejectionReason.trim() } : item.refundRequest } : item));
       addToast('退款申请已驳回', 'success');
       setRefundRejectOrder(null);
       setRefundRejectionReason('');
-      loadOrders();
-    } catch (err: any) {
-      addToast(err.message || '驳回失败', 'error');
     } finally {
       setRefundSubmitting(false);
     }
   };
 
-  const handleViewDetail = async (item: AdminOrder) => {
+  const handleViewDetail = (item: AdminOrder) => {
     setSelectedOrder(item);
-    if (item.type === 'biographer_service') {
-      setLoadingBioOrder(true);
-      try {
-        const bioOrder = await biographerApi.adminGetBiographerOrderByOrderId(item.id);
-        setSelectedBiographerOrder(bioOrder);
-      } catch {
-        setSelectedBiographerOrder(null);
-      } finally {
-        setLoadingBioOrder(false);
-      }
-    } else {
-      setSelectedBiographerOrder(null);
-    }
+    setSelectedBiographerOrder(null);
+    setLoadingBioOrder(false);
   };
 
-  const handleDeliver = async () => {
+  const handleDeliver = () => {
     if (!deliverModalOrder) return;
     if (!logistics.company.trim() || !logistics.trackingNo.trim()) {
       addToast('请填写物流公司和运单号', 'error');
       return;
     }
-    try {
-      await orderApi.adminDeliver(deliverModalOrder.id, { ...logistics, shippedAt: new Date().toISOString() });
-      addToast('物流信息已保存，订单进入服务中', 'success');
-      setDeliverModalOrder(null);
-      setLogistics({ company: '', trackingNo: '', shippedAt: new Date().toISOString().slice(0, 16) });
-      loadOrders();
-    } catch (err: any) {
-      addToast(err.message || '发货失败', 'error');
-    }
+    const shippedAt = new Date().toISOString();
+    setOrders((prev) => prev.map((item) => item.id === deliverModalOrder.id ? { ...item, status: 'delivering', logistics: { ...logistics, shippedAt }, updatedAt: shippedAt } : item));
+    addToast('物流信息已保存，订单进入服务中', 'success');
+    setDeliverModalOrder(null);
+    setLogistics({ company: '', trackingNo: '', shippedAt: new Date().toISOString().slice(0, 16) });
   };
 
-  const handleAddDeliverable = async () => {
+  const handleAddDeliverable = () => {
     if (!deliverableModalOrder) return;
     if (!deliverable.url.trim() || !deliverable.name.trim()) {
       addToast('请填写交付物名称，并上传文件或填写链接/地址', 'error');
       return;
     }
-    try {
-      await orderApi.adminAddDeliverable(deliverableModalOrder.id, { ...deliverable, createdAt: new Date().toISOString() });
-      addToast('交付物已上传', 'success');
-      setDeliverableModalOrder(null);
-      setDeliverable({ type: 'link', url: '', name: '', createdAt: new Date().toISOString() });
-      loadOrders();
-    } catch (err: any) {
-      addToast(err.message || '上传失败', 'error');
-    }
+    const createdAt = new Date().toISOString();
+    setOrders((prev) => prev.map((item) => item.id === deliverableModalOrder.id ? { ...item, status: 'delivering', deliverables: [...(item.deliverables || []), { ...deliverable, createdAt }], updatedAt: createdAt } : item));
+    addToast('交付物已保存', 'success');
+    setDeliverableModalOrder(null);
+    setDeliverable({ type: 'link', url: '', name: '', createdAt: new Date().toISOString() });
   };
 
   const renderActionButtons = (item: AdminOrder) => {
@@ -369,14 +407,6 @@ export default function OrderManagement() {
         {item.status === 'paid' && isDigitalProduct(item.type) && (
           <button className="admin-table-link" onClick={() => setDeliverableModalOrder(item)}>
             上传交付物
-          </button>
-        )}
-        {item.status === 'paid' && !isPhysicalProduct(item.type) && !isDigitalProduct(item.type) && (
-          <button
-            className="admin-table-link"
-            onClick={() => setConfirmAction({ order: item, action: { status: 'delivering', label: '开始服务', variant: 'primary' } })}
-          >
-            开始服务
           </button>
         )}
         {item.refundRequest?.status === 'pending' && (
@@ -479,6 +509,9 @@ export default function OrderManagement() {
       <header className="page-header">
         <h1 className="page-title">订单管理</h1>
         <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn btn-outline" onClick={exportFilteredOrders} disabled={loading || filtered.length === 0}>
+            <Download size={14} /> 导出当前结果
+          </button>
           <button className="btn btn-outline" onClick={loadOrders} disabled={loading}>
             <RefreshCw size={14} className={loading ? 'spin' : ''} /> 刷新
           </button>
@@ -508,6 +541,20 @@ export default function OrderManagement() {
                 <option value={t.value} key={t.value}>{t.label}</option>
               ))}
             </select>
+            <select value={afterSaleFilter} onChange={(e) => setAfterSaleFilter(e.target.value as typeof afterSaleFilter)}>
+              {afterSaleOptions.map((item) => (
+                <option value={item.value} key={item.value}>{item.label}</option>
+              ))}
+            </select>
+            <label className="order-filter-date">
+              <span>下单时间</span>
+              <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+              <i>至</i>
+              <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+            </label>
+            <button className="btn btn-ghost btn-sm order-reset-button" onClick={resetFilters}>
+              <RotateCcw size={13} /> 重置
+            </button>
           </div>
           </Annotate>
         </div>
@@ -552,9 +599,12 @@ export default function OrderManagement() {
                     <th>客户</th>
                     <th>商品/服务</th>
                     <th>类型</th>
-                    <th>金额</th>
-                    <th>状态</th>
+                    <th>数量</th>
+                    <th>实付金额</th>
+                    <th>订单状态</th>
+                    <th>售后状态</th>
                     <th>下单时间</th>
+                    <th>支付时间</th>
                     <th>操作</th>
                   </tr>
                 </thead>
@@ -585,15 +635,23 @@ export default function OrderManagement() {
                           </div>
                         </td>
                         <td>{typeLabelMap[item.type]}</td>
+                        <td>{item.quantity || 1}</td>
                         <td className="order-cell-amount">¥{item.amount.toLocaleString()}</td>
                         <td>
                           <span className={`order-status ${status.className}`}>
                             <StatusIcon size={12} /> {status.label}
                           </span>
-                          {item.refundRequest?.status === 'pending' && <span className="order-refund-review-badge pending">退款待审核</span>}
-                          {item.refundRequest?.status === 'rejected' && <span className="order-refund-review-badge rejected">退款已驳回</span>}
+                          {fulfillmentLabel(item) && <span className="order-fulfillment-label">{fulfillmentLabel(item)}</span>}
+                        </td>
+                        <td>
+                          {item.refundRequest ? (
+                            <span className={`order-refund-review-badge ${item.refundRequest.status}`}>
+                              {item.refundRequest.status === 'pending' ? '退款待审核' : item.refundRequest.status === 'rejected' ? '退款已驳回' : '已退款'}
+                            </span>
+                          ) : <span className="order-no-after-sale">无售后</span>}
                         </td>
                         <td className="order-cell-time">{new Date(item.createdAt).toLocaleString()}</td>
+                        <td className="order-cell-time">{item.payTime ? new Date(item.payTime).toLocaleString() : '-'}</td>
                         <td>
                           <Annotate id="order-management.row-actions" inline>{renderActionButtons(item)}</Annotate>
                         </td>
@@ -641,7 +699,11 @@ export default function OrderManagement() {
                 <span className="order-detail-value">{typeLabelMap[selectedOrder.type]}</span>
               </div>
               <div className="order-detail-row">
-                <span className="order-detail-label">金额</span>
+                <span className="order-detail-label">购买数量</span>
+                <span className="order-detail-value">{selectedOrder.quantity || 1}</span>
+              </div>
+              <div className="order-detail-row">
+                <span className="order-detail-label">实付金额</span>
                 <span className="order-detail-value order-detail-amount">¥{selectedOrder.amount.toLocaleString()}</span>
               </div>
               <div className="order-detail-row">
@@ -650,6 +712,14 @@ export default function OrderManagement() {
                   <span className={`order-status ${statusMap[selectedOrder.status].className}`}>
                     {statusMap[selectedOrder.status].label}
                   </span>
+                </span>
+              </div>
+              <div className="order-detail-row">
+                <span className="order-detail-label">售后状态</span>
+                <span className="order-detail-value">
+                  {selectedOrder.refundRequest
+                    ? selectedOrder.refundRequest.status === 'pending' ? '退款待审核' : selectedOrder.refundRequest.status === 'rejected' ? '退款已驳回' : '已退款'
+                    : '无售后'}
                 </span>
               </div>
               <div className="order-detail-row">

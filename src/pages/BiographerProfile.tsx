@@ -215,7 +215,7 @@ export default function BiographerProfile({ biographerId, embedded, onClose, onB
                   <Star size={14} fill="currentColor" /> {(biographer.rating || 5).toFixed(1)} 分
                 </div>
               </div>
-              <div className="biographer-profile-title">{biographer.city || '全国'}服务</div>
+              <div className="biographer-profile-title">{biographer.city || '全国'}</div>
             </div>
             <Annotate id="biographer-profile.actions" inline>
             <div className="biographer-profile-actions">

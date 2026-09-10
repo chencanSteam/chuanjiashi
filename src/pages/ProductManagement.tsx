@@ -1,364 +1,102 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Plus, X, Package, Search, Image } from 'lucide-react';
-import { useToast } from '../hooks/useToast';
-import { productApi } from '../api/product';
-import Annotate from '../components/annotation/Annotate';
-import type { ProductPackage, ProductType } from '../mocks/types';
+import { useState } from 'react';
+import { BookOpen, Check, Download, Info, Package, Printer, QrCode, Save, Settings2, X } from 'lucide-react';
 import './ProductManagement.css';
 
-const typeGroups: { type: ProductType; label: string }[] = [
-  { type: 'biography', label: 'AI传记' },
-  { type: 'book', label: '实体书' },
+type ProductIcon = 'pdf' | 'book' | 'qr';
+type PriceTier = { id: string; label: string; price: string };
+type PlatformProduct = {
+  id: ProductIcon;
+  name: string;
+  description: string;
+  icon: ProductIcon;
+  accent: string;
+  unit: string;
+  tiers: PriceTier[];
+};
+type BiographerLevel = {
+  id: string;
+  level: string;
+  minPrice: number;
+  maxPrice: number;
+  color: string;
+};
+
+const initialProducts: PlatformProduct[] = [
+  {
+    id: 'pdf', name: 'PDF 电子书下载', description: '生成排版完成的电子传记，支持下载与保存。', icon: 'pdf', accent: '#1b5e4b', unit: '元 / 千字',
+    tiers: [{ id: 'pdf-1', label: '0–5 万字', price: '0.60' }, { id: 'pdf-2', label: '5–10 万字', price: '0.50' }, { id: 'pdf-3', label: '10 万字以上', price: '0.40' }],
+  },
+  {
+    id: 'book', name: '生成实体书', description: '生成实体书印刷文件并进入实体书制作流程。', icon: 'book', accent: '#b8860b', unit: '元 / 千字',
+    tiers: [{ id: 'book-1', label: '0–5 万字', price: '2.80' }, { id: 'book-2', label: '5–10 万字', price: '2.40' }, { id: 'book-3', label: '10 万字以上', price: '2.00' }],
+  },
+  {
+    id: 'qr', name: '生成传记二维码', description: '为已完成的传记生成专属二维码，便于分享与长期保存。', icon: 'qr', accent: '#7c3aed', unit: '元 / 千字',
+    tiers: [{ id: 'qr-1', label: '0–5 万字', price: '0.20' }, { id: 'qr-2', label: '5–10 万字', price: '0.16' }, { id: 'qr-3', label: '10 万字以上', price: '0.12' }],
+  },
 ];
 
-interface ProductForm {
-  type: ProductType;
-  name: string;
-  price: string;
-  originalPrice: string;
-  description: string;
-  rights: string[];
-  hot: boolean;
-  headline: string;
-  subheadline: string;
-  detailBlocks: { id: string; title: string; content: string }[];
-  promises: string[];
-  faqs: { id: string; question: string; answer: string }[];
-  tags: string[];
-  coverImage: string;
-}
+const initialLevels: BiographerLevel[] = [
+  { id: 'gold', level: '金牌传记师', minPrice: 12000, maxPrice: 30000, color: '#b8860b' },
+  { id: 'silver', level: '银牌传记师', minPrice: 6000, maxPrice: 12000, color: '#7b8794' },
+  { id: 'standard', level: '标准传记师', minPrice: 2000, maxPrice: 6000, color: '#6b8f82' },
+];
 
-const emptyForm: ProductForm = {
-  type: 'biography',
-  name: '',
-  price: '',
-  originalPrice: '',
-  description: '',
-  rights: [],
-  hot: false,
-  headline: '',
-  subheadline: '',
-  detailBlocks: [],
-  promises: [],
-  faqs: [],
-  tags: [],
-  coverImage: '',
+const productIcon = (type: ProductIcon) => {
+  if (type === 'pdf') return <Download size={22} />;
+  if (type === 'book') return <Printer size={22} />;
+  return <QrCode size={22} />;
 };
 
 export default function ProductManagement() {
-  const { addToast } = useToast();
-  const [showModal, setShowModal] = useState(false);
-  const [editing, setEditing] = useState<ProductPackage | null>(null);
-  const [form, setForm] = useState<ProductForm>(emptyForm);
-  const [rightInput, setRightInput] = useState('');
-  const [showDelete, setShowDelete] = useState<ProductPackage | null>(null);
-  const [previewProduct, setPreviewProduct] = useState<ProductPackage | null>(null);
-  const coverInputRef = useRef<HTMLInputElement>(null);
+  const [products, setProducts] = useState(initialProducts);
+  const [levels, setLevels] = useState(initialLevels);
+  const [editingProduct, setEditingProduct] = useState<PlatformProduct | null>(null);
+  const [editingLevel, setEditingLevel] = useState<BiographerLevel | null>(null);
 
-  const handleCoverUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      addToast('请上传图片文件', 'error');
-      return;
-    }
-    if (file.size > 2 * 1024 * 1024) {
-      addToast('图片大小不能超过 2MB', 'error');
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => {
-      setForm((prev) => ({ ...prev, coverImage: reader.result as string }));
-    };
-    reader.readAsDataURL(file);
-    e.target.value = '';
+  const openProductEditor = (product: PlatformProduct) => setEditingProduct({ ...product, tiers: product.tiers.map((tier) => ({ ...tier })) });
+  const saveProduct = () => {
+    if (!editingProduct) return;
+    setProducts((items) => items.map((item) => item.id === editingProduct.id ? editingProduct : item));
+    setEditingProduct(null);
   };
-
-  const [products, setProducts] = useState<ProductPackage[]>([]);
-  const [keyword, setKeyword] = useState('');
-  const [typeFilter, setTypeFilter] = useState<ProductType | 'all'>('all');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
-
-  const loadProducts = () => {
-    productApi
-      .adminList()
-      .then(setProducts)
-      .catch(() => setProducts([]));
-  };
-
-  useEffect(() => {
-    loadProducts();
-  }, []);
-
-  const visibleProducts = useMemo(() => products
-    .filter((product) => product.type === 'biography' || product.type === 'book')
-    .filter((product) => typeFilter === 'all' || product.type === typeFilter)
-    .filter((product) => statusFilter === 'all' || (product.status || 'active') === statusFilter)
-    .filter((product) => !keyword.trim() || `${product.name} ${product.description}`.toLowerCase().includes(keyword.trim().toLowerCase()))
-    .sort((a, b) => (a.sortOrder || 999) - (b.sortOrder || 999)),
-  [products, keyword, typeFilter, statusFilter]);
-
-  const typeLabel = (type: ProductType) => typeGroups.find((group) => group.type === type)?.label || type;
-
-  const openCreate = (type: ProductType) => {
-    setEditing(null);
-    setForm({ ...emptyForm, type });
-    setRightInput('');
-    setShowModal(true);
-  };
-
-  const openEdit = (item: ProductPackage) => {
-    setEditing(item);
-    setForm({
-      type: item.type,
-      name: item.name,
-      price: String(item.price),
-      originalPrice: item.originalPrice != null ? String(item.originalPrice) : '',
-      description: item.description,
-      rights: [...item.rights],
-      hot: !!item.hot,
-      headline: item.headline || '',
-      subheadline: item.subheadline || '',
-      detailBlocks: item.detailBlocks || [],
-      promises: item.promises || [],
-      faqs: item.faqs || [],
-      tags: item.tags || [],
-      coverImage: item.coverImage || '',
-    });
-    setRightInput('');
-    setShowModal(true);
-  };
-
-  const closeModal = () => {
-    setShowModal(false);
-    setEditing(null);
-  };
-
-  const addRight = () => {
-    const value = rightInput.trim();
-    if (!value) return;
-    if (form.rights.includes(value)) {
-      addToast('该权益已存在', 'error');
-      return;
-    }
-    setForm((prev) => ({ ...prev, rights: [...prev.rights, value] }));
-    setRightInput('');
-  };
-
-  const removeRight = (value: string) => {
-    setForm((prev) => ({ ...prev, rights: prev.rights.filter((r) => r !== value) }));
-  };
-
-  const handleSubmit = async () => {
-    const price = Number(form.price);
-    if (!form.name.trim()) {
-      addToast('请填写套餐名称', 'error');
-      return;
-    }
-    if (!form.price || Number.isNaN(price) || price <= 0) {
-      addToast('请填写正确的价格', 'error');
-      return;
-    }
-    const originalPrice = form.originalPrice ? Number(form.originalPrice) : undefined;
-    const payload: Partial<ProductPackage> = {
-      type: form.type,
-      name: form.name.trim(),
-      price,
-      originalPrice: originalPrice && !Number.isNaN(originalPrice) ? originalPrice : undefined,
-      description: form.description.trim(),
-      rights: form.rights,
-      hot: form.hot,
-      headline: form.headline.trim(),
-      subheadline: form.subheadline.trim(),
-      detailBlocks: form.detailBlocks,
-      promises: form.promises,
-      faqs: form.faqs,
-      tags: form.tags,
-      coverImage: form.coverImage.trim() || undefined,
-    };
-    try {
-      if (editing) {
-        await productApi.update(editing.id, payload);
-        addToast('套餐已更新', 'success');
-      } else {
-        await productApi.create(payload);
-        addToast('套餐新增成功', 'success');
-      }
-      loadProducts();
-      closeModal();
-    } catch (err) {
-      addToast(err instanceof Error ? err.message : '操作失败', 'error');
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!showDelete) return;
-    try {
-      await productApi.remove(showDelete.id);
-      loadProducts();
-      setShowDelete(null);
-      addToast('套餐已删除', 'success');
-    } catch (err) {
-      addToast(err instanceof Error ? err.message : '删除失败', 'error');
-    }
-  };
-
-  const toggleShelf = async (item: ProductPackage) => {
-    const offline = item.status === 'inactive';
-    try {
-      await productApi.updateStatus(item.id, offline ? 'active' : 'inactive');
-      loadProducts();
-      addToast(offline ? `「${item.name}」已上架` : `「${item.name}」已下架`, 'success');
-    } catch (err) {
-      addToast(err instanceof Error ? err.message : '操作失败', 'error');
-    }
+  const saveLevel = () => {
+    if (!editingLevel) return;
+    setLevels((items) => items.map((item) => item.id === editingLevel.id ? editingLevel : item));
+    setEditingLevel(null);
   };
 
   return (
-    <div className="product-mgmt-page">
-      <header className="page-header">
-        <h1 className="page-title">产品套餐管理</h1>
+    <div className="product-mgmt-page pricing-page">
+      <header className="page-header pricing-page-header">
+        <div><h1 className="page-title">商品与定价管理</h1></div>
       </header>
 
-      <div className="card product-mgmt-table-card">
-        <div className="product-mgmt-toolbar">
-          <div className="product-mgmt-search"><Search size={15} /><input value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder="搜索商品名称或描述" /></div>
-          <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as ProductType | 'all')}><option value="all">全部分类</option>{typeGroups.map((group) => <option key={group.type} value={group.type}>{group.label}</option>)}</select>
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'inactive')}><option value="all">全部状态</option><option value="active">已上架</option><option value="inactive">已下架</option></select>
-          <button className="btn btn-primary" onClick={() => openCreate('biography')}><Plus size={14} /> 新增商品</button>
+      <section className="pricing-section">
+        <div className="pricing-section-head"><div><h2>平台商品</h2></div><span className="pricing-rule-pill"><Package size={14} /> 按字数计价</span></div>
+        <div className="platform-product-grid">
+          {products.map((product) => (
+            <article className="platform-product-card card" key={product.id}>
+              <div className="platform-product-head"><div className="platform-product-icon" style={{ color: product.accent, background: `${product.accent}15` }}>{productIcon(product.icon)}</div><span className="pricing-active"><Check size={12} /> 已启用</span></div>
+              <h3>{product.name}</h3>
+              <div className="platform-product-unit"><span>计价单位</span><strong>{product.unit}</strong></div>
+              <div className="word-price-list">{product.tiers.map((tier) => <div className="word-price-row" key={tier.id}><span>{tier.label}</span><strong>¥{tier.price}</strong></div>)}</div>
+              <button className="pricing-edit-button" onClick={() => openProductEditor(product)}><Settings2 size={14} /> 调整字数价格</button>
+            </article>
+          ))}
         </div>
-        <div className="admin-table-wrap">
-          <table className="admin-table"><thead><tr><th>商品名称</th><th>商品分类</th><th>价格</th><th>宣传页</th><th>状态</th><th>更新时间</th><th>操作</th></tr></thead><tbody>
-            {visibleProducts.length === 0 ? <tr><td colSpan={7} className="admin-table-empty">暂无符合条件的商品</td></tr> : visibleProducts.map((item) => {
-              const offline = item.status === 'inactive';
-              const promotionReady = Boolean(item.headline || item.detailBlocks?.length || item.faqs?.length);
-              return <tr key={item.id} className={offline ? 'offline' : ''}>
-                <td className="admin-table-text-left"><div className="product-table-name"><Package size={16} /><strong>{item.name}</strong>{item.hot && <span className="product-mgmt-hot">热销</span>}</div><small>{item.description}</small></td>
-                <td>{typeLabel(item.type)}</td><td><strong>¥{item.price}</strong>{item.originalPrice != null && <del>¥{item.originalPrice}</del>}</td>
-                <td><span className={`product-table-badge ${promotionReady ? 'ready' : 'muted'}`}>{promotionReady ? '已配置' : '未配置'}</span></td>
-                <td><span className={`product-table-badge ${offline ? 'muted' : 'active'}`}>{offline ? '已下架' : '已上架'}</span></td>
-                <td>{item.updatedAt ? new Date(item.updatedAt).toLocaleDateString('zh-CN') : new Date(item.createdAt).toLocaleDateString('zh-CN')}</td>
-                <td><button className="admin-table-link" onClick={() => setPreviewProduct(item)}>预览</button><button className="admin-table-link" onClick={() => openEdit(item)}>编辑</button><button className="admin-table-link" onClick={() => toggleShelf(item)}>{offline ? '上架' : '下架'}</button><button className="admin-table-link danger" onClick={() => setShowDelete(item)}>删除</button></td>
-              </tr>;
-            })}
-          </tbody></table>
-        </div>
-      </div>
+      </section>
 
-      {showModal && (
-        <Annotate id="product-management.form">
-        <div className="modal-overlay" onClick={closeModal}>
-          <div className="modal-content product-mgmt-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h4>{editing ? '编辑套餐' : '新增套餐'}</h4>
-              <button className="modal-close" onClick={closeModal}><X size={16} /></button>
-            </div>
-            <div className="modal-body">
-              <div className="form-row">
-                <label>套餐分类</label>
-                <select value={form.type} onChange={(e) => setForm((prev) => ({ ...prev, type: e.target.value as ProductType }))}>
-                  {typeGroups.map((g) => (
-                    <option value={g.type} key={g.type}>{g.label}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-row">
-                <label>套餐名称</label>
-                <input type="text" value={form.name} onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))} placeholder="请输入套餐名称" />
-              </div>
-              <div className="form-row">
-                <label>价格（元）</label>
-                <input type="number" min={0} value={form.price} onChange={(e) => setForm((prev) => ({ ...prev, price: e.target.value }))} placeholder="如 99" />
-              </div>
-              <div className="form-row">
-                <label>原价（元，选填）</label>
-                <input type="number" min={0} value={form.originalPrice} onChange={(e) => setForm((prev) => ({ ...prev, originalPrice: e.target.value }))} placeholder="如 199" />
-              </div>
-              <div className="form-row">
-                <label>套餐描述</label>
-                <textarea rows={2} value={form.description} onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))} placeholder="请输入套餐描述" />
-              </div>
-              <div className="form-row">
-                <label>权益列表</label>
-                <div className="product-mgmt-right-input">
-                  <input
-                    type="text"
-                    value={rightInput}
-                    onChange={(e) => setRightInput(e.target.value)}
-                    placeholder="输入权益后按回车添加"
-                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addRight(); } }}
-                  />
-                  <button className="btn btn-outline" onClick={addRight}>添加</button>
-                </div>
-                <div className="product-mgmt-rights" style={{ marginTop: 8 }}>
-                  {form.rights.map((r) => (
-                    <span className="product-mgmt-right-tag editable" key={r}>
-                      {r}
-                      <button onClick={() => removeRight(r)}><X size={10} /></button>
-                    </span>
-                  ))}
-                </div>
-              </div>
-              <div className="product-promotion-editor">
-                <h4>宣传页配置</h4>
-                <div className="form-row"><label>商品主图</label><div className="product-cover-editor">{form.coverImage ? <img className="product-cover-clickable" src={form.coverImage} alt="商品主图预览" onClick={() => coverInputRef.current?.click()} /> : <div className="product-cover-empty product-cover-clickable" onClick={() => coverInputRef.current?.click()}><Image size={18} /> 上传主图</div>}<input ref={coverInputRef} type="file" accept="image/*" hidden onChange={handleCoverUpload} /><div><div className="product-cover-actions"><button type="button" className="btn btn-outline" onClick={() => coverInputRef.current?.click()}>上传图片</button><input value={form.coverImage} onChange={(e) => setForm((prev) => ({ ...prev, coverImage: e.target.value }))} placeholder="或输入图片 URL" /></div><small>支持上传本地图片（不超过 2MB）或输入图片 URL</small></div></div></div>
-                <div className="form-row"><label>首屏主标题</label><input value={form.headline} onChange={(e) => setForm((prev) => ({ ...prev, headline: e.target.value }))} placeholder="例如：把人生故事写成传记" /></div>
-                <div className="form-row"><label>首屏副标题</label><input value={form.subheadline} onChange={(e) => setForm((prev) => ({ ...prev, subheadline: e.target.value }))} placeholder="一句话说明商品价值" /></div>
-                <div className="form-row"><label>详情模块</label><textarea rows={4} value={form.detailBlocks.map((block) => `${block.title}：${block.content}`).join('\n')} onChange={(e) => setForm((prev) => ({ ...prev, detailBlocks: e.target.value.split('\n').filter(Boolean).map((line, index) => { const [title, ...content] = line.split('：'); return { id: `block_${index}`, title: title || `详情 ${index + 1}`, content: content.join('：') || title || '' }; }) }))} placeholder="每行一个模块，格式：标题：内容" /></div>
-                <div className="form-row"><label>服务承诺</label><input value={form.promises.join('、')} onChange={(e) => setForm((prev) => ({ ...prev, promises: e.target.value.split('、').map((item) => item.trim()).filter(Boolean) }))} placeholder="例如：全国包邮、专属客服支持" /></div>
-                <div className="form-row"><label>常见问题</label><textarea rows={3} value={form.faqs.map((faq) => `${faq.question}：${faq.answer}`).join('\n')} onChange={(e) => setForm((prev) => ({ ...prev, faqs: e.target.value.split('\n').filter(Boolean).map((line, index) => { const [question, ...answer] = line.split('：'); return { id: `faq_${index}`, question: question || '', answer: answer.join('：') || '' }; }) }))} placeholder="每行一个问题，格式：问题：答案" /></div>
-              </div>
-              <div className="form-row">
-                <label className="product-mgmt-hot-check">
-                  <input type="checkbox" checked={form.hot} onChange={(e) => setForm((prev) => ({ ...prev, hot: e.target.checked }))} />
-                  标记为热销
-                </label>
-              </div>
-              <button className="btn btn-primary" style={{ width: '100%', marginTop: 8 }} onClick={handleSubmit}>
-                {editing ? '保存修改' : '确认新增'}
-              </button>
-            </div>
-          </div>
+      <section className="pricing-section biographer-pricing-section">
+        <div className="pricing-section-head"><div><h2>传记师服务标准</h2></div><span className="pricing-rule-pill gold"><BookOpen size={14} /> 传记师自主报价</span></div>
+        <div className="biographer-level-grid">
+          {levels.map((level) => <article className="biographer-level-card card" key={level.id}><div className="level-marker" style={{ background: level.color }} /><div className="level-card-top"><div><h3>{level.level}</h3></div><span className="level-range">¥{level.minPrice.toLocaleString()}–¥{level.maxPrice.toLocaleString()}</span></div><div className="level-card-footer"><span><Info size={13} /> 标准范围</span><button className="pricing-text-button" onClick={() => setEditingLevel({ ...level })}>编辑范围</button></div></article>)}
         </div>
-        </Annotate>
-      )}
+      </section>
 
-      {previewProduct && (
-        <div className="modal-overlay" onClick={() => setPreviewProduct(null)}>
-          <div className="modal-content product-preview-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header"><h4>商品宣传页预览</h4><button className="modal-close" onClick={() => setPreviewProduct(null)}><X size={16} /></button></div>
-            <div className="product-preview-modal-body">
-              <div className="product-preview-hero"><Package size={28} /><div><strong>{previewProduct.name}</strong><span>{previewProduct.headline || previewProduct.description}</span></div><b>¥{previewProduct.price}</b></div>
-              {previewProduct.subheadline && <p className="product-preview-subheadline">{previewProduct.subheadline}</p>}
-              <div className="product-preview-section"><h5>商品权益</h5><div className="product-preview-tags">{previewProduct.rights.map((right) => <span key={right}>{right}</span>)}</div></div>
-              <div className="product-preview-section"><h5>详情模块</h5>{(previewProduct.detailBlocks || []).length ? previewProduct.detailBlocks?.map((block) => <div className="product-preview-detail" key={block.id}><strong>{block.title}</strong><p>{block.content}</p></div>) : <p>未配置，用户端使用默认详情。</p>}</div>
-              <div className="product-preview-section"><h5>服务承诺</h5><div className="product-preview-tags">{(previewProduct.promises || []).map((promise) => <span key={promise}>{promise}</span>)}</div></div>
-              <div className="product-preview-section"><h5>常见问题</h5>{(previewProduct.faqs || []).map((faq) => <div className="product-preview-detail" key={faq.id}><strong>{faq.question}</strong><p>{faq.answer}</p></div>)}</div>
-            </div>
-            <div className="product-preview-modal-footer"><button className="btn btn-outline" onClick={() => setPreviewProduct(null)}>关闭预览</button><button className="btn btn-primary" onClick={() => { setPreviewProduct(null); openEdit(previewProduct); }}>编辑宣传页</button></div>
-          </div>
-        </div>
-      )}
+      {editingProduct && <div className="modal-overlay" onClick={() => setEditingProduct(null)}><div className="modal-content pricing-editor-modal" onClick={(event) => event.stopPropagation()}><div className="modal-header"><div><h4>{editingProduct.name}</h4></div><button className="modal-close" onClick={() => setEditingProduct(null)}><X size={16} /></button></div><div className="modal-body"><p className="pricing-modal-tip">按传记字数设置价格</p>{editingProduct.tiers.map((tier, index) => <div className="pricing-tier-editor" key={tier.id}><label>{tier.label}</label><div><span>¥</span><input type="number" min="0" step="0.01" value={tier.price} onChange={(event) => setEditingProduct((current) => current && ({ ...current, tiers: current.tiers.map((item, itemIndex) => itemIndex === index ? { ...item, price: event.target.value } : item) }))} /><small>每 1,000 字</small></div></div>)}<button className="btn btn-primary pricing-save-button" onClick={saveProduct}><Save size={14} /> 保存字数价格</button></div></div></div>}
 
-      {showDelete && (
-        <Annotate id="product-management.delete">
-        <div className="modal-overlay" onClick={() => setShowDelete(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h4>确认删除</h4>
-              <button className="modal-close" onClick={() => setShowDelete(null)}><X size={16} /></button>
-            </div>
-            <div className="modal-body">
-              <p style={{ color: '#6b7280', fontSize: 13 }}>删除后，套餐「{showDelete.name}」将无法恢复，是否继续？</p>
-              <div className="product-mgmt-delete-actions">
-                <button className="btn btn-outline" onClick={() => setShowDelete(null)}>取消</button>
-                <button className="btn btn-danger" onClick={handleDelete}>确认删除</button>
-              </div>
-            </div>
-          </div>
-        </div>
-        </Annotate>
-      )}
+      {editingLevel && <div className="modal-overlay" onClick={() => setEditingLevel(null)}><div className="modal-content pricing-editor-modal level-editor-modal" onClick={(event) => event.stopPropagation()}><div className="modal-header"><div><h4>{editingLevel.level}</h4></div><button className="modal-close" onClick={() => setEditingLevel(null)}><X size={16} /></button></div><div className="modal-body"><div className="level-range-editor"><label>建议服务范围</label><div className="level-range-inputs"><div><span>¥</span><input type="number" min="0" value={editingLevel.minPrice} onChange={(event) => setEditingLevel((current) => current && ({ ...current, minPrice: Number(event.target.value) }))} /></div><em>至</em><div><span>¥</span><input type="number" min="0" value={editingLevel.maxPrice} onChange={(event) => setEditingLevel((current) => current && ({ ...current, maxPrice: Number(event.target.value) }))} /></div></div></div><button className="btn btn-primary pricing-save-button" onClick={saveLevel}><Save size={14} /> 保存标准范围</button></div></div></div>}
     </div>
   );
 }

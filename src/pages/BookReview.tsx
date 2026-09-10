@@ -1,35 +1,65 @@
-import { useEffect, useState } from 'react';
-import { Search, BookOpen, CheckCircle, XCircle, AlertCircle, User, Hash, DollarSign, Calendar, FileText, Bookmark, Tag, Type, Timer, BarChart3 } from 'lucide-react';
-import { bookshelfApi, type BookReviewStatus } from '../api/bookshelf';
-import { biographyApi } from '../api/biography';
+import { useState } from 'react';
+import { Search, BookOpen, CheckCircle, XCircle, AlertCircle, User, Hash, DollarSign, Calendar, FileText, Bookmark, Type, BarChart3 } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
-import Avatar from '../components/ui/Avatar';
 import Annotate from '../components/annotation/Annotate';
 import type { PublicBook, Biography } from '../mocks/types';
 import '../components/ui/Modal.css';
 import './BookReview.css';
 
 const statusFilterOptions: Array<{ value: PublicBook['status'] | 'all'; label: string }> = [
-  { value: 'all', label: '全部' },
+  { value: 'all', label: '全部状态' },
   { value: 'pending', label: '待审核' },
-  { value: 'approved', label: '已通过' },
+  { value: 'approved', label: '已上架' },
   { value: 'rejected', label: '已拒绝' },
   { value: 'off_shelf', label: '已下架' },
 ];
 
 const statusMap: Record<PublicBook['status'], { label: string; className: string }> = {
   pending: { label: '待审核', className: 'book-status-pending' },
-  approved: { label: '已通过', className: 'book-status-approved' },
+  approved: { label: '已上架', className: 'book-status-approved' },
   rejected: { label: '已拒绝', className: 'book-status-rejected' },
   off_shelf: { label: '已下架', className: 'book-status-off-shelf' },
 };
 
+const mockBooks: PublicBook[] = [
+  { id: 'review-001', archiveId: 'archive-001', userId: 'u_demo_001', title: '张明远：一位苏州企业家的六十年', author: '张立群', intro: '从苏州老巷走到创业舞台，记录一个普通中国家庭的奋斗与传承。', category: '企业家', price: 0, isFree: true, status: 'approved', views: 1820, likes: 96, sales: 236, collects: 42, shares: 18, createdAt: '2026-09-08T15:56:57' },
+  { id: 'review-002', archiveId: 'archive-002', userId: 'u_demo_002', title: '山村教师王桂芬', author: '王建华', intro: '四十年讲台生涯，用知识点亮山村孩子的未来。', category: '教师', price: 9.9, isFree: false, status: 'approved', views: 860, likes: 54, sales: 45, collects: 12, shares: 8, createdAt: '2026-09-08T14:36:21' },
+  { id: 'review-003', archiveId: 'archive-003', userId: 'u_demo_003', title: '医者仁心：李华亭回忆录', author: '李文静', intro: '从赤脚医生到三甲医院专家，五十载悬壶济世的动人故事。', category: '医生', price: 19.9, isFree: false, status: 'pending', views: 0, likes: 0, sales: 0, collects: 6, shares: 0, createdAt: '2026-09-08T13:18:09' },
+  { id: 'review-004', archiveId: 'archive-004', userId: 'u_demo_004', title: '我的母亲周秀英', author: '周国强', intro: '一位普通农村母亲养育五个子女的艰辛与慈爱。', category: '家庭', price: 0, isFree: true, status: 'pending', views: 0, likes: 0, sales: 0, collects: 3, shares: 0, createdAt: '2026-09-08T11:42:10' },
+  { id: 'review-005', archiveId: 'archive-005', userId: 'u_demo_005', title: '铁血芳华：老兵陈建国', author: '陈志远', intro: '从战火纷飞到和平年代，一位老兵六十年不变的信仰与坚守。', category: '军人', price: 12.9, isFree: false, status: 'off_shelf', views: 1250, likes: 88, sales: 128, collects: 35, shares: 22, createdAt: '2026-09-08T10:21:32' },
+  { id: 'review-006', archiveId: 'archive-006', userId: 'u_demo_006', title: '匠心五十年：木匠徐长顺', author: '徐晓东', intro: '一把刨子、一根墨线，老木匠用双手量半个世纪的时光。', category: '工匠', price: 6.9, isFree: false, status: 'rejected', views: 0, likes: 0, sales: 0, collects: 2, shares: 0, createdAt: '2026-09-07T18:02:46' },
+];
+
+const mockReviewTimes: Record<string, string> = {
+  'review-001': '2026-09-08T16:18:22',
+  'review-002': '2026-09-08T15:02:14',
+  'review-005': '2026-09-08T11:06:45',
+  'review-006': '2026-09-07T19:20:31',
+};
+
+function formatReviewTime(book: PublicBook) {
+  if (book.status === 'pending') return '待审核';
+  const reviewTime = mockReviewTimes[book.id];
+  return reviewTime ? new Date(reviewTime).toLocaleString() : '—';
+}
+
+function createMockBiography(book: PublicBook): Biography {
+  return {
+    id: `bio-${book.id}`, archiveId: book.archiveId, title: book.title, style: 'warm', wordCount: 'standard', status: 'final', createdAt: book.createdAt, updatedAt: book.createdAt,
+    chapters: [
+      { id: `${book.id}-1`, order: 1, title: '故里童年 · 初心萌芽', content: `${book.title}\n${book.intro}\n\n从家庭环境到时代背景，从个人选择到人生转折，每一个细节都承载着岁月的痕迹，也折射出一个普通人的生命体验。`, images: [] },
+      { id: `${book.id}-2`, order: 2, title: '求学成长 · 岁月积淀', content: '求学与成长让主人公逐渐形成了自己的性格与信念。那些看似平常的选择，后来都成为人生中重要的坐标。', images: [] },
+      { id: `${book.id}-3`, order: 3, title: '家风人生 · 温情生活', content: '家庭始终是这段人生故事的底色。亲人的陪伴、家风的传承，以及对下一代的期许，共同组成了温暖而真实的生活。', images: [] },
+    ],
+  };
+}
+
 export default function BookReview() {
   const { addToast } = useToast();
-  const [books, setBooks] = useState<PublicBook[]>([]);
+  const [books, setBooks] = useState<PublicBook[]>(mockBooks);
   const [keyword, setKeyword] = useState('');
   const [statusFilter, setStatusFilter] = useState<PublicBook['status'] | 'all'>('all');
-  const [loading, setLoading] = useState(true);
+  const [loading] = useState(false);
   const [selectedBook, setSelectedBook] = useState<PublicBook | null>(null);
   const [selectedBiography, setSelectedBiography] = useState<Biography | null>(null);
   const [activeChapter, setActiveChapter] = useState(0);
@@ -37,54 +67,28 @@ export default function BookReview() {
   const [rejectReason, setRejectReason] = useState('');
   const [rejectingBook, setRejectingBook] = useState<PublicBook | null>(null);
 
-  const loadBooks = () => {
-    setLoading(true);
-    bookshelfApi
-      .adminList({ status: statusFilter, keyword })
-      .then(setBooks)
-      .catch(() => setBooks([]))
-      .finally(() => setLoading(false));
+  const visibleBooks = books.filter((book) => {
+    const matchesStatus = statusFilter === 'all' || book.status === statusFilter;
+    const query = keyword.trim().toLowerCase();
+    const matchesKeyword = !query || `${book.title} ${book.author} ${book.userId}`.toLowerCase().includes(query);
+    return matchesStatus && matchesKeyword;
+  });
+
+  const handleReview = (book: PublicBook, status: PublicBook['status']) => {
+    setBooks((current) => current.map((item) => item.id === book.id ? { ...item, status } : item));
+    addToast(status === 'approved' ? '已通过并上架' : status === 'rejected' ? '已拒绝上架' : status === 'off_shelf' ? '已下架' : '状态已更新', 'success');
+    setRejectingBook(null);
+    setRejectReason('');
+    setSelectedBook(null);
+    setSelectedBiography(null);
   };
 
-  // 全量列表仅用于顶部统计卡，避免随筛选条件变化
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    loadBooks();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    loadBooks();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter, keyword]);
-
-  const handleReview = async (book: PublicBook, status: BookReviewStatus) => {
-    try {
-      await bookshelfApi.review(book.id, status, rejectReason);
-      addToast(status === 'approved' ? '已通过上架' : status === 'rejected' ? '已拒绝上架' : '已下架', 'success');
-      setRejectingBook(null);
-      setRejectReason('');
-      setSelectedBook(null);
-      setSelectedBiography(null);
-      loadBooks();
-    } catch (err: any) {
-      addToast(err.message || '操作失败', 'error');
-    }
-  };
-
-  const openDetail = async (book: PublicBook) => {
+  const openDetail = (book: PublicBook) => {
     setSelectedBook(book);
     setActiveChapter(0);
     setBioLoading(true);
-    try {
-      const bio = await biographyApi.get(book.archiveId);
-      setSelectedBiography(bio);
-    } catch {
-      setSelectedBiography(null);
-    } finally {
-      setBioLoading(false);
-    }
+    setSelectedBiography(createMockBiography(book));
+    setBioLoading(false);
   };
 
   return (
@@ -118,7 +122,7 @@ export default function BookReview() {
         <div className="card-body book-review-list-body">
           {loading ? (
             <div className="book-review-empty">加载中…</div>
-          ) : books.length === 0 ? (
+          ) : visibleBooks.length === 0 ? (
             <div className="book-review-empty">暂无符合条件的申请</div>
           ) : (
             <div className="admin-table-wrap">
@@ -130,12 +134,13 @@ export default function BookReview() {
                   <th>分类</th>
                   <th>定价</th>
                   <th>状态</th>
-                  <th>申请时间</th>
+                  <th>提交时间</th>
+                  <th>审核时间</th>
                   <th>操作</th>
                 </tr>
               </thead>
               <tbody>
-              {books.map((book) => (
+              {visibleBooks.map((book) => (
                 <tr key={book.id}>
                   <td className="admin-table-text-left book-review-cell-info">
                     <div className="book-review-title">{book.title}</div>
@@ -155,6 +160,7 @@ export default function BookReview() {
                     </span>
                   </td>
                   <td className="book-review-cell-time">{new Date(book.createdAt).toLocaleString()}</td>
+                  <td className="book-review-cell-time">{formatReviewTime(book)}</td>
                   <td>
                     <button className="admin-table-link" onClick={() => openDetail(book)}>详情</button>
                     {book.status === 'pending' && (
@@ -191,12 +197,20 @@ export default function BookReview() {
                 <div className="book-review-detail-cover">
                   <div className="book-review-detail-cover-pattern" />
                   <div className="book-review-detail-cover-badge">
-                    <Bookmark size={14} /> 待审核传记
+                    <Bookmark size={14} /> {statusMap[selectedBook.status].label}传记
                   </div>
                 </div>
                 <div className="book-review-detail-sidebar-body">
-                  <div className="book-review-detail-avatar">
-                    <Avatar name={selectedBook.title.charAt(0)} size={72} />
+                  <div className="book-review-detail-book-cover" aria-label={`${selectedBook.title}书籍封面`}>
+                    {selectedBook.cover ? (
+                      <img src={selectedBook.cover} alt={`${selectedBook.title}封面`} />
+                    ) : (
+                      <>
+                        <BookOpen size={34} />
+                        <strong>{selectedBook.category}</strong>
+                        <span>传家世</span>
+                      </>
+                    )}
                   </div>
                   <h3 className="book-review-detail-title">{selectedBook.title}</h3>
                   <div className="book-review-detail-subtitle">
@@ -204,59 +218,6 @@ export default function BookReview() {
                     <span className="book-review-detail-dot" />
                     <span><Hash size={13} /> {selectedBook.category}</span>
                   </div>
-                  <div className="book-review-detail-tags">
-                    <span className={`book-status ${statusMap[selectedBook.status].className}`}>
-                      {statusMap[selectedBook.status].label}
-                    </span>
-                    {(selectedBook.occupationTags?.length ? selectedBook.occupationTags : [selectedBook.category]).map((tag) => (
-                      <span className="book-review-detail-tag" key={tag}>
-                        <Tag size={11} /> {tag}
-                      </span>
-                    ))}
-                    {selectedBook.lifeStageTags?.map((tag) => (
-                      <span className="book-review-detail-tag book-review-detail-tag-stage" key={tag}>
-                        <Tag size={11} /> {tag}
-                      </span>
-                    ))}
-                    {selectedBook.isFree ? (
-                      <span className="book-review-detail-tag book-review-detail-tag-free">免费公开</span>
-                    ) : (
-                      <span className="book-review-detail-tag book-review-detail-tag-price">¥{selectedBook.price.toFixed(2)}</span>
-                    )}
-                  </div>
-
-                  <div className="book-review-detail-stats">
-                    <div className="book-review-detail-stat">
-                      <Type size={16} />
-                      <div>
-                        <div className="book-review-detail-stat-value">
-                          {selectedBiography
-                            ? selectedBiography.chapters.reduce((sum, c) => sum + c.content.replace(/\s/g, '').length, 0).toLocaleString()
-                            : '--'}
-                        </div>
-                        <div className="book-review-detail-stat-label">总字数</div>
-                      </div>
-                    </div>
-                    <div className="book-review-detail-stat">
-                      <Bookmark size={16} />
-                      <div>
-                        <div className="book-review-detail-stat-value">{selectedBiography ? selectedBiography.chapters.length : '--'}</div>
-                        <div className="book-review-detail-stat-label">章节数</div>
-                      </div>
-                    </div>
-                    <div className="book-review-detail-stat">
-                      <Timer size={16} />
-                      <div>
-                        <div className="book-review-detail-stat-value">
-                          {selectedBiography
-                            ? `${Math.max(1, Math.ceil(selectedBiography.chapters.reduce((sum, c) => sum + c.content.replace(/\s/g, '').length, 0) / 300))} 分钟`
-                            : '--'}
-                        </div>
-                        <div className="book-review-detail-stat-label">阅读时长</div>
-                      </div>
-                    </div>
-                  </div>
-
                   <div className="book-review-detail-meta-list">
                     <div className="book-review-detail-meta-item">
                       <span className="book-review-detail-meta-label"><DollarSign size={13} /> 定价</span>
@@ -269,8 +230,12 @@ export default function BookReview() {
                       <span className="book-review-detail-meta-value">{selectedBook.userId}</span>
                     </div>
                     <div className="book-review-detail-meta-item">
-                      <span className="book-review-detail-meta-label"><Calendar size={13} /> 申请时间</span>
+                      <span className="book-review-detail-meta-label"><Calendar size={13} /> 提交时间</span>
                       <span className="book-review-detail-meta-value">{new Date(selectedBook.createdAt).toLocaleString()}</span>
+                    </div>
+                    <div className="book-review-detail-meta-item">
+                      <span className="book-review-detail-meta-label"><CheckCircle size={13} /> 审核时间</span>
+                      <span className="book-review-detail-meta-value">{formatReviewTime(selectedBook)}</span>
                     </div>
                   </div>
 
@@ -278,6 +243,10 @@ export default function BookReview() {
                     <div className="book-review-detail-intro-label">作品简介</div>
                     <p className="book-review-detail-intro-text">{selectedBook.intro || '暂无简介'}</p>
                   </div>
+
+                  {selectedBook.status === 'rejected' && (
+                    <div className="book-review-rejected-note">该传记暂未通过审核，可查看内容后重新提交。</div>
+                  )}
 
                   <div className="book-review-detail-actions">
                     {selectedBook.status === 'pending' && (
@@ -313,8 +282,8 @@ export default function BookReview() {
                   <div className="book-review-content-header-left">
                     <FileText size={20} />
                     <div>
-                      <h4>传记内容审核</h4>
-                      <p>请审阅正文内容，确认无误后再执行上架操作</p>
+                      <h4>传记内容预览</h4>
+                      <p>查看章节与正文内容，确认书籍具备上架条件</p>
                     </div>
                   </div>
                   {selectedBiography && (
@@ -393,11 +362,11 @@ export default function BookReview() {
                 确定拒绝「{rejectingBook.title}」的上架申请吗？
               </p>
               <div className="book-review-reject-field">
-                <label>拒绝原因（选填）</label>
+                <label>拒绝原因</label>
                 <textarea
                   value={rejectReason}
                   onChange={(e) => setRejectReason(e.target.value)}
-                  placeholder="如内容不符合规范、信息不完整等"
+                  placeholder="请填写拒绝原因，如内容不完整、信息不符合规范等"
                   rows={3}
                 />
               </div>

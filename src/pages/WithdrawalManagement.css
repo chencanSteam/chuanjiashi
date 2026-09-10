@@ -31,6 +31,57 @@
   padding: 16px 20px;
 }
 
+.withdrawal-role-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.withdrawal-role-tab {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 66px;
+  padding: 14px 18px;
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  background: var(--card-bg);
+  color: var(--text-secondary);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color .18s ease, background .18s ease, color .18s ease;
+}
+
+.withdrawal-role-tab:hover {
+  border-color: #8bb8a8;
+}
+
+.withdrawal-role-tab.active {
+  border-color: #1B5E4B;
+  background: rgba(27, 94, 75, 0.06);
+  color: #1B5E4B;
+}
+
+.withdrawal-role-tab-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.withdrawal-role-tab-count {
+  color: var(--text-muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.withdrawal-role-tab.active .withdrawal-role-tab-count {
+  color: #1B5E4B;
+}
+
 .withdrawal-filters {
   display: flex;
   align-items: center;
@@ -100,6 +151,10 @@
 }
 
 @media (max-width: 640px) {
+  .withdrawal-role-tabs {
+    grid-template-columns: 1fr;
+  }
+
   .withdrawal-stats {
     grid-template-columns: 1fr;
   }

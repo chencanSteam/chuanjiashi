@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Mic, Trash2, User, Plus, ChevronRight, UploadCloud, Download, Printer, QrCode } from 'lucide-react';
+import { BookOpen, Mic, Trash2, User, Plus, ChevronRight, UploadCloud, Download, Printer, QrCode, FileText, PenLine, Sparkles, UserPlus, type LucideIcon } from 'lucide-react';
 import Avatar from '../components/ui/Avatar';
 import { useToast } from '../hooks/useToast';
 import { archiveApi } from '../api/archive';
 import { orderApi } from '../api/order';
 import { paymentApi } from '../api/payment';
+import { bookshelfApi } from '../api/bookshelf';
 import PublishBookModal from '../components/PublishBookModal';
 import Modal from '../components/ui/Modal';
 import { getWorkStatus, type WorkStatus } from '../utils/works';
+import { loadReviewStates, loadWorkflowChapters } from '../utils/biographyWorkflow';
 import Annotate from '../components/annotation/Annotate';
 import './MyWorks.css';
 
@@ -111,6 +113,14 @@ export default function MyWorks() {
   const [paying, setPaying] = useState(false);
   const [qrWork, setQrWork] = useState<WorkItem | null>(null);
   const [paidMap, setPaidMap] = useState<Record<string, PaidServiceKey[]>>({});
+  const [briefReady, setBriefReady] = useState<Record<string, boolean>>({});
+  const refreshBookStatuses = async () => {
+    try {
+      await bookshelfApi.myList();
+    } catch {
+      // 书架状态仅用于刷新演示数据，不影响当前页面展示
+    }
+  };
 
   useEffect(() => {
     const load = async () => {
@@ -137,6 +147,7 @@ export default function MyWorks() {
         const paid: Record<string, PaidServiceKey[]> = {};
         items.forEach((w) => { paid[w.id] = loadPaidServices(w.id); });
         setPaidMap(paid);
+        await refreshBookStatuses();
       } catch {
         const legacyArchives = loadLegacyArchives();
         const items = legacyArchives.map((a) => ({ ...a, status: getWorkStatus(a.id) }));
@@ -145,6 +156,7 @@ export default function MyWorks() {
         const paid: Record<string, PaidServiceKey[]> = {};
         items.forEach((w) => { paid[w.id] = loadPaidServices(w.id); });
         setPaidMap(paid);
+        await refreshBookStatuses();
       } finally {
         // ignore
       }
@@ -238,6 +250,33 @@ export default function MyWorks() {
     }
   };
 
+  const openDraft = (work: WorkItem, draftKey: string) => {
+    localStorage.setItem('cj_current_archive_id', work.id);
+    if (draftKey === 'draft') navigate('/biography');
+    else if (draftKey === 'review') navigate('/biography/review');
+    else navigate('/biography/print');
+  };
+
+  const startReview = (work: WorkItem) => {
+    localStorage.setItem('cj_current_archive_id', work.id);
+    navigate('/biography/review');
+  };
+
+  const inviteSupplement = (work: WorkItem, draftName: string) => {
+    addToast(`已生成《${work.name}的传记》${draftName}补充邀请，可分享给家人朋友共同完善`, 'success');
+  };
+
+  const extractBrief = (work: WorkItem) => {
+    setBriefReady((prev) => ({ ...prev, [work.id]: true }));
+    try { localStorage.setItem(`cj_work_brief_${work.id}`, '1'); } catch { /* ignore */ }
+    addToast('已在终稿基础上提炼简稿（1000字以内 · 人生梗概）', 'success');
+  };
+
+  const isBriefGenerated = (workId: string) => {
+    if (briefReady[workId]) return true;
+    try { return localStorage.getItem(`cj_work_brief_${workId}`) === '1'; } catch { return false; }
+  };
+
   return (
     <div className="my-works-page">
       <header className="page-header">
@@ -262,9 +301,25 @@ export default function MyWorks() {
           {works.map((work) => {
             const earnings = mockEarnings(work.id);
             const setting = licenseSettings[work.id];
+            // 原型按作品完成状态展示收益：已完成的传记可展示 mock 收益，未完成作品不展示。
+            const showEarnings = work.status === '已完成';
             // 单价优先使用创作者实际设置的售价，取不到再退回 mock 伪随机
             const unitPrice = setting ? setting.price : earnings.price;
             const totalEarnings = earnings.sold * unitPrice;
+            // 稿件版本：初稿 / 校审稿为过程稿，最终沉淀终稿 / 简稿两个版本
+            const draftReady = work.status !== '采访进行中';
+            const reviewStates = loadReviewStates(work.id);
+            const reviewChapters = loadWorkflowChapters(work.id);
+            const reviewStarted = Object.values(reviewStates).some((state) => state.status === 'reviewing');
+            const finalReady = work.status === '已完成';
+            const reviewReady = finalReady || (reviewChapters.length > 0 && reviewChapters.every((chapter) => reviewStates[chapter.title]?.status === 'reviewed'));
+            const briefGenerated = isBriefGenerated(work.id);
+            const drafts: Array<{ key: string; name: string; process: boolean; icon: LucideIcon; desc: string; ready: boolean; invite?: boolean }> = [
+              { key: 'draft', name: '初稿', process: true, icon: FileText, desc: '所有篇章整合串联，统一时间线、统一文风、统一叙事逻辑', ready: draftReady, invite: true },
+              { key: 'review', name: '校审稿', process: true, icon: PenLine, desc: '逐字校对纠错、优化语句、补充细节、去除机械感，全文打磨至温润、庄重、有温度', ready: reviewReady, invite: true },
+              { key: 'final', name: '终稿', process: false, icon: BookOpen, desc: '八大篇章齐全 · 全人生记录', ready: finalReady },
+              { key: 'brief', name: '简稿', process: false, icon: Sparkles, desc: '1000字以内 · 人生梗概 · 极简留存', ready: briefGenerated },
+            ];
             return (
             <div className="card work-card" key={work.id}>
               <div className="card-body work-body">
@@ -279,30 +334,91 @@ export default function MyWorks() {
                 </Annotate>
                 <div className="work-extra">
                   <Annotate id="my-works.earnings">
-                  <div className="work-earnings">
-                    <div className="work-earnings-item">
-                      <span className="work-earnings-value">{earnings.sold}</span>
-                      <span className="work-earnings-label">售出份数</span>
+                  {showEarnings ? (
+                    <div className="work-earnings">
+                      <div className="work-earnings-item">
+                        <span className="work-earnings-value">{earnings.sold}</span>
+                        <span className="work-earnings-label">售出份数</span>
+                      </div>
+                      <div className="work-earnings-item">
+                        <span className="work-earnings-value">
+                          {setting?.isFree ? '免费' : `¥${unitPrice.toFixed(2)}`}
+                        </span>
+                        <span className="work-earnings-label">单价</span>
+                      </div>
+                      <div className="work-earnings-item">
+                        <span className="work-earnings-value work-earnings-total">
+                          ¥{totalEarnings.toFixed(2)}
+                        </span>
+                        <span className="work-earnings-label">累计收益</span>
+                      </div>
                     </div>
-                    <div className="work-earnings-item">
-                      <span className="work-earnings-value">
-                        {setting?.isFree ? '免费' : `¥${unitPrice.toFixed(2)}`}
+                  ) : (
+                    <div className="work-earnings-placeholder">
+                      <span className="work-earnings-placeholder-title">暂无收益数据</span>
+                      <span className="work-earnings-placeholder-label">
+                        {work.status === '已完成' ? '上架并审核通过后开始统计' : '完成传记并上架后开始统计'}
                       </span>
-                      <span className="work-earnings-label">单价</span>
                     </div>
-                    <div className="work-earnings-item">
-                      <span className="work-earnings-value work-earnings-total">
-                        ¥{totalEarnings.toFixed(2)}
-                      </span>
-                      <span className="work-earnings-label">累计收益</span>
-                    </div>
-                  </div>
+                  )}
                   </Annotate>
                   {work.status === '已完成' && setting && (
                     <div className="work-license-detail">
                       <span>{setting.isFree ? '免费公开' : `售价 ¥${setting.price.toFixed(2)}`} · 试看 {setting.trialWords} 字</span>
                     </div>
                   )}
+                </div>
+                <div className="work-drafts">
+                  <div className="work-drafts-header">
+                    <span className="work-drafts-title">稿件版本</span>
+                    <span className="work-drafts-tip">初稿、校审稿为过程稿，最终沉淀终稿与简稿两个版本</span>
+                  </div>
+                  <div className="work-drafts-grid">
+                    {drafts.map((draft) => (
+                      <div className="work-draft-item" key={draft.key}>
+                        <div className="work-draft-head">
+                          <draft.icon size={14} />
+                          <span className="work-draft-name">{draft.name}</span>
+                          <em className={`work-draft-tag ${draft.process ? 'process' : 'final'}`}>
+                            {draft.process ? '过程稿' : '最终版'}
+                          </em>
+                        </div>
+                        <p className="work-draft-desc">{draft.desc}</p>
+                        <div className="work-draft-foot">
+                          {draft.key === 'brief' ? (
+                            briefGenerated ? (
+                              <>
+                                <span className="work-draft-status ready">已生成 · 986 字</span>
+                                <button type="button" className="work-draft-btn" onClick={() => openDraft(work, draft.key)}>查看</button>
+                              </>
+                            ) : finalReady ? (
+                              <button type="button" className="work-draft-btn primary" onClick={() => extractBrief(work)}>
+                                <Sparkles size={12} /> 从终稿提炼
+                              </button>
+                            ) : (
+                              <span className="work-draft-status">待终稿生成后提炼</span>
+                            )
+                          ) : draft.key === 'review' && draftReady && !reviewReady ? (
+                            <button type="button" className="work-draft-btn primary" onClick={() => startReview(work)}>
+                              <PenLine size={12} /> {reviewStarted ? '继续校审' : '开始校审'}
+                            </button>
+                          ) : draft.ready ? (
+                            <>
+                              <span className="work-draft-status ready">已生成</span>
+                              <button type="button" className="work-draft-btn" onClick={() => openDraft(work, draft.key)}>查看</button>
+                              {draft.invite && (
+                                <button type="button" className="work-draft-btn" onClick={() => inviteSupplement(work, draft.name)}>
+                                  <UserPlus size={12} /> 邀请补充
+                                </button>
+                              )}
+                            </>
+                          ) : (
+                            <span className="work-draft-status">未生成</span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
                 <Annotate id="my-works.work-actions">
                 <div className="work-actions">
@@ -417,6 +533,7 @@ export default function MyWorks() {
             occupation: publishingWork.occupation,
           }}
           onClose={() => setPublishingWork(null)}
+          onPublished={refreshBookStatuses}
         />
       )}
     </div>

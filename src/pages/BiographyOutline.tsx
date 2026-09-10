@@ -5,6 +5,7 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronUp,
+  ChevronRight,
   Circle,
   Plus,
   RefreshCw,
@@ -56,6 +57,7 @@ export default function BiographyOutline() {
 
   /** 确认后又发生修改，则为 true（需重新确认） */
   const [dirty, setDirty] = useState(false);
+  const [isEditing, setIsEditing] = useState(() => loadOutline(archiveId)?.status !== 'confirmed');
 
   const assignedTitles = new Set(outline.chapters.flatMap((c) => c.eventTitles));
   const unassignedEvents = timelineEvents.filter((e) => !assignedTitles.has(e.title));
@@ -63,6 +65,7 @@ export default function BiographyOutline() {
   const markEdited = (next: BiographyOutline) => {
     setOutline(next);
     setDirty(next.status === 'confirmed');
+    setIsEditing(true);
   };
 
   const updateChapter = (id: string, patch: Partial<BiographyOutline['chapters'][number]>) => {
@@ -126,7 +129,14 @@ export default function BiographyOutline() {
     if (!window.confirm('AI 将基于当前已确认的时间轴素材重新规划大纲，现有编辑会被覆盖，继续吗？')) return;
     setOutline(buildDraftOutline(archiveId, outline));
     setDirty(true);
+    setIsEditing(true);
     addToast('AI 已重新生成大纲草案，请确认后生效', 'success');
+  };
+
+  const startNewBiography = () => {
+    setOutline(buildDraftOutline(archiveId));
+    setDirty(false);
+    setIsEditing(true);
   };
 
   const confirmOutline = () => {
@@ -143,13 +153,34 @@ export default function BiographyOutline() {
     saveOutline(archiveId, next);
     setOutline(next);
     setDirty(false);
+    setIsEditing(false);
     addToast(`大纲 v${next.version} 已确认，生成传记时将按此结构生成`, 'success');
   };
+
+  if (!isEditing && !dirty) {
+    return (
+      <div className="outline-page">
+        <header className="page-header outline-record-header">
+          <div><h1 className="page-title">传记提纲</h1></div>
+          <button className="btn btn-primary" onClick={startNewBiography}><Plus size={14} /> 创建新传记</button>
+        </header>
+        <section className="outline-list-card card">
+          <div className="outline-list-head"><div><h2>传记提纲列表</h2><p>点击记录进入详情，可继续编辑和确认提纲。</p></div><span>共 1 条</span></div>
+          <button className="outline-list-row" onClick={() => setIsEditing(true)}>
+            <span className="outline-list-icon"><BookOpen size={16} /></span>
+            <span className="outline-list-main"><strong>{archiveName}的传记提纲</strong><small>{outline.status === 'confirmed' ? '最近更新：' : '当前状态：草稿 · 更新于：'}{outline.updatedAt}</small></span>
+            <span className="outline-list-meta">{outline.chapters.length} 个章节 · {timelineEvents.length} 条时间轴素材</span>
+            <ChevronRight size={17} />
+          </button>
+        </section>
+      </div>
+    );
+  }
 
   return (
     <div className="outline-page">
       <header className="page-header">
-        <h1 className="page-title">传记大纲 · {archiveName}</h1>
+        <h1 className="page-title">传记提纲</h1>
         <div className="page-actions">
           <Annotate id="biography-outline.rebuild" inline>
           <button className="btn btn-outline" onClick={rebuildDraft}>
@@ -189,17 +220,52 @@ export default function BiographyOutline() {
       </p>
 
       <Annotate id="biography-outline.chapters">
-      <div className="outline-chapters">
-        {outline.chapters.map((chapter, index) => (
-          <div className="card outline-chapter" key={chapter.id}>
-            <div className="outline-chapter-head">
-              <span className="outline-chapter-no">{String(index + 1).padStart(2, '0')}</span>
-              <input
-                className="outline-chapter-title"
-                value={chapter.title}
-                placeholder="章节名称"
-                onChange={(e) => updateChapter(chapter.id, { title: e.target.value })}
+      <div className="card outline-table-card">
+        <div className="outline-table-toolbar">
+          <div>
+            <h2>章节列表</h2>
+            <span>共 {outline.chapters.length} 个章节 · 可直接编辑提纲内容</span>
+          </div>
+          <button className="btn btn-outline" onClick={addChapter}>
+            <Plus size={14} /> 添加章节
+          </button>
+        </div>
+        <div className="outline-table-head">
+          <span>章节</span>
+          <span>本章主旨</span>
+          <span>关联素材</span>
+          <span>操作</span>
+        </div>
+        <div className="outline-table-body">
+          {outline.chapters.map((chapter, index) => (
+            <div className="outline-table-row" key={chapter.id}>
+              <div className="outline-table-chapter">
+                <span className="outline-chapter-no">{String(index + 1).padStart(2, '0')}</span>
+                <input
+                  className="outline-chapter-title"
+                  value={chapter.title}
+                  placeholder="章节名称"
+                  onChange={(e) => updateChapter(chapter.id, { title: e.target.value })}
+                />
+              </div>
+              <textarea
+                className="outline-chapter-summary"
+                value={chapter.summary}
+                placeholder="填写本章主旨"
+                rows={2}
+                onChange={(e) => updateChapter(chapter.id, { summary: e.target.value })}
               />
+              <div className="outline-chapter-events">
+                {chapter.eventTitles.length === 0 && <span className="outline-event-empty">暂无关联素材</span>}
+                {chapter.eventTitles.map((title) => (
+                  <span className="outline-event-chip" key={title}>
+                    {title}
+                    <button className="chip-x" title="移出本章" onClick={() => unassignEvent(chapter.id, title)}>
+                      <X size={11} />
+                    </button>
+                  </span>
+                ))}
+              </div>
               <div className="outline-chapter-actions">
                 <button className="icon-btn" title="上移" disabled={index === 0} onClick={() => moveChapter(index, -1)}>
                   <ChevronUp size={15} />
@@ -212,30 +278,8 @@ export default function BiographyOutline() {
                 </button>
               </div>
             </div>
-            <textarea
-              className="outline-chapter-summary"
-              value={chapter.summary}
-              placeholder="本章主旨（AI 生成正文时作为写作指引）"
-              rows={2}
-              onChange={(e) => updateChapter(chapter.id, { summary: e.target.value })}
-            />
-            <div className="outline-chapter-events">
-              {chapter.eventTitles.length === 0 && <span className="outline-event-empty">暂无关联素材</span>}
-              {chapter.eventTitles.map((title) => (
-                <span className="outline-event-chip" key={title}>
-                  {title}
-                  <button className="chip-x" title="移出本章" onClick={() => unassignEvent(chapter.id, title)}>
-                    <X size={11} />
-                  </button>
-                </span>
-              ))}
-            </div>
-          </div>
-        ))}
-
-        <button className="btn btn-outline outline-add-btn" onClick={addChapter}>
-          <Plus size={14} /> 添加章节
-        </button>
+          ))}
+        </div>
       </div>
       </Annotate>
 

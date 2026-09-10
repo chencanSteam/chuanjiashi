@@ -1,250 +1,380 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Tags, Plus, X as XIcon, Search } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Check, Edit3, Plus, RefreshCw, Search, Tags, Trash2, X } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
-import { dictionaryApi } from '../api/dictionary';
-import type { DictionaryItem, DictionaryType } from '../mocks/types';
+import { industryOccupations } from '../data/occupations';
 import './AdminDictionary.css';
 
-const PAGE_SIZE = 20;
+type DictionaryLevel = '行业' | '职业';
 
-interface DictSectionProps {
-  type: DictionaryType;
-  title: string;
-  desc: string;
+type DictionaryItem = {
+  id: string;
+  name: string;
+  code: string;
+  parent: string;
+  level: DictionaryLevel;
+  enabled: boolean;
+  updatedAt: string;
+};
+
+type DictionaryForm = {
+  name: string;
+  level: DictionaryLevel;
+  parent: string;
+};
+
+const STORAGE_KEY = 'cj_admin_dictionary_rows';
+
+function createInitialItems(): DictionaryItem[] {
+  const items: DictionaryItem[] = [];
+  Object.entries(industryOccupations).forEach(([industry, occupations], industryIndex) => {
+    const industryCode = 'INDUSTRY_' + String(industryIndex + 1).padStart(2, '0');
+    items.push({
+      id: 'industry-' + (industryIndex + 1),
+      name: industry,
+      code: industryCode,
+      parent: '—',
+      level: '行业',
+      enabled: true,
+      updatedAt: '2026-09-08 10:30:00',
+    });
+
+    occupations.forEach((occupation, occupationIndex) => {
+      items.push({
+        id: 'occupation-' + (industryIndex + 1) + '-' + (occupationIndex + 1),
+        name: occupation,
+        code:
+          'JOB_' +
+          String(industryIndex + 1).padStart(2, '0') +
+          '_' +
+          String(occupationIndex + 1).padStart(2, '0'),
+        parent: industry,
+        level: '职业',
+        enabled: true,
+        updatedAt: '2026-09-08 10:30:00',
+      });
+    });
+  });
+  return items;
 }
 
-function DictSection({ type, title, desc }: DictSectionProps) {
-  const { addToast } = useToast();
-  const isSensitive = type === 'sensitive_words';
-  const [items, setItems] = useState<DictionaryItem[]>([]);
+function loadItems(): DictionaryItem[] {
+  try {
+    const saved = window.localStorage.getItem(STORAGE_KEY);
+    if (saved) return JSON.parse(saved) as DictionaryItem[];
+  } catch {
+    // 原型环境下读取失败时直接使用默认 mock 数据。
+  }
+  return createInitialItems();
+}
+
+function getNowText() {
+  return new Intl.DateTimeFormat('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date()).replaceAll('/', '-');
+}
+
+export default function AdminDictionary() {
+  const { addToast: showToast } = useToast();
+  const [items, setItems] = useState<DictionaryItem[]>(loadItems);
   const [keyword, setKeyword] = useState('');
-  const [page, setPage] = useState(1);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editing, setEditing] = useState<DictionaryItem | null>(null);
-  const [label, setLabel] = useState('');
-  const [level, setLevel] = useState<1 | 2>(1);
-  const [submitting, setSubmitting] = useState(false);
+  const [levelFilter, setLevelFilter] = useState<'all' | DictionaryLevel>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'enabled' | 'disabled'>('all');
+  const [modal, setModal] = useState<DictionaryItem | 'create' | null>(null);
+  const [form, setForm] = useState<DictionaryForm>({
+    name: '',
+    level: '行业',
+    parent: '',
+  });
 
-  const load = useCallback(() => {
-    dictionaryApi.adminList(type).then(setItems).catch(() => setItems([]));
-  }, [type]);
+  const industries = useMemo(
+    () => items.filter((item) => item.level === '行业'),
+    [items],
+  );
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  const filteredItems = useMemo(() => {
+    const normalizedKeyword = keyword.trim().toLowerCase();
+    return items.filter((item) => {
+      const matchedKeyword =
+        !normalizedKeyword ||
+        item.name.toLowerCase().includes(normalizedKeyword) ||
+        item.code.toLowerCase().includes(normalizedKeyword) ||
+        item.parent.toLowerCase().includes(normalizedKeyword);
+      const matchedLevel = levelFilter === 'all' || item.level === levelFilter;
+      const matchedStatus =
+        statusFilter === 'all' ||
+        (statusFilter === 'enabled' && item.enabled) ||
+        (statusFilter === 'disabled' && !item.enabled);
+      return matchedKeyword && matchedLevel && matchedStatus;
+    });
+  }, [items, keyword, levelFilter, statusFilter]);
 
-  const filtered = useMemo(() => {
-    const q = keyword.trim();
-    return q ? items.filter((item) => item.label.includes(q)) : items;
-  }, [items, keyword]);
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const currentPage = Math.min(page, totalPages);
-  const pageItems = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const persist = (nextItems: DictionaryItem[]) => {
+    setItems(nextItems);
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(nextItems));
+  };
 
   const openCreate = () => {
-    setEditing(null);
-    setLabel('');
-    setLevel(1);
-    setModalOpen(true);
+    setForm({ name: '', level: '行业', parent: industries[0]?.name ?? '' });
+    setModal('create');
   };
 
   const openEdit = (item: DictionaryItem) => {
-    setEditing(item);
-    setLabel(item.label);
-    setLevel(item.level ?? 1);
-    setModalOpen(true);
+    setForm({ name: item.name, level: item.level, parent: item.parent === '—' ? '' : item.parent });
+    setModal(item);
   };
 
-  const closeModal = () => {
-    setModalOpen(false);
-    setEditing(null);
-    setLabel('');
-    setLevel(1);
-  };
+  const closeModal = () => setModal(null);
 
-  const save = async () => {
-    if (!label.trim()) {
-      addToast('请填写名称', 'error');
+  const saveItem = () => {
+    const name = form.name.trim();
+    if (!name) {
+      showToast('请输入字典项名称', 'error');
       return;
     }
-    try {
-      setSubmitting(true);
-      if (editing) await dictionaryApi.update(editing.id, label, isSensitive ? level : undefined);
-      else await dictionaryApi.create(type, label, isSensitive ? level : undefined);
-      addToast(editing ? '已更新' : '已新增', 'success');
-      closeModal();
-      load();
-    } catch (err: any) {
-      addToast(err.message || '保存失败', 'error');
-    } finally {
-      setSubmitting(false);
+    if (form.level === '职业' && !form.parent) {
+      showToast('请选择所属行业', 'error');
+      return;
     }
+
+    const editingId = typeof modal === 'object' && modal ? modal.id : '';
+    const duplicate = items.some(
+      (item) =>
+        item.id !== editingId &&
+        item.name === name &&
+        item.level === form.level &&
+        (form.level === '行业' || item.parent === form.parent),
+    );
+    if (duplicate) {
+      showToast('相同层级下已存在同名字典项', 'error');
+      return;
+    }
+
+    if (modal === 'create') {
+      const sameLevelCount = items.filter((item) => item.level === form.level).length + 1;
+      const prefix = form.level === '行业' ? 'INDUSTRY' : 'JOB';
+      const newItem: DictionaryItem = {
+        id: form.level + '-' + Date.now(),
+        name,
+        code: prefix + '_' + String(sameLevelCount).padStart(2, '0'),
+        parent: form.level === '行业' ? '—' : form.parent,
+        level: form.level,
+        enabled: true,
+        updatedAt: getNowText(),
+      };
+      persist([...items, newItem]);
+      showToast('字典项已新增', 'success');
+    } else if (modal) {
+      persist(
+        items.map((item) =>
+          item.id === modal.id
+            ? {
+                ...item,
+                name,
+                level: form.level,
+                parent: form.level === '行业' ? '—' : form.parent,
+                updatedAt: getNowText(),
+              }
+            : item,
+        ),
+      );
+      showToast('字典项已保存', 'success');
+    }
+    closeModal();
   };
 
-  const toggle = async (item: DictionaryItem) => {
-    try {
-      await dictionaryApi.updateStatus(item.id, !item.enabled);
-      load();
-    } catch (err: any) {
-      addToast(err.message || '状态更新失败', 'error');
-    }
+  const toggleItem = (item: DictionaryItem) => {
+    persist(
+      items.map((current) =>
+        current.id === item.id
+          ? { ...current, enabled: !current.enabled, updatedAt: getNowText() }
+          : current,
+      ),
+    );
+    showToast(item.enabled ? '字典项已停用' : '字典项已启用', 'success');
   };
 
-  const remove = async (item: DictionaryItem) => {
-    if (!window.confirm(`确定删除“${item.label}”吗？`)) return;
-    try {
-      await dictionaryApi.remove(item.id);
-      addToast('已删除', 'success');
-      load();
-    } catch (err: any) {
-      addToast(err.message || '删除失败', 'error');
-    }
+  const removeItem = (item: DictionaryItem) => {
+    const nextItems =
+      item.level === '行业'
+        ? items.filter((current) => current.id !== item.id && current.parent !== item.name)
+        : items.filter((current) => current.id !== item.id);
+    persist(nextItems);
+    showToast(item.level === '行业' ? '行业及其职业已删除' : '字典项已删除', 'success');
   };
 
   return (
-    <div className="card admin-dict-section">
-      <div className="card-header admin-dict-header">
+    <div className="admin-dict-page">
+      <div className="admin-dict-page-header">
         <div>
-          <h3 className="card-title"><Tags size={16} /> {title}<span className="admin-dict-count">共 {items.length} 条</span></h3>
-          <p className="admin-dict-desc">{desc}</p>
+          <h1>数据字典</h1>
+          <p className="admin-dict-page-desc">统一维护系统中的行业、职业等基础选项。</p>
         </div>
-        <div className="admin-dict-tools">
-          <div className="admin-dict-search">
-            <Search size={13} />
-            <input
-              type="text"
-              placeholder="搜索名称…"
-              value={keyword}
-              onChange={(e) => { setKeyword(e.target.value); setPage(1); }}
-            />
-          </div>
-          <button className="btn btn-primary btn-sm" onClick={openCreate}><Plus size={14} /> 新增</button>
-        </div>
-      </div>
-      <div className="card-body admin-dict-body">
-        <table className="admin-dict-table">
-          <thead>
-            <tr>
-              <th className="admin-dict-col-no">序号</th>
-              <th>名称</th>
-              {isSensitive && <th className="admin-dict-col-level">级别</th>}
-              <th className="admin-dict-col-status">状态</th>
-              <th className="admin-dict-col-actions">操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            {pageItems.length === 0 ? (
-              <tr><td colSpan={isSensitive ? 5 : 4} className="admin-dict-empty">{keyword ? '没有匹配的结果' : '暂无数据，点击右上角「新增」创建'}</td></tr>
-            ) : pageItems.map((item) => (
-              <tr key={item.id}>
-                <td className="admin-dict-col-no">{item.order}</td>
-                <td>{item.label}</td>
-                {isSensitive && (
-                  <td className="admin-dict-col-level">
-                    <span className={`admin-dict-level level-${item.level ?? 1}`}>
-                      {item.level === 2 ? '二级 · 仅自己可见' : '一级 · 直接拦截'}
-                    </span>
-                  </td>
-                )}
-                <td className="admin-dict-col-status">
-                  <span className={`admin-dict-status ${item.enabled ? 'enabled' : 'disabled'}`}>
-                    {item.enabled ? '已启用' : '已停用'}
-                  </span>
-                </td>
-                <td className="admin-dict-col-actions">
-                  <button className="admin-dict-link" onClick={() => openEdit(item)}>编辑</button>
-                  <button className="admin-dict-link" onClick={() => toggle(item)}>{item.enabled ? '停用' : '启用'}</button>
-                  <button className="admin-dict-link danger" onClick={() => remove(item)}>删除</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {totalPages > 1 && (
-          <div className="admin-dict-pagination">
-            <span>第 {currentPage} / {totalPages} 页</span>
-            <button className="admin-dict-link" disabled={currentPage <= 1} onClick={() => setPage(currentPage - 1)}>上一页</button>
-            <button className="admin-dict-link" disabled={currentPage >= totalPages} onClick={() => setPage(currentPage + 1)}>下一页</button>
-          </div>
-        )}
       </div>
 
-      {modalOpen && (
-        <div className="modal-overlay" onClick={closeModal}>
-          <div className="modal-content admin-dict-modal" onClick={(e) => e.stopPropagation()}>
+      <section className="admin-dict-card">
+        <div className="admin-dict-toolbar">
+          <div className="admin-dict-search">
+            <Search size={16} />
+            <input
+              value={keyword}
+              onChange={(event) => setKeyword(event.target.value)}
+              placeholder="搜索名称、编码、上级字典"
+            />
+          </div>
+          <select value={levelFilter} onChange={(event) => setLevelFilter(event.target.value as typeof levelFilter)}>
+            <option value="all">全部层级</option>
+            <option value="行业">行业</option>
+            <option value="职业">职业</option>
+          </select>
+          <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)}>
+            <option value="all">全部状态</option>
+            <option value="enabled">已启用</option>
+            <option value="disabled">已停用</option>
+          </select>
+          <div className="admin-dict-toolbar-actions">
+            <button
+              type="button"
+              className="admin-dict-light-button"
+              onClick={() => {
+                setKeyword('');
+                setLevelFilter('all');
+                setStatusFilter('all');
+                setItems(loadItems());
+              }}
+            >
+              <RefreshCw size={14} />
+              重置
+            </button>
+            <button type="button" className="admin-dict-primary-button" onClick={openCreate}>
+              <Plus size={15} />
+              新增字典项
+            </button>
+          </div>
+        </div>
+
+        <div className="admin-dict-table-head">
+          <span>字典项</span>
+          <span>编码</span>
+          <span>层级</span>
+          <span>上级字典</span>
+          <span>状态</span>
+          <span>更新时间</span>
+          <span>操作</span>
+        </div>
+
+        {filteredItems.length > 0 ? (
+          <div className="admin-dict-table-body">
+            {filteredItems.map((item, index) => (
+              <div className="admin-dict-table-row" key={item.id}>
+                <div className="admin-dict-name">
+                  <span>{String(index + 1).padStart(2, '0')}</span>
+                  <Tags size={15} />
+                  <strong>{item.name}</strong>
+                </div>
+                <span className="admin-dict-code">{item.code}</span>
+                <span>{item.level}</span>
+                <span className="admin-dict-muted">{item.parent}</span>
+                <span className={'admin-dict-status ' + (item.enabled ? 'enabled' : 'disabled')}>
+                  {item.enabled ? '已启用' : '已停用'}
+                </span>
+                <span className="admin-dict-muted">{item.updatedAt}</span>
+                <div className="admin-dict-actions">
+                  <button type="button" className="admin-dict-link" onClick={() => openEdit(item)}>
+                    <Edit3 size={13} />
+                    编辑
+                  </button>
+                  <button type="button" className="admin-dict-link" onClick={() => toggleItem(item)}>
+                    <Check size={13} />
+                    {item.enabled ? '停用' : '启用'}
+                  </button>
+                  <button type="button" className="admin-dict-link danger" onClick={() => removeItem(item)}>
+                    <Trash2 size={13} />
+                    删除
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="admin-dict-empty">没有符合条件的字典项</div>
+        )}
+
+        <div className="admin-dict-table-footer">
+          共 {filteredItems.length} 条，行业 {items.filter((item) => item.level === '行业').length} 个，职业{' '}
+          {items.filter((item) => item.level === '职业').length} 个
+        </div>
+      </section>
+
+      {modal && (
+        <div className="modal-overlay admin-dict-modal-overlay" onClick={closeModal}>
+          <div className="modal-content admin-dict-modal" onClick={(event) => event.stopPropagation()}>
             <div className="modal-header">
-              <h4>{editing ? `编辑${title}` : `新增${title}`}</h4>
-              <button className="modal-close" onClick={closeModal}><XIcon size={16} /></button>
+              <h3>{modal === 'create' ? '新增字典项' : '编辑字典项'}</h3>
+              <button type="button" className="modal-close" onClick={closeModal} aria-label="关闭">
+                <X size={17} />
+              </button>
             </div>
             <div className="modal-body">
               <div className="admin-dict-form-row">
-                <label htmlFor={`admin-dict-label-${type}`}>名称</label>
+                <label htmlFor="dictionary-name">名称</label>
                 <input
-                  id={`admin-dict-label-${type}`}
-                  type="text"
-                  maxLength={20}
-                  value={label}
-                  onChange={(e) => setLabel(e.target.value)}
-                  placeholder="请输入名称"
+                  id="dictionary-name"
+                  value={form.name}
+                  onChange={(event) => setForm({ ...form, name: event.target.value })}
+                  placeholder="请输入字典项名称"
+                  autoFocus
                 />
               </div>
-              {isSensitive && (
-                <div className="admin-dict-form-row" style={{ marginTop: 12 }}>
-                  <label htmlFor={`admin-dict-level-${type}`}>级别</label>
+              <div className="admin-dict-form-row">
+                <label htmlFor="dictionary-level">层级</label>
+                <select
+                  id="dictionary-level"
+                  value={form.level}
+                  onChange={(event) =>
+                    setForm({
+                      ...form,
+                      level: event.target.value as DictionaryLevel,
+                      parent: event.target.value === '行业' ? '' : industries[0]?.name ?? '',
+                    })
+                  }
+                >
+                  <option value="行业">行业</option>
+                  <option value="职业">职业</option>
+                </select>
+              </div>
+              {form.level === '职业' && (
+                <div className="admin-dict-form-row">
+                  <label htmlFor="dictionary-parent">所属行业</label>
                   <select
-                    id={`admin-dict-level-${type}`}
-                    value={level}
-                    onChange={(e) => setLevel(Number(e.target.value) as 1 | 2)}
+                    id="dictionary-parent"
+                    value={form.parent}
+                    onChange={(event) => setForm({ ...form, parent: event.target.value })}
                   >
-                    <option value={1}>一级 · 命中后不可上传，直接拦截</option>
-                    <option value={2}>二级 · 可上传但仅自己可见，不对外展示</option>
+                    <option value="">请选择所属行业</option>
+                    {industries.map((industry) => (
+                      <option key={industry.id} value={industry.name}>
+                        {industry.name}
+                      </option>
+                    ))}
                   </select>
                 </div>
               )}
-              <button className="btn btn-primary" style={{ width: '100%', marginTop: 8 }} disabled={submitting} onClick={save}>
-                {submitting ? '保存中…' : editing ? '保存修改' : '确认新增'}
-              </button>
+              <div className="admin-dict-modal-actions">
+                <button type="button" className="admin-dict-light-button" onClick={closeModal}>
+                  取消
+                </button>
+                <button type="button" className="admin-dict-primary-button" onClick={saveItem}>
+                  保存
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-const DICT_GROUPS: { type: DictionaryType; title: string; desc: string }[] = [
-  { type: 'book_occupation', title: '职业标签', desc: '用户上架传记时可多选的职业标签，停用后不再出现在上架弹窗中。' },
-  { type: 'book_life_stage', title: '人生阶段标签', desc: '用户上架传记时可多选的人生阶段标签，停用后不再出现在上架弹窗中。' },
-  { type: 'sensitive_words', title: '敏感词库', desc: '评论与上架申请的内容将按启用中的敏感词拦截，停用后该词不再拦截。' },
-];
-
-export default function AdminDictionary() {
-  const [activeType, setActiveType] = useState<DictionaryType>('book_occupation');
-  const active = DICT_GROUPS.find((g) => g.type === activeType) || DICT_GROUPS[0];
-
-  return (
-    <div className="admin-dict-page">
-      <header className="page-header">
-        <h1 className="page-title">数据字典</h1>
-      </header>
-      <div className="admin-dict-layout">
-        <div className="card admin-dict-nav">
-          {DICT_GROUPS.map((group) => (
-            <button
-              type="button"
-              key={group.type}
-              className={`admin-dict-nav-item ${activeType === group.type ? 'active' : ''}`}
-              onClick={() => setActiveType(group.type)}
-            >
-              {group.title}
-            </button>
-          ))}
-        </div>
-        <div className="admin-dict-main">
-          <DictSection key={active.type} type={active.type} title={active.title} desc={active.desc} />
-        </div>
-      </div>
     </div>
   );
 }

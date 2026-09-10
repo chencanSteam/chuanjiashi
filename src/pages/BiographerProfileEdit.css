@@ -99,6 +99,24 @@
   box-shadow: 0 0 0 3px rgba(45, 122, 102, 0.08);
 }
 
+.biographer-edit-cascade {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.biographer-edit-cascade select {
+  width: 100%;
+  min-width: 0;
+}
+
+.biographer-edit-cascade select:disabled,
+.biographer-edit-field input:disabled {
+  background: #f5f6f7;
+  color: #374151;
+  cursor: not-allowed;
+}
+
 .biographer-edit-field textarea {
   resize: vertical;
   min-height: 100px;
@@ -139,8 +157,27 @@
   margin-top: 8px;
 }
 
-.biographer-edit-tag-input input {
+.biographer-edit-tag-input input,
+.biographer-edit-tag-input select {
   flex: 1;
+  min-width: 0;
+  height: 38px;
+  padding: 0 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+  font: inherit;
+  outline: none;
+}
+
+.biographer-edit-tag-input select:disabled {
+  background: #f5f6f7;
+  color: #9ca3af;
+}
+
+.biographer-edit-tag-input button:disabled {
+  opacity: .5;
+  cursor: not-allowed;
 }
 
 .biographer-edit-certificates {

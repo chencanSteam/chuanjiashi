@@ -1,6 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   BookOpen,
+  Download,
+  ImagePlus,
   Plus,
   ArrowUp,
   ArrowDown,
@@ -26,6 +28,7 @@ interface WorkChapter {
   /** done = 已完成（手动标记）；有内容未标记 = 撰写中；无内容 = 未撰写 */
   done: boolean;
   updatedAt: string | null;
+  images?: string[];
 }
 
 type ChapterStatus = 'empty' | 'draft' | 'done';
@@ -64,6 +67,7 @@ function seedChapters(): WorkChapter[] {
     content: sampleParagraphs[title] || '',
     done: false,
     updatedAt: sampleParagraphs[title] ? new Date(Date.now() - (i + 1) * 86400000).toISOString() : null,
+    images: [],
   }));
 }
 
@@ -94,6 +98,7 @@ export default function BiographerWorks() {
   const [renaming, setRenaming] = useState<WorkChapter | null>(null);
   const [renameValue, setRenameValue] = useState('');
   const [deleting, setDeleting] = useState<WorkChapter | null>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   // 加载某订单的传记章节（无则按模板初始化）
   const selectOrder = (orderId: string) => {
@@ -158,6 +163,49 @@ export default function BiographerWorks() {
     }, 1200);
   };
 
+  const handleDownload = () => {
+    if (!activeOrder || chapters.length === 0) return;
+    const text = chapters
+      .map((chapter, index) => `第${index + 1}章  ${chapter.title}\n\n${chapter.content || '（本章暂无内容）'}`)
+      .join('\n\n========================================\n\n');
+    const blob = new Blob([`《${activeOrder.customerName || '传记'}的传记》\n\n${text}`], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${activeOrder.customerName || '传记'}-传记稿件.txt`;
+    link.click();
+    URL.revokeObjectURL(url);
+    addToast('传记稿件已下载', 'success');
+  };
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    if (!activeChapter || files.length === 0) return;
+    const readFile = (file: File) => new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+    try {
+      const images = await Promise.all(files.map(readFile));
+      updateChapter(activeChapter.id, { images: [...(activeChapter.images || []), ...images], updatedAt: new Date().toISOString() });
+      addToast(`已上传 ${images.length} 张图片`, 'success');
+    } catch {
+      addToast('图片上传失败', 'error');
+    } finally {
+      event.target.value = '';
+    }
+  };
+
+  const removeChapterImage = (imageIndex: number) => {
+    if (!activeChapter) return;
+    updateChapter(activeChapter.id, {
+      images: (activeChapter.images || []).filter((_, index) => index !== imageIndex),
+      updatedAt: new Date().toISOString(),
+    });
+  };
+
   const addChapter = () => {
     const chapter: WorkChapter = { id: genId(), title: `新章节 ${chapters.length + 1}`, content: '', done: false, updatedAt: null };
     persist([...chapters, chapter]);
@@ -215,13 +263,18 @@ export default function BiographerWorks() {
           <p className="page-subtitle">选择进行中的订单，撰写和修改传记章节内容</p>
         </div>
         {activeOrder && (
-          <div className="work-order-picker">
-            <BookOpen size={15} />
-            <select value={activeOrderId} onChange={(e) => selectOrder(e.target.value)}>
-              {orders.map((o) => (
-                <option value={o.id} key={o.id}>{o.serviceName} · {o.customerName || o.userId}</option>
-              ))}
-            </select>
+          <div className="work-header-actions">
+            <div className="work-order-picker">
+              <BookOpen size={15} />
+              <select value={activeOrderId} onChange={(e) => selectOrder(e.target.value)}>
+                {orders.map((o) => (
+                  <option value={o.id} key={o.id}>{o.serviceName} · {o.customerName || o.userId}</option>
+                ))}
+              </select>
+            </div>
+            <button type="button" className="btn btn-outline btn-sm" onClick={handleDownload}>
+              <Download size={14} /> 下载传记
+            </button>
           </div>
         )}
       </header>
@@ -289,8 +342,22 @@ export default function BiographerWorks() {
                     onChange={(e) => updateChapter(activeChapter.id, { content: e.target.value, done: false })}
                     placeholder="在这里撰写本章节内容…"
                   />
+                  {(activeChapter.images || []).length > 0 && (
+                    <div className="work-editor-images">
+                      {(activeChapter.images || []).map((image, index) => (
+                        <div className="work-editor-image" key={`${image.slice(-20)}-${index}`}>
+                          <img src={image} alt={`本章图片 ${index + 1}`} />
+                          <button type="button" onClick={() => removeChapterImage(index)} aria-label="删除图片"><X size={13} /></button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div className="work-editor-footer">
+                  <input ref={imageInputRef} type="file" accept="image/*" multiple hidden onChange={handleImageUpload} />
+                  <button type="button" className="btn btn-outline" onClick={() => imageInputRef.current?.click()}>
+                    <ImagePlus size={14} /> 上传图片
+                  </button>
                   <button
                     className="btn btn-outline"
                     disabled={polishing}

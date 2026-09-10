@@ -7,6 +7,7 @@ import Avatar from '../components/ui/Avatar';
 import BiographerProfile from './BiographerProfile';
 import Annotate from '../components/annotation/Annotate';
 import type { Biographer, BiographerService, BiographerBookingForm } from '../mocks/types';
+import { defaultBiographers } from '../mocks/data/seed';
 import './BiographerList.css';
 
 const PROVINCE_CITIES: Record<string, string[]> = {
@@ -27,6 +28,8 @@ const SORT_OPTIONS = [
   { key: 'salesDesc', label: '销量从高到低' },
   { key: 'salesAsc', label: '销量从低到高' },
 ];
+
+const demoBiographers = defaultBiographers.filter((biographer) => biographer.status === 'approved' && biographer.intro);
 
 function formatPrice(price: number): string {
   return `¥${price.toLocaleString()}`;
@@ -52,8 +55,8 @@ export default function BiographerList() {
     setLoading(true);
     biographerApi
       .list()
-      .then(setBiographers)
-      .catch(() => setBiographers([]))
+      .then((list) => setBiographers(list.length > 0 ? list : demoBiographers))
+      .catch(() => setBiographers(demoBiographers))
       .finally(() => setLoading(false));
   }, []);
 

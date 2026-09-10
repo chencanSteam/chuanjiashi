@@ -24,6 +24,12 @@ function AdminV1Redirect({ children }: { children: ReactNode }) {
   return isV1 ? <Navigate to="/admin/users" replace /> : <>{children}</>;
 }
 
+// 传记师「工作台」V1.0 不开放：进入传记师端默认到我的订单
+function BiographerV1Redirect({ children }: { children: ReactNode }) {
+  const { isV1 } = useVersion();
+  return isV1 ? <Navigate to="/biographer/orders" replace /> : <>{children}</>;
+}
+
 // 移动端「家庭」模块为 V1.2 功能：V1.0 模式下回到移动端首页
 function MobileFamilyV1Redirect({ children }: { children: ReactNode }) {
   const { isV1 } = useVersion();
@@ -45,6 +51,7 @@ const AIBiography = lazy(() => import('./pages/AIBiography'));
 const BiographyPrint = lazy(() => import('./pages/BiographyPrint'));
 const BiographyOutline = lazy(() => import('./pages/BiographyOutline'));
 const BiographyPolish = lazy(() => import('./pages/BiographyPolish'));
+const BiographyReview = lazy(() => import('./pages/BiographyReview'));
 const MyWorks = lazy(() => import('./pages/MyWorks'));
 const LifeArchive = lazy(() => import('./pages/LifeArchive'));
 const LifeEvents = lazy(() => import('./pages/LifeEvents'));
@@ -101,7 +108,6 @@ const PartnerApplications = lazy(() => import('./pages/PartnerApplications'));
 const PartnerCustomersAdmin = lazy(() => import('./pages/PartnerCustomersAdmin'));
 const CommissionRecords = lazy(() => import('./pages/CommissionRecords'));
 const OrderManagement = lazy(() => import('./pages/OrderManagement'));
-const AIUsage = lazy(() => import('./pages/AIUsage'));
 const BookReview = lazy(() => import('./pages/BookReview'));
 const AdminDictionary = lazy(() => import('./pages/AdminDictionary'));
 const WithdrawalManagement = lazy(() => import('./pages/WithdrawalManagement'));
@@ -112,6 +118,7 @@ const MobileInterview = lazy(() => import('./pages/mobile/MobileInterview'));
 const MobileInterviewReview = lazy(() => import('./pages/mobile/MobileInterviewReview'));
 const MobileLayout = lazy(() => import('./components/MobileLayout'));
 const MobileHome = lazy(() => import('./pages/mobile/MobileHome'));
+const MobileOnboarding = lazy(() => import('./pages/mobile/MobileOnboarding'));
 const MobileArchive = lazy(() => import('./pages/mobile/MobileArchive'));
 const MobileFamily = lazy(() => import('./pages/mobile/MobileFamily'));
 const MobileProfile = lazy(() => import('./pages/mobile/MobileProfile'));
@@ -149,12 +156,12 @@ const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const AdminRolePermissions = lazy(() => import('./pages/AdminRolePermissions'));
 const AdminNotifications = lazy(() => import('./pages/AdminNotifications'));
 const UserManagement = lazy(() => import('./pages/UserManagement'));
-const AITaskManagement = lazy(() => import('./pages/AITaskManagement'));
 const ProductManagement = lazy(() => import('./pages/ProductManagement'));
+const BiographyShelfManagement = lazy(() => import('./pages/BiographyShelfManagement'));
 const GroupBuyManagement = lazy(() => import('./pages/GroupBuyManagement'));
-const ContentReview = lazy(() => import('./pages/ContentReview'));
 const SensitiveWords = lazy(() => import('./pages/SensitiveWords'));
 const SensitiveHits = lazy(() => import('./pages/SensitiveHits'));
+const ContentReview = lazy(() => import('./pages/ContentReview'));
 const ComplianceRisk = lazy(() => import('./pages/ComplianceRisk'));
 const AdminSettings = lazy(() => import('./pages/AdminSettings'));
 
@@ -194,10 +201,9 @@ function App() {
               </Route>
 
               <Route path="/biographer" element={<RoleRoute role="biographer"><BiographerLayout /></RoleRoute>}>
-                <Route index element={<BiographerCenter />} />
+                <Route index element={<BiographerV1Redirect><BiographerCenter /></BiographerV1Redirect>} />
                 <Route path="orders" element={<BiographerOrders />} />
                 <Route path="works" element={<BiographerWorks />} />
-                <Route path="apply" element={<BiographerApply />} />
                 <Route path="earnings" element={<BiographerEarnings />} />
                 <Route path="profile" element={<BiographerProfile />} />
                 <Route path="profile/edit" element={<Navigate to="/biographer/profile" replace />} />
@@ -215,18 +221,17 @@ function App() {
                 <Route path="partner-customers" element={<AdminV1Redirect><PartnerCustomersAdmin /></AdminV1Redirect>} />
                 <Route path="orders" element={<OrderManagement />} />
                 <Route path="products" element={<ProductManagement />} />
+                <Route path="biography-shelf" element={<BiographyShelfManagement />} />
                 <Route path="group-buy" element={<AdminV1Redirect><GroupBuyManagement /></AdminV1Redirect>} />
                 <Route path="commission-records" element={<AdminV1Redirect><CommissionRecords /></AdminV1Redirect>} />
                 <Route path="book-review" element={<BookReview />} />
                 <Route path="dictionary" element={<AdminDictionary />} />
-                <Route path="ai-usage" element={<AIUsage />} />
                 <Route path="withdrawals" element={<AdminV1Redirect><WithdrawalManagement /></AdminV1Redirect>} />
                 <Route path="user-invites" element={<AdminV1Redirect><UserInvites /></AdminV1Redirect>} />
-                <Route path="ai-tasks" element={<AITaskManagement />} />
                 <Route path="roles" element={<AdminRolePermissions />} />
                 <Route path="notifications" element={<AdminV1Redirect><AdminNotifications /></AdminV1Redirect>} />
-                <Route path="content-review" element={<Navigate to="/admin/content-review/books" replace />} />
                 <Route path="content-review/sensitive" element={<Navigate to="/admin/sensitive-hits" replace />} />
+                <Route path="content-review/withdrawals" element={<WithdrawalManagement />} />
                 <Route path="content-review/:section" element={<ContentReview />} />
                 <Route path="sensitive-words" element={<SensitiveWords />} />
                 <Route path="sensitive-hits" element={<SensitiveHits />} />
@@ -237,6 +242,7 @@ function App() {
 
               <Route path="/m" element={<ProtectedRoute><MobileLayout /></ProtectedRoute>}>
                 <Route index element={<MobileHome />} />
+                <Route path="onboarding" element={<MobileOnboarding />} />
                 <Route path="interview" element={<MobileInterview />} />
                 <Route path="interview-review" element={<MobileInterviewReview />} />
                 <Route path="archive" element={<MobileArchive />} />
@@ -268,7 +274,7 @@ function App() {
                 <Route path="biography/outline" element={<BiographyOutline />} />
                 <Route path="biography/edit" element={<Navigate to="/biography" replace />} />
                 <Route path="biography/draft" element={<Navigate to="/biography" replace />} />
-                <Route path="biography/review" element={<Navigate to="/biography" replace />} />
+                <Route path="biography/review" element={<BiographyReview />} />
                 <Route path="biography/delivery" element={<Navigate to="/my-works" replace />} />
                 <Route path="polish" element={<BiographyPolish />} />
                 <Route path="biography/print" element={<BiographyPrint />} />

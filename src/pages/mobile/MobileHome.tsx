@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mic, PenLine, ChevronRight, Plus, UserSearch, PlusCircle, Image } from 'lucide-react';
+import { Mic, ChevronRight, Plus, UserSearch, PlusCircle, Image } from 'lucide-react';
 import { useVersion } from '../../hooks/useVersion';
 import { loadStoredEventsForArchive } from '../../utils/timelineSample';
 import { generateImageDataUrl } from '../../utils/mediaPlaceholder';
@@ -27,7 +27,6 @@ function loadJson<T>(key: string, fallback: T): T {
 }
 
 const SERVICES = [
-  { title: '传记编写', desc: 'AI 生成 · 记录人生故事', icon: PenLine },
   { title: '找传记师', desc: '专业服务 · 一对一记录', icon: UserSearch },
 ];
 
@@ -58,7 +57,7 @@ export default function MobileHome() {
       <div className="mobile-home">
         <div className="mh-empty">
           <p>还没有人生档案</p>
-          <button className="mh-btn-primary" onClick={() => navigate('/onboarding', { state: { from: '/m' } })}>创建人生档案</button>
+          <button className="mh-btn-primary" onClick={() => navigate('/m/onboarding')}>创建人生档案</button>
         </div>
       </div>
     );
@@ -84,7 +83,7 @@ export default function MobileHome() {
                 </option>
               ))}
             </select>
-            {!isV1 && <button className="mh-add-archive" type="button" onClick={() => navigate('/onboarding', { state: { from: '/m' } })} title="创建新的人生档案">
+            {!isV1 && <button className="mh-add-archive" type="button" onClick={() => navigate('/m/onboarding')} title="创建新的人生档案">
               <PlusCircle size={18} />
             </button>}
           </div>
@@ -97,8 +96,8 @@ export default function MobileHome() {
       <section className="mh-hero">
         <h2 className="mh-hero-title">今天，继续讲讲你的故事</h2>
         <div className="mh-hero-actions">
-          <button className="mh-btn-primary" onClick={() => navigate('/m/interview')}>
-            <Mic size={16} /> 开始讲述
+            <button className="mh-btn-primary" onClick={() => navigate('/m/interview')}>
+            <Mic size={16} /> 开始智能采访
           </button>
         </div>
       </section>
@@ -139,15 +138,15 @@ export default function MobileHome() {
           <div className="mh-memory-empty"><Image size={30} /><span>{photos.length ? `${photos.length} 张照片` : '还没有珍贵照片'}</span></div>
           <p className="mh-mini-desc">记录家庭中值得珍藏的瞬间</p>
         </section>
-        <section className="mh-mini-card" onClick={() => navigate('/m/works')}>
+        <section className="mh-mini-card" onClick={() => navigate(`/m/works/${archiveId}/read`)}>
           <div className="mh-mini-head">
-            <h3>我的传记</h3>
-            <span className="mh-link">查看详情 <ChevronRight size={12} /></span>
+            <h3>已完成传记</h3>
+            <span className="mh-link">阅读全文 <ChevronRight size={12} /></span>
           </div>
           <div className="mh-book-stack">
             <div className="mh-book-cover"><span>《{archive.name}传》</span></div>
           </div>
-          <p className="mh-mini-desc">本档案传记</p>
+          <p className="mh-mini-desc">已完成 · 本档案传记</p>
         </section>
       </div>
       </Annotate>
@@ -166,7 +165,7 @@ export default function MobileHome() {
               type="button"
               onClick={(event) => {
                 event.stopPropagation();
-                navigate(service.title === '传记编写' ? '/m/interview' : '/m');
+                navigate('/m');
               }}
             >
               <div className="mh-goods-cover"><service.icon size={28} /></div>

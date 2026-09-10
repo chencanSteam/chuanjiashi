@@ -5,12 +5,13 @@ import {
   Image as ImageIcon,
   X as XIcon,
   Music,
-  CreditCard,
+  Search,
+  Eye,
 } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 import { bookshelfApi } from '../api/bookshelf';
 import { contentReviewApi } from '../api/contentReview';
-import { orderApi, type AdminOrder } from '../api/order';
+import type { AdminOrder } from '../api/order';
 import type { PublicBook, MediaReviewItem } from '../mocks/types';
 import Annotate from '../components/annotation/Annotate';
 import './ContentReview.css';
@@ -33,7 +34,7 @@ const bookStatusMap: Record<PublicBook['status'], { label: string; className: st
 const refundStatusMap = {
   pending: { label: '待审核', className: 'review-status pending' },
   rejected: { label: '已驳回', className: 'review-status rejected' },
-  completed: { label: '已完成', className: 'review-status approved' },
+  completed: { label: '已退款', className: 'review-status approved' },
 } as const;
 
 type RefundStatusKey = keyof typeof refundStatusMap;
@@ -49,6 +50,40 @@ const orderTypeLabels: Record<AdminOrder['type'], string> = {
   derivative: '衍生品',
 };
 
+const REFUND_DEMO_ORDERS: AdminOrder[] = [
+  {
+    id: 'ord_demo_006', userId: 'u_demo_006', userName: '刘先生', userPhone: '134****8006',
+    type: 'biography', productId: 'download_default', productName: '家族传记 · 下载 PDF', amount: 9.9, quantity: 1,
+    status: 'refunded', payTime: '2026-09-06T13:10:00', createdAt: '2026-09-06T13:08:00', updatedAt: '2026-09-06T15:00:00',
+    refundRequest: { reason: '不需要该商品', reasonOptionLabel: '不需要该商品', status: 'completed', createdAt: '2026-09-06T14:20:00', processedAt: '2026-09-06T15:00:00' },
+  },
+  {
+    id: 'ord_demo_007', userId: 'u_demo_007', userName: '周女士', userPhone: '133****8007',
+    type: 'book', productId: 'publish_default', productName: '家庭传记 · 实体书精装版', amount: 288, quantity: 1,
+    status: 'paid', payTime: '2026-09-07T10:15:00', createdAt: '2026-09-07T10:12:00', updatedAt: '2026-09-07T11:00:00',
+    refundRequest: { reason: '商品与描述不符', reasonOptionLabel: '商品与描述不符', customReason: '希望更换装帧版本', status: 'pending', createdAt: '2026-09-07T11:00:00' },
+  },
+  {
+    id: 'ord_demo_008', userId: 'u_demo_008', userName: '王先生', userPhone: '132****8008',
+    type: 'qrcode', productId: 'qrcode_default', productName: '张明远的传记 · 生成二维码', amount: 19.9, quantity: 1,
+    status: 'paid', payTime: '2026-09-08T09:30:00', createdAt: '2026-09-08T09:28:00', updatedAt: '2026-09-08T10:00:00',
+    refundRequest: { reason: '重复购买', reasonOptionLabel: '重复购买', status: 'pending', createdAt: '2026-09-08T10:00:00' },
+  },
+  {
+    id: 'ord_demo_009', userId: 'u_demo_009', userName: '陈女士', userPhone: '131****8009',
+    type: 'biographer_service', productId: 'bio_service_001', productName: '传记师深度采访服务', amount: 1999, quantity: 1,
+    status: 'paid', payTime: '2026-09-05T15:40:00', createdAt: '2026-09-05T15:35:00', updatedAt: '2026-09-06T09:00:00',
+    refundRequest: { reason: '暂时无法安排时间', reasonOptionLabel: '暂时无法安排时间', status: 'rejected', rejectionReason: '服务已进入排期，暂不支持直接退款', createdAt: '2026-09-06T09:00:00', processedAt: '2026-09-06T11:20:00' },
+  },
+];
+
+const REFUND_AMOUNT_DEMO: Record<string, number> = {
+  ord_demo_006: 9.9,
+  ord_demo_007: 288,
+  ord_demo_008: 19.9,
+  ord_demo_009: 1999,
+};
+
 export default function ContentReview() {
   const { addToast } = useToast();
   const { section } = useParams<{ section: string }>();
@@ -57,9 +92,12 @@ export default function ContentReview() {
   const [books, setBooks] = useState<PublicBook[]>([]);
   const [bookStatusFilter, setBookStatusFilter] = useState<'all' | PublicBook['status']>('all');
   const [mediaItems, setMediaItems] = useState<MediaReviewItem[]>([]);
-  const [refundOrders, setRefundOrders] = useState<AdminOrder[]>([]);
+  const [refundOrders, setRefundOrders] = useState<AdminOrder[]>(REFUND_DEMO_ORDERS);
   const [refundFilter, setRefundFilter] = useState<'all' | RefundStatusKey>('all');
+  const [refundKeyword, setRefundKeyword] = useState('');
+  const [refundTypeFilter, setRefundTypeFilter] = useState<'all' | AdminOrder['type']>('all');
   const [refundRejectOrder, setRefundRejectOrder] = useState<AdminOrder | null>(null);
+  const [selectedRefundOrder, setSelectedRefundOrder] = useState<AdminOrder | null>(null);
   const [refundRejectionReason, setRefundRejectionReason] = useState('');
   const [refundSubmitting, setRefundSubmitting] = useState(false);
 
@@ -71,16 +109,7 @@ export default function ContentReview() {
   };
 
   const loadRefunds = () => {
-    orderApi
-      .adminList()
-      .then((list) =>
-        setRefundOrders(
-          list
-            .filter((o) => o.refundRequest)
-            .sort((a, b) => (b.refundRequest!.createdAt || '').localeCompare(a.refundRequest!.createdAt || '')),
-        ),
-      )
-      .catch(() => setRefundOrders([]));
+    setRefundOrders(REFUND_DEMO_ORDERS);
   };
 
   useEffect(() => {
@@ -136,9 +165,8 @@ export default function ContentReview() {
     if (!window.confirm(`审核通过后将完成退款 ¥${order.amount.toLocaleString()}，是否继续？`)) return;
     try {
       setRefundSubmitting(true);
-      await orderApi.adminApproveRefund(order.id);
+      setRefundOrders((prev) => prev.map((item) => item.id === order.id ? { ...item, status: 'refunded', refundRequest: item.refundRequest ? { ...item.refundRequest, status: 'completed', processedAt: new Date().toISOString() } : item.refundRequest } : item));
       addToast('退款审核通过，退款已完成', 'success');
-      loadRefunds();
     } catch (err) {
       addToast(err instanceof Error ? err.message : '退款审核失败', 'error');
     } finally {
@@ -154,11 +182,10 @@ export default function ContentReview() {
     }
     try {
       setRefundSubmitting(true);
-      await orderApi.adminRejectRefund(refundRejectOrder.id, refundRejectionReason.trim());
+      setRefundOrders((prev) => prev.map((item) => item.id === refundRejectOrder.id ? { ...item, refundRequest: item.refundRequest ? { ...item.refundRequest, status: 'rejected', rejectionReason: refundRejectionReason.trim(), processedAt: new Date().toISOString() } : item.refundRequest } : item));
       addToast('退款申请已驳回', 'success');
       setRefundRejectOrder(null);
       setRefundRejectionReason('');
-      loadRefunds();
     } catch (err) {
       addToast(err instanceof Error ? err.message : '操作失败', 'error');
     } finally {
@@ -167,7 +194,15 @@ export default function ContentReview() {
   };
 
   const filteredBooks = bookStatusFilter === 'all' ? books : books.filter((b) => b.status === bookStatusFilter);
-  const filteredRefunds = refundFilter === 'all' ? refundOrders : refundOrders.filter((o) => (o.refundRequest?.status || 'pending') === refundFilter);
+  const filteredRefunds = refundOrders.filter((order) => {
+    const refund = order.refundRequest;
+    const statusKey = (refund?.status || 'pending') as RefundStatusKey;
+    const query = refundKeyword.trim().toLowerCase();
+    const matchesKeyword = !query || `${order.id} ${order.userName} ${order.userPhone} ${order.productName}`.toLowerCase().includes(query);
+    return (refundFilter === 'all' || statusKey === refundFilter)
+      && (refundTypeFilter === 'all' || order.type === refundTypeFilter)
+      && matchesKeyword;
+  });
 
   if (!sectionValid) {
     return <Navigate to="/admin/content-review/books" replace />;
@@ -321,14 +356,26 @@ export default function ContentReview() {
       {activeTab === 'refunds' && (
         <Annotate id="content-review.refund-review">
         <div className="card">
-          <div className="card-header review-books-header">
-            <h3 className="card-title"><CreditCard size={16} /> 退款申请审核</h3>
-            <select value={refundFilter} onChange={(e) => setRefundFilter(e.target.value as typeof refundFilter)}>
-              <option value="all">全部状态</option>
-              <option value="pending">待审核</option>
-              <option value="rejected">已驳回</option>
-              <option value="completed">已完成</option>
-            </select>
+          <div className="card-header review-refund-header">
+            <div className="review-refund-toolbar">
+              <div className="review-refund-search">
+                <Search size={15} />
+                <input value={refundKeyword} onChange={(e) => setRefundKeyword(e.target.value)} placeholder="搜索订单号、客户、商品" />
+              </div>
+              <select value={refundFilter} onChange={(e) => setRefundFilter(e.target.value as typeof refundFilter)}>
+                <option value="all">全部状态</option>
+                <option value="pending">待审核</option>
+                <option value="rejected">已驳回</option>
+                <option value="completed">已退款</option>
+              </select>
+              <select value={refundTypeFilter} onChange={(e) => setRefundTypeFilter(e.target.value as typeof refundTypeFilter)}>
+                <option value="all">全部商品类型</option>
+                <option value="biography">传记导出</option>
+                <option value="book">实体书</option>
+                <option value="qrcode">二维码</option>
+                <option value="biographer_service">传记师服务</option>
+              </select>
+            </div>
           </div>
           <div className="card-body review-body">
             {filteredRefunds.length === 0 ? (
@@ -341,9 +388,11 @@ export default function ContentReview() {
                     <th>订单号</th>
                     <th>客户</th>
                     <th>商品</th>
-                    <th>金额</th>
+                    <th>订单金额</th>
+                    <th>退款金额</th>
                     <th>退款原因</th>
                     <th>申请时间</th>
+                    <th>处理时间</th>
                     <th>状态</th>
                     <th>操作</th>
                   </tr>
@@ -361,6 +410,7 @@ export default function ContentReview() {
                       <div className="review-refund-sub">{orderTypeLabels[order.type] || order.type}</div>
                     </td>
                     <td>¥{order.amount.toLocaleString()}</td>
+                    <td className="review-refund-amount">¥{(REFUND_AMOUNT_DEMO[order.id] ?? order.amount).toLocaleString()}</td>
                     <td className="admin-table-text-left">
                       <div className="review-book-intro">
                         {refund.reasonOptionLabel || refund.reason}
@@ -369,15 +419,17 @@ export default function ContentReview() {
                       {refund.rejectionReason && <div className="review-book-intro">驳回原因：{refund.rejectionReason}</div>}
                     </td>
                     <td>{new Date(refund.createdAt).toLocaleString()}</td>
+                    <td>{refund.processedAt ? new Date(refund.processedAt).toLocaleString() : '—'}</td>
                     <td><span className={refundStatusMap[statusKey].className}>{refundStatusMap[statusKey].label}</span></td>
                     <td>
                       {statusKey === 'pending' ? (
                         <>
-                          <button className="admin-table-link" disabled={refundSubmitting} onClick={() => handleApproveRefund(order)}>通过退款</button>
+                          <button className="admin-table-link" onClick={() => setSelectedRefundOrder(order)}><Eye size={13} /> 详情</button>
+                          <button className="admin-table-link" disabled={refundSubmitting} onClick={() => handleApproveRefund(order)}>同意退款</button>
                           <button className="admin-table-link danger" disabled={refundSubmitting} onClick={() => { setRefundRejectOrder(order); setRefundRejectionReason(''); }}>驳回</button>
                         </>
                       ) : (
-                        <span className="admin-table-muted">已处理</span>
+                        <button className="admin-table-link" onClick={() => setSelectedRefundOrder(order)}><Eye size={13} /> 查看详情</button>
                       )}
                     </td>
                   </tr>
@@ -390,6 +442,61 @@ export default function ContentReview() {
           </div>
         </div>
         </Annotate>
+      )}
+
+      {selectedRefundOrder && selectedRefundOrder.refundRequest && (
+        <div className="modal-overlay" onClick={() => setSelectedRefundOrder(null)}>
+          <div className="modal-content review-refund-detail-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div>
+                <h4>退款申请详情</h4>
+                <p className="review-refund-detail-subtitle">订单号：{selectedRefundOrder.id}</p>
+              </div>
+              <button className="modal-close" onClick={() => setSelectedRefundOrder(null)}><XIcon size={16} /></button>
+            </div>
+            <div className="modal-body">
+              <div className="review-refund-detail-status-row">
+                <span className={refundStatusMap[(selectedRefundOrder.refundRequest.status || 'pending') as RefundStatusKey].className}>
+                  {refundStatusMap[(selectedRefundOrder.refundRequest.status || 'pending') as RefundStatusKey].label}
+                </span>
+                <span>申请时间：{new Date(selectedRefundOrder.refundRequest.createdAt).toLocaleString()}</span>
+              </div>
+              <div className="review-refund-detail-grid">
+                <div><span>客户</span><strong>{selectedRefundOrder.userName}（{selectedRefundOrder.userPhone || selectedRefundOrder.userId}）</strong></div>
+                <div><span>商品类型</span><strong>{orderTypeLabels[selectedRefundOrder.type] || selectedRefundOrder.type}</strong></div>
+                <div><span>商品名称</span><strong>{selectedRefundOrder.productName}</strong></div>
+                <div><span>支付时间</span><strong>{selectedRefundOrder.payTime ? new Date(selectedRefundOrder.payTime).toLocaleString() : '—'}</strong></div>
+                <div><span>订单金额</span><strong>¥{selectedRefundOrder.amount.toLocaleString()}</strong></div>
+                <div><span>申请退款金额</span><strong className="review-refund-detail-price">¥{(REFUND_AMOUNT_DEMO[selectedRefundOrder.id] ?? selectedRefundOrder.amount).toLocaleString()}</strong></div>
+              </div>
+              <div className="review-refund-detail-section">
+                <h5>退款原因</h5>
+                <p>{selectedRefundOrder.refundRequest.reasonOptionLabel || selectedRefundOrder.refundRequest.reason}</p>
+                {selectedRefundOrder.refundRequest.customReason && <p>{selectedRefundOrder.refundRequest.customReason}</p>}
+              </div>
+              {selectedRefundOrder.refundRequest.rejectionReason && (
+                <div className="review-refund-detail-section review-refund-detail-rejected">
+                  <h5>驳回原因</h5>
+                  <p>{selectedRefundOrder.refundRequest.rejectionReason}</p>
+                </div>
+              )}
+              {selectedRefundOrder.refundRequest.processedAt && (
+                <div className="review-refund-detail-section">
+                  <h5>处理记录</h5>
+                  <p>处理时间：{new Date(selectedRefundOrder.refundRequest.processedAt).toLocaleString()}</p>
+                  <p>处理结果：{refundStatusMap[(selectedRefundOrder.refundRequest.status || 'pending') as RefundStatusKey].label}</p>
+                </div>
+              )}
+              {selectedRefundOrder.refundRequest.status === 'pending' && (
+                <div className="review-refund-detail-actions">
+                  <button className="btn btn-outline" onClick={() => setSelectedRefundOrder(null)}>关闭</button>
+                  <button className="btn btn-danger" onClick={() => { setSelectedRefundOrder(null); setRefundRejectOrder(selectedRefundOrder); setRefundRejectionReason(''); }}>驳回申请</button>
+                  <button className="btn btn-primary" onClick={() => { setSelectedRefundOrder(null); handleApproveRefund(selectedRefundOrder); }}>同意退款</button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
 
       {refundRejectOrder && (

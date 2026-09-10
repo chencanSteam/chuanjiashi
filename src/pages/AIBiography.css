@@ -230,3 +230,9 @@
 .collab-actions {
   flex-shrink: 0;
 }
+
+/* 未完成全部章节时的「完成初稿」置灰态（仍可点击，点击给出提示） */
+.btn.is-disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}

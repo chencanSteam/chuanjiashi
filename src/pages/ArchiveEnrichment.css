@@ -1,5 +1,6 @@
 .archive-enrichment-page { display: flex; flex-direction: column; gap: 16px; }
 .archive-enrichment-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
+.archive-enrichment-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .archive-enrichment-summary { display: flex; align-items: center; gap: 13px; padding: 16px 18px; }
 .archive-enrichment-summary-icon { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 11px; background: #eef7f3; color: #1b5e4b; }
 .archive-enrichment-summary strong { color: #302921; font-size: 15px; }
@@ -14,7 +15,10 @@
 .archive-enrichment-block-body { padding: 0 19px 19px; border-top: 1px solid #f0ece6; }
 .archive-enrichment-choice-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; padding-top: 17px; }
 .archive-enrichment-choice-section h3 { display: flex; align-items: center; justify-content: space-between; margin: 0 0 9px; color: #4c4034; font-size: 13px; }
+.archive-enrichment-choice-section h3 > span { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .archive-enrichment-choice-section h3 small { color: #aa9d8e; font-size: 11px; font-weight: 400; }
+.archive-enrichment-section-upload { display: inline-flex; align-items: center; gap: 4px; border: 1px solid #d9e4dc; border-radius: 7px; padding: 5px 7px; background: #fff; color: #1b5e4b; font-size: 11px; cursor: pointer; white-space: nowrap; }
+.archive-enrichment-section-upload:hover { border-color: #1b5e4b; background: #f4faf7; }
 .archive-enrichment-chips { display: flex; flex-wrap: wrap; gap: 7px; }
 .archive-enrichment-chips button, .archive-enrichment-style-row button { display: inline-flex; align-items: center; gap: 4px; border: 1px solid #e5ded3; border-radius: 18px; padding: 7px 10px; background: #fff; color: #75695b; font-size: 12px; cursor: pointer; }
 .archive-enrichment-chips button.active, .archive-enrichment-style-row button.active { border-color: #1b5e4b; background: #1b5e4b; color: #fff; }
@@ -26,6 +30,7 @@
 .archive-enrichment-person > svg { color: #1b5e4b; }
 .archive-enrichment-person input, .archive-enrichment-person select { box-sizing: border-box; width: 100%; border: 1px solid #e5ded3; border-radius: 8px; padding: 9px 10px; background: #fff; color: #403830; font: inherit; font-size: 12px; outline: none; }
 .archive-enrichment-photo { display: inline-flex; align-items: center; gap: 4px; border: 1px solid #e5ded3; border-radius: 8px; padding: 8px 10px; background: #fff; color: #75695b; font-size: 12px; cursor: pointer; white-space: nowrap; }
+.archive-enrichment-style-upload { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 16px; color: #75695b; font-size: 12px; }
 .archive-enrichment-memory-row { display: grid; grid-template-columns: 1fr 150px; align-items: stretch; gap: 12px; }
 .archive-enrichment-memory-row .archive-enrichment-textarea { margin-top: 17px; }
 .archive-enrichment-large-upload { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; margin-top: 17px; border: 1px dashed #c9bda9; border-radius: 10px; background: #fcfaf6; color: #8c7555; font-size: 12px; cursor: pointer; }
@@ -34,5 +39,43 @@
 .archive-enrichment-checks { display: flex; gap: 22px; margin-top: 16px; color: #5f5347; font-size: 13px; }
 .archive-enrichment-checks input { accent-color: #1b5e4b; }
 .archive-enrichment-tip { color: #958a7e; font-size: 12px; }
+.archive-enrichment-embedded-footer { display: flex; justify-content: flex-end; padding-top: 4px; }
+.archive-enrichment-record-card { padding: 20px; }
+.archive-enrichment-record-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.archive-enrichment-record-status { display: inline-flex; align-items: center; gap: 4px; color: #1b5e4b; background: #edf6f2; border-radius: 999px; padding: 4px 9px; font-size: 12px; }
+.archive-enrichment-record-head h2 { margin: 12px 0 4px; color: #302921; font-size: 18px; }
+.archive-enrichment-record-head p { margin: 0; color: #958a7e; font-size: 12px; }
+.archive-enrichment-record-meta { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 20px; padding-top: 15px; border-top: 1px solid #f0ece6; color: #8c8276; font-size: 12px; }
+.archive-enrichment-record-meta strong { color: #1b5e4b; }
+.archive-enrichment-record-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 13px; }
+.archive-enrichment-record-tags span { padding: 6px 10px; border: 1px solid #d9e4dc; border-radius: 999px; background: #f7faf7; color: #4c6657; font-size: 12px; }
+.archive-enrichment-list-card { padding: 20px; }
+.archive-enrichment-list-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 14px; }
+.archive-enrichment-list-head h2 { margin: 0; color: #302921; font-size: 17px; }
+.archive-enrichment-list-head p { margin: 5px 0 0; color: #958a7e; font-size: 12px; }
+.archive-enrichment-list-head > span { color: #8c8276; font-size: 12px; }
+.archive-enrichment-list-row { display: flex; align-items: center; width: 100%; gap: 12px; padding: 14px; border: 1px solid #e6eee9; border-radius: 10px; background: #f8fbf9; color: #302921; text-align: left; cursor: pointer; }
+.archive-enrichment-list-row:hover { border-color: #1b5e4b; background: #f2f8f4; }
+.archive-enrichment-list-icon { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 9px; background: #e5f2ed; color: #1b5e4b; }
+.archive-enrichment-list-main { display: flex; flex: 1; flex-direction: column; gap: 4px; min-width: 0; }
+.archive-enrichment-list-main strong { font-size: 14px; }
+.archive-enrichment-list-main small, .archive-enrichment-list-meta { color: #8c8276; font-size: 12px; }
+.archive-enrichment-list-meta { white-space: nowrap; }
 @media (max-width: 900px) { .archive-enrichment-choice-grid { grid-template-columns: 1fr 1fr; } .archive-enrichment-person { grid-template-columns: 20px 1fr 1fr; } .archive-enrichment-person input:nth-of-type(2), .archive-enrichment-person button { grid-column: 2 / -1; } }
 @media (max-width: 640px) { .archive-enrichment-header, .archive-enrichment-summary { align-items: flex-start; flex-direction: column; } .archive-enrichment-summary > span { margin-left: 0; } .archive-enrichment-choice-grid { grid-template-columns: 1fr; } .archive-enrichment-memory-row { grid-template-columns: 1fr; } .archive-enrichment-large-upload { min-height: 76px; } .archive-enrichment-style-row, .archive-enrichment-checks { flex-wrap: wrap; } }
+
+/* 记忆锚点 · 老照片修复前后对比 */
+.archive-enrichment-restore { display: flex; align-items: stretch; gap: 10px; margin-top: 17px; flex-wrap: wrap; }
+.archive-enrichment-restore-item { margin: 0; display: flex; flex-direction: column; gap: 6px; flex: 1 1 0; min-width: 140px; }
+.archive-enrichment-restore-item img { width: 100%; aspect-ratio: 20 / 13; object-fit: cover; border-radius: 10px; border: 1px solid #e6e0d6; display: block; }
+.archive-enrichment-restore-item figcaption { font-size: 12px; color: #8c8276; text-align: center; }
+.archive-enrichment-restore-item figcaption em { font-style: normal; color: #1b5e4b; background: #edf6f2; border-radius: 999px; padding: 1px 8px; font-size: 11px; }
+.archive-enrichment-restore-pending { flex: 1 1 0; min-width: 140px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; border: 1px dashed #c9bda9; border-radius: 10px; background: #fcfaf6; color: #8c7555; font-size: 12px; text-align: center; padding: 10px; }
+.archive-enrichment-restore-reset { align-self: flex-end; border: none; background: none; color: #a39684; font-size: 12px; cursor: pointer; text-decoration: underline; padding: 0 2px; }
+.archive-enrichment-restore-reset:hover { color: #1b5e4b; }
+.archive-enrichment-restore-footer { display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin-top: 14px; }
+.archive-enrichment-photo-thumb { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 17px; border: 1px solid #e6e0d6; border-radius: 10px; background: #fcfaf6; padding: 10px; cursor: pointer; }
+.archive-enrichment-photo-thumb img { width: 100%; aspect-ratio: 20 / 13; object-fit: cover; border-radius: 8px; display: block; }
+.archive-enrichment-photo-thumb span { font-size: 12px; color: #b8860b; background: #fdf3e0; border-radius: 999px; padding: 2px 10px; }
+.archive-enrichment-photo-thumb span.restored { color: #1b5e4b; background: #edf6f2; }
+.archive-enrichment-photo-thumb:hover { border-color: #1b5e4b; }

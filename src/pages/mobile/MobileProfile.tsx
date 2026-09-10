@@ -84,10 +84,10 @@ export default function MobileProfile() {
         <section className="mobile-profile-section mobile-archives-section">
           <div className="mobile-profile-section-heading">
             <span>我的档案</span>
-            <button type="button" onClick={() => navigate('/onboarding', { state: { from: '/m/profile' } })}><PlusCircle size={14} /> 新建</button>
+            <button type="button" onClick={() => navigate('/m/onboarding')}><PlusCircle size={14} /> 新建</button>
           </div>
           {archives.length === 0 ? (
-            <button className="mobile-profile-empty-row" type="button" onClick={() => navigate('/onboarding', { state: { from: '/m/profile' } })}>
+            <button className="mobile-profile-empty-row" type="button" onClick={() => navigate('/m/onboarding')}>
               <PlusCircle size={18} /> 创建第一份人生档案
             </button>
           ) : (

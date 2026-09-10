@@ -587,7 +587,6 @@ export default function MobileInterview() {
       </div>
 
       {/* 主题选择：与 Web 端一致的采访主题 */}
-      <Annotate id="mobile-interview.topic-tabs">
       <div className="mobile-interview-topics">
         {topics.map((t, ti) => (
           <button
@@ -601,12 +600,6 @@ export default function MobileInterview() {
         ))}
         <button type="button" className="mobile-interview-add-topic" onClick={handleAddTopic}>＋ 添加主题</button>
       </div>
-      </Annotate>
-      {!isCollaborator && topicProposals.some((proposal) => proposal.status === 'pending') && (
-        <button type="button" className="mobile-interview-review-topics" onClick={() => setTopicReviewOpen(true)}>
-          待确认主题 {topicProposals.filter((proposal) => proposal.status === 'pending').length} 个
-        </button>
-      )}
       {isCollaborator && topicProposals.some((proposal) => proposal.proposerId === collaborator?.id) && (
         <div className="mobile-interview-proposals">
           <strong>我提出的主题</strong>

@@ -48,7 +48,7 @@ const biographyProcess = [
   { label: '信息建档', path: '/archive' },
   { label: '大事梳理', path: '/life-events' },
   { label: '多维增补', path: '/archive-enrichment' },
-  { label: '提纲确认', path: '/biography/outline' },
+  { label: '确认提纲', path: '/biography/outline' },
   { label: '智能访谈', path: '/interview' },
   { label: '单篇精修', path: '/biography' },
   { label: '全书合成', path: '/biography' },
@@ -282,6 +282,7 @@ export default function Home() {
 
   const [showBasicModal, setShowBasicModal] = useState(false);
   const [showArchivePicker, setShowArchivePicker] = useState(false);
+  const [showInterviewScenarios, setShowInterviewScenarios] = useState(false);
   const [selectedBiographer, setSelectedBiographer] = useState<(typeof featuredBiographers)[number] | null>(null);
 
   // 开始智能采访：① 已有采访记录 → 直接进采访页；② 无采访但有档案 → 弹窗选择档案；③ 无档案 → 新建档案后开始
@@ -307,6 +308,19 @@ export default function Home() {
     localStorage.setItem('cj_current_archive_id', archive.id);
     setShowArchivePicker(false);
     navigate('/interview');
+  };
+  const handleInterviewScenario = (scenario: 'new' | 'continue' | 'upload') => {
+    setShowInterviewScenarios(false);
+    if (scenario === 'new') {
+      setBasicForm({ ...EMPTY_BASIC_FORM });
+      setShowBasicModal(true);
+      return;
+    }
+    if (scenario === 'upload') {
+      navigate('/onboarding', { state: { mode: 'upload' } });
+      return;
+    }
+    handleStartInterview();
   };
   const [basicForm, setBasicForm] = useState({ ...EMPTY_BASIC_FORM });
 
@@ -358,6 +372,7 @@ export default function Home() {
             <p>通过 AI 采访，把人生故事、家风记忆永久保存下来。</p>
             <div className="hero-actions">
               <button className="btn btn-primary" onClick={() => navigate('/onboarding')}><Mic size={16} /> 新建传记</button>
+              <button className="btn btn-hero-secondary" onClick={() => navigate('/partner/apply')}><Handshake size={16} /> 市场合伙人申请</button>
               {!isV1 && <button className="btn btn-hero-secondary" onClick={() => navigate('/family')}><Users size={16} /> 进入家庭空间</button>}
             </div>
           </div>
@@ -371,8 +386,9 @@ export default function Home() {
           <h2>八维立体录岁月，<br />一人一书传家风</h2>
           <p>从真实素材采集，到人生脉络梳理，陪你把一生写成一本传世传记。</p>
           <div className="hero-actions">
-            <button className="btn btn-primary" onClick={handleStartInterview}><Mic size={16} /> 开始智能采访</button>
-            <button className="btn btn-hero-secondary" onClick={() => navigate('/polish')}><Upload size={16} /> 已有传记上传</button>
+            <button className="btn btn-primary" onClick={() => setShowInterviewScenarios(true)}><Mic size={16} /> 开始智能采访</button>
+            <button className="btn btn-hero-secondary" onClick={() => navigate('/onboarding', { state: { mode: 'upload' } })}><Upload size={16} /> 已有传记上传</button>
+            <button className="btn btn-hero-secondary" onClick={() => navigate('/partner/apply')}><Handshake size={16} /> 市场合伙人申请</button>
             {!isV1 && <button className="btn btn-hero-secondary" onClick={() => navigate('/family')}><Users size={16} /> 进入家庭空间</button>}
           </div>
         </div>
@@ -490,11 +506,11 @@ export default function Home() {
         </div>
         <div className="home-process-track">
           {biographyProcess.map((stage, index) => (
-            <button className="home-process-step" key={stage.label} type="button" onClick={() => navigate(stage.path)} title={`前往${stage.label}`}>
+            <div className="home-process-step" key={stage.label}>
               <div className="home-process-index">{String(index + 1).padStart(2, '0')}</div>
               <div className="home-process-label">{stage.label}</div>
               {index < biographyProcess.length - 1 && <ArrowRight className="home-process-arrow" size={16} />}
-            </button>
+            </div>
           ))}
         </div>
       </section>
@@ -771,6 +787,45 @@ export default function Home() {
         </div>
         </Annotate>
       </section>
+
+      <Modal
+        open={showInterviewScenarios}
+        title="选择采访场景"
+        onClose={() => setShowInterviewScenarios(false)}
+        footer={
+          <div className="basic-info-modal-footer">
+            <button className="btn btn-outline" onClick={() => setShowInterviewScenarios(false)}>取消</button>
+          </div>
+        }
+      >
+        <p className="life-tags-hint">选择一个场景查看对应的采访流程表现，原型数据不会影响其他场景。</p>
+        <div className="interview-scenario-list">
+          <button type="button" className="interview-scenario-item" onClick={() => handleInterviewScenario('new')}>
+            <span className="interview-scenario-icon"><Mic size={18} /></span>
+            <span className="interview-scenario-copy">
+              <strong>首次开始采访</strong>
+              <small>没有传记档案，先填写基础信息，再进入 AI 智能采访。</small>
+            </span>
+            <ChevronRight size={17} />
+          </button>
+          <button type="button" className="interview-scenario-item" onClick={() => handleInterviewScenario('continue')}>
+            <span className="interview-scenario-icon"><BookOpen size={18} /></span>
+            <span className="interview-scenario-copy">
+              <strong>继续已有采访</strong>
+              <small>已有档案或采访记录，直接进入当前采访进度。</small>
+            </span>
+            <ChevronRight size={17} />
+          </button>
+          <button type="button" className="interview-scenario-item" onClick={() => handleInterviewScenario('upload')}>
+            <span className="interview-scenario-icon"><Upload size={18} /></span>
+            <span className="interview-scenario-copy">
+              <strong>已有传记资料</strong>
+              <small>上传已有传记内容，系统基于资料继续补充和采访。</small>
+            </span>
+            <ChevronRight size={17} />
+          </button>
+        </div>
+      </Modal>
 
       <Modal
         open={Boolean(selectedBiographer)}

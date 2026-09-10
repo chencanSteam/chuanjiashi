@@ -1,10 +1,65 @@
-import { useMemo, useState } from 'react';
-import { Camera, Check, ChevronDown, ChevronUp, Clock3, Plus, Save, Upload } from 'lucide-react';
+import { useState } from 'react';
+import { Camera, Check, ChevronDown, ChevronRight, ChevronUp, Clock3, Plus, Upload } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 import './LifeEvents.css';
 
 type EventItem = { id: string; label: string };
 type EventGroup = { id: string; title: string; desc: string; items: EventItem[] };
+type SavedLifeEvents = { id: string; archiveName: string; updatedAt: string; selectedLabels: string[]; customCount: number };
+type CustomEventItem = {
+  id: string;
+  title: string;
+  year: string;
+  desc: string;
+  stage: string;
+  customStage: string;
+};
+export type LifeEventsProps = {
+  embedded?: boolean;
+  onContinue?: () => void;
+  onSkip?: () => void;
+};
+
+const defaultSelected = { 'family-style': true, 'stable-job': true, children: true };
+const defaultDetails = {
+  'family-style': '父母重视做人要正直、做事要踏实，这份家风一直影响着我。',
+  'stable-job': '毕业后进入机械厂，从技术员开始一步步积累经验。',
+  children: '和妻子一起陪伴孩子成长，把诚实、责任和感恩教给下一代。',
+};
+
+const lifeStageOptions = [
+  '童年少年',
+  '求学成长',
+  '择业从业',
+  '事业深耕',
+  '人生风雨磨砺',
+  '家庭人生',
+  '收获沉淀',
+];
+
+function createCustomEvent(): CustomEventItem {
+  return {
+    id: 'custom-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+    title: '',
+    year: '',
+    desc: '',
+    stage: lifeStageOptions[0],
+    customStage: '',
+  };
+}
+
+function lifeEventsStorageKey() {
+  return `cj_life_events_confirmed_${localStorage.getItem('cj_current_archive_id') || 'default'}`;
+}
+
+function loadSavedLifeEvents(): SavedLifeEvents | null {
+  try {
+    const raw = localStorage.getItem(lifeEventsStorageKey());
+    return raw ? JSON.parse(raw) as SavedLifeEvents : null;
+  } catch {
+    return null;
+  }
+}
 
 const eventGroups: EventGroup[] = [
   { id: 'childhood', title: '童年少年', desc: '家庭环境、成长经历和最早影响你的人。', items: [
@@ -30,50 +85,70 @@ const eventGroups: EventGroup[] = [
   ] },
 ];
 
-export default function LifeEvents() {
+export default function LifeEvents({ embedded = false, onContinue, onSkip }: LifeEventsProps) {
   const { addToast } = useToast();
-  const [selected, setSelected] = useState<Record<string, boolean>>({
-    'family-style': true,
-    'stable-job': true,
-    'children': true,
-  });
-  const [details, setDetails] = useState<Record<string, string>>({
-    'family-style': '父母重视做人要正直、做事要踏实，这份家风一直影响着我。',
-    'stable-job': '毕业后进入机械厂，从技术员开始一步步积累经验。',
-    children: '和妻子一起陪伴孩子成长，把诚实、责任和感恩教给下一代。',
-  });
+  const [selected, setSelected] = useState<Record<string, boolean>>(defaultSelected);
+  const [details, setDetails] = useState<Record<string, string>>(defaultDetails);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
-  const [customEvents, setCustomEvents] = useState([{ id: 'custom-1', title: '', year: '', desc: '' }]);
-
-  const total = eventGroups.reduce((sum, group) => sum + group.items.length, 0);
-  const selectedCount = Object.values(selected).filter(Boolean).length;
-  const progress = useMemo(() => Math.round((selectedCount / total) * 100), [selectedCount, total]);
+  const [customEvents, setCustomEvents] = useState<CustomEventItem[]>([createCustomEvent()]);
+  const [savedRecord] = useState<SavedLifeEvents | null>(() => loadSavedLifeEvents());
+  const [isEditing, setIsEditing] = useState(() => embedded ? !loadSavedLifeEvents() : false);
 
   const toggleEvent = (id: string) => setSelected((prev) => ({ ...prev, [id]: !prev[id] }));
   const updateDetail = (id: string, value: string) => setDetails((prev) => ({ ...prev, [id]: value }));
-  const uploadPhoto = () => addToast('图片已加入本条人生事件（演示）', 'success');
-  const updateCustom = (id: string, key: 'title' | 'year' | 'desc', value: string) => {
+  const uploadPhoto = () => {
+    const shouldRestore = window.confirm('是否修复老照片？');
+    addToast(shouldRestore ? '老照片已修复并保存（演示）' : '图片已保存（演示）', 'success');
+  };
+  const updateCustom = (id: string, key: keyof Omit<CustomEventItem, 'id'>, value: string) => {
     setCustomEvents((items) => items.map((item) => item.id === id ? { ...item, [key]: value } : item));
   };
+
+  const startNewBiography = () => {
+    setSelected(defaultSelected);
+    setDetails(defaultDetails);
+    setCustomEvents([createCustomEvent()]);
+    setIsEditing(true);
+  };
+
+  if (!isEditing && (!embedded || savedRecord)) {
+    const record = savedRecord || {
+      id: 'mock-life-events',
+      archiveName: '张明远',
+      updatedAt: '尚未确认',
+      selectedLabels: ['家庭家风熏陶', '进入稳定单位或企业', '养育子女'],
+      customCount: 0,
+    };
+    return (
+      <div className="life-events-page">
+        <header className="page-header life-events-header">
+          <div><h1 className="page-title">{embedded ? '第三步：人生大事件' : '人生大事件'}</h1></div>
+          {embedded ? <button className="btn btn-outline" onClick={onSkip}>跳过此步</button> : <button className="btn btn-primary" onClick={startNewBiography}><Plus size={14} /> 创建新传记</button>}
+        </header>
+        <section className="life-events-list-card card">
+          <div className="life-events-list-head"><div><h2>人生大事件列表</h2><p>点击记录进入详情，可继续编辑和补充图片。</p></div><span>共 1 条</span></div>
+          <button className="life-events-list-row" onClick={() => setIsEditing(true)}>
+            <span className="life-events-list-icon"><Check size={16} /></span>
+            <span className="life-events-list-main"><strong>{record.archiveName}的人生大事件</strong><small>最近更新：{record.updatedAt}</small></span>
+            <span className="life-events-list-meta">{record.selectedLabels.length} 项重点经历 · {record.customCount} 条自定义事件</span>
+            <ChevronRight size={17} />
+          </button>
+        </section>
+        {embedded && <div className="life-events-embedded-footer"><button className="btn btn-primary" onClick={onContinue}>进入下一步 <ChevronRight size={14} /></button></div>}
+      </div>
+    );
+  }
 
   return (
     <div className="life-events-page">
       <header className="page-header life-events-header">
         <div>
-          <h1 className="page-title">人生大事件</h1>
-          <p className="page-subtitle">勾选重要经历，搭建属于你的时间轴骨架。选填补充，不影响后续使用。</p>
+          <h1 className="page-title">{embedded ? '第三步：人生大事件' : '人生大事件'}</h1>
         </div>
         <div className="life-events-actions">
-          <button className="btn btn-outline" onClick={() => addToast('草稿已保存（演示）', 'success')}><Save size={14} /> 保存草稿</button>
-          <button className="btn btn-primary" onClick={() => addToast('已记录当前选择（演示）', 'success')}><Check size={14} /> 保存当前内容</button>
+          {embedded && <button className="btn btn-outline" onClick={onSkip}>跳过此步</button>}
         </div>
       </header>
-
-      <section className="life-events-progress card">
-        <div className="life-events-progress-head"><div><strong>人生经历采集进度</strong><span>已选择 {selectedCount} / {total} 项</span></div><b>{progress}%</b></div>
-        <div className="life-events-progress-track"><span style={{ width: `${progress}%` }} /></div>
-        <p>可以只勾选，不填写文字；愿意补充的内容会成为 AI 采访的重点。</p>
-      </section>
 
       <div className="life-events-groups">
         {eventGroups.map((group) => {
@@ -96,7 +171,6 @@ export default function LifeEvents() {
                     </div>;
                   })}
                 </div>
-                <input className="life-events-other" placeholder="其他补充（选填）" />
               </div>}
             </section>
           );
@@ -104,19 +178,25 @@ export default function LifeEvents() {
       </div>
 
       <section className="life-events-custom card">
-        <div className="life-events-section-title"><div><h2>自定义重大事件</h2><p>没有被上面覆盖的经历，可以自己新增。</p></div><button className="btn btn-outline btn-sm" onClick={() => setCustomEvents((items) => [...items, { id: `custom-${Date.now()}`, title: '', year: '', desc: '' }])}><Plus size={14} /> 新增一件人生大事</button></div>
+        <div className="life-events-section-title"><div><h2>自定义重大事件</h2><p>没有被上面覆盖的经历，可以自己新增；标题、日期均为选填。</p></div><button className="btn btn-outline btn-sm" onClick={() => setCustomEvents((items) => [...items, createCustomEvent()])}><Plus size={14} /> 新增一件人生大事</button></div>
         <div className="life-events-custom-list">
           {customEvents.map((item, index) => <div className="life-events-custom-row" key={item.id}>
             <span className="life-events-custom-no">{index + 1}</span>
-            <input value={item.title} onChange={(e) => updateCustom(item.id, 'title', e.target.value)} placeholder="事件名称" />
-            <input value={item.year} onChange={(e) => updateCustom(item.id, 'year', e.target.value)} placeholder="发生年份" />
-            <input value={item.desc} onChange={(e) => updateCustom(item.id, 'desc', e.target.value)} placeholder="一句话概括经历" />
+            <input aria-label="事件名称（选填）" value={item.title} onChange={(e) => updateCustom(item.id, 'title', e.target.value)} placeholder="事件名称（选填）" />
+            <input className="life-events-date-input" aria-label="发生时间（选填）" type="date" value={item.year} onChange={(e) => updateCustom(item.id, 'year', e.target.value)} />
+            <select aria-label="所属人生阶段（选填）" value={item.stage} onChange={(e) => updateCustom(item.id, 'stage', e.target.value)}>
+              {lifeStageOptions.map((stage) => <option key={stage} value={stage}>{stage}</option>)}
+              <option value="custom">自定义阶段</option>
+            </select>
+            {item.stage === 'custom' && <input aria-label="自定义阶段名称" value={item.customStage} onChange={(e) => updateCustom(item.id, 'customStage', e.target.value)} placeholder="填写自定义阶段" />}
+            <input className="life-events-custom-desc" value={item.desc} onChange={(e) => updateCustom(item.id, 'desc', e.target.value)} placeholder="一句话概括经历" />
             <button className="life-events-upload" onClick={uploadPhoto}><Upload size={14} /> 图片</button>
           </div>)}
         </div>
       </section>
 
       <div className="life-events-footer-tip"><Clock3 size={15} /> 所有补充内容均为选填，不填写不会阻断页面使用；勾选越准确，后续采访展示越贴合。</div>
+      {embedded && <div className="life-events-embedded-footer"><button className="btn btn-primary" onClick={onContinue}>保存并进入下一步 <ChevronUp size={14} /></button></div>}
     </div>
   );
 }

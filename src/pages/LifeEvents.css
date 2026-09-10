@@ -27,10 +27,9 @@
 .life-events-option input { accent-color: #1b5e4b; }
 .life-events-detail { display: flex; align-items: flex-start; gap: 8px; margin-top: 9px; padding-left: 23px; }
 .life-events-detail textarea { flex: 1; min-height: 54px; resize: vertical; border: 1px solid #e6e0d6; border-radius: 8px; padding: 8px 10px; color: #403830; font: inherit; font-size: 12px; outline: none; }
-.life-events-detail textarea:focus, .life-events-custom-row input:focus, .life-events-other:focus { border-color: #1b5e4b; }
+.life-events-detail textarea:focus, .life-events-custom-row input:focus { border-color: #1b5e4b; }
 .life-events-upload { display: inline-flex; align-items: center; justify-content: center; gap: 4px; border: 1px solid #dfd6c9; border-radius: 8px; padding: 7px 9px; background: #fff; color: #6f6255; font-size: 12px; cursor: pointer; white-space: nowrap; }
 .life-events-upload:hover { border-color: #1b5e4b; color: #1b5e4b; }
-.life-events-other { box-sizing: border-box; width: 100%; margin-top: 12px; border: 1px solid #e6e0d6; border-radius: 8px; padding: 9px 10px; color: #403830; font: inherit; font-size: 12px; outline: none; }
 .life-events-custom { padding: 18px; }
 .life-events-section-title { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .life-events-section-title h2 { margin: 0; color: #302921; font-size: 16px; }
@@ -40,5 +39,33 @@
 .life-events-custom-no { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: #f2ede5; color: #8e806f; font-size: 12px; }
 .life-events-custom-row input { box-sizing: border-box; width: 100%; border: 1px solid #e6e0d6; border-radius: 8px; padding: 9px 10px; color: #403830; font: inherit; font-size: 12px; outline: none; }
 .life-events-footer-tip { display: flex; align-items: center; gap: 7px; color: #8c8276; font-size: 12px; }
+.life-events-embedded-footer { display: flex; justify-content: flex-end; padding-top: 4px; }
+.life-events-record-card { padding: 20px; }
+.life-events-record-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.life-events-record-status { display: inline-flex; align-items: center; gap: 4px; color: #1b5e4b; background: #edf6f2; border-radius: 999px; padding: 4px 9px; font-size: 12px; }
+.life-events-record-head h2 { margin: 12px 0 4px; color: #302921; font-size: 18px; }
+.life-events-record-head p { margin: 0; color: #958a7e; font-size: 12px; }
+.life-events-record-meta { display: flex; gap: 16px; margin-top: 20px; padding-top: 15px; border-top: 1px solid #f0ece6; color: #8c8276; font-size: 12px; }
+.life-events-record-meta strong { color: #1b5e4b; }
+.life-events-record-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 13px; }
+.life-events-record-tags span { padding: 6px 10px; border: 1px solid #cfe2d9; border-radius: 999px; background: #f5faf7; color: #1b5e4b; font-size: 12px; }
+.life-events-list-card { padding: 20px; }
+.life-events-list-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 14px; }
+.life-events-list-head h2 { margin: 0; color: #302921; font-size: 17px; }
+.life-events-list-head p { margin: 5px 0 0; color: #958a7e; font-size: 12px; }
+.life-events-list-head > span { color: #8c8276; font-size: 12px; }
+.life-events-list-row { display: flex; align-items: center; width: 100%; gap: 12px; padding: 14px; border: 1px solid #e6eee9; border-radius: 10px; background: #f8fbf9; color: #302921; text-align: left; cursor: pointer; }
+.life-events-list-row:hover { border-color: #1b5e4b; background: #f2f8f4; }
+.life-events-list-icon { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 9px; background: #dff0e8; color: #1b5e4b; }
+.life-events-list-main { display: flex; flex: 1; flex-direction: column; gap: 4px; min-width: 0; }
+.life-events-list-main strong { font-size: 14px; }
+.life-events-list-main small, .life-events-list-meta { color: #8c8276; font-size: 12px; }
+.life-events-list-meta { white-space: nowrap; }
+.life-events-custom-row { grid-template-columns: 28px minmax(170px, 1fr) 150px 150px minmax(180px, 1.4fr) auto; }
+.life-events-custom-row select { box-sizing: border-box; width: 100%; border: 1px solid #e6e0d6; border-radius: 8px; padding: 9px 10px; background: #fff; color: #403830; font: inherit; font-size: 12px; outline: none; }
+.life-events-custom-row select:focus, .life-events-date-input:focus { border-color: #1b5e4b; }
+.life-events-date-input { min-height: 36px; }
+.life-events-custom-desc { min-width: 0; }
 @media (max-width: 900px) { .life-events-groups { grid-template-columns: 1fr; } .life-events-header { flex-direction: column; } }
-@media (max-width: 640px) { .life-events-custom-row { grid-template-columns: 24px 1fr; } .life-events-custom-row input, .life-events-custom-row .life-events-upload { grid-column: 2; } .life-events-detail { flex-direction: column; padding-left: 0; } .life-events-detail textarea { width: 100%; } }
+@media (max-width: 1100px) { .life-events-custom-row { grid-template-columns: 28px 1fr 140px 140px; } .life-events-custom-row input, .life-events-custom-row select, .life-events-custom-row .life-events-upload { grid-column: auto; } .life-events-custom-desc { grid-column: 2 / -1; } }
+@media (max-width: 640px) { .life-events-custom-row { grid-template-columns: 24px 1fr; } .life-events-custom-row input, .life-events-custom-row select, .life-events-custom-row .life-events-upload { grid-column: 2; } .life-events-detail { flex-direction: column; padding-left: 0; } .life-events-detail textarea { width: 100%; } }

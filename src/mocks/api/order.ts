@@ -154,7 +154,36 @@ function initDemoOrders(): Order[] {
 function getOrderUserInfo(order: Order): { userName?: string; userPhone?: string } {
   const users = getItem<User[]>(storeKeys.users, [])
   const user = users.find((u) => u.id === order.userId)
-  return user ? { userName: user.nickname, userPhone: user.phone } : {}
+  if (user) return { userName: user.nickname, userPhone: user.phone }
+  const demoNames: Record<string, string> = {
+    ord_demo_paid_1: '张明远',
+    ord_demo_paid_2: '张明远',
+    ord_demo_paid_3: '张明远',
+  }
+  return {
+    userName: demoNames[order.id] || `用户${order.userId.slice(-4)}`,
+    userPhone: order.userId.startsWith('u_') ? `138****${order.userId.slice(-4)}` : undefined,
+  }
+}
+
+function enrichDemoOrder(order: Order): Order {
+  const now = new Date().toISOString()
+  const common = { quantity: order.quantity || 1 }
+  if (order.id === 'ord_demo_paid_1' && !order.deliverables) {
+    return { ...order, ...common, deliverables: [{ type: 'pdf', name: '张明远的传记.pdf', url: '#', createdAt: order.payTime || now }] }
+  }
+  if (order.id === 'ord_demo_paid_2' && !order.logistics) {
+    return {
+      ...order,
+      ...common,
+      address: { name: '张明远', phone: '138****8003', province: '江苏省', city: '苏州市', district: '姑苏区', detail: '平江路 12 号' },
+      logistics: { company: '顺丰速运', trackingNo: 'SF20260908003', shippedAt: order.updatedAt || now },
+    }
+  }
+  if (order.id === 'ord_demo_paid_3' && !order.deliverables) {
+    return { ...order, ...common, deliverables: [{ type: 'qrcode', name: '家风纪念馆二维码', url: '#', createdAt: order.payTime || now }] }
+  }
+  return { ...order, ...common }
 }
 
 export const orderHandlers: HttpHandler[] = [
@@ -196,11 +225,12 @@ export const orderHandlers: HttpHandler[] = [
   }),
 
   http.get('/api/admin/orders', async () => {
-    const userId = getCurrentUserId()
-    if (!userId) return unauthorized()
+    // 后台订单页是前端原型展示，不依赖当前用户是否已经完成用户端 mock 登录。
+    // 没有订单时先初始化一批演示订单，避免后台页面误显示为空。
+    const currentOrders = closeExpiredOrders()
+    if (currentOrders.length === 0) initDemoOrders()
     const orders = closeExpiredOrders()
-    initDemoOrders()
-    return success(orders.map((o) => ({ ...o, ...getOrderUserInfo(o) })))
+    return success(orders.map((o) => ({ ...enrichDemoOrder(o), ...getOrderUserInfo(o) })))
   }),
 
   // 手动补单（创建一条已支付订单）

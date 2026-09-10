@@ -306,7 +306,7 @@ export default function MobileArchive() {
         <div className="mobile-archive mobile-archive-empty-page">
           <div className="mobile-archive-empty">
             <p>还没有人生档案</p>
-            <button className="mobile-archive-primary-btn" onClick={() => navigate('/onboarding', { state: { from: '/m/archive' } })}>创建人生档案</button>
+            <button className="mobile-archive-primary-btn" onClick={() => navigate('/m/onboarding')}>创建人生档案</button>
           </div>
         </div>
       </Annotate>
@@ -319,7 +319,7 @@ export default function MobileArchive() {
         <select value={currentArchiveId} onChange={(event) => switchArchive(event.target.value)} aria-label="选择人生档案">
           {allArchives.map((item) => <option key={item.id} value={item.id}>{item.name}的人生档案</option>)}
         </select>
-        <button className="mobile-archive-add-btn" type="button" onClick={() => navigate('/onboarding', { state: { from: '/m/archive' } })}>
+        <button className="mobile-archive-add-btn" type="button" onClick={() => navigate('/m/onboarding')}>
           <PlusCircle size={15} /> 新建
         </button>
       </div>

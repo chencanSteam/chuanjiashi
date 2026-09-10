@@ -53,12 +53,10 @@ interface NavGroup {
 // 独立入口
 const homeNavItem: NavItem = { to: '/home', icon: LayoutDashboard, label: '首页' };
 
-// 「传记创作」组（V1.0 包含 AI智能采访、已有传记上传、AI传记生成、我的传记；「数字资产」仅完整版）
+// 「传记创作」组（提纲、人生大事件和多维增补通过创作流程进入，不在主导航单独展示）
 const creationGroupItemsV1: NavItem[] = [
-  { to: '/biography/outline', icon: ClipboardList, label: '生成传记提纲' },
   { to: '/interview', icon: Mic, label: 'AI智能采访' },
   { to: '/biography', icon: BookOpen, label: 'AI传记生成' },
-  { to: '/polish', icon: Wand2, label: '已有传记上传' },
   { to: '/my-works', icon: BookMarked, label: '我的传记' },
 ];
 
@@ -67,11 +65,9 @@ const creationGroupItemsFull: NavItem[] = [
   { to: '/digital-assets', icon: Gem, label: '数字资产' },
 ];
 
-// 「人生记录」组（V1.0 仅保留人生档案；完整版额外包含老照片修复、数字博物馆、家庭空间、数字家谱、AI家风馆）
+// 「人生记录」组（大事件和多维增补通过创作流程进入，不在主导航单独展示）
 const lifeGroupItemsV1: NavItem[] = [
   { to: '/archive', icon: FolderOpen, label: '人生档案' },
-  { to: '/life-events', icon: ClipboardList, label: '人生大事件' },
-  { to: '/archive-enrichment', icon: Sparkles, label: '多维增补' },
 ];
 
 const lifeGroupItemsFull: NavItem[] = [
@@ -118,7 +114,8 @@ const settingsGroupItemsFull: NavItem[] = [
 ];
 
 function isGroupActive(group: NavGroup, pathname: string): boolean {
-  return group.items.some((item) => pathname.startsWith(item.to));
+  // 使用完整路径段匹配，避免 `/biography-shelf` 被误判为 `/biography` 的子页面。
+  return group.items.some((item) => pathname === item.to || pathname.startsWith(`${item.to}/`));
 }
 
 /** 同组内存在嵌套路由时，只高亮最长匹配项，避免父级菜单和当前子菜单同时选中。 */
@@ -177,6 +174,11 @@ export default function Layout() {
 
   // 用户手动折叠/展开的覆盖值；未覆盖时默认展开当前路由所在分组
   const [expandedOverrides, setExpandedOverrides] = useState<Record<string, boolean>>({});
+
+  // 路由切换后重新按当前页面计算分组展开状态，避免上一个页面的展开状态残留。
+  useEffect(() => {
+    setExpandedOverrides({});
+  }, [pathname]);
 
   const isExpanded = (group: NavGroup) =>
     expandedOverrides[group.key] ?? isGroupActive(group, pathname);

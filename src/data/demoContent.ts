@@ -2,6 +2,8 @@
 // 保证传记生成、我的传记、传记印刷、数字资产导出、采访记录等页面开箱即有内容。
 // 只在对应 key 不存在时写入，不覆盖用户已有数据。
 
+import { demoChapterTopics } from '../utils/biographyOutline';
+
 const DEMO_ARCHIVE_ID = 'default';
 
 function setIfAbsent(key: string, value: unknown) {
@@ -47,6 +49,7 @@ const demoChapters = [
     content: '<p>2008 年起，我在家乡设立了明远助学基金，资助贫困学生完成学业。能力越大，责任越大——这是我办企业三十年最深的体会。</p><p>正直、担当、勤俭、善良，这八个字是我们家最宝贵的财产。钱传不下去，做人做事的道理可以。</p>',
   },
 ];
+
 
 function daysAgo(n: number) {
   return new Date(Date.now() - n * 86400000).toISOString();
@@ -175,6 +178,19 @@ export function ensureDemoContent() {
   ];
   setIfAbsent(`cj_interview_transcript_${DEMO_ARCHIVE_ID}`, transcript);
 
+  // 采访提纲（含每章话题）：采访页左侧「采访话题」、传记提纲页由此展示
+  setIfAbsent(`cj_biography_outline_${DEMO_ARCHIVE_ID}`, {
+    version: 1,
+    status: 'confirmed',
+    updatedAt: daysAgo(20),
+    chapters: demoChapters.map((c, i) => ({
+      id: `demo_oc_${i + 1}`,
+      title: c.title,
+      summary: '',
+      eventTitles: demoChapterTopics[c.title] || [],
+    })),
+  });
+
   // ============ 需要触发才会出现的区块，直接补演示数据 ============
   const now = Date.now();
   const at = (daysAgoN: number) => new Date(now - daysAgoN * 86400000).toISOString();
@@ -201,6 +217,43 @@ export function ensureDemoContent() {
     } as never);
     try { localStorage.setItem('cj_archives', JSON.stringify(archives)); } catch { /* ignore */ }
   }
+
+  // 第三份档案（周建国）：已完成并上架的演示作品，「我的传记」展示收益、稿件全状态与付费服务开通
+  const ZJG_ID = 'demo_archive_zjg';
+  if (!archives.some((a) => a.id === ZJG_ID)) {
+    archives.push({
+      id: ZJG_ID,
+      name: '周建国',
+      gender: '男',
+      birthYear: '1966',
+      origin: '湖北省黄冈市',
+      occupation: '电工 · 家电维修',
+      createdAt: at(30),
+    } as never);
+    try { localStorage.setItem('cj_archives', JSON.stringify(archives)); } catch { /* ignore */ }
+  }
+  const zjgChapters = [
+    { title: '故里童年 · 初心萌芽', content: '<p>1966 年，我出生在湖北黄冈一个普通农村家庭。家里四个孩子，我排行老二。父亲年轻时做木工，母亲在家务农。</p><p>小时候家里条件不算好，放学以后我经常帮家里割草、喂猪、挑水。苦日子教会我的第一件事，就是自己的活要自己干好。</p>' },
+    { title: '求学成长 · 岁月积淀', content: '<p>1973 年我开始上小学，成绩还不错，尤其喜欢数学。上初中后学校离家远，每天来回要走五六公里山路。</p><p>1982 年初中毕业，因为家里经济条件有限，我没有继续读高中，跟着叔叔学电工，从拉电线、装灯泡开始学起。</p>' },
+    { title: '择业入行 · 缘起初心', content: '<p>1984 年，我进了县里一家机械厂当学徒，后来成为一名正式电工。工资虽然不高，但我很珍惜这份工作，经常跟着老师傅学习机器维修和线路检查。</p>' },
+    { title: '深耕岁月 · 历练成长', content: '<p>下岗后，我在县城租了一个不到 20 平方米的小门面，开了一家电维修部。从修电视、冰箱、洗衣机做起，后来也卖插座、电线和灯具，还带了好几个徒弟。</p><p>2005 年，我用这些年攒下的钱在县城买了一套 90 多平方米的房子，一家人从农村搬到了县城。</p>' },
+    { title: '风雨磨砺 · 破局成长', content: '<p>1996 年以后，机械厂经营越来越差，工资经常拖欠。1998 年，我正式下岗。在厂里干了十几年，一下子没了固定工作，心里挺迷茫的。</p><p>后来我想，与其一直等，不如靠自己学过的手艺挣钱。开店初期生意很一般，有时候一天也接不到几个活，但我修东西认真，生意慢慢就稳定下来了。</p>' },
+    { title: '行业感悟 · 职业修为', content: '<p>做维修这么多年，我认准一个理：东西可以旧，手艺不能潮；活儿可以小，心思不能少。</p><p>后来家电越来越智能，年轻人东西坏了更愿意换新的。2018 年，我关掉了经营 20 年的维修店。关门那天，我一个人在店里坐了很久——那个小店陪了我 20 年，也靠它养大了两个孩子。</p>' },
+    { title: '家风人生 · 温情生活', content: '<p>1987 年经亲戚介绍，我认识了李梅，相处一年后我们结了婚。1990 年大女儿周婷出生，1994 年小儿子周凯出生。</p><p>2008 年女儿考上武汉的大学，收到通知书那天我和她妈妈都特别高兴。那几年为了供孩子读书，家里能省的地方都省了。孩子们先后留在武汉工作，是我们最欣慰的事。</p>' },
+    { title: '人生回望 · 未来愿景', content: '<p>退休后我和妻子搬到武汉，帮女儿照顾外孙。我开始养花，2020 年和邻居一起把小区里的荒地慢慢建成了小花园；2022 年物业请我照看公共绿化，没有工资，但我很愿意干。</p><p>我这一辈子没做过什么惊天动地的大事：当过电工，下过岗，开过维修店，养大了两个孩子。把眼前的事情认真做好，把家里人照顾好，在别人需要时帮上一点忙，我觉得就已经挺好了。</p>' },
+  ];
+  setIfAbsent(`cj_biography_${ZJG_ID}`, {
+    title: '周建国传',
+    author: 'AI 整理',
+    createdAt: at(25),
+    completedAt: at(7),
+    status: 'final',
+    chapters: zjgChapters,
+  });
+  // 上架信息（售价/试看）与付费服务开通状态（下载 PDF、生成二维码已开通）
+  setIfAbsent(`cj_work_license_settings_${ZJG_ID}`, { isFree: false, price: 19.9, trialWords: 2000 });
+  setIfAbsent(`cj_work_paid_${ZJG_ID}`, ['download', 'qrcode']);
+  setIfAbsent(`cj_work_brief_${ZJG_ID}`, true);
 
   // 采访协作者：默认档案加妻子李晓如；王桂芬档案加"我"（演示账号即张明远，首页「我协助的传记」由此而来）
   const collabKey = (id: string) => `cj_interview_collaborators_${id}`;
@@ -410,9 +463,9 @@ export function ensureDemoContent() {
     if (currentUser?.id && !cleaned.some((o) => typeof o.id === 'string' && o.id.startsWith('ord_demo_paid_'))) {
       const uid = currentUser.id;
       cleaned.push(
-        { id: 'ord_demo_paid_1', userId: uid, type: 'biography', productId: 'download_default', productName: '张明远的传记 · 下载 PDF', amount: 9.9, status: 'completed', payTime: at(6), createdAt: at(6), updatedAt: at(6) },
-        { id: 'ord_demo_paid_2', userId: uid, type: 'book', productId: 'publish_default', productName: '张明远的传记 · 出版实体书', amount: 59, status: 'delivering', payTime: at(3), createdAt: at(3), updatedAt: at(3) },
-        { id: 'ord_demo_paid_3', userId: uid, type: 'qrcode', productId: 'qrcode_default', productName: '张明远的传记 · 生成二维码', amount: 19.9, status: 'completed', payTime: at(1), createdAt: at(1), updatedAt: at(1) },
+        { id: 'ord_demo_paid_1', userId: uid, type: 'biography', productId: 'download_default', productName: '张明远的传记 · 下载 PDF', amount: 9.9, quantity: 1, status: 'completed', payTime: at(6), createdAt: at(6), updatedAt: at(6), deliverables: [{ type: 'pdf', name: '张明远的传记.pdf', url: '#', createdAt: at(6) }] },
+        { id: 'ord_demo_paid_2', userId: uid, type: 'book', productId: 'publish_default', productName: '张明远的传记 · 出版实体书', amount: 59, quantity: 1, status: 'delivering', payTime: at(3), createdAt: at(3), updatedAt: at(3), address: { name: '张明远', phone: '138****8003', province: '江苏省', city: '苏州市', district: '姑苏区', detail: '平江路 12 号' }, logistics: { company: '顺丰速运', trackingNo: 'SF20260908003', shippedAt: at(2) } },
+        { id: 'ord_demo_paid_3', userId: uid, type: 'qrcode', productId: 'qrcode_default', productName: '张明远的传记 · 生成二维码', amount: 19.9, quantity: 1, status: 'completed', payTime: at(1), createdAt: at(1), updatedAt: at(1), deliverables: [{ type: 'qrcode', name: '家风纪念馆二维码', url: '#', createdAt: at(1) }] },
       );
     }
     localStorage.setItem(ORDERS_KEY, JSON.stringify(cleaned));

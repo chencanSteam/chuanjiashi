@@ -766,6 +766,7 @@ export default function BiographyPolish() {
       }>
         <div className="version-save-form">
           <p>确认完成后，当前传记会保存到“我的传记”，之后可以继续阅读、排版和制作实体书。</p>
+          <p>作品将从「校审稿」环节进入稿件流程，可在「我的传记」中继续校审、确认终稿。</p>
         </div>
       </Modal>
 

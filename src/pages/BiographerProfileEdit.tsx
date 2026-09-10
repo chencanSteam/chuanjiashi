@@ -5,6 +5,7 @@ import { useToast } from '../hooks/useToast';
 import { biographerApi } from '../api/biographer';
 import { uploadFile } from '../api/client';
 import type { Biographer as MockBiographer } from '../mocks/types';
+import { regions } from '../data/regions';
 import Annotate from '../components/annotation/Annotate';
 import './BiographerProfileEdit.css';
 
@@ -24,9 +25,11 @@ export default function BiographerProfileEdit({ embedded, onExit }: BiographerPr
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<Partial<MockBiographer>>({});
+  const [selectedProvince, setSelectedProvince] = useState('');
+  const [selectedCity, setSelectedCity] = useState('');
   const [specialtyInput, setSpecialtyInput] = useState('');
-  const [areaInput, setAreaInput] = useState('');
-  const [tagInput, setTagInput] = useState('');
+  const [areaProvince, setAreaProvince] = useState('');
+  const [areaCity, setAreaCity] = useState('');
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const certInputRef = useRef<HTMLInputElement>(null);
   const caseInputRef = useRef<HTMLInputElement>(null);
@@ -36,9 +39,19 @@ export default function BiographerProfileEdit({ embedded, onExit }: BiographerPr
     biographerApi
       .me()
       .then((b) => {
+        const matchedProvince = regions.find((province) => province.cities.some((city) => (
+          city.name === b.city || city.name.replace(/市$/, '') === b.city
+        )));
+        const matchedCity = matchedProvince?.cities.find((city) => (
+          city.name === b.city || city.name.replace(/市$/, '') === b.city
+        ));
+        setSelectedProvince(matchedProvince?.name || '');
+        setSelectedCity(matchedCity?.name || b.city || '');
         setForm({
           ...b,
-          serviceAreas: b.serviceAreas || [b.city || ''],
+          title: '金牌传记师',
+          city: matchedCity?.name || b.city || '',
+          serviceAreas: b.serviceAreas || [matchedCity?.name || b.city || ''],
           certificates: b.certificates || [],
           tags: b.tags || [],
           specialties: b.specialties || [],
@@ -92,7 +105,7 @@ export default function BiographerProfileEdit({ embedded, onExit }: BiographerPr
     }
     setSaving(true);
     try {
-      await biographerApi.updateProfile(form);
+      await biographerApi.updateProfile({ ...form, title: '金牌传记师', city: selectedCity });
       addToast('主页已提交平台审核，审核通过后才会对外展示', 'success');
       if (embedded) onExit?.();
       else navigate('/biographer/profile');
@@ -112,6 +125,9 @@ export default function BiographerProfileEdit({ embedded, onExit }: BiographerPr
   ) : (
     (form.name || '传').charAt(0)
   );
+
+  const availableCities = regions.find((province) => province.name === selectedProvince)?.cities || [];
+  const availableAreaCities = regions.find((province) => province.name === areaProvince)?.cities || [];
 
   return (
     <div className="biographer-edit-page">
@@ -178,13 +194,38 @@ export default function BiographerProfileEdit({ embedded, onExit }: BiographerPr
           </div>
           <div className="biographer-edit-field">
             <label>所在城市</label>
-            <input value={form.city || ''} onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))} />
+            <div className="biographer-edit-cascade">
+              <select
+                value={selectedProvince}
+                onChange={(e) => {
+                  const province = e.target.value;
+                  setSelectedProvince(province);
+                  setSelectedCity('');
+                  setForm((f) => ({ ...f, city: '' }));
+                }}
+              >
+                <option value="">请选择省</option>
+                {regions.map((province) => <option key={province.name} value={province.name}>{province.name}</option>)}
+              </select>
+              <select
+                value={selectedCity}
+                disabled={!selectedProvince}
+                onChange={(e) => {
+                  const city = e.target.value;
+                  setSelectedCity(city);
+                  setForm((f) => ({ ...f, city }));
+                }}
+              >
+                <option value="">请选择市</option>
+                {availableCities.map((city) => <option key={city.name} value={city.name}>{city.name}</option>)}
+              </select>
+            </div>
           </div>
         </div>
         <div className="biographer-edit-row">
           <div className="biographer-edit-field">
             <label>头衔</label>
-            <input value={form.title || ''} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} placeholder="如：高级传记顾问" />
+            <input value="金牌传记师" readOnly disabled aria-readonly="true" />
           </div>
           <div className="biographer-edit-field">
             <label>从业年限</label>
@@ -239,26 +280,32 @@ export default function BiographerProfileEdit({ embedded, onExit }: BiographerPr
           ))}
         </div>
         <div className="biographer-edit-tag-input">
-          <input value={areaInput} onChange={(e) => setAreaInput(e.target.value)} placeholder="输入城市按回车添加" onKeyDown={(e) => e.key === 'Enter' && addTag('serviceAreas', areaInput, setAreaInput)} />
-          <button className="btn btn-outline" onClick={() => addTag('serviceAreas', areaInput, setAreaInput)}><Plus size={14} /></button>
+          <select
+            value={areaProvince}
+            onChange={(e) => {
+              setAreaProvince(e.target.value);
+              setAreaCity('');
+            }}
+          >
+            <option value="">请选择省</option>
+            {regions.map((province) => <option key={province.name} value={province.name}>{province.name}</option>)}
+          </select>
+          <select value={areaCity} disabled={!areaProvince} onChange={(e) => setAreaCity(e.target.value)}>
+            <option value="">请选择市</option>
+            {availableAreaCities.map((city) => <option key={city.name} value={city.name}>{city.name}</option>)}
+          </select>
+          <button
+            className="btn btn-outline"
+            disabled={!areaCity || (form.serviceAreas || []).includes(areaCity)}
+            onClick={() => {
+              if (!areaCity || (form.serviceAreas || []).includes(areaCity)) return;
+              setForm((f) => ({ ...f, serviceAreas: [...(f.serviceAreas || []), areaCity] }));
+              setAreaCity('');
+            }}
+          ><Plus size={14} /></button>
         </div>
       </div>
 
-      <div className="biographer-edit-section">
-        <h3 className="biographer-edit-section-title">个人标签</h3>
-        <div className="biographer-edit-tags">
-          {(form.tags || []).map((tag, idx) => (
-            <span key={idx} className="biographer-edit-tag">
-              {tag}
-              <button onClick={() => removeTag('tags', idx)}><X size={12} /></button>
-            </span>
-          ))}
-        </div>
-        <div className="biographer-edit-tag-input">
-          <input value={tagInput} onChange={(e) => setTagInput(e.target.value)} placeholder="输入标签按回车添加" onKeyDown={(e) => e.key === 'Enter' && addTag('tags', tagInput, setTagInput)} />
-          <button className="btn btn-outline" onClick={() => addTag('tags', tagInput, setTagInput)}><Plus size={14} /></button>
-        </div>
-      </div>
       </Annotate>
 
       <Annotate id="biographer-profile-edit.services">

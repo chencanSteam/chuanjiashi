@@ -16,20 +16,17 @@ import {
   ChevronDown,
   ChevronRight,
   ShoppingCart,
-  Brain,
   BookOpen,
   LayoutDashboard,
   PenLine,
   Package,
   TicketPercent,
-  Bot,
   FileCheck,
   Tags,
   ShieldAlert,
   Settings,
   Briefcase,
   KeyRound,
-  Image,
   CreditCard,
 } from 'lucide-react';
 import Avatar from './ui/Avatar';
@@ -69,6 +66,7 @@ const adminNavGroups: NavGroup[] = [
     items: [
       { to: '/admin/biographers', icon: PenLine, label: '传记师管理' },
       { to: '/admin/products', icon: Package, label: '商品管理' },
+      { to: '/admin/biography-shelf', icon: BookOpen, label: '传记书城管理' },
       { to: '/admin/partners', icon: UserCheck, label: '合伙人管理' },
       { to: '/admin/regional-partners', icon: MapPin, label: '区域合伙人' },
       { to: '/admin/partner-applications', icon: ClipboardList, label: '合伙人申请' },
@@ -84,7 +82,6 @@ const adminNavGroups: NavGroup[] = [
     label: '财务分润',
     items: [
       { to: '/admin/commission-records', icon: TrendingUp, label: '分润管理' },
-      { to: '/admin/withdrawals', icon: Wallet, label: '提现审核' },
     ],
   },
   {
@@ -93,11 +90,10 @@ const adminNavGroups: NavGroup[] = [
     label: '内容与合规',
     items: [
       { to: '/admin/book-review', icon: BookOpen, label: '传记上架审核' },
-      { to: '/admin/content-review/books', icon: FileCheck, label: '传记内容审核' },
-      { to: '/admin/content-review/media', icon: Image, label: '素材审核' },
       { to: '/admin/sensitive-hits', icon: ShieldAlert, label: '敏感词命中' },
       { to: '/admin/sensitive-words', icon: Tags, label: '敏感词库' },
       { to: '/admin/content-review/refunds', icon: CreditCard, label: '退款审核' },
+      { to: '/admin/content-review/withdrawals', icon: Wallet, label: '提现审核' },
       { to: '/admin/compliance', icon: ShieldAlert, label: '合规风控' },
     ],
   },
@@ -107,8 +103,6 @@ const adminNavGroups: NavGroup[] = [
     label: '运营与系统',
     items: [
       { to: '/admin/user-invites', icon: Share2, label: '用户邀请奖励' },
-      { to: '/admin/ai-usage', icon: Brain, label: 'AI 使用情况' },
-      { to: '/admin/ai-tasks', icon: Bot, label: 'AI任务管理' },
       { to: '/admin/dictionary', icon: Tags, label: '数据字典' },
       { to: '/admin/settings', icon: Settings, label: '系统设置' },
     ],
@@ -133,6 +127,7 @@ const adminNavGroupsV1: NavGroup[] = [
       { to: '/admin/biographers', icon: PenLine, label: '传记师管理' },
       { to: '/admin/orders', icon: ShoppingCart, label: '订单管理' },
       { to: '/admin/products', icon: Package, label: '商品管理' },
+      { to: '/admin/biography-shelf', icon: BookOpen, label: '传记书城管理' },
     ],
   },
   {
@@ -141,11 +136,10 @@ const adminNavGroupsV1: NavGroup[] = [
     label: '内容审核',
     items: [
       { to: '/admin/book-review', icon: BookOpen, label: '传记上架审核' },
-      { to: '/admin/content-review/books', icon: FileCheck, label: '传记内容审核' },
-      { to: '/admin/content-review/media', icon: Image, label: '素材审核' },
       { to: '/admin/sensitive-hits', icon: ShieldAlert, label: '敏感词命中' },
       { to: '/admin/sensitive-words', icon: Tags, label: '敏感词库' },
       { to: '/admin/content-review/refunds', icon: CreditCard, label: '退款审核' },
+      { to: '/admin/content-review/withdrawals', icon: Wallet, label: '提现审核' },
     ],
   },
   {
@@ -153,8 +147,6 @@ const adminNavGroupsV1: NavGroup[] = [
     icon: Settings,
     label: '系统管理',
     items: [
-      { to: '/admin/ai-usage', icon: Brain, label: 'AI 使用情况' },
-      { to: '/admin/ai-tasks', icon: Bot, label: 'AI任务管理' },
       { to: '/admin/dictionary', icon: Tags, label: '数据字典' },
       { to: '/admin/roles', icon: KeyRound, label: '角色权限' },
     ],

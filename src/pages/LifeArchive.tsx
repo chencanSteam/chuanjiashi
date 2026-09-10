@@ -605,6 +605,7 @@ export default function LifeArchive() {
       return;
     }
     const today = new Date().toISOString().split('T')[0];
+    const shouldRestore = uploadFile.type.startsWith('image/') && window.confirm('是否修复老照片？');
     const newItem: MediaItem = {
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       title: uploadFile.name,
@@ -613,7 +614,7 @@ export default function LifeArchive() {
       stage: uploadStage || undefined,
     };
     setMediaItems((prev) => [...prev, newItem]);
-    addToast('素材已上传', 'success');
+    addToast(shouldRestore ? '老照片已修复并保存（演示）' : '素材已上传', 'success');
     closeUploadModal();
   };
 
@@ -623,6 +624,7 @@ export default function LifeArchive() {
     const eventItem = events.find((ev) => ev.year === selectedYear);
     const stage = eventItem ? `${eventItem.year}·${eventItem.title}` : selectedYear;
     const today = new Date().toISOString().split('T')[0];
+    const shouldRestore = file.type.startsWith('image/') && window.confirm('是否修复老照片？');
     const newItem: MediaItem = {
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       title: file.name,
@@ -631,7 +633,7 @@ export default function LifeArchive() {
       stage,
     };
     setMediaItems((prev) => [...prev, newItem]);
-    addToast('资料已上传并关联到本阶段', 'success');
+    addToast(shouldRestore ? '老照片已修复并关联到本阶段（演示）' : '资料已上传并关联到本阶段', 'success');
     if (e.target) e.target.value = '';
   };
 

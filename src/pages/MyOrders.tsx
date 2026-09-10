@@ -27,6 +27,7 @@ import { refundReasonApi } from '../api/refundReason';
 import { paymentApi } from '../api/payment';
 import { useToast } from '../hooks/useToast';
 import Annotate from '../components/annotation/Annotate';
+import { defaultBiographers, defaultRefundReasonOptions } from '../mocks/data/seed';
 import './MyOrders.css';
 
 const statusOptions: Array<{ value: Order['status'] | 'all'; label: string }> = [
@@ -107,6 +108,30 @@ function useCountdown() {
   return now;
 }
 
+// 页面演示兜底：即使当前浏览器没有初始化订单或切换了演示账号，也始终能看到完整样例。
+const demoOrders: Order[] = [
+  { id: 'ord_demo_001', userId: 'u_demo_current', type: 'biography', productId: 'prod_bio_standard', productName: '标准传记服务', amount: 1999, status: 'paid', payTime: '2026-09-06T10:20:00', createdAt: '2026-09-06T10:00:00', updatedAt: '2026-09-06T10:20:00' },
+  { id: 'ord_demo_002', userId: 'u_demo_current', type: 'book', productId: 'prod_book_hardcover', productName: '张明远的传记 · 精装实体书', amount: 288, quantity: 2, status: 'delivering', payTime: '2026-09-05T14:05:00', createdAt: '2026-09-05T14:00:00', updatedAt: '2026-09-06T09:30:00' },
+  { id: 'ord_demo_003', userId: 'u_demo_current', type: 'qrcode', productId: 'prod_qrcode', productName: '家风纪念馆二维码', amount: 19.9, status: 'completed', payTime: '2026-09-03T16:40:00', createdAt: '2026-09-03T16:30:00', updatedAt: '2026-09-03T16:40:00' },
+  { id: 'ord_demo_004', userId: 'u_demo_current', type: 'biographer_service', productId: 'svc_001', productName: '李传记 · 基础采访套餐', amount: 1999, status: 'paid', payTime: '2026-09-02T11:15:00', createdAt: '2026-09-02T11:00:00', updatedAt: '2026-09-02T11:15:00' },
+  { id: 'ord_demo_005', userId: 'u_demo_current', type: 'video', productId: 'prod_video', productName: '家族纪念视频制作', amount: 1288, status: 'refunded', payTime: '2026-08-28T09:30:00', createdAt: '2026-08-28T09:00:00', updatedAt: '2026-08-29T15:00:00' },
+];
+
+const demoBiographerOrders: BiographerOrder[] = [
+  {
+    id: 'bio_order_demo_001', userId: 'u_demo_current', orderId: 'ord_demo_004', biographerId: 'bio_001', serviceId: 'svc_001', serviceName: '基础采访套餐', amount: 1999, status: 'interview_scheduled',
+    schedule: { time: '2026-09-12 14:00', address: '线上视频采访' },
+    progress: [{ node: '预约采访', status: 'done', time: '2026-09-03T10:00:00' }, { node: '提交初稿', status: 'pending' }, { node: '修改完善', status: 'pending' }, { node: '交付定稿', status: 'pending' }],
+    createdAt: '2026-09-02T11:00:00', updatedAt: '2026-09-03T10:00:00',
+  },
+  {
+    id: 'bio_order_demo_002', userId: 'u_demo_current', orderId: 'ord_demo_006', biographerId: 'bio_002', serviceId: 'svc_003', serviceName: '回忆录短篇版', amount: 1299, status: 'draft_submitted',
+    schedule: { time: '2026-09-08 10:30', address: '上海市静安区客户家中' },
+    progress: [{ node: '预约采访', status: 'done', time: '2026-08-25T10:00:00' }, { node: '提交初稿', status: 'done', time: '2026-09-05T16:00:00' }, { node: '修改完善', status: 'pending' }, { node: '交付定稿', status: 'pending' }],
+    createdAt: '2026-08-24T09:30:00', updatedAt: '2026-09-05T16:00:00',
+  },
+];
+
 export default function MyOrders() {
   const navigate = useNavigate();
   const { addToast } = useToast();
@@ -140,18 +165,23 @@ export default function MyOrders() {
     setLoading(true);
     Promise.all([orderApi.list(), biographerApi.orders(), biographerApi.list(), refundReasonApi.list()])
       .then(([orderList, bioOrderList, bioList, refundReasonList]) => {
-        setOrders(orderList);
-        setBioOrders(bioOrderList);
-        setRefundReasons(refundReasonList);
+        const visibleOrders = orderList.length > 0 ? orderList : demoOrders;
+        const visibleBioOrders = bioOrderList.length > 0 ? bioOrderList : demoBiographerOrders;
+        const visibleBiographers = bioList.length > 0 ? bioList : defaultBiographers.filter((b) => b.status === 'approved');
+        setOrders(visibleOrders);
+        setBioOrders(visibleBioOrders);
+        setRefundReasons(refundReasonList.length > 0 ? refundReasonList : defaultRefundReasonOptions);
         const map: Record<string, Biographer> = {};
-        bioList.forEach((b) => (map[b.id] = b));
+        visibleBiographers.forEach((b) => (map[b.id] = b));
         setBiographers(map);
       })
       .catch(() => {
-        setOrders([]);
-        setBioOrders([]);
-        setBiographers({});
-        setRefundReasons([]);
+        setOrders(demoOrders);
+        setBioOrders(demoBiographerOrders);
+        setRefundReasons(defaultRefundReasonOptions);
+        const map: Record<string, Biographer> = {};
+        defaultBiographers.filter((b) => b.status === 'approved').forEach((b) => (map[b.id] = b));
+        setBiographers(map);
       })
       .finally(() => setLoading(false));
   };

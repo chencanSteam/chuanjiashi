@@ -5,17 +5,29 @@ import type { BiographerOrder as MockBiographerOrder } from '../mocks/types';
 import Annotate from '../components/annotation/Annotate';
 import './BiographerOrders.css';
 
-const statusMap: Record<MockBiographerOrder['status'], { label: string; color: string }> = {
-  pending_schedule: { label: '待预约采访', color: '#d97706' },
-  interview_scheduled: { label: '已预约采访', color: '#7c3aed' },
-  draft_submitted: { label: '已提交初稿', color: '#2563eb' },
-  modifying: { label: '修改中', color: '#d97706' },
-  final_submitted: { label: '已提交终稿', color: '#2563eb' },
+type DisplayStatus = 'draft' | 'final' | 'completed';
+
+const displayStatusMap: Record<DisplayStatus, { label: string; color: string }> = {
+  draft: { label: '待交初稿', color: '#d97706' },
+  final: { label: '待交终稿', color: '#2563eb' },
   completed: { label: '已完成', color: '#1B5E4B' },
-  after_sales: { label: '售后中', color: '#ef4444' },
 };
 
-const progressNodes = ['预约采访', '提交初稿', '修改完善', '交付定稿'];
+const statusGroupMap: Record<MockBiographerOrder['status'], DisplayStatus> = {
+  pending_schedule: 'draft',
+  interview_scheduled: 'draft',
+  draft_submitted: 'final',
+  modifying: 'final',
+  final_submitted: 'final',
+  completed: 'completed',
+  after_sales: 'final',
+};
+
+const statusOptions: Array<{ value: DisplayStatus; label: string }> = [
+  { value: 'draft', label: '待交初稿' },
+  { value: 'final', label: '待交终稿' },
+  { value: 'completed', label: '已完成' },
+];
 
 function getNextAction(order: MockBiographerOrder): { node: string; label: string } | null {
   const pending = order.progress.find((p) => p.status === 'pending');
@@ -40,9 +52,9 @@ export default function BiographerOrders() {
   const [processing, setProcessing] = useState(false);
   // 搜索/筛选：输入框为草稿值，点「查询」或回车后才生效
   const [keywordInput, setKeywordInput] = useState('');
-  const [statusInput, setStatusInput] = useState<MockBiographerOrder['status'] | 'all'>('all');
+  const [statusInput, setStatusInput] = useState<DisplayStatus | 'all'>('all');
   const [keyword, setKeyword] = useState('');
-  const [statusFilter, setStatusFilter] = useState<MockBiographerOrder['status'] | 'all'>('all');
+  const [statusFilter, setStatusFilter] = useState<DisplayStatus | 'all'>('all');
 
   const applyFilters = () => {
     setKeyword(keywordInput.trim());
@@ -97,7 +109,7 @@ export default function BiographerOrders() {
   const filteredOrders = useMemo(() => orders.filter((order) => {
     const searchable = `${order.id} ${order.orderId || ''} ${order.customerName || order.userId} ${order.serviceName}`.toLowerCase();
     if (keyword && !searchable.includes(keyword.toLowerCase())) return false;
-    if (statusFilter !== 'all' && order.status !== statusFilter) return false;
+    if (statusFilter !== 'all' && statusGroupMap[order.status] !== statusFilter) return false;
     return true;
   }), [orders, keyword, statusFilter]);
 
@@ -141,10 +153,10 @@ export default function BiographerOrders() {
                 placeholder="搜索订单号、客户或服务"
               />
             </div>
-            <select value={statusInput} onChange={(event) => setStatusInput(event.target.value as MockBiographerOrder['status'] | 'all')}>
+            <select value={statusInput} onChange={(event) => setStatusInput(event.target.value as DisplayStatus | 'all')}>
               <option value="all">全部状态</option>
-              {Object.entries(statusMap).map(([value, item]) => (
-                <option value={value} key={value}>{item.label}</option>
+              {statusOptions.map((item) => (
+                <option value={item.value} key={item.value}>{item.label}</option>
               ))}
             </select>
             <button type="button" className="btn btn-primary btn-sm" onClick={applyFilters}>查询</button>
@@ -162,7 +174,6 @@ export default function BiographerOrders() {
                   <th>订单号</th>
                   <th>金额</th>
                   <th>采访安排</th>
-                  <th>进度</th>
                   <th>状态</th>
                   <th>操作</th>
                 </tr>
@@ -170,8 +181,6 @@ export default function BiographerOrders() {
               <tbody>
               {filteredOrders.map((o) => {
                 const nextAction = getNextAction(o);
-                const doneCount = o.progress.filter((p) => p.status === 'done').length;
-                const progressPct = Math.round((doneCount / progressNodes.length) * 100);
                 return (
                   <tr key={o.id}>
                     <td className="admin-table-text-left">{o.serviceName}</td>
@@ -186,16 +195,8 @@ export default function BiographerOrders() {
                       )}
                     </td>
                     <td>
-                      <Annotate id="biographer-orders.progress" inline>
-                      <div className="bio-order-progress-cell">
-                        <div className="bio-order-progress-track"><div className="bio-order-progress-fill" style={{ width: `${progressPct}%` }} /></div>
-                        <small className="admin-table-muted">{doneCount}/{progressNodes.length}</small>
-                      </div>
-                      </Annotate>
-                    </td>
-                    <td>
                       <Annotate id="biographer-orders.order-status" inline>
-                      <span style={{ color: statusMap[o.status].color, fontWeight: 600 }}>{statusMap[o.status].label}</span>
+                      <span style={{ color: displayStatusMap[statusGroupMap[o.status]].color, fontWeight: 600 }}>{displayStatusMap[statusGroupMap[o.status]].label}</span>
                       </Annotate>
                     </td>
                     <td>
@@ -210,9 +211,7 @@ export default function BiographerOrders() {
                           {nextAction.label}
                         </button>
                         </Annotate>
-                      ) : (
-                        <span className="admin-table-muted">—</span>
-                      )}
+                      ) : null}
                     </td>
                   </tr>
                 );
@@ -238,7 +237,7 @@ export default function BiographerOrders() {
                 <div className="bio-order-detail-row"><span>订单金额</span><strong>¥{detailOrder.amount.toLocaleString()}</strong></div>
                 <div className="bio-order-detail-row">
                   <span>订单状态</span>
-                  <strong style={{ color: statusMap[detailOrder.status].color }}>{statusMap[detailOrder.status].label}</strong>
+                  <strong style={{ color: displayStatusMap[statusGroupMap[detailOrder.status]].color }}>{displayStatusMap[statusGroupMap[detailOrder.status]].label}</strong>
                 </div>
                 <div className="bio-order-detail-row"><span>采访时间</span><strong>{detailOrder.schedule?.time || '待安排'}</strong></div>
                 <div className="bio-order-detail-row"><span>采访地点</span><strong>{detailOrder.schedule?.address || '待安排'}</strong></div>

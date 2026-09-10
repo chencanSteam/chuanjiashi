@@ -20,6 +20,7 @@ import {
   Check,
   ChevronUp,
   ChevronDown,
+  PenLine,
   Plus,
   Trash2,
   UserPlus,
@@ -28,15 +29,12 @@ import {
 import { useToast } from '../hooks/useToast';
 import { useVersion } from '../hooks/useVersion';
 import { useAuth } from '../hooks/useAuth';
-import { biographyApi } from '../api/biography';
 import Modal from '../components/ui/Modal';
-import { quotaApi } from '../api/quota';
 
 import { generateImageDataUrl, generateVideoPoster, generateAudioUrl } from '../utils/mediaPlaceholder';
-import { generateInterviewTopics } from '../utils/interviewTopics';
-import { biographyChapterTitles, loadJson, saveJson, type ChapterData } from '../data/aiMock';
-import { composeOutlineChapterContent, loadConfirmedOutline } from '../utils/biographyOutline';
-import { loadTimelineEvents } from '../utils/eventSync';
+import { biographyChapterTitles, chapterMockContents, loadJson, saveJson, type ChapterData } from '../data/aiMock';
+import { loadConfirmedOutline } from '../utils/biographyOutline';
+import { loadReviewStates } from '../utils/biographyWorkflow';
 import { htmlToText, splitSentences, replaceSentence } from '../utils/sentences';
 import {
   loadSuggestions,
@@ -92,15 +90,23 @@ function loadCurrentArchive(): Archive | null {
   }
 }
 
+function mockChapterHtml(title: string): string {
+  const text = chapterMockContents[title]
+    || `本章内容根据「${title}」的采访记录同步生成，可在此基础上继续润色完善。`;
+  return text.split(/\n{2,}/).map((p) => `<p>${p.trim()}</p>`).join('');
+}
+
 function initChapters(archiveId: string): ChapterData[] {
   const outline = loadConfirmedOutline(archiveId);
   const titles = outline ? outline.chapters.map((c) => c.title) : biographyChapterTitles;
+  // 各章内容在采访过程中已同步生成，进入本页时所有章节均带初稿内容
+  const now = new Date().toLocaleString('zh-CN');
   return titles.map((title) => ({
     title,
     materials: 5,
-    status: 'notGenerated',
-    updatedAt: null,
-    content: '',
+    status: 'generated' as const,
+    updatedAt: now,
+    content: mockChapterHtml(title),
   }));
 }
 
@@ -204,6 +210,21 @@ export default function AIBiography() {
   const { user } = useAuth();
   const archive = useMemo(() => loadCurrentArchive(), []);
   const archiveId = archive?.id || 'default';
+  // 演示用：每次进入本页都把当前传记重置为最初状态（章节未生成、未校审、未合成、无历史版本），
+  // 便于完整演示「生成章节 → 完成初稿 → 校审 → 终稿」的完整状态流转；仅首次渲染执行一次，重渲染不影响
+  const demoResetRef = useRef(false);
+  if (!demoResetRef.current) {
+    demoResetRef.current = true;
+    try {
+      localStorage.removeItem(`cj_biography_chapters_${archiveId}`);
+      localStorage.removeItem(`cj_biography_${archiveId}`);
+      localStorage.removeItem(`cj_biography_review_${archiveId}`);
+      localStorage.removeItem(`cj_biography_versions_${archiveId}`);
+      localStorage.removeItem(`cj_biography_chapters_outline_v_${archiveId}`);
+    } catch {
+      // ignore
+    }
+  }
   const subjectName = archive?.name || '张明远';
   const isFinalized = (() => {
     try {
@@ -216,16 +237,7 @@ export default function AIBiography() {
     }
   })();
 
-  // 资料完整度：优先取档案 completion，否则按采访已答比例计算
-  const completionPercent = useMemo(() => {
-    const topics = generateInterviewTopics(archive, archiveId);
-    const total = topics.reduce((sum, t) => sum + t.questions.length, 0);
-    const session = loadJson<{ answeredIds?: string[] }>(`cj_interview_session_${archiveId}`, {});
-    const progress = total > 0 ? Math.round(((session.answeredIds?.length ?? 0) / total) * 100) : 0;
-    return Math.max(0, Math.min(100, Math.round(archive?.completion ?? progress)));
-  }, [archive, archiveId]);
 
-  const [showLowMaterial, setShowLowMaterial] = useState(false);
 
   // 已确认的传记大纲（草稿或未确认的大纲不影响生成）
   const confirmedOutline = useMemo(() => loadConfirmedOutline(archiveId), [archiveId]);
@@ -268,9 +280,9 @@ export default function AIBiography() {
         existing || {
           title: oc.title,
           materials: 5,
-          status: 'notGenerated' as const,
-          updatedAt: null,
-          content: '',
+          status: 'generated' as const,
+          updatedAt: new Date().toLocaleString('zh-CN'),
+          content: mockChapterHtml(oc.title),
         }
       );
     });
@@ -504,11 +516,18 @@ export default function AIBiography() {
   const allChaptersCompleted = chapters.length > 0 && chapters.every(
     (chapter) => chapter.status !== 'notGenerated' && chapter.content.trim()
   );
-
   const statusBadge = (status: ChapterData['status']) => {
     if (status === 'generated') return <span className="chapter-status generated"><CheckCircle2 size={12} /> 已生成</span>;
     if (status === 'edited') return <span className="chapter-status edited"><Sparkles size={12} /> 已编辑</span>;
     return <span className="chapter-status not-generated"><Circle size={12} /> 未生成</span>;
+  };
+
+  const reviewStates = useMemo(() => loadReviewStates(archiveId), [archiveId]);
+  const reviewStatusBadge = (chapter: ChapterData) => {
+    const reviewStatus = reviewStates[chapter.title]?.status;
+    if (reviewStatus === 'reviewed') return <span className="chapter-status generated"><CheckCircle2 size={12} /> 已校审</span>;
+    if (reviewStatus === 'reviewing') return <span className="chapter-status edited"><PenLine size={12} /> 校审中</span>;
+    return statusBadge(chapter.status);
   };
 
   const updateChapter = (index: number, patch: Partial<ChapterData>) => {
@@ -537,7 +556,7 @@ export default function AIBiography() {
   const addChapterItem = () => {
     setChapters((prev) => [
       ...prev,
-      { title: '新章节', materials: 0, status: 'notGenerated' as const, updatedAt: null, content: '' },
+      { title: '新章节', materials: 0, status: 'generated' as const, updatedAt: new Date().toLocaleString('zh-CN'), content: mockChapterHtml('新章节') },
     ]);
   };
 
@@ -566,6 +585,7 @@ export default function AIBiography() {
       e.target.value = '';
       return;
     }
+    const shouldRestore = window.confirm('是否修复老照片？');
     const reader = new FileReader();
     reader.onload = () => {
       const src = reader.result as string;
@@ -573,7 +593,7 @@ export default function AIBiography() {
       editorRef.current?.focus();
       document.execCommand('insertHTML', false, imgHtml);
       handleEditorInput();
-      addToast('图片已插入', 'success');
+      addToast(shouldRestore ? '老照片已修复并插入（演示）' : '图片已插入', 'success');
     };
     reader.readAsDataURL(file);
     e.target.value = '';
@@ -586,64 +606,6 @@ export default function AIBiography() {
     saveJson(`cj_biography_style_${archiveId}`, biographyStyle);
   }, [biographyStyle, archiveId]);
 
-  const styleLabel = styleOptions.find((s) => s.key === biographyStyle)?.label || '温情叙事';
-
-  const runGenerate = async () => {
-    try {
-      await quotaApi.consume('biographyGenerate');
-    } catch (err: any) {
-      addToast(err.message || '额度不足', 'error');
-      return;
-    }
-    setGenerating(true);
-    addToast(`以「${styleLabel}」文风生成`, 'info');
-
-    try {
-      if (confirmedOutline) {
-        // 大纲模式：按已确认的章节结构与关联素材组装正文，不走 mock 接口
-        const events = loadTimelineEvents(archiveId);
-        const now = new Date().toLocaleString('zh-CN');
-        const buildContent = (title: string) => {
-          const oc = confirmedOutline.chapters.find((c) => c.title === title);
-          return oc ? composeOutlineChapterContent(subjectName, oc, events) : '';
-        };
-        await new Promise((r) => setTimeout(r, 800));
-        updateChapter(activeIndex, {
-          status: 'generated',
-          content: buildContent(activeChapter.title),
-          updatedAt: now,
-        });
-        addToast(`「${activeChapter.title}」已按大纲 v${confirmedOutline.version} 与${styleLabel}文风生成`, 'success');
-        return;
-      }
-      const biography = activeChapter.status === 'notGenerated'
-        ? await biographyApi.generate(archiveId, biographyStyle)
-        : await biographyApi.regenerateChapter(archiveId, activeChapter.title);
-      const generated = biography.chapters.find((ch) => ch.title === activeChapter.title) || biography.chapters[0];
-      if (generated) {
-        updateChapter(activeIndex, {
-          status: 'generated',
-          content: generated.content,
-          materials: generated.images.length || activeChapter.materials || 5,
-          updatedAt: new Date().toLocaleString('zh-CN'),
-        });
-        addToast(`「${activeChapter.title}」已按${styleLabel}文风生成`, 'success');
-      }
-    } catch (err: any) {
-      addToast(err.message || '生成失败', 'error');
-    } finally {
-      setGenerating(false);
-    }
-  };
-
-  // 首次生成且材料不足时，先提示但不拦截
-  const handleGenerate = () => {
-    if (activeChapter.status === 'notGenerated' && completionPercent < 40) {
-      setShowLowMaterial(true);
-      return;
-    }
-    runGenerate();
-  };
 
   const handlePolish = () => {
     setGenerating(true);
@@ -715,27 +677,19 @@ export default function AIBiography() {
       addToast(`请先完成全部章节（当前 ${generatedCount}/${chapters.length} 章）`, 'error');
       return;
     }
-    // mock 定稿接口仅覆盖「在线生成」路径；大纲/导入等本地路径没有对应记录，
-    // 失败时不阻塞完成流程，以本地快照为准
-    try {
-      await biographyApi.finalize(archiveId);
-    } catch {
-      // ignore
-    }
     localStorage.setItem(
       `cj_biography_${archiveId}`,
       JSON.stringify({
         title: `${subjectName}传记`,
         author: 'AI 整理',
         createdAt: new Date().toLocaleString('zh-CN'),
-        completedAt: new Date().toISOString(),
-        status: 'final',
+        status: 'draft',
         chapters: chapters.map((c) => ({ title: c.title, content: c.content })),
       })
     );
     setFinishOpen(false);
-    addToast('传记已完成并保存', 'success');
-    navigate('/my-works');
+    addToast('初稿已生成，进入校审稿', 'success');
+    navigate('/biography/review', { replace: true });
   };
 
   const selectChapter = (i: number) => {
@@ -898,8 +852,18 @@ export default function AIBiography() {
           )}
           <Annotate id="biography.save-works" inline>
           {!collabMode && !isFinalized && (
-            <button className="btn btn-primary" onClick={() => setFinishOpen(true)} disabled={!allChaptersCompleted} title={allChaptersCompleted ? '合成全书' : `请先完成全部章节（${generatedCount}/${chapters.length}）`}>
-              <BookOpen size={14} /> 合成全书
+            <button
+              className={`btn btn-primary ${allChaptersCompleted ? '' : 'is-disabled'}`}
+              onClick={() => {
+                if (!allChaptersCompleted) {
+                  addToast(`请先完成全部章节（当前 ${generatedCount}/${chapters.length} 章）`, 'error');
+                  return;
+                }
+                setFinishOpen(true);
+              }}
+              title={allChaptersCompleted ? '完成初稿' : `请先完成全部章节（${generatedCount}/${chapters.length}）`}
+            >
+              <BookOpen size={14} /> 完成初稿
             </button>
           )}
           </Annotate>
@@ -951,7 +915,7 @@ export default function AIBiography() {
                     <span>{chapter.title}</span>
                   </div>
                   <div className="chapter-item-right">
-                    {statusBadge(chapter.status)}
+                    {reviewStatusBadge(chapter)}
                     <ChevronRight size={14} className="chapter-arrow" />
                   </div>
                 </div>
@@ -1033,12 +997,6 @@ export default function AIBiography() {
                   );
                 })}
               </div>
-            ) : activeChapter.status === 'notGenerated' && !activeChapter.content ? (
-              <div className="editor-empty">
-                <Sparkles size={40} color="#1B5E4B" />
-                <h3>本章尚未生成</h3>
-                <p>点击「生成本章」，AI 将基于人生档案、采访素材和本章上传的素材生成初稿。</p>
-              </div>
             ) : (
               <div
                 ref={editorRef}
@@ -1055,9 +1013,6 @@ export default function AIBiography() {
           <div className="editor-toolbar">
             {isFinalized && <span className="generating-hint">传记已完成，仅支持查看、导出和排版</span>}
             {collabMode && <span className="generating-hint">协助修改模式：点击上方正文中的句子，即可对该句提出修改建议</span>}
-            {!isFinalized && !collabMode && !reviewAuthor && <button className="btn btn-primary" onClick={handleGenerate} disabled={generating}>
-              <Sparkles size={14} /> {activeChapter.status === 'notGenerated' ? '生成本章' : '重新生成本章'}
-            </button>}
             {!isFinalized && !collabMode && !reviewAuthor && <button className="btn btn-outline" onClick={handlePolish} disabled={generating || activeChapter.status === 'notGenerated'}>
               <Wand2 size={14} /> 润色本章
             </button>}
@@ -1245,15 +1200,15 @@ export default function AIBiography() {
         </div>
       )}
 
-      <Modal open={finishOpen} title="确认合成全书" onClose={() => setFinishOpen(false)} footer={
+      <Modal open={finishOpen} title="确认完成初稿" onClose={() => setFinishOpen(false)} footer={
         <div className="version-modal-actions">
           <button className="btn btn-outline" onClick={() => setFinishOpen(false)}>再检查一下</button>
-          <button className="btn btn-primary" onClick={saveToMyWorks}>合成全书</button>
+          <button className="btn btn-primary" onClick={saveToMyWorks}>完成初稿</button>
         </div>
       }>
         <div className="version-save-form">
-          <p>确认后将把全部已完成章节合成为一本完整传记，并进入“我的传记”。</p>
-          <p>合成后作品进入只读状态，可继续查看、排版和制作实体书。</p>
+          <p>确认后将把所有篇章整合串联，统一时间线、统一文风、统一叙事逻辑，生成完整连贯的人物传记初稿。</p>
+          <p>初稿生成后，可邀请家人朋友共同补充完善。</p>
         </div>
       </Modal>
 
@@ -1300,28 +1255,6 @@ export default function AIBiography() {
               </article>
             ))}
           </div>
-        </div>
-      </Modal>
-
-      <Modal
-        open={showLowMaterial}
-        title="材料还比较少"
-        onClose={() => setShowLowMaterial(false)}
-        footer={
-          <div className="import-modal-footer">
-            <button className="btn btn-outline" onClick={() => { setShowLowMaterial(false); navigate('/interview'); }}>
-              去补充采访
-            </button>
-            <button className="btn btn-primary" onClick={() => { setShowLowMaterial(false); runGenerate(); }}>
-              仍然生成
-            </button>
-          </div>
-        }
-      >
-        <div className="import-modal-body">
-          <p className="import-modal-tip">
-            当前资料完整度仅 {completionPercent}%，材料较少时生成的传记会比较单薄。建议先继续采访补充素材，也可以直接生成。
-          </p>
         </div>
       </Modal>
 

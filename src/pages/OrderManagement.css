@@ -82,6 +82,42 @@
   outline: none;
 }
 
+.order-filter-date,
+.order-filter-amount {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.order-filter-date input,
+.order-filter-amount input {
+  width: 126px;
+  padding: 8px 9px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+  color: var(--text);
+  background: var(--card-bg);
+  outline: none;
+  font-size: 12px;
+}
+
+.order-filter-amount input {
+  width: 76px;
+}
+
+.order-filter-date i,
+.order-filter-amount i {
+  font-style: normal;
+  color: #9ca3af;
+}
+
+.order-reset-button {
+  color: var(--text-secondary);
+}
+
 .order-list-body {
   padding: 0;
 }
@@ -229,6 +265,18 @@
   color: #6b7280;
 }
 
+.order-fulfillment-label {
+  display: block;
+  margin-top: 4px;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.order-no-after-sale {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
 .order-refund-review-badge {
   display: inline-flex;
   margin: 6px 0 0;
@@ -329,6 +377,11 @@
 @media (max-width: 960px) {
   .order-stats {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .order-filter-date,
+  .order-filter-amount {
+    width: 100%;
   }
 }
 /* 追加：传记师服务订单详情样式 */

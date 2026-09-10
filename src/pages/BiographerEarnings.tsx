@@ -9,12 +9,11 @@ import type { BiographerSettlement, BiographerWithdrawal } from '../mocks/types'
 import Annotate from '../components/annotation/Annotate';
 import './BiographerEarnings.css';
 
-type EarningsTab = 'incomes' | 'withdrawals' | 'penalties';
+type EarningsTab = 'incomes' | 'withdrawals';
 
 const tabLabels: Record<EarningsTab, string> = {
   incomes: '订单收入明细',
   withdrawals: '提现记录',
-  penalties: '违规扣款记录',
 };
 
 const withdrawalStatusLabels: Record<BiographerWithdrawal['status'], string> = {
@@ -194,27 +193,6 @@ export default function BiographerEarnings() {
               </div>
             ))}
 
-          {activeTab === 'penalties' &&
-            (settlement.penalties.length === 0 ? (
-              <div className="admin-table-empty">暂无违规扣款记录，请继续保持良好服务</div>
-            ) : (
-              <div className="admin-table-wrap">
-              <table className="admin-table">
-                <thead>
-                  <tr><th>扣款原因</th><th>扣款金额</th><th>扣款时间</th></tr>
-                </thead>
-                <tbody>
-                  {settlement.penalties.map((p) => (
-                    <tr key={p.id}>
-                      <td className="admin-table-text-left">{p.reason}</td>
-                      <td><span className="earnings-amount penalty">-¥{p.amount.toFixed(2)}</span></td>
-                      <td>{new Date(p.createdAt).toLocaleString()}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              </div>
-            ))}
         </div>
       </div>
 

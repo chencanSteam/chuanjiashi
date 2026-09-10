@@ -1,17 +1,23 @@
-import { useEffect, useMemo, useRef, useState, useReducer } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Mic,
   FolderOpen,
   BookOpen,
   Clock,
   CheckCircle2,
-  Circle,
   AlertCircle,
+  ChevronDown,
+  ChevronRight,
   Plus,
   X,
   Send,
+  FileText,
+  Image as ImageIcon,
+  Sparkles,
+  Save,
+  Pencil,
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import Avatar from '../components/ui/Avatar';
 import { useToast } from '../hooks/useToast';
 import { interviewApi } from '../api/interview';
@@ -41,15 +47,13 @@ import {
 } from '../data/aiMock';
 import {
   generateInterviewTopics,
-  saveCustomTopic,
-  removeTopicForArchive,
   loadTopicProposals,
-  submitTopicProposal,
   reviewTopicProposal,
   type InterviewTopicProposal,
 } from '../utils/interviewTopics';
 import { syncReviewEventToTimeline } from '../utils/eventSync';
-import { loadConfirmedOutline } from '../utils/biographyOutline';
+import { loadOutline, saveOutline, demoChapterTopics, type OutlineChapter } from '../utils/biographyOutline';
+import { readDocumentText } from '../utils/documentImport';
 import { biographyChapterTitles } from '../data/aiMock';
 import Annotate from '../components/annotation/Annotate';
 import './AIInterview.css';
@@ -89,6 +93,14 @@ interface RespondentInfo {
   isSubject: boolean;
 }
 
+interface InterviewMaterial {
+  id: string;
+  name: string;
+  type: 'document' | 'image';
+  text?: string;
+  createdAt: string;
+}
+
 function loadCurrentArchive(): Archive | null {
   try {
     const currentId = localStorage.getItem('cj_current_archive_id');
@@ -120,8 +132,9 @@ function saveJson(key: string, value: unknown) {
   }
 }
 
-export default function AIInterview() {
+function AIInterviewPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { addToast } = useToast();
   const { user } = useAuth();
 
@@ -149,17 +162,21 @@ export default function AIInterview() {
 
   // 每个回答者独立抽题与进度：AI 按各自对话生成问题，创建者与协助者的问题互不相同
   const respondentSuffix = myCollaborator ? `_${myCollaborator.id}` : '';
-  const confirmedOutline = useMemo(() => loadConfirmedOutline(archiveId), [archiveId]);
-  const chapterOptions = confirmedOutline?.chapters.length
-    ? confirmedOutline.chapters
-    : biographyChapterTitles.map((title) => ({ id: `legacy_${title}`, title }));
+  const [outlineChapters, setOutlineChapters] = useState<OutlineChapter[]>(() => {
+    const saved = loadOutline(archiveId);
+    return saved?.chapters.length
+      ? saved.chapters
+      : biographyChapterTitles.map((title) => ({ id: `legacy_${title}`, title, summary: '', eventTitles: demoChapterTopics[title] || [] }));
+  });
+  const chapterOptions = outlineChapters;
   const [activeChapterId] = useState(() => {
-    const requested = new URLSearchParams(window.location.search).get('chapter');
+    const requested = searchParams.get('chapter');
     return requested && chapterOptions.some((chapter) => chapter.id === requested)
       ? requested
       : chapterOptions[0]?.id || 'all';
   });
   const activeChapter = chapterOptions.find((chapter) => chapter.id === activeChapterId) || chapterOptions[0];
+  const [expandedChapters, setExpandedChapters] = useState<Record<string, boolean>>(() => ({ [activeChapterId]: true }));
   const interviewStorageId = `${archiveId}_${activeChapterId}`;
   const [topicRevision, setTopicRevision] = useState(0);
   const generatedTopics = generateInterviewTopics(archive, interviewStorageId);
@@ -208,7 +225,15 @@ export default function AIInterview() {
 
   const handleSwitchChapter = (id: string) => {
     if (id === activeChapterId) return;
-    window.location.href = `/interview?chapter=${encodeURIComponent(id)}`;
+    setSearchParams({ chapter: id });
+  };
+
+  const handleSelectChapter = (id: string) => {
+    if (id !== activeChapterId) {
+      handleSwitchChapter(id);
+      return;
+    }
+    setExpandedChapters((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
   const [quota, setQuota] = useState<AIQuota | null>(null);
@@ -250,10 +275,10 @@ export default function AIInterview() {
   const [voiceSeconds, setVoiceSeconds] = useState(0);
   const [activeFollowUpIndex, setActiveFollowUpIndex] = useState<number | null>(null);
   const [followUpAnswer, setFollowUpAnswer] = useState('');
-  const [showCustomTopic, setShowCustomTopic] = useState(false);
-  const [customTopicTitle, setCustomTopicTitle] = useState('');
-  const [customTopicSummary, setCustomTopicSummary] = useState('');
-  const [, forceUpdate] = useReducer((x) => x + 1, 0);
+  const [editingTopic, setEditingTopic] = useState<string | null>(null);
+  const [topicDraft, setTopicDraft] = useState('');
+  const [showAddTopic, setShowAddTopic] = useState(false);
+  const [newTopicTitle, setNewTopicTitle] = useState('');
 
   // 多人协作与补充访谈
   const [collaborators, setCollaborators] = useState<Collaborator[]>(() => loadCollaborators(archiveId));
@@ -336,6 +361,14 @@ export default function AIInterview() {
   }, [session]);
   const [chatInput, setChatInput] = useState('');
   const chatBodyRef = useRef<HTMLDivElement>(null);
+  const materialInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const chapterContentKey = `cj_interview_chapter_content_${interviewStorageId}`;
+  const [chapterContent, setChapterContent] = useState(() => loadJson<string>(chapterContentKey, ''));
+  const [contentBusy, setContentBusy] = useState<'generate' | 'polish' | null>(null);
+  const [chapterMaterials, setChapterMaterials] = useState<InterviewMaterial[]>(() =>
+    loadJson<InterviewMaterial[]>(`cj_interview_materials_${interviewStorageId}`, [])
+  );
 
   // AI 正在问的问题：优先延伸问题，其次当前未答主问题
   const pendingChatQuestion = activeFollowUp
@@ -367,7 +400,126 @@ export default function AIInterview() {
   const nowTime = () =>
     new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
 
-  // 采访记录导入：选择文本/文档文件 → 读取内容作为一条采访记录
+  const handleImportMaterial = async (file?: File) => {
+    if (!file) return;
+    try {
+      const isImage = file.type.startsWith('image/');
+      const text = isImage ? undefined : await readDocumentText(file);
+      const material: InterviewMaterial = {
+        id: `material_${Date.now()}`,
+        name: file.name,
+        type: isImage ? 'image' : 'document',
+        text,
+        createdAt: new Date().toISOString(),
+      };
+      setChapterMaterials((prev) => [...prev, material]);
+      if (text?.trim()) {
+        setChatInput((prev) => `${prev}${prev ? '\n\n' : ''}[导入文件：${file.name}]\n${text.trim().slice(0, 2000)}`);
+      }
+      addToast(isImage ? `图片「${file.name}」已加入本章素材` : `文件「${file.name}」已导入对话`, 'success');
+    } catch (error) {
+      addToast(error instanceof Error ? error.message : '文件读取失败', 'error');
+    }
+    if (materialInputRef.current) materialInputRef.current.value = '';
+  };
+
+  useEffect(() => {
+    saveJson(`cj_interview_materials_${interviewStorageId}`, chapterMaterials);
+  }, [chapterMaterials, interviewStorageId]);
+
+  const currentChapterTranscript = transcript
+    .filter((line) => !line.topic || line.topic === activeChapter?.title)
+    .map((line) => `${line.speaker}：${line.text}`)
+    .join('\n');
+
+  const generateChapterContent = () => {
+    if (!activeChapter) return;
+    setContentBusy('generate');
+    window.setTimeout(() => {
+      const source = currentChapterTranscript || currentAnswer.trim() || activeChapter.summary || `围绕「${activeChapter.title}」展开采访。`;
+      setChapterContent(`${activeChapter.title}\n\n${source}\n\n以上内容根据本章采访记录整理，后续可继续补充细节。`);
+      setContentBusy(null);
+      addToast('本章内容已生成，可继续润色或保存', 'success');
+    }, 450);
+  };
+
+  const polishChapterContent = () => {
+    if (!chapterContent.trim()) {
+      addToast('请先生成或输入本章内容', 'error');
+      return;
+    }
+    setContentBusy('polish');
+    window.setTimeout(() => {
+      const polished = chapterContent
+        .replace(/AI采访官：[^\n]+\n?/g, '')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+      setChapterContent(`${polished}\n\n这段经历不仅记录了当时发生的事情，也呈现出${subjectName}在关键时刻的选择、感受与坚持。`);
+      setContentBusy(null);
+      addToast('本章内容已润色', 'success');
+    }, 450);
+  };
+
+  const saveChapterContent = () => {
+    if (!chapterContent.trim()) {
+      addToast('请先生成或输入本章内容', 'error');
+      return;
+    }
+    saveJson(chapterContentKey, chapterContent.trim());
+    addToast(`「${activeChapter?.title || '本章'}」内容已保存`, 'success');
+  };
+
+  const persistOutlineChapters = (chapters: OutlineChapter[]) => {
+    const current = loadOutline(archiveId);
+    saveOutline(archiveId, {
+      version: current?.version || 0,
+      status: 'draft',
+      updatedAt: new Date().toLocaleString('zh-CN'),
+      chapters,
+    });
+  };
+
+  const renameTopic = (chapterId: string, oldTitle: string) => {
+    const next = topicDraft.trim();
+    if (!next) {
+      addToast('话题名称不能为空', 'error');
+      return;
+    }
+    const target = outlineChapters.find((chapter) => chapter.id === chapterId);
+    if (!target) return;
+    if (next !== oldTitle && target.eventTitles.includes(next)) {
+      addToast('该话题已存在', 'error');
+      return;
+    }
+    const nextChapters = outlineChapters.map((chapter) => chapter.id === chapterId
+      ? { ...chapter, eventTitles: chapter.eventTitles.map((t) => (t === oldTitle ? next : t)) }
+      : chapter);
+    setOutlineChapters(nextChapters);
+    persistOutlineChapters(nextChapters);
+    setEditingTopic(null);
+    addToast('话题已更新', 'success');
+  };
+
+  const handleAddTopic = () => {
+    const title = newTopicTitle.trim();
+    if (!title) {
+      addToast('请输入话题名称', 'error');
+      return;
+    }
+    if (!activeChapter) return;
+    if (activeChapter.eventTitles.includes(title)) {
+      addToast('该话题已存在', 'error');
+      return;
+    }
+    const nextChapters = outlineChapters.map((chapter) => chapter.id === activeChapter.id
+      ? { ...chapter, eventTitles: [...chapter.eventTitles, title] }
+      : chapter);
+    setOutlineChapters(nextChapters);
+    persistOutlineChapters(nextChapters);
+    setNewTopicTitle('');
+    setShowAddTopic(false);
+    addToast(`已添加话题「${title}」`, 'success');
+  };
 
   const saveCurrentAnswer = async (textOverride?: string) => {
     if (!currentQuestion) return;
@@ -572,19 +724,6 @@ export default function AIInterview() {
     }
   };
 
-  // 删除主题（预设/标签/自定义均可删除，按档案记录，刷新后仍隐藏）
-  const handleRemoveTopic = (topic: { id: string; title: string }) => {
-    if (!window.confirm(`确定删除主题「${topic.title}」吗？该主题的问题与回答进度将一并隐藏。`)) return;
-    removeTopicForArchive(interviewStorageId, topic.id);
-    // 回到第一个主题并刷新其回答内容
-    const freshTopics = generateInterviewTopics(archive, interviewStorageId);
-    const firstQ = freshTopics[0]?.questions[0];
-    setSession((prev) => ({ ...prev, currentTopicIndex: 0, currentQuestionIndex: 0 }));
-    setCurrentAnswer(firstQ ? (myCollaborator ? '' : answers[firstQ.id] || firstQ.mockAnswer) : '');
-    addToast(`主题「${topic.title}」已删除`, 'info');
-    forceUpdate();
-  };
-
   const endInterview = async () => {
     // 将本次采访提炼的事件自动同步到人生档案时间轴
     try {
@@ -616,44 +755,6 @@ export default function AIInterview() {
       console.warn('同步采访答案到 mock 后端失败:', err);
     }
     navigate('/interview-review');
-  };
-
-  const selectQuestion = (topicIndex: number, questionIndex: number) => {
-    setSession((prev) => ({
-      ...prev,
-      currentTopicIndex: topicIndex,
-      currentQuestionIndex: questionIndex,
-    }));
-    setCurrentAnswer(answerFor(topicIndex, questionIndex));
-    setRecordingVoice(false);
-    setVoiceSeconds(0);
-    setActiveFollowUpIndex(null);
-    setFollowUpAnswer('');
-  };
-
-  const handleAddCustomTopic = () => {
-    const title = customTopicTitle.trim();
-    if (!title) {
-      addToast('请输入主题名称', 'error');
-      return;
-    }
-    if (myCollaborator) {
-      submitTopicProposal(interviewStorageId, {
-        id: myCollaborator.id,
-        name: myCollaborator.name,
-        phone: collaboratorRecord?.phone,
-        relation: myCollaborator.relation,
-      }, { title, summary: customTopicSummary.trim() });
-      addToast(`主题「${title}」已提交，待本人确认后进入正式采访`, 'success');
-    } else {
-      saveCustomTopic(interviewStorageId, { title, summary: customTopicSummary.trim() });
-      addToast(`已添加自定义主题「${title}」`, 'success');
-    }
-    setCustomTopicTitle('');
-    setCustomTopicSummary('');
-    setShowCustomTopic(false);
-    setTopicRevision((v) => v + 1);
-    forceUpdate();
   };
 
   const saveFollowUpAnswer = (textOverride?: string) => {
@@ -786,14 +887,6 @@ export default function AIInterview() {
             </select>
           </div>
           </Annotate>
-          <div className="archive-switch-row header-switch">
-            <span className="respondent-label">当前章节</span>
-            <select value={activeChapterId} onChange={(e) => handleSwitchChapter(e.target.value)}>
-              {chapterOptions.map((chapter) => (
-                <option key={chapter.id} value={chapter.id}>{chapter.title}</option>
-              ))}
-            </select>
-          </div>
           {isSubjectMode && (
             <Annotate id="interview.end-interview" inline>
             <button className="btn btn-primary end-interview-btn" onClick={endInterview}>
@@ -848,65 +941,79 @@ export default function AIInterview() {
       <div className="interview-grid">
         <div className="card topic-card">
           <div className="card-header">
-            <h3 className="card-title">采访主题</h3>
-            <span className="card-extra">{interviewTopics.length} 个主题</span>
+            <h3 className="card-title">采访章节</h3>
+            <span className="card-extra">{chapterOptions.length} 章 · {chapterOptions.reduce((sum, c) => sum + c.eventTitles.length, 0)} 个话题</span>
           </div>
           <Annotate id="interview.topic-list">
           <div className="card-body topic-body">
-            {interviewTopics.map((topic, ti) => {
-              const active = ti === session.currentTopicIndex;
+            {chapterOptions.map((chapter) => {
+              const active = chapter.id === activeChapterId;
+              const expanded = !!expandedChapters[chapter.id];
               return (
-                <button
-                  className={`topic-item ${active ? 'active' : ''}`}
-                  key={topic.id}
-                  onClick={() => selectQuestion(ti, 0)}
-                >
-                  <div className="topic-info">
-                    <div className="topic-name">
-                      {active ? <CheckCircle2 size={16} /> : <Circle size={16} />}
-                      {topic.title}
-                    </div>
-                  </div>
-                  {isSubjectMode && (
-                    <span
-                      className="topic-delete"
-                      title="删除该主题"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleRemoveTopic(topic);
-                      }}
+                <div className={`topic-item topic-chapter-item ${active ? 'active' : ''}`} key={chapter.id}>
+                  <div className="topic-chapter-row" onClick={() => handleSelectChapter(chapter.id)}>
+                    <button
+                      className="topic-chapter-toggle"
+                      title={expanded ? '收起话题' : '展开话题'}
+                      onClick={(e) => { e.stopPropagation(); setExpandedChapters((prev) => ({ ...prev, [chapter.id]: !prev[chapter.id] })); }}
                     >
-                      <X size={12} />
-                    </span>
+                      {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                    </button>
+                    <span className="topic-name">{chapter.title}</span>
+                    <span className="topic-chapter-count">{chapter.eventTitles.length} 话题</span>
+                  </div>
+                  {expanded && (
+                    <div className="topic-sub-list">
+                      {chapter.eventTitles.length === 0 && <div className="topic-empty-lite">暂无话题，可点击下方「添加采访话题」补充</div>}
+                      {chapter.eventTitles.map((title) => {
+                        const topicKey = `${chapter.id}::${title}`;
+                        return editingTopic === topicKey ? (
+                          <div className="topic-info topic-outline-edit" key={topicKey}>
+                            <input
+                              className="topic-edit-title"
+                              value={topicDraft}
+                              autoFocus
+                              onChange={(e) => setTopicDraft(e.target.value)}
+                              placeholder="修改话题名称"
+                            />
+                            <div className="topic-outline-actions">
+                              <button className="btn btn-ghost btn-xs" onClick={() => setEditingTopic(null)}>取消</button>
+                              <button className="btn btn-primary btn-xs" onClick={() => renameTopic(chapter.id, title)}><Save size={12} /> 保存</button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="topic-sub-row" key={topicKey} onClick={() => handleSelectChapter(chapter.id)}>
+                            <span className="topic-sub-name">{title}</span>
+                            <button className="btn btn-ghost btn-xs topic-edit-entry" onClick={(e) => { e.stopPropagation(); setEditingTopic(topicKey); setTopicDraft(title); }}>
+                              <Pencil size={12} /> 编辑
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
                   )}
-                </button>
+                </div>
               );
             })}
           </div>
           </Annotate>
           <Annotate id="interview.custom-topic">
           <div className="custom-topic-section">
-            {!showCustomTopic ? (
-              <button className="btn btn-outline btn-sm custom-topic-add" onClick={() => setShowCustomTopic(true)}>
-                <Plus size={14} /> 添加自定义主题
+            {!showAddTopic ? (
+              <button className="btn btn-outline btn-sm custom-topic-add" onClick={() => setShowAddTopic(true)}>
+                <Plus size={14} /> 添加采访话题
               </button>
             ) : (
               <div className="custom-topic-form">
                 <input
                   type="text"
-                  placeholder="主题名称，如：军旅生涯"
-                  value={customTopicTitle}
-                  onChange={(e) => setCustomTopicTitle(e.target.value)}
-                />
-                <input
-                  type="text"
-                  placeholder="主题说明（可选）"
-                  value={customTopicSummary}
-                  onChange={(e) => setCustomTopicSummary(e.target.value)}
+                  placeholder="话题名称，如：第一次领工资"
+                  value={newTopicTitle}
+                  onChange={(e) => setNewTopicTitle(e.target.value)}
                 />
                 <div className="custom-topic-actions">
-                  <button className="btn btn-ghost btn-sm" onClick={() => setShowCustomTopic(false)}>取消</button>
-                  <button className="btn btn-primary btn-sm" onClick={handleAddCustomTopic}>添加</button>
+                  <button className="btn btn-ghost btn-sm" onClick={() => { setShowAddTopic(false); setNewTopicTitle(''); }}>取消</button>
+                  <button className="btn btn-primary btn-sm" onClick={handleAddTopic}>添加</button>
                 </div>
               </div>
             )}
@@ -972,6 +1079,26 @@ export default function AIInterview() {
               </div>
             ) : (
             <div className="chat-input-bar">
+              <input
+                ref={materialInputRef}
+                className="visually-hidden"
+                type="file"
+                accept=".txt,.md,.docx"
+                onChange={(e) => handleImportMaterial(e.target.files?.[0])}
+              />
+              <input
+                ref={imageInputRef}
+                className="visually-hidden"
+                type="file"
+                accept="image/*"
+                onChange={(e) => handleImportMaterial(e.target.files?.[0])}
+              />
+              <button className="chat-material-btn" onClick={() => materialInputRef.current?.click()} title="导入文件">
+                <FileText size={15} /> 文件
+              </button>
+              <button className="chat-material-btn" onClick={() => imageInputRef.current?.click()} title="导入图片">
+                <ImageIcon size={15} /> 图片
+              </button>
               <button
                 className="chat-mic-btn"
                 onClick={startVoiceRecord}
@@ -1041,6 +1168,48 @@ export default function AIInterview() {
           )}
         </div>
       </div>
+
+      <section className="card chapter-content-card">
+        <div className="card-header chapter-content-header">
+          <div>
+            <h3 className="card-title"><Sparkles size={16} /> {activeChapter?.title || '本章'} · 内容整理</h3>
+            <p className="chapter-content-subtitle">采访过程中即可生成和润色，保存后作为本章内容使用。</p>
+          </div>
+          <div className="chapter-content-actions">
+            <button className="btn btn-outline btn-sm" onClick={generateChapterContent} disabled={contentBusy !== null}>
+              <Sparkles size={13} /> {contentBusy === 'generate' ? '生成中…' : '生成本章内容'}
+            </button>
+            <button className="btn btn-outline btn-sm" onClick={polishChapterContent} disabled={contentBusy !== null}>
+              <Sparkles size={13} /> {contentBusy === 'polish' ? '润色中…' : '润色'}
+            </button>
+            <button className="btn btn-primary btn-sm" onClick={saveChapterContent}>
+              <Save size={13} /> 保存本章
+            </button>
+          </div>
+        </div>
+        <div className="chapter-content-body">
+          <textarea
+            className="chapter-content-editor"
+            value={chapterContent}
+            onChange={(e) => setChapterContent(e.target.value)}
+            placeholder="先完成几轮采访，再点击“生成本章内容”；也可以直接编辑这里的文字。"
+            rows={8}
+          />
+          <div className="chapter-materials">
+            <div className="chapter-materials-title"><FileText size={14} /> 本章素材 {chapterMaterials.length ? `（${chapterMaterials.length}）` : ''}</div>
+            {chapterMaterials.length === 0 ? (
+              <span className="chapter-materials-empty">可在采访对话框导入文件或图片，作为本章整理素材。</span>
+            ) : (
+              chapterMaterials.map((material) => (
+                <span className="chapter-material-chip" key={material.id}>
+                  {material.type === 'image' ? <ImageIcon size={12} /> : <FileText size={12} />}
+                  {material.name}
+                </span>
+              ))
+            )}
+          </div>
+        </div>
+      </section>
 
       {showFinishPrompt && (
         <div className="modal-overlay" onClick={() => setShowFinishPrompt(false)}>
@@ -1194,4 +1363,10 @@ export default function AIInterview() {
 
     </div>
   );
+}
+
+// 切换章节通过 hash 路由 query 驱动：key 变化即重挂载，保证每章的采访状态独立初始化
+export default function AIInterview() {
+  const [searchParams] = useSearchParams();
+  return <AIInterviewPage key={searchParams.get('chapter') || ''} />;
 }

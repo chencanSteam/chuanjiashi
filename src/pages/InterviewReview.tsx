@@ -216,7 +216,7 @@ export default function InterviewReview() {
           </button>
           <Annotate id="interview-review.generate-btn" inline>
           <button className="btn btn-primary" onClick={generateBiography}>
-            <BookOpen size={14} /> 去生成传记
+            <BookOpen size={14} /> 去生成初稿
           </button>
           </Annotate>
         </div>
