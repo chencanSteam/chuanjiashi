@@ -33,7 +33,8 @@ function isActiveCollaborator(collaborator: Collaborator) {
 }
 
 export function loadActiveCollaborators(archiveId: string): Collaborator[] {
-  return loadCollaborators(archiveId).filter(isActiveCollaborator);
+  // 兼容此前已经写入多个协助人的旧样例数据，当前规则只保留最早的一名有效协助人展示。
+  return loadCollaborators(archiveId).filter(isActiveCollaborator).slice(0, 1);
 }
 
 export function findCollaboratorForUser(archiveId: string, user: { phone?: string; name?: string } | null | undefined) {
@@ -102,6 +103,12 @@ export function createCollabInvite(input: Omit<CollabInvite, 'id' | 'status' | '
 
 export function invitesForArchive(archiveId: string): CollabInvite[] {
   return loadCollabInvites().filter((i) => i.archiveId === archiveId);
+}
+
+/** 一个档案同时只允许一名协助人；待处理的协作邀请也会占用这个名额。 */
+export function hasCollaboratorSlotTaken(archiveId: string): boolean {
+  return loadActiveCollaborators(archiveId).length > 0
+    || invitesForArchive(archiveId).some((invite) => invite.kind === 'collab' && invite.status === 'pending');
 }
 
 // 当前账号（手机号）收到的待处理邀请
@@ -196,6 +203,8 @@ export function saveCollaborators(archiveId: string, collaborators: Collaborator
 }
 
 export function addCollaborator(archiveId: string, collaborator: Omit<Collaborator, 'id' | 'joinedAt'>): Collaborator {
+  const active = loadActiveCollaborators(archiveId);
+  if (active.length > 0) return active[0];
   const list = loadCollaborators(archiveId);
   const next: Collaborator = {
     ...collaborator,
@@ -207,8 +216,9 @@ export function addCollaborator(archiveId: string, collaborator: Omit<Collaborat
 }
 
 export function removeCollaborator(archiveId: string, id: string) {
+  const activeIds = new Set(loadCollaborators(archiveId).filter(isActiveCollaborator).map((collaborator) => collaborator.id));
   const list = loadCollaborators(archiveId).map((collaborator) =>
-    collaborator.id === id
+    activeIds.has(collaborator.id) && (collaborator.id === id || activeIds.size > 1)
       ? { ...collaborator, status: 'removed' as const, removedAt: new Date().toISOString() }
       : collaborator
   );
@@ -286,7 +296,7 @@ export function findCollaboratingArchives(userName: string): CollaboratingArchiv
   const archives = loadJson<{ id: string; name: string }[]>('cj_archives', []);
   return archives
     .map((a) => {
-      const collab = loadCollaborators(a.id).find((c) => c.name === userName);
+    const collab = loadActiveCollaborators(a.id).find((c) => c.name === userName);
       if (!collab) return null;
       return {
         archiveId: a.id,

@@ -23,7 +23,7 @@ import { useToast } from '../hooks/useToast';
 import { interviewApi } from '../api/interview';
 import { quotaApi } from '../api/quota';
 import {
-  loadCollaborators,
+  loadActiveCollaborators,
   saveCollaborators,
   removeCollaborator,
   loadInterviewTranscript,
@@ -32,6 +32,7 @@ import {
   addSupplementAnswer,
   createCollabInvite,
   invitesForArchive,
+  hasCollaboratorSlotTaken,
   revokeCollabInvite,
   findAccountByPhoneOrIdCard,
   findCollaboratorForUser,
@@ -209,7 +210,7 @@ function AIInterviewPage() {
   // 传记选择：本账号创建的传记显示创建者，被邀请协助的传记显示协助；切换后重载页面以载入对应档案数据
   const allArchives = useMemo(() => loadJson<Archive[]>('cj_archives', []), []);
   const archiveOptions = allArchives.map((a) => {
-    const collab = loadCollaborators(a.id).find((c) => c.name === user?.name);
+    const collab = loadActiveCollaborators(a.id).find((c) => c.name === user?.name);
     return {
       id: a.id,
       label: collab
@@ -281,7 +282,7 @@ function AIInterviewPage() {
   const [newTopicTitle, setNewTopicTitle] = useState('');
 
   // 多人协作与补充访谈
-  const [collaborators, setCollaborators] = useState<Collaborator[]>(() => loadCollaborators(archiveId));
+  const [collaborators, setCollaborators] = useState<Collaborator[]>(() => loadActiveCollaborators(archiveId));
   const [supplementAnswers, setSupplementAnswers] = useState<Record<string, SupplementAnswer[]>>(() =>
     loadSupplementAnswers(archiveId)
   );
@@ -820,6 +821,10 @@ function AIInterviewPage() {
       addToast('请输入手机号或身份证号', 'error');
       return;
     }
+    if (hasCollaboratorSlotTaken(archiveId)) {
+      addToast('当前已有一名协助人，请先取消其权限后再邀请', 'info');
+      return;
+    }
     const found = findAccountByPhoneOrIdCard(inviteQuery);
     if (!found) {
       setInviteFound(null);
@@ -843,6 +848,10 @@ function AIInterviewPage() {
 
   const handleSendInvite = () => {
     if (!inviteFound) return;
+    if (hasCollaboratorSlotTaken(archiveId)) {
+      addToast('当前已有一名协助人，请先取消其权限后再邀请', 'info');
+      return;
+    }
     createCollabInvite({
       kind: 'collab',
       scope: 'interview',
@@ -869,7 +878,7 @@ function AIInterviewPage() {
   const handleRemoveCollaborator = (id: string) => {
     removeCollaborator(archiveId, id);
     setCollaborators((prev) => prev.filter((c) => c.id !== id));
-    addToast('协作者已移除，历史采访记录仍会保留', 'info');
+    addToast('协助人权限已取消，历史采访记录仍会保留', 'info');
   };
 
   return (
@@ -1320,7 +1329,7 @@ function AIInterviewPage() {
                               查看对话
                             </button>
                             <button className="btn btn-ghost btn-sm danger" onClick={() => handleRemoveCollaborator(c.id)}>
-                              移除
+                              取消权限
                             </button>
                           </div>
                         </div>

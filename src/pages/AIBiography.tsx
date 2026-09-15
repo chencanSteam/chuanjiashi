@@ -43,10 +43,11 @@ import {
   type EditSuggestion,
 } from '../data/biographyCollaboration';
 import {
-  loadCollaborators,
+  loadActiveCollaborators,
   removeCollaborator,
   createCollabInvite,
   invitesForArchive,
+  hasCollaboratorSlotTaken,
   revokeCollabInvite,
   findAccountByPhoneOrIdCard,
   findCollaboratingArchives,
@@ -257,7 +258,7 @@ export default function AIBiography() {
 
   // 协作身份：在档案协作者名单中即视为协助人（本人创建的档案不在名单中）
   const collabMode = useMemo(
-    () => !!user?.name && loadCollaborators(archiveId).some((c) => c.name === user.name),
+    () => !!user?.name && loadActiveCollaborators(archiveId).some((c) => c.name === user.name),
     [archiveId, user]
   );
   const handleSwitchArchive = (id: string) => {
@@ -307,7 +308,7 @@ export default function AIBiography() {
 
   // ---- 协作修改（句级建议） ----
   const [suggestions, setSuggestions] = useState<EditSuggestion[]>(() => loadSuggestions(archiveId));
-  const [collaborators, setCollaborators] = useState(() => loadCollaborators(archiveId));
+  const [collaborators, setCollaborators] = useState(() => loadActiveCollaborators(archiveId));
   const [invitesVersion, setInvitesVersion] = useState(0);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [suggestDraft, setSuggestDraft] = useState<{ sentenceIndex: number; original: string } | null>(null);
@@ -322,7 +323,10 @@ export default function AIBiography() {
     saveSuggestions(archiveId, suggestions);
   }, [suggestions, archiveId]);
 
-  const pendingSuggestions = suggestions.filter((s) => s.status === 'pending');
+  const collaboratorNames = new Set(collaborators.map((collaborator) => collaborator.name));
+  const pendingSuggestions = suggestions.filter((s) =>
+    s.status === 'pending' && (collaboratorNames.size === 0 || collaboratorNames.has(s.authorName))
+  );
   // 待对方同意的传记修改邀请：打开协助修改弹窗时按需读取，撤销后通过 invitesVersion 触发重读
   const pendingEditInvites = (() => {
     void invitesVersion;
@@ -334,7 +338,7 @@ export default function AIBiography() {
   const handleRemoveCollaborator = (id: string) => {
     removeCollaborator(archiveId, id);
     setCollaborators((prev) => prev.filter((c) => c.id !== id));
-    addToast('协作者已移除', 'info');
+    addToast('协助人权限已取消', 'info');
   };
 
   const handleRevokeInvite = (id: string) => {
@@ -388,7 +392,7 @@ export default function AIBiography() {
         suggested,
         note: suggestNote.trim() || undefined,
         authorName: user.name || '协助人',
-        collaboratorId: collabMode ? loadCollaborators(archiveId).find((c) => c.name === user.name)?.id : undefined,
+        collaboratorId: collabMode ? loadActiveCollaborators(archiveId).find((c) => c.name === user.name)?.id : undefined,
         authorPhone: user.phone,
       }),
       ...prev,
@@ -447,6 +451,10 @@ export default function AIBiography() {
 
   const handleSendCollabInvite = () => {
     if (!inviteFound) return;
+    if (hasCollaboratorSlotTaken(archiveId)) {
+      addToast('当前已有一名协助人，请先取消其权限后再邀请', 'info');
+      return;
+    }
     createCollabInvite({
       kind: 'collab',
       scope: 'edit',
@@ -819,7 +827,7 @@ export default function AIBiography() {
                   setReviewPopover(null);
                 }}
               >
-                <option value="">协助修改（{pendingSuggestions.length}）</option>
+                <option value="">协助修改（{collaborators.length}）</option>
                 {reviewAuthors.map((name) => (
                   <option key={name} value={name}>
                     {name}（{pendingSuggestions.filter((s) => s.authorName === name).length}）
@@ -1394,7 +1402,7 @@ export default function AIBiography() {
                       <span className="collab-count">建议 {collabSuggestCount(c.name)} 条 · 已采纳 {collabAcceptedCount(c.name)} 条</span>
                     </div>
                     <div className="collab-actions">
-                      <button className="btn btn-ghost btn-sm danger" onClick={() => handleRemoveCollaborator(c.id)}>移除</button>
+                      <button className="btn btn-ghost btn-sm danger" onClick={() => handleRemoveCollaborator(c.id)}>取消权限</button>
                     </div>
                   </div>
                 ))}
