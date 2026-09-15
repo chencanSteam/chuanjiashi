@@ -72,6 +72,7 @@ import { inviteAnnotations } from './invite';
 import { lifeArchiveAnnotations } from './life-archive';
 import { loginAnnotations } from './login';
 import { memorialDetailAnnotations } from './memorial-detail';
+import { mobileEventDetailAnnotations } from './mobile-event-detail';
 import { mobileArchiveAnnotations } from './mobile-archive';
 import { mobileFamilyAnnotations } from './mobile-family';
 import { mobileHomeAnnotations } from './mobile-home';
@@ -182,6 +183,7 @@ export const annotationPages: PageAnnotations[] = [
   lifeArchiveAnnotations,
   loginAnnotations,
   memorialDetailAnnotations,
+  mobileEventDetailAnnotations,
   mobileArchiveAnnotations,
   mobileFamilyAnnotations,
   mobileHomeAnnotations,

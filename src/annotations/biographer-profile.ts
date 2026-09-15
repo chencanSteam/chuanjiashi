@@ -45,7 +45,7 @@ export const biographerProfileAnnotations: PageAnnotations = {
     {
       id: 'biographer-profile.booking-modal',
       target: '预约下单弹窗',
-      logic: `① 表单校验：采访对象姓名、与采访对象关系、期望采访时间、采访地点、联系电话 5 项必填，缺任一项拦截并提示「请填写完整的预约信息」；特殊需求选填。
+      logic: `① 表单校验：采访对象姓名、与采访对象关系、联系电话 3 项必填，缺任一项拦截并提示「请填写完整的预约信息」；特殊需求选填。
 ② 联系电话默认带入当前登录用户的手机号（可修改）。
 ③ 提交：独立页面模式调 biographerApi.createOrder() 创建订单，成功后自动调 paymentApi.pay() 按套餐价全额支付（无定金/尾款环节）；嵌入模式则回调 onBookService 由父级页面处理下单。
 ④ 成功后关闭弹窗，嵌入模式下同时关闭整个介绍页弹层。`,

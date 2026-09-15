@@ -263,6 +263,45 @@
   margin-bottom: 12px;
 }
 
+.biographer-edit-package-heading,
+.biographer-edit-package-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.biographer-edit-recommended-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #fff7df;
+  color: #a16207;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.biographer-edit-recommend-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 9px;
+  border: 1px solid #e5e7eb;
+  border-radius: 7px;
+  background: #fff;
+  color: #6b7280;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.biographer-edit-recommend-btn:hover,
+.biographer-edit-recommend-btn.active {
+  border-color: #d6a72d;
+  background: #fffaf0;
+  color: #a16207;
+}
+
 .biographer-edit-list-item-title {
   font-weight: 700;
   color: #1f2937;

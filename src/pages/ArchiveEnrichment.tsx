@@ -10,6 +10,7 @@ export type ArchiveEnrichmentProps = {
   embedded?: boolean;
   onContinue?: () => void;
   onSkip?: () => void;
+  stepNumber?: number;
 };
 
 const choiceGroups: ChoiceGroup[] = [
@@ -71,7 +72,7 @@ function makeDemoPhoto(label: string, restored: boolean) {
   return canvas.toDataURL('image/png');
 }
 
-export default function ArchiveEnrichment({ embedded = false, onContinue, onSkip }: ArchiveEnrichmentProps) {
+export default function ArchiveEnrichment({ embedded = false, onContinue, onSkip, stepNumber = 4 }: ArchiveEnrichmentProps) {
   const { addToast } = useToast();
   const [selected, setSelected] = useState<Record<string, string[]>>({
     era: ['80年代', '改革开放初期'],
@@ -136,7 +137,7 @@ export default function ArchiveEnrichment({ embedded = false, onContinue, onSkip
     return (
       <div className="archive-enrichment-page">
         <header className="page-header archive-enrichment-header">
-          <div><h1 className="page-title">{embedded ? '第四步：多维增补' : '多维增补'}</h1></div>
+          <div><h1 className="page-title">{embedded ? `第${stepNumber}步：多维增补` : '多维增补'}</h1></div>
           {embedded ? <button className="btn btn-outline" onClick={onSkip}>跳过此步</button> : <button className="btn btn-primary" onClick={startNewBiography}><Plus size={14} /> 创建新传记</button>}
         </header>
         <section className="archive-enrichment-list-card card">
@@ -156,7 +157,7 @@ export default function ArchiveEnrichment({ embedded = false, onContinue, onSkip
   return (
     <div className="archive-enrichment-page">
       <header className="page-header archive-enrichment-header">
-        <div><h1 className="page-title">{embedded ? '第四步：多维增补' : '多维增补'}</h1></div>
+        <div><h1 className="page-title">{embedded ? `第${stepNumber}步：多维增补` : '多维增补'}</h1></div>
         <div className="archive-enrichment-actions">
           {embedded && <button className="btn btn-outline" onClick={onSkip}>跳过此步</button>}
         </div>

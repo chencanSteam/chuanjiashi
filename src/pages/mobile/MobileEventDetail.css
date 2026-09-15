@@ -1,0 +1,45 @@
+.mobile-event-detail-page {
+  min-height: 100%;
+  padding: 16px;
+  padding-bottom: 24px;
+  background: #f6f1e7;
+  color: #3a3227;
+}
+
+.mobile-event-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-bottom: 12px;
+  border: none;
+  background: none;
+  color: #8b6f47;
+  padding: 0;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.mobile-event-detail-page .mobile-event-detail {
+  margin-top: 0;
+}
+
+.mobile-event-detail-page .mobile-event-media-grid {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.mobile-event-media-list {
+  margin-top: 10px;
+}
+
+.mobile-upload-form input[readonly] {
+  width: 100%;
+  border: 1px solid #e3d7bd;
+  border-radius: 8px;
+  outline: none;
+  background: #faf3e4;
+  color: #6b5f4a;
+  padding: 10px 11px;
+  font: inherit;
+  font-size: 14px;
+}

@@ -308,6 +308,7 @@ export const defaultBiographers: Biographer[] = [
     tags: ['金牌传记师', '家族史专家', '上门采访', '实体书制作'],
     services: [
       { id: 'svc_001', name: '基础采访套餐', price: 1999, description: '2 次深度采访 + 5000 字传记', interviewCount: '2 次', wordCount: '5000 字', deliveryPeriod: '30 天', physicalBook: '不含', mediaMaterial: '不含', revisionCount: '2 次' },
+      { id: 'svc_003', name: '家风传承推荐套餐', price: 3999, description: '3 次深度采访 + 1.5 万字传记 + 家风主题梳理', interviewCount: '3 次', wordCount: '1.5 万字', deliveryPeriod: '45 天', physicalBook: '不含', mediaMaterial: '含', revisionCount: '3 次', recommended: true },
       { id: 'svc_002', name: '深度定制套餐', price: 5999, description: '5 次采访 + 3 万字传记 + 实体书排版', interviewCount: '5 次', wordCount: '3 万字', deliveryPeriod: '60 天', physicalBook: '含', mediaMaterial: '含', revisionCount: '不限次' },
     ],
     cases: [

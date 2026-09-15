@@ -36,9 +36,8 @@ export const biographyShelfAnnotations: PageAnnotations = {
     },
     {
       id: 'biography-shelf.detail-actions',
-      target: '详情页操作（点赞 / 收藏 / 分享）',
-      logic: `① 点赞、收藏规则同列表卡片：需登录，成功后更新详情页计数。
-② 分享：拼接「当前域名 + #/biography-shelf/:id」链接写入剪贴板；剪贴板不可用时 toast 报错并展示完整链接供手动复制。`,
+      target: '详情页操作（点赞 / 收藏）',
+      logic: `① 点赞、收藏规则同列表卡片：需登录，成功后更新详情页计数。`,
     },
     {
       id: 'biography-shelf.reader-unlock',

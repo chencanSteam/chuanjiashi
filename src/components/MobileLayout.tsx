@@ -35,7 +35,7 @@ function MobileHeader() {
     '/m/account': '账号与隐私',
     '/m/works/': '作品详情',
   };
-  const title = titleMap[location.pathname] || (location.pathname.startsWith('/m/works/') ? (location.pathname.endsWith('/read') ? '阅读传记' : '作品详情') : '传家世');
+  const title = titleMap[location.pathname] || (location.pathname.startsWith('/m/archive/event/') ? '事件详情' : location.pathname.startsWith('/m/works/') ? (location.pathname.endsWith('/read') ? '阅读传记' : '作品详情') : '传家世');
 
   return (
     <header className="mobile-header">

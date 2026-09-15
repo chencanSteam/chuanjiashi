@@ -19,6 +19,11 @@ import { biographerApi } from '../api/biographer';
 import { loadJson, saveJson } from '../data/aiMock';
 import type { BiographerOrder } from '../mocks/types';
 import Annotate from '../components/annotation/Annotate';
+import {
+  loadBiographerVersions,
+  saveBiographerVersions,
+  type BiographerSavedVersion,
+} from '../utils/biographerVersions';
 import './BiographerWorks.css';
 
 interface WorkChapter {
@@ -92,6 +97,10 @@ export default function BiographerWorks() {
   const [loading, setLoading] = useState(true);
   const [activeOrderId, setActiveOrderId] = useState('');
   const [chapters, setChapters] = useState<WorkChapter[]>([]);
+  const [versions, setVersions] = useState<BiographerSavedVersion[]>([]);
+  const [selectedVersionId, setSelectedVersionId] = useState('');
+  const [versionNaming, setVersionNaming] = useState(false);
+  const [versionName, setVersionName] = useState('');
   const [activeChapterId, setActiveChapterId] = useState('');
   const [saving, setSaving] = useState(false);
   const [polishing, setPolishing] = useState(false);
@@ -106,6 +115,20 @@ export default function BiographerWorks() {
     const loaded = loadJson<WorkChapter[]>(workStorageKey(orderId), seedChapters());
     setChapters(loaded);
     setActiveChapterId(loaded[0]?.id || '');
+    let savedVersions = loadBiographerVersions(orderId);
+    if (savedVersions.length === 0) {
+      savedVersions = [{
+        id: genId(),
+        label: '初始稿',
+        createdAt: new Date().toISOString(),
+        chapterCount: loaded.length,
+        wordCount: loaded.reduce((sum, chapter) => sum + chapter.content.replace(/\s/g, '').length, 0),
+        chapters: loaded,
+      }];
+      saveBiographerVersions(orderId, savedVersions);
+    }
+    setVersions(savedVersions);
+    setSelectedVersionId(savedVersions[0]?.id || '');
   };
 
   useEffect(() => {
@@ -145,6 +168,35 @@ export default function BiographerWorks() {
       setSaving(false);
       addToast('已保存', 'success');
     }, 300);
+  };
+
+  const openSaveVersion = () => {
+    if (!activeOrder || chapters.length === 0) return;
+    setVersionName('');
+    setVersionNaming(true);
+  };
+
+  const handleSaveVersion = () => {
+    const name = versionName.trim();
+    if (!activeOrder || chapters.length === 0) return;
+    if (!name) {
+      addToast('请输入版本名称', 'error');
+      return;
+    }
+    const nextVersion: BiographerSavedVersion = {
+      id: genId(),
+      label: name,
+      createdAt: new Date().toISOString(),
+      chapterCount: chapters.length,
+      wordCount: totalWords,
+      chapters: JSON.parse(JSON.stringify(chapters)) as WorkChapter[],
+    };
+    const nextVersions = [nextVersion, ...versions];
+    setVersions(nextVersions);
+    setSelectedVersionId(nextVersion.id);
+    saveBiographerVersions(activeOrder.id, nextVersions);
+    setVersionNaming(false);
+    addToast(`版本“${nextVersion.label}”已保存`, 'success');
   };
 
   const handlePolish = () => {
@@ -282,6 +334,23 @@ export default function BiographerWorks() {
       {orders.length === 0 ? (
         <div className="card"><div className="card-body"><div className="admin-table-empty">暂无进行中的传记订单</div></div></div>
       ) : (
+        <>
+        <div className="work-version-bar">
+          <div className="work-version-info">
+            <strong>保存版本</strong>
+            <span>提交稿件时可选择这里保存的版本</span>
+          </div>
+          <select value={selectedVersionId} onChange={(event) => setSelectedVersionId(event.target.value)} aria-label="选择保存版本">
+            {versions.map((version) => (
+              <option value={version.id} key={version.id}>
+                {version.label} · {version.chapterCount} 章 · {version.wordCount} 字
+              </option>
+            ))}
+          </select>
+          <button type="button" className="btn btn-primary btn-sm" onClick={openSaveVersion}>
+            <Save size={14} /> 保存当前版本
+          </button>
+        </div>
         <div className="work-layout">
           <Annotate id="biographer-works.chapters">
           <div className="card work-chapters-card">
@@ -382,6 +451,7 @@ export default function BiographerWorks() {
           </div>
           </Annotate>
         </div>
+        </>
       )}
 
       {renaming && (
@@ -421,6 +491,35 @@ export default function BiographerWorks() {
               <div className="work-modal-actions">
                 <button className="btn btn-outline" onClick={() => setDeleting(null)}>取消</button>
                 <button className="btn btn-danger" onClick={handleDelete}>确认删除</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {versionNaming && (
+        <div className="modal-overlay" onClick={() => setVersionNaming(false)}>
+          <div className="modal-content work-version-modal" onClick={(event) => event.stopPropagation()}>
+            <div className="modal-header">
+              <h4>保存版本</h4>
+              <button className="modal-close" onClick={() => setVersionNaming(false)}><X size={16} /></button>
+            </div>
+            <div className="modal-body">
+              <label className="work-version-name-label" htmlFor="work-version-name">版本名称</label>
+              <input
+                id="work-version-name"
+                className="work-modal-input"
+                value={versionName}
+                autoFocus
+                maxLength={40}
+                onChange={(event) => setVersionName(event.target.value)}
+                onKeyDown={(event) => { if (event.key === 'Enter') handleSaveVersion(); }}
+                placeholder="例如：初稿-家庭章节"
+              />
+              <p className="work-modal-hint">保存当前 8 个章节的内容，提交稿件时可以选择这个版本。</p>
+              <div className="work-modal-actions">
+                <button className="btn btn-outline" onClick={() => setVersionNaming(false)}>取消</button>
+                <button className="btn btn-primary" onClick={handleSaveVersion}>保存版本</button>
               </div>
             </div>
           </div>

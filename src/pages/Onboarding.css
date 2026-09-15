@@ -85,6 +85,7 @@
 }
 .onboarding-steps-four { min-width: 250px; }
 .onboarding-steps-five { min-width: 360px; }
+.onboarding-step-indicator { display: contents; }
 
 .step-dot {
   width: 28px;

@@ -55,7 +55,7 @@ function ensureDemoArchive() {
       gender: '男' as const,
       birthYear: '1958',
       origin: '江苏省苏州市',
-      occupation: '企业家 / 高级工程师',
+      occupation: '企业家',
     };
     localStorage.setItem('cj_archives', JSON.stringify([defaultArchive]));
     localStorage.setItem('cj_current_archive_id', 'default');
@@ -238,6 +238,10 @@ export default function Login() {
         </Annotate>
 
         <div className="login-divider">或</div>
+
+        <button type="button" className="btn btn-primary login-register-demo" onClick={() => navigate('/register')}>
+          注册流程演示 <ArrowRight size={16} />
+        </button>
 
         <Annotate id="login.agreement">
         <label className="login-agreement">

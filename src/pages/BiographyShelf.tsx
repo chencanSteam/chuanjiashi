@@ -5,7 +5,6 @@ import {
   Search,
   Bookmark,
   ArrowLeft,
-  Share2,
   User,
   Tag,
   Clock,
@@ -113,17 +112,6 @@ export default function BiographyShelf() {
     }
   };
 
-  const handleShare = async () => {
-    if (!book) return;
-    const url = `${window.location.origin}${window.location.pathname}#/biography-shelf/${book.id}`;
-    try {
-      await navigator.clipboard.writeText(url);
-      addToast('链接已复制到剪贴板', 'success');
-    } catch {
-      addToast(`复制失败，请手动复制：${url}`, 'error');
-    }
-  };
-
   const hotBooks = useMemo(() => {
     return [...books]
       .sort((a, b) => b.views + b.likes - (a.views + a.likes))
@@ -212,9 +200,6 @@ export default function BiographyShelf() {
               <span className="biography-shelf-sold">已售 {book.sales ?? book.likes}</span>
               <button className="btn btn-outline" onClick={() => handleCollect(book.id)}>
                 <Bookmark size={14} /> {book.collects}
-              </button>
-              <button className="btn btn-outline" onClick={handleShare}>
-                <Share2 size={14} /> 分享
               </button>
             </div>
             </Annotate>

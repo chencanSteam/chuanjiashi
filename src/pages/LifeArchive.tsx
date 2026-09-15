@@ -126,7 +126,7 @@ const DEFAULT_ARCHIVE: Archive = {
   gender: '男',
   birthYear: '1958',
   origin: '江苏省苏州市',
-  occupation: '企业家 / 高级工程师',
+  occupation: '企业家',
 };
 
 const iconMap: Record<string, ComponentType<{ size?: number }>> = {

@@ -51,6 +51,27 @@ interface LegacyArchive {
   origin?: string;
 }
 
+interface RegistrationProfile {
+  name?: string;
+  gender?: '男' | '女';
+  birthYear?: string;
+  birthMonth?: string;
+  birthDay?: string;
+  originProvince?: string;
+  originCity?: string;
+  originDistrict?: string;
+  originDetail?: string;
+  industry?: string;
+  occupation?: string;
+}
+
+interface OnboardingLocationState {
+  mode?: string;
+  from?: string;
+  startStep?: number;
+  profile?: RegistrationProfile;
+}
+
 function loadArchives(): LegacyArchive[] {
   try {
     const raw = localStorage.getItem('cj_archives');
@@ -168,22 +189,26 @@ export default function Onboarding() {
   const { addToast } = useToast();
   const { user, setNewUser } = useAuth();
   const importInputRef = useRef<HTMLInputElement>(null);
-  const uploadMode = (location.state as { mode?: string } | null)?.mode === 'upload';
+  const navigationState = (location.state as OnboardingLocationState | null) || {};
+  const registrationProfile = navigationState.profile;
+  const uploadMode = navigationState.mode === 'upload';
+  const startStep = navigationState.startStep;
+  const registrationDemo = startStep === 3;
 
   const [step, setStep] = useState(0);
   const [checkingArchives, setCheckingArchives] = useState(true);
   const [archiveOptions, setArchiveOptions] = useState<ArchiveOption[]>([]);
-  const [name, setName] = useState(user?.name || '');
-  const [gender, setGender] = useState<'男' | '女'>('男');
-  const [birthYear, setBirthYear] = useState('');
-  const [birthMonth, setBirthMonth] = useState('');
-  const [birthDay, setBirthDay] = useState('');
-  const [originProvince, setOriginProvince] = useState('');
-  const [originCity, setOriginCity] = useState('');
-  const [originDistrict, setOriginDistrict] = useState('');
-  const [originDetail, setOriginDetail] = useState('');
-  const [industry, setIndustry] = useState('');
-  const [occupation, setOccupation] = useState('');
+  const [name, setName] = useState(user?.name || registrationProfile?.name || '');
+  const [gender, setGender] = useState<'男' | '女'>(registrationProfile?.gender || '男');
+  const [birthYear, setBirthYear] = useState(registrationProfile?.birthYear || '');
+  const [birthMonth, setBirthMonth] = useState(registrationProfile?.birthMonth || '');
+  const [birthDay, setBirthDay] = useState(registrationProfile?.birthDay || '');
+  const [originProvince, setOriginProvince] = useState(registrationProfile?.originProvince || '');
+  const [originCity, setOriginCity] = useState(registrationProfile?.originCity || '');
+  const [originDistrict, setOriginDistrict] = useState(registrationProfile?.originDistrict || '');
+  const [originDetail, setOriginDetail] = useState(registrationProfile?.originDetail || '');
+  const [industry, setIndustry] = useState(registrationProfile?.industry || '');
+  const [occupation, setOccupation] = useState(registrationProfile?.occupation || '');
   const [stages] = useState<LifeStage[]>([]);
   const [outline, setOutline] = useState<OutlineGroup[]>([]);
   const [importedText, setImportedText] = useState('');
@@ -217,11 +242,11 @@ export default function Onboarding() {
       });
       const options = Array.from(merged.values());
       setArchiveOptions(options);
-      setStep(uploadMode ? 1 : options.length > 0 ? 0 : 1);
+      setStep(uploadMode ? 1 : startStep || (options.length > 0 ? 0 : 2));
       setCheckingArchives(false);
     };
     load();
-  }, [uploadMode]);
+  }, [uploadMode, startStep]);
 
   const selectArchive = (option: ArchiveOption) => {
     localStorage.setItem('cj_current_archive_id', option.id);
@@ -240,6 +265,8 @@ export default function Onboarding() {
   const next = () => {
     if (step === 1) {
       setStep(2);
+    } else if (step === 2) {
+      goToLifeEvents();
     }
   };
 
@@ -370,15 +397,16 @@ export default function Onboarding() {
           </div>
           {step > 0 && (
             <div className="onboarding-steps onboarding-steps-five">
-              <div className={`step-dot ${step >= 1 ? 'active' : ''}`}>1</div>
-              <div className="step-line" />
-              <div className={`step-dot ${step >= 2 ? 'active' : ''}`}>2</div>
-              <div className="step-line" />
-              <div className={`step-dot ${step >= 3 ? 'active' : ''}`}>3</div>
-              <div className="step-line" />
-              <div className={`step-dot ${step >= 4 ? 'active' : ''}`}>4</div>
-              <div className="step-line" />
-              <div className={`step-dot ${step >= 5 ? 'active' : ''}`}>5</div>
+              {Array.from({ length: registrationDemo ? 3 : 5 }, (_, index) => {
+                const stepNumber = registrationDemo ? index + 1 : index + 1;
+                const internalStep = registrationDemo ? index + 3 : index + 1;
+                return (
+                  <div key={stepNumber} className="onboarding-step-indicator">
+                    <div className={`step-dot ${step >= internalStep ? 'active' : ''}`}>{stepNumber}</div>
+                    {index < (registrationDemo ? 2 : 4) && <div className="step-line" />}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
@@ -420,9 +448,44 @@ export default function Onboarding() {
           )}
 
           {step === 1 && (
+            <div className="onboarding-step onboarding-upload-step">
+              <h2><FileText size={20} /> 第一步：上传已有传记</h2>
+              <p className="step-desc">上传已有文字资料，系统会将它作为人生档案素材，并在后续提纲中继续补充。没有资料也可以跳过。</p>
+              <div className="onboarding-import-card">
+                <div className="onboarding-import-heading">
+                  <div className="onboarding-import-icon"><FileText size={18} /></div>
+                  <div>
+                    <strong>已有传记资料</strong>
+                    <p>支持 Word、TXT 或 Markdown 文件，上传后可在传记提纲中看到相关素材。</p>
+                  </div>
+                </div>
+                <input
+                  ref={importInputRef}
+                  className="onboarding-import-input"
+                  type="file"
+                  accept=".docx,.txt,.md"
+                  onChange={(e) => handleImportFile(e.target.files?.[0])}
+                />
+                {importedFileName ? (
+                  <div className="onboarding-import-file">
+                    <FileText size={15} />
+                    <span>{importedFileName}</span>
+                    <button type="button" onClick={() => { setImportedText(''); setImportedFileName(''); }}>移除</button>
+                  </div>
+                ) : (
+                  <button type="button" className="btn btn-outline onboarding-import-button" onClick={() => importInputRef.current?.click()} disabled={importing}>
+                    <Upload size={14} /> {importing ? '读取中…' : '上传已有传记'}
+                  </button>
+                )}
+                <button type="button" className="onboarding-import-skip" onClick={goToLifeEvents}>跳过此步</button>
+              </div>
+            </div>
+          )}
+
+          {step === 2 && (
             <Annotate id="onboarding.basic-form">
             <div className="onboarding-step">
-              <h2><User size={20} /> 第一步：填写基本信息</h2>
+              <h2><User size={20} /> 第二步：填写基本信息</h2>
               <p className="step-desc">这些信息会用于生成采访提纲和人生档案。</p>
               <div className="form-grid">
                 <div className="form-row">
@@ -509,43 +572,9 @@ export default function Onboarding() {
             </Annotate>
           )}
 
-          {step === 2 && (
-            <div className="onboarding-step onboarding-upload-step">
-              <h2><FileText size={20} /> 第二步：上传已有传记</h2>
-              <p className="step-desc">上传已有文字资料，系统会将它作为人生档案素材，并在后续提纲中继续补充。没有资料也可以跳过。</p>
-              <div className="onboarding-import-card">
-                <div className="onboarding-import-heading">
-                  <div className="onboarding-import-icon"><FileText size={18} /></div>
-                  <div>
-                    <strong>已有传记资料</strong>
-                    <p>支持 Word、TXT 或 Markdown 文件，上传后可在传记提纲中看到相关素材。</p>
-                  </div>
-                </div>
-                <input
-                  ref={importInputRef}
-                  className="onboarding-import-input"
-                  type="file"
-                  accept=".docx,.txt,.md"
-                  onChange={(e) => handleImportFile(e.target.files?.[0])}
-                />
-                {importedFileName ? (
-                  <div className="onboarding-import-file">
-                    <FileText size={15} />
-                    <span>{importedFileName}</span>
-                    <button type="button" onClick={() => { setImportedText(''); setImportedFileName(''); }}>移除</button>
-                  </div>
-                ) : (
-                  <button type="button" className="btn btn-outline onboarding-import-button" onClick={() => importInputRef.current?.click()} disabled={importing}>
-                    <Upload size={14} /> {importing ? '读取中…' : '上传已有传记'}
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
+          {step === 3 && <LifeEvents embedded stepNumber={registrationDemo ? 1 : 3} onContinue={goToEnrichment} onSkip={goToEnrichment} />}
 
-          {step === 3 && <LifeEvents embedded onContinue={goToEnrichment} onSkip={goToEnrichment} />}
-
-          {step === 4 && <ArchiveEnrichment embedded onContinue={goToOutline} onSkip={goToOutline} />}
+          {step === 4 && <ArchiveEnrichment embedded stepNumber={registrationDemo ? 2 : 4} onContinue={goToOutline} onSkip={goToOutline} />}
 
           {step === 5 && (
             <Annotate id="onboarding.outline">
@@ -553,7 +582,7 @@ export default function Onboarding() {
               <div className="outline-heading">
                 <div>
                   <div className="outline-eyebrow"><Sparkles size={14} /> 采访前的最后确认</div>
-                  <h2>第五步：确认传记提纲</h2>
+                  <h2>{registrationDemo ? '第三步：确认传记提纲' : '第五步：确认传记提纲'}</h2>
                   <p className="step-desc">这是整本传记的写作骨架。确认后，AI 会按章节顺序逐章采访，不跳题、不跑题。</p>
                 </div>
                 <button type="button" className="btn btn-outline" onClick={addOutlineGroup}><Plus size={14} /> 新增章节</button>
@@ -604,16 +633,15 @@ export default function Onboarding() {
             </button>
           )}
           {step === 1 ? (
-            <button className="btn btn-primary" onClick={next}>
-              下一步 <ArrowRight size={14} />
-            </button>
-          ) : step === 2 ? (
             <div className="onboarding-footer-actions">
-              <button className="btn btn-outline" onClick={goToLifeEvents}>跳过此步</button>
-              <button className="btn btn-primary" onClick={goToLifeEvents}>
+              <button className="btn btn-primary" onClick={next}>
                 下一步 <ArrowRight size={14} />
               </button>
             </div>
+          ) : step === 2 ? (
+            <button className="btn btn-primary" onClick={next}>
+              下一步 <ArrowRight size={14} />
+            </button>
           ) : step === 5 ? (
             <button className="btn btn-primary" onClick={startInterview}>
               确认提纲，开始 AI 采访 <Mic size={14} />

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Upload, X, Plus, Save, Eye, Image } from 'lucide-react';
+import { Upload, X, Plus, Save, Eye, Image, Star } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 import { biographerApi } from '../api/biographer';
 import { uploadFile } from '../api/client';
@@ -315,8 +315,23 @@ export default function BiographerProfileEdit({ embedded, onExit }: BiographerPr
           {(form.services || []).map((s, idx) => (
             <div key={s.id} className="biographer-edit-list-item">
               <div className="biographer-edit-list-item-header">
-                <span className="biographer-edit-list-item-title">套餐 {idx + 1}</span>
-                <button className="biographer-edit-list-item-remove" onClick={() => setForm((f) => ({ ...f, services: (f.services || []).filter((_, i) => i !== idx) }))}><X size={16} /></button>
+                <div className="biographer-edit-package-heading">
+                  <span className="biographer-edit-list-item-title">套餐 {idx + 1}</span>
+                  {s.recommended && <span className="biographer-edit-recommended-badge"><Star size={12} /> 推荐套餐</span>}
+                </div>
+                <div className="biographer-edit-package-actions">
+                  <button
+                    type="button"
+                    className={`biographer-edit-recommend-btn ${s.recommended ? 'active' : ''}`}
+                    onClick={() => setForm((f) => ({
+                      ...f,
+                      services: (f.services || []).map((item, i) => ({ ...item, recommended: i === idx })),
+                    }))}
+                  >
+                    <Star size={14} /> {s.recommended ? '已设为推荐' : '设为推荐'}
+                  </button>
+                  <button className="biographer-edit-list-item-remove" onClick={() => setForm((f) => ({ ...f, services: (f.services || []).filter((_, i) => i !== idx) }))}><X size={16} /></button>
+                </div>
               </div>
               <div className="biographer-edit-row">
                 <div className="biographer-edit-field">
@@ -386,7 +401,7 @@ export default function BiographerProfileEdit({ embedded, onExit }: BiographerPr
               </div>
             </div>
           ))}
-          <button className="biographer-edit-add-btn" onClick={() => setForm((f) => ({ ...f, services: [...(f.services || []), { id: `svc_${Date.now()}`, name: '', price: 0, description: '' }] }))}>
+           <button className="biographer-edit-add-btn" onClick={() => setForm((f) => ({ ...f, services: [...(f.services || []), { id: `svc_${Date.now()}`, name: '', price: 0, description: '', recommended: false }] }))}>
             <Plus size={16} /> 添加套餐
           </button>
         </div>

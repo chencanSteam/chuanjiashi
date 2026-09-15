@@ -120,6 +120,7 @@ const MobileLayout = lazy(() => import('./components/MobileLayout'));
 const MobileHome = lazy(() => import('./pages/mobile/MobileHome'));
 const MobileOnboarding = lazy(() => import('./pages/mobile/MobileOnboarding'));
 const MobileArchive = lazy(() => import('./pages/mobile/MobileArchive'));
+const MobileEventDetail = lazy(() => import('./pages/mobile/MobileEventDetail'));
 const MobileFamily = lazy(() => import('./pages/mobile/MobileFamily'));
 const MobileProfile = lazy(() => import('./pages/mobile/MobileProfile'));
 const MobileWorks = lazy(() => import('./pages/mobile/MobileWorks'));
@@ -246,6 +247,8 @@ function App() {
                 <Route path="interview" element={<MobileInterview />} />
                 <Route path="interview-review" element={<MobileInterviewReview />} />
                 <Route path="archive" element={<MobileArchive />} />
+
+                <Route path="archive/event/:year" element={<MobileEventDetail />} />
                 <Route path="family" element={<MobileFamilyV1Redirect><MobileFamily /></MobileFamilyV1Redirect>} />
                 <Route path="works" element={<MobileWorks />} />
                 <Route path="works/:id" element={<MobileWorkDetail />} />

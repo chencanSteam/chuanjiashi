@@ -225,10 +225,6 @@
   border-bottom: none;
 }
 
-.mobile-timeline-item.active {
-  background: #faf3e4;
-}
-
 .timeline-dot {
   width: 10px;
   height: 10px;
@@ -350,17 +346,6 @@
   align-self: center;
   color: #a89372;
   font-size: 12px;
-}
-
-.mobile-event-view-media {
-  margin-top: 10px;
-  border: none;
-  background: none;
-  color: #8b6f47;
-  font: inherit;
-  font-size: 12px;
-  cursor: pointer;
-  padding: 0;
 }
 
 .mobile-media-filters {

@@ -21,7 +21,7 @@ const defaultChapters: Chapter[] = [
   { title: '人生感悟', topics: ['回顾一生，您最想对晚辈说的话是什么？', '如果用一个词总结自己的人生，您会选择哪个词？'] },
 ];
 
-const stepNames = ['填写基本信息', '上传已有传记', '人生大事件', '多维增补', '确认传记提纲'];
+const stepNames = ['上传已有传记', '填写基本信息', '人生大事件', '多维增补', '确认传记提纲'];
 const birthYears = Array.from({ length: new Date().getFullYear() - 1900 + 1 }, (_, index) => String(new Date().getFullYear() - index));
 export default function MobileOnboarding() {
   const navigate = useNavigate();
@@ -75,18 +75,18 @@ export default function MobileOnboarding() {
 
       <main className="mobile-onboarding-body">
         {step === 1 && <section className="mobile-onboarding-step">
-          <h1>第一步：填写基本信息</h1><p className="mobile-step-desc">这些信息会用于生成采访提纲和人生档案。</p>
+          <h1>第一步：上传已有传记</h1><p className="mobile-step-desc">已有传记可以直接上传，系统会基于原文继续补充，也可以跳过。</p>
+          <div className="mobile-upload-card"><FileText size={24} /><strong>{fileName || '还没有上传传记'}</strong><small>支持 Word、TXT 或 Markdown 文件</small><label className="mobile-upload-button"><Upload size={15} /> {fileName ? '重新上传' : '上传已有传记'}<input type="file" accept=".doc,.docx,.txt,.md" onChange={(e) => setFileName(e.target.files?.[0]?.name || '')} /></label></div>
+        </section>}
+
+        {step === 2 && <section className="mobile-onboarding-step">
+          <h1>第二步：填写基本信息</h1><p className="mobile-step-desc">这些信息会用于生成采访提纲和人生档案。</p>
           <label>姓名 <em>*</em><input value={name} onChange={(e) => setName(e.target.value)} /></label>
           <label>性别<select value={gender} onChange={(e) => setGender(e.target.value)}><option>男</option><option>女</option></select></label>
           <label>出生日期<div className="mobile-cascade-row"><select value={birthYear} onChange={(e) => setBirthYear(e.target.value)}><option value="">年</option>{birthYears.map((item) => <option key={item}>{item} 年</option>)}</select><select value={birthMonth} onChange={(e) => setBirthMonth(e.target.value)}><option value="">月</option>{Array.from({ length: 12 }, (_, index) => String(index + 1).padStart(2, '0')).map((item) => <option key={item}>{Number(item)} 月</option>)}</select><select value={birthDay} onChange={(e) => setBirthDay(e.target.value)}><option value="">日</option>{Array.from({ length: 31 }, (_, index) => String(index + 1).padStart(2, '0')).map((item) => <option key={item}>{Number(item)} 日</option>)}</select></div></label>
           <label>籍贯 <em>*</em><div className="mobile-cascade-row"><select value={originProvince} onChange={(e) => { setOriginProvince(e.target.value); setOriginCity(''); setOriginDistrict(''); }}><option value="">省份</option>{regions.map((item) => <option key={item.name}>{item.name}</option>)}</select><select value={originCity} disabled={!originProvince} onChange={(e) => { setOriginCity(e.target.value); setOriginDistrict(''); }}><option value="">城市</option>{(regions.find((item) => item.name === originProvince)?.cities || []).map((item) => <option key={item.name}>{item.name}</option>)}</select><select value={originDistrict} disabled={!originCity} onChange={(e) => setOriginDistrict(e.target.value)}><option value="">区/县</option>{(regions.find((item) => item.name === originProvince)?.cities.find((item) => item.name === originCity)?.districts || []).map((item) => <option key={item}>{item}</option>)}</select></div></label>
           <label>行业 <em>*</em><select value={industry} onChange={(e) => { setIndustry(e.target.value); setOccupation(''); }}><option value="">请选择行业</option>{industryOptions.map((item) => <option key={item}>{item}</option>)}</select></label>
           <label>职业 <em>*</em><select value={occupation} disabled={!industry} onChange={(e) => setOccupation(e.target.value)}><option value="">{industry ? '请选择职业' : '请先选择行业'}</option>{(industryOccupations[industry] || []).map((item) => <option key={item}>{item}</option>)}</select></label>
-        </section>}
-
-        {step === 2 && <section className="mobile-onboarding-step">
-          <h1>第二步：上传已有传记</h1><p className="mobile-step-desc">已有传记可以直接上传，系统会基于原文继续补充，也可以跳过。</p>
-          <div className="mobile-upload-card"><FileText size={24} /><strong>{fileName || '还没有上传传记'}</strong><small>支持 Word、TXT 或 Markdown 文件</small><label className="mobile-upload-button"><Upload size={15} /> {fileName ? '重新上传' : '上传已有传记'}<input type="file" accept=".doc,.docx,.txt,.md" onChange={(e) => setFileName(e.target.files?.[0]?.name || '')} /></label></div>
         </section>}
 
         {step === 3 && <LifeEvents embedded onContinue={() => setStep(4)} onSkip={() => setStep(4)} />}
@@ -98,7 +98,7 @@ export default function MobileOnboarding() {
 
       {step !== 3 && step !== 4 && <footer className="mobile-onboarding-footer">
         <button type="button" className="mobile-secondary-button" onClick={() => step > 1 ? setStep(step - 1) : navigate('/m')}><ArrowLeft size={15} /> 上一步</button>
-        {step === 2 && <button type="button" className="mobile-secondary-button" onClick={() => setStep(3)}>跳过此步</button>}
+        {step === 1 && <button type="button" className="mobile-secondary-button" onClick={() => setStep(3)}>跳过此步</button>}
         {step === 3 && <button type="button" className="mobile-secondary-button" onClick={() => setStep(4)}>跳过此步</button>}
         {step === 4 && <button type="button" className="mobile-secondary-button" onClick={() => setStep(5)}>跳过此步</button>}
         {step < 5 ? <button type="button" className="mobile-primary-button" onClick={() => setStep(step + 1)}>下一步 <ArrowRight size={15} /></button> : <button type="button" className="mobile-primary-button" onClick={saveAndStart}><Mic size={15} /> 确认提纲，开始 AI 采访</button>}

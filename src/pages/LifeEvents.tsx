@@ -18,6 +18,7 @@ export type LifeEventsProps = {
   embedded?: boolean;
   onContinue?: () => void;
   onSkip?: () => void;
+  stepNumber?: number;
 };
 
 const defaultSelected = { 'family-style': true, 'stable-job': true, children: true };
@@ -85,7 +86,7 @@ const eventGroups: EventGroup[] = [
   ] },
 ];
 
-export default function LifeEvents({ embedded = false, onContinue, onSkip }: LifeEventsProps) {
+export default function LifeEvents({ embedded = false, onContinue, onSkip, stepNumber = 3 }: LifeEventsProps) {
   const { addToast } = useToast();
   const [selected, setSelected] = useState<Record<string, boolean>>(defaultSelected);
   const [details, setDetails] = useState<Record<string, string>>(defaultDetails);
@@ -122,7 +123,7 @@ export default function LifeEvents({ embedded = false, onContinue, onSkip }: Lif
     return (
       <div className="life-events-page">
         <header className="page-header life-events-header">
-          <div><h1 className="page-title">{embedded ? '第三步：人生大事件' : '人生大事件'}</h1></div>
+          <div><h1 className="page-title">{embedded ? `第${stepNumber}步：人生大事件` : '人生大事件'}</h1></div>
           {embedded ? <button className="btn btn-outline" onClick={onSkip}>跳过此步</button> : <button className="btn btn-primary" onClick={startNewBiography}><Plus size={14} /> 创建新传记</button>}
         </header>
         <section className="life-events-list-card card">
@@ -143,7 +144,7 @@ export default function LifeEvents({ embedded = false, onContinue, onSkip }: Lif
     <div className="life-events-page">
       <header className="page-header life-events-header">
         <div>
-          <h1 className="page-title">{embedded ? '第三步：人生大事件' : '人生大事件'}</h1>
+          <h1 className="page-title">{embedded ? `第${stepNumber}步：人生大事件` : '人生大事件'}</h1>
         </div>
         <div className="life-events-actions">
           {embedded && <button className="btn btn-outline" onClick={onSkip}>跳过此步</button>}

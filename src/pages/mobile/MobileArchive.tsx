@@ -94,7 +94,6 @@ export default function MobileArchive() {
   const [activeTab, setActiveTab] = useState<ArchiveTab>('timeline');
   const [events, setEvents] = useState<StoredTimelineEventData[]>([]);
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
-  const [selectedYear, setSelectedYear] = useState('');
   const [mediaFilter, setMediaFilter] = useState<'all' | MediaType>('all');
 
   const [editOpen, setEditOpen] = useState(false);
@@ -110,14 +109,9 @@ export default function MobileArchive() {
     const list = loadStoredEventsForArchive(archiveId).slice().sort((a, b) => Number(a.year) - Number(b.year));
     setEvents(list);
     setMediaItems(loadMediaItems(archiveId));
-    setSelectedYear(list[0]?.year || '');
     setActiveTab('timeline');
   }, [archiveId]);
 
-  const selectedEvent = events.find((item) => item.year === selectedYear) || null;
-  const relatedMedia = selectedEvent
-    ? mediaItems.filter((item) => item.stage === `${selectedEvent.year}·${selectedEvent.title}`)
-    : [];
   const filteredMedia = mediaFilter === 'all' ? mediaItems : mediaItems.filter((item) => item.type === mediaFilter);
 
   const persistEvents = (next: StoredTimelineEventData[]) => {
@@ -241,9 +235,9 @@ export default function MobileArchive() {
       persistMedia(mediaItems.map((item) => item.stage === oldStage ? { ...item, stage: newStage } : item));
     }
     localStorage.setItem(`event-${archiveId}-${year}`, JSON.stringify({ title, subtitle: title, content: desc, tags: [] }));
-    setSelectedYear(year);
     setEventOpen(false);
     addToast(editingEventYear ? '人生事件已更新' : '人生事件已添加', 'success');
+    if (!editingEventYear) navigate(`/m/archive/event/${year}`);
   };
 
   const deleteEvent = (event: StoredTimelineEventData) => {
@@ -251,13 +245,12 @@ export default function MobileArchive() {
     const nextEvents = events.filter((item) => item.year !== event.year);
     persistEvents(nextEvents);
     localStorage.removeItem(`event-${archiveId}-${event.year}`);
-    if (selectedYear === event.year) setSelectedYear(nextEvents[0]?.year || '');
     addToast('人生事件已删除', 'success');
   };
 
   const openUpload = (event?: StoredTimelineEventData) => {
     setPendingMedia([]);
-    setUploadStage(event ? `${event.year}·${event.title}` : (selectedEvent ? `${selectedEvent.year}·${selectedEvent.title}` : ''));
+    setUploadStage(event ? `${event.year}·${event.title}` : '');
     setUploadOpen(true);
   };
 
@@ -364,8 +357,8 @@ export default function MobileArchive() {
                 {events.map((event) => (
                   <article
                     key={`${event.year}-${event.title}`}
-                    className={`mobile-timeline-item${selectedYear === event.year ? ' active' : ''}`}
-                    onClick={() => setSelectedYear(event.year)}
+                    className="mobile-timeline-item"
+                    onClick={() => navigate(`/m/archive/event/${event.year}`)}
                   >
                     <div className="timeline-dot" />
                     <div className="timeline-content">
@@ -387,27 +380,6 @@ export default function MobileArchive() {
             </Annotate>
           )}
 
-          {selectedEvent && (
-            <section className="mobile-event-detail">
-              <div className="mobile-event-detail-head">
-                <div>
-                  <span>{formatYear(selectedEvent)}</span>
-                  <h4>{selectedEvent.title}</h4>
-                </div>
-                <button className="mobile-archive-outline-btn" type="button" onClick={() => openUpload(selectedEvent)}><Upload size={14} /> 上传资料</button>
-              </div>
-              <p>{selectedEvent.desc || '暂未填写事件描述'}</p>
-              <div className="mobile-event-media-grid">
-                {relatedMedia.filter((item) => item.type === 'image').slice(0, 4).map((item) => (
-                  <div className="mobile-event-image" key={item.id}>
-                    {item.dataUrl ? <img src={item.dataUrl} alt={item.title} /> : <Image size={22} />}
-                  </div>
-                ))}
-                {relatedMedia.length === 0 && <span className="mobile-event-media-empty">暂未关联资料</span>}
-              </div>
-              {relatedMedia.length > 0 && <button className="mobile-event-view-media" type="button" onClick={() => setActiveTab('media')}>查看本档案全部素材</button>}
-            </section>
-          )}
         </section>
       ) : (
         <section className="mobile-archive-section">

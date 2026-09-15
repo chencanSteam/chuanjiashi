@@ -460,6 +460,8 @@ export interface BiographerService {
   mediaMaterial?: string
   /** 修改次数 */
   revisionCount?: string
+  /** 主页展示的推荐套餐，只允许一个套餐为 true */
+  recommended?: boolean
 }
 
 export interface BiographerCase {

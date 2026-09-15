@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { MapPin, Star, Award, Phone, Mail, BookOpen, Image, MessageCircle, Calendar, Briefcase, Edit2, Eye, X, Users, User, Clock, FileText, Home } from 'lucide-react';
+import { MapPin, Star, Award, Phone, Mail, BookOpen, Image, MessageCircle, Calendar, Briefcase, Edit2, Eye, X, Users, User, FileText } from 'lucide-react';
 import { biographerApi } from '../api/biographer';
 import { paymentApi } from '../api/payment';
 import { useToast } from '../hooks/useToast';
@@ -90,6 +90,8 @@ export default function BiographerProfile({ biographerId, embedded, onClose, onB
   const recommendedIndex = useMemo(() => {
     const services = biographer?.services;
     if (!services || services.length === 0) return -1;
+    const explicitIndex = services.findIndex((service) => service.recommended);
+    if (explicitIndex >= 0) return explicitIndex;
     const sorted = [...services].sort((a, b) => a.price - b.price);
     return services.findIndex((s) => s.id === sorted[Math.floor(sorted.length / 2)]?.id);
   }, [biographer?.services]);
@@ -151,7 +153,7 @@ export default function BiographerProfile({ biographerId, embedded, onClose, onB
 
   const handleBookingSubmit = async () => {
     if (!bookingService || !biographer) return;
-    if (!bookingForm.interviewee || !bookingForm.relation || !bookingForm.preferredTime || !bookingForm.location || !bookingForm.contactPhone) {
+    if (!bookingForm.interviewee || !bookingForm.relation || !bookingForm.contactPhone) {
       addToast('请填写完整的预约信息', 'error');
       return;
     }
@@ -450,24 +452,6 @@ export default function BiographerProfile({ biographerId, embedded, onClose, onB
                   <option value="配偶">配偶</option>
                   <option value="其他长辈">其他长辈</option>
                 </select>
-              </div>
-              <div className="form-row">
-                <label><Clock size={12} /> 期望采访时间</label>
-                <input
-                  type="text"
-                  value={bookingForm.preferredTime}
-                  onChange={(e) => setBookingForm((prev) => ({ ...prev, preferredTime: e.target.value }))}
-                  placeholder="例如：2024-07-20 14:00"
-                />
-              </div>
-              <div className="form-row">
-                <label><Home size={12} /> 采访地点 / 线上方式</label>
-                <input
-                  type="text"
-                  value={bookingForm.location}
-                  onChange={(e) => setBookingForm((prev) => ({ ...prev, location: e.target.value }))}
-                  placeholder="例如：杭州市西湖区某某小区 / 腾讯会议"
-                />
               </div>
               <div className="form-row">
                 <label><Phone size={12} /> 联系电话</label>

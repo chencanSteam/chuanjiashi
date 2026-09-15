@@ -445,6 +445,88 @@
   text-decoration: underline;
 }
 
+.login-register-demo {
+  width: 100%;
+  justify-content: center;
+}
+
+.register-section-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #1b5e4b;
+  font-size: 14px;
+  font-weight: 700;
+  margin: 2px 0 -2px;
+}
+
+.register-contact-title {
+  margin-top: 8px;
+}
+
+.register-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.register-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.register-form-field-full {
+  grid-column: 1 / -1;
+}
+
+.register-form-field span {
+  color: #374151;
+  font-size: 12px;
+}
+
+.register-form-field em {
+  color: #dc2626;
+  font-style: normal;
+}
+
+.register-form-field input,
+.register-form-field select {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fafafa;
+  color: #111827;
+  font-size: 13px;
+  padding: 10px 11px;
+  outline: none;
+}
+
+.register-form-field input:focus,
+.register-form-field select:focus {
+  border-color: var(--primary);
+  background: #fff;
+}
+
+.register-cascade-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+@media (max-width: 560px) {
+  .register-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .register-form-field-full {
+    grid-column: auto;
+  }
+}
+
 .login-back {
   width: 100%;
   justify-content: center;
