@@ -987,6 +987,31 @@
   background: #fff;
 }
 
+.archive-delete-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border: 1px solid #ead8d5;
+  border-radius: 8px;
+  background: #fff;
+  color: #a34b43;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all .2s ease;
+}
+
+.archive-delete-btn:hover:not(:disabled) {
+  border-color: #c65d54;
+  background: #fff7f6;
+}
+
+.archive-delete-btn:disabled {
+  cursor: not-allowed;
+  opacity: .55;
+}
+
 .new-archive-card {
   margin-bottom: 6px;
 }

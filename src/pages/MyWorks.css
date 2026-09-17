@@ -12,27 +12,52 @@
   text-align: center;
 }
 
-.works-grid {
+.my-works-page .works-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 18px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 16px;
 }
 
-.work-card {
-  transition: box-shadow 0.2s, transform 0.2s;
+@media (max-width: 1400px) {
+  .my-works-page .works-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
-.work-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 28px rgba(27, 94, 75, 0.08);
+.my-works-page .work-card {
+  min-width: 0;
+  border-radius: 8px;
 }
 
-.work-body {
+.my-works-page .work-body {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  padding: 18px 20px;
+}
+
+.my-works-page .work-summary {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 16px;
+  gap: 12px 24px;
+  min-width: 0;
+}
+
+.my-works-page .work-summary > .annotate-wrap:first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.my-works-page .work-summary > .annotate-wrap:last-child {
+  flex-shrink: 0;
+}
+
+.my-works-page .work-body > .annotate-wrap {
+  order: 4;
+  min-width: 0;
 }
 
 .work-main {
@@ -43,20 +68,20 @@
   min-width: 0;
 }
 
-.work-info {
+.my-works-page .work-info {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
   min-width: 0;
 }
 
-.work-name {
+.my-works-page .work-name {
+  flex-basis: 100%;
   font-size: 16px;
   font-weight: 600;
   color: #111827;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
 }
 
 .work-status {
@@ -129,38 +154,88 @@
   color: #dc2626;
 }
 
-@media (max-width: 900px) {
-  .works-grid {
-    grid-template-columns: 1fr;
+/* 仅本页的小屏外壳适配，保留导航入口。 */
+@media (max-width: 680px) {
+  .layout:has(.my-works-page) {
+    flex-direction: column;
   }
 
-  .work-body {
+  .layout:has(.my-works-page) > .sidebar {
+    position: static;
+    width: 100%;
+    max-height: 180px;
+    flex-shrink: 0;
+    border-right: 0;
+    border-bottom: 1px solid var(--border-light);
+  }
+
+  .main:has(.my-works-page) {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .main:has(.my-works-page) > .topbar {
+    height: auto;
+    min-height: 60px;
+    padding: 10px 12px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .main:has(.my-works-page) .topbar-actions {
+    flex-wrap: wrap;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .content:has(> .my-works-page) {
+    padding: 16px 12px 24px;
+  }
+
+  .my-works-page .page-header {
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .my-works-page .work-body {
+    padding: 16px;
+  }
+
+  .my-works-page .work-summary {
     flex-direction: column;
     align-items: stretch;
   }
 
-  .work-actions {
+  .my-works-page .work-actions {
     justify-content: flex-start;
     flex-wrap: wrap;
   }
 
-  .work-actions .btn {
+  .my-works-page .work-actions .btn {
     flex: 1 1 auto;
   }
 }
 
-/* 创作者收益 + 公开授权（整行置于卡片底部，带分隔线） */
-.work-extra {
+/* 创作者收益与公开授权，位于稿件版本下方。 */
+.my-works-page .work-extra {
   order: 3;
   width: 100%;
+  min-width: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 8px 16px;
   flex-wrap: wrap;
-  margin-top: 2px;
-  padding-top: 14px;
-  border-top: 1px solid #f3f4f6;
+}
+
+.my-works-page .work-license-detail {
+  width: auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.my-works-page .work-earnings-placeholder-label {
+  white-space: normal;
 }
 
 .work-earnings {
@@ -347,12 +422,16 @@
 }
 
 /* 传记增值付费服务 */
-.work-paid-services {
+.my-works-page .work-paid-services {
+  order: 4;
   display: flex;
   gap: 8px;
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px dashed var(--border-light, #e8e4dd);
+  flex-wrap: wrap;
+}
+
+.my-works-page .work-paid-btn {
+  min-height: 34px;
+  max-width: 100%;
   flex-wrap: wrap;
 }
 
@@ -492,20 +571,37 @@
   color: #9ca3af;
 }
 
-.work-drafts-grid {
+.my-works-page .work-drafts-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
+  grid-template-columns: minmax(0, 1fr);
 }
 
-.work-draft-item {
+.my-works-page .work-draft-item {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 10px 12px;
-  border: 1px solid var(--border-light, #e8e4dd);
-  border-radius: 10px;
-  background: #fbfbfa;
+  align-items: center;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  min-width: 0;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-light, #e8e4dd);
+}
+
+.my-works-page .work-draft-head {
+  width: 126px;
+  flex-shrink: 0;
+}
+
+.my-works-page .work-draft-foot {
+  min-width: 0;
+}
+
+.my-works-page .work-draft-btn {
+  min-height: 30px;
+}
+
+.my-works-page .work-drafts-header {
+  margin-bottom: 2px;
 }
 
 .work-draft-head {
@@ -595,8 +691,15 @@
   color: #fff;
 }
 
-@media (max-width: 900px) {
-  .work-drafts-grid {
-    grid-template-columns: 1fr;
+@media (max-width: 1100px) {
+  .my-works-page .work-drafts-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 400px) {
+  .my-works-page .work-draft-item {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }

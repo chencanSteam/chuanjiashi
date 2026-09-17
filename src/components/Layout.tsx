@@ -169,6 +169,9 @@ export default function Layout() {
   const { isV1 } = useVersion();
   const location = useLocation();
   const pathname = location.pathname;
+  const menuPathname = pathname === '/biography/print' && location.state?.from === '/my-works'
+    ? '/my-works'
+    : pathname;
 
   const navGroups = getNavGroups(isV1);
 
@@ -288,7 +291,7 @@ export default function Layout() {
                       <li className="nav-sub-item" key={item.to}>
                         <NavLink
                           to={item.to}
-                          className={() => `nav-sub-link ${isNavItemActive(item, group.items, pathname) ? 'active' : ''}`}
+                          className={() => `nav-sub-link ${isNavItemActive(item, group.items, menuPathname) ? 'active' : ''}`}
                         >
                           <item.icon className="nav-icon" size={16} />
                           <span>{item.label}</span>

@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { X, BookOpen, DollarSign, FileText, Image, User, Briefcase } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { X, BookOpen, DollarSign, FileText, Image, User, Briefcase, UploadCloud } from 'lucide-react';
 import { bookshelfApi } from '../api/bookshelf';
 import { useToast } from '../hooks/useToast';
 import { useAuth } from '../hooks/useAuth';
@@ -13,6 +13,44 @@ interface Archive {
   birthYear?: string;
   origin?: string;
   occupation?: string;
+  industry?: string;
+}
+
+function loadBiography(archiveId: string): { title?: string; author?: string } {
+  try {
+    return JSON.parse(localStorage.getItem(`cj_biography_${archiveId}`) || '{}') || {};
+  } catch {
+    return {};
+  }
+}
+
+// 本地生成三款位图封面，沿用现有 cover 字段，无需上传服务。
+function createDefaultCovers() {
+  return [
+    { name: '青绿典藏', background: '#214e43', ink: '#efe4c8' },
+    { name: '朱红纪年', background: '#883f43', ink: '#f9e9cf' },
+    { name: '素白书简', background: '#f3f1ea', ink: '#384940' },
+  ].map(({ name, background, ink }) => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 360;
+    canvas.height = 480;
+    const ctx = canvas.getContext('2d')!;
+    ctx.fillStyle = background;
+    ctx.fillRect(0, 0, 360, 480);
+    ctx.strokeStyle = ink;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(24, 24, 312, 432);
+    ctx.fillStyle = ink;
+    ctx.textAlign = 'center';
+    ctx.font = '32px serif';
+    ctx.fillText('人生传记', 180, 180);
+    ctx.fillRect(150, 213, 60, 2);
+    ctx.font = '16px serif';
+    ctx.fillText('珍藏岁月 · 留存家风', 180, 260);
+    ctx.font = '14px serif';
+    ctx.fillText('传家世', 180, 416);
+    return { name, cover: canvas.toDataURL('image/png') };
+  });
 }
 
 interface PublishBookModalProps {
@@ -31,60 +69,94 @@ function findIndustryForOccupation(occupation?: string): string {
 export default function PublishBookModal({ archive, onClose, onPublished }: PublishBookModalProps) {
   const { addToast } = useToast();
   const { user } = useAuth();
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [existing, setExisting] = useState<PublicBook | null>(null);
-  const [form, setForm] = useState({
-    title: `${archive.name}的传记`,
-    author: user?.name || '本人/家属整理',
-    industry: findIndustryForOccupation(archive.occupation),
-    occupation: archive.occupation || '',
-    intro: '',
-    cover: '',
-    isFree: true,
-    price: '',
-    trialWords: 1000,
+  const [defaultCovers] = useState(createDefaultCovers);
+  const [readingCover, setReadingCover] = useState(false);
+  const uploadInput = useRef<HTMLInputElement>(null);
+  const [form, setForm] = useState(() => {
+    const biography = loadBiography(archive.id);
+    return {
+      title: biography.title || `${archive.name}的传记`,
+      author: biography.author || archive.name || user?.name || '本人/家属整理',
+      industry: archive.industry || findIndustryForOccupation(archive.occupation),
+      occupation: archive.occupation || '',
+      intro: '',
+      cover: defaultCovers[0].cover,
+      isFree: true,
+      price: '',
+      trialWords: 1000,
+    };
   });
+  const industrySelectOptions = form.industry && !industryOptions.includes(form.industry)
+    ? [form.industry, ...industryOptions]
+    : industryOptions;
   const occupations = industryOccupations[form.industry] || [];
   const occupationSelectOptions = form.occupation && !occupations.includes(form.occupation)
     ? [form.occupation, ...occupations]
     : occupations;
 
   useEffect(() => {
-    setLoading(true);
+    let active = true;
     bookshelfApi
       .myList()
       .then((list) => {
         const found = list.find((b) => b.archiveId === archive.id);
-        if (found) {
+        if (active && found) {
           setExisting(found);
-          setForm({
-            title: found.title,
-            author: found.author,
-            industry: findIndustryForOccupation(found.occupationTags?.[0] || archive.occupation),
-            occupation: found.occupationTags?.[0] || archive.occupation || '',
+          setForm((prev) => ({
+            ...prev,
+            title: found.title || prev.title,
+            author: found.author || prev.author,
+            industry: found.occupationTags?.[0] && found.occupationTags[0] !== prev.occupation
+              ? findIndustryForOccupation(found.occupationTags[0])
+              : prev.industry || findIndustryForOccupation(found.occupationTags?.[0]),
+            occupation: found.occupationTags?.[0] || prev.occupation,
             intro: found.intro,
-            cover: found.cover || '',
+            cover: found.cover || prev.cover,
             isFree: found.isFree,
             price: found.isFree ? '' : found.price.toString(),
             trialWords: found.trialWords || 1000,
-          });
+          }));
         }
       })
-      .catch(() => setExisting(null))
-      .finally(() => setLoading(false));
+      .catch(() => { if (active) setExisting(null); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
   }, [archive.id]);
 
   const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file) return;
     if (!file.type.startsWith('image/')) {
       addToast('请选择图片文件', 'error');
       return;
     }
+    if (file.size > 2 * 1024 * 1024) {
+      addToast('封面图片不能超过 2 MB', 'error');
+      return;
+    }
+    setReadingCover(true);
     const reader = new FileReader();
-    reader.onload = () => setForm((prev) => ({ ...prev, cover: String(reader.result || '') }));
+    reader.onload = () => {
+      const cover = String(reader.result || '');
+      const image = new window.Image();
+      image.onload = () => {
+        setForm((prev) => ({ ...prev, cover }));
+        setReadingCover(false);
+      };
+      image.onerror = () => {
+        addToast('图片无法预览，请选择其他图片', 'error');
+        setReadingCover(false);
+      };
+      image.src = cover;
+    };
+    reader.onerror = () => {
+      addToast('图片读取失败，请重试', 'error');
+      setReadingCover(false);
+    };
     reader.readAsDataURL(file);
-    e.target.value = '';
   };
 
   const handleSubmit = async () => {
@@ -133,8 +205,8 @@ export default function PublishBookModal({ archive, onClose, onPublished }: Publ
       }
       onPublished?.();
       onClose();
-    } catch (err: any) {
-      addToast(err.message || '提交失败', 'error');
+    } catch (err: unknown) {
+      addToast(err instanceof Error ? err.message : '提交失败', 'error');
     }
   };
 
@@ -164,8 +236,9 @@ export default function PublishBookModal({ archive, onClose, onPublished }: Publ
               )}
 
               <div className="form-row">
-                <label><BookOpen size={14} /> 传记标题</label>
+                <label htmlFor="publish-book-title"><BookOpen size={14} /> 专辑标题</label>
                 <input
+                  id="publish-book-title"
                   type="text"
                   value={form.title}
                   onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
@@ -174,8 +247,9 @@ export default function PublishBookModal({ archive, onClose, onPublished }: Publ
               </div>
 
               <div className="form-row">
-                <label><User size={14} /> 作者署名</label>
+                <label htmlFor="publish-book-author"><User size={14} /> 作者署名</label>
                 <input
+                  id="publish-book-author"
                   type="text"
                   value={form.author}
                   onChange={(e) => setForm((prev) => ({ ...prev, author: e.target.value }))}
@@ -184,21 +258,23 @@ export default function PublishBookModal({ archive, onClose, onPublished }: Publ
               </div>
 
               <div className="form-row">
-                <label><Briefcase size={14} /> 行业</label>
+                <label htmlFor="publish-book-industry"><Briefcase size={14} /> 行业</label>
                 <select
+                  id="publish-book-industry"
                   value={form.industry}
                   onChange={(e) => setForm((prev) => ({ ...prev, industry: e.target.value, occupation: '' }))}
                 >
                   <option value="">请选择行业</option>
-                  {industryOptions.map((industry) => (
+                  {industrySelectOptions.map((industry) => (
                     <option value={industry} key={industry}>{industry}</option>
                   ))}
                 </select>
               </div>
 
               <div className="form-row">
-                <label><User size={14} /> 职业</label>
+                <label htmlFor="publish-book-occupation"><User size={14} /> 职业</label>
                 <select
+                  id="publish-book-occupation"
                   value={form.occupation}
                   onChange={(e) => setForm((prev) => ({ ...prev, occupation: e.target.value }))}
                   disabled={!form.industry}
@@ -211,7 +287,7 @@ export default function PublishBookModal({ archive, onClose, onPublished }: Publ
               </div>
 
               <div className="form-row">
-                <label><Image size={14} /> 书籍封面（选填）</label>
+                <label><Image size={14} /> 专辑封面</label>
                 <div className="publish-book-cover-row">
                   <div className="publish-book-cover-preview">
                     {form.cover ? (
@@ -221,21 +297,37 @@ export default function PublishBookModal({ archive, onClose, onPublished }: Publ
                     )}
                   </div>
                   <div className="publish-book-cover-actions">
-                    <label className="btn btn-outline btn-sm">
-                      上传封面
-                      <input type="file" hidden accept="image/*" onChange={handleCoverChange} />
-                    </label>
-                    {form.cover && (
+                    <button type="button" className="btn btn-outline btn-sm" disabled={readingCover} onClick={() => uploadInput.current?.click()}>
+                      <UploadCloud size={14} /> {readingCover ? '读取中…' : '上传封面'}
+                    </button>
+                    <input ref={uploadInput} type="file" hidden accept="image/*" onChange={handleCoverChange} />
+                    {!defaultCovers.some((item) => item.cover === form.cover) && (
                       <button
                         type="button"
                         className="btn btn-ghost btn-sm"
-                        onClick={() => setForm((prev) => ({ ...prev, cover: '' }))}
+                        disabled={readingCover}
+                        onClick={() => setForm((prev) => ({ ...prev, cover: defaultCovers[0].cover }))}
                       >
-                        移除
+                        移除上传封面
                       </button>
                     )}
-                    <span className="publish-book-field-hint">建议竖版图片，不上传则使用默认封面。</span>
+                    <span className="publish-book-field-hint">图片不超过 2 MB</span>
                   </div>
+                </div>
+                <div className="publish-book-default-covers" role="group" aria-label="默认封面">
+                  {defaultCovers.map((item) => (
+                    <button
+                      type="button"
+                      key={item.name}
+                      className="publish-book-cover-option"
+                      aria-pressed={form.cover === item.cover}
+                      disabled={readingCover}
+                      onClick={() => setForm((prev) => ({ ...prev, cover: item.cover }))}
+                    >
+                      <img src={item.cover} alt="" />
+                      <span>{item.name}</span>
+                    </button>
+                  ))}
                 </div>
               </div>
 
@@ -299,7 +391,7 @@ export default function PublishBookModal({ archive, onClose, onPublished }: Publ
 
               <div className="publish-book-actions">
                 <button className="btn btn-outline" onClick={onClose}>取消</button>
-                <button className="btn btn-primary" onClick={handleSubmit}>
+                <button className="btn btn-primary" disabled={readingCover} onClick={handleSubmit}>
                   {existing ? '重新提交审核' : '提交上架申请'}
                 </button>
               </div>

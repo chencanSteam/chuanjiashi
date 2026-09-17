@@ -1,0 +1,125 @@
+import { chromium } from 'playwright-core';
+import assert from 'node:assert/strict';
+
+// 独立临时浏览器会话，不读取或修改用户的演示数据。
+const browser = await chromium.launch({ channel: 'msedge', headless: true });
+try {
+  const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+  const errors = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  const origin = process.env.REVIEW_TEST_URL || 'http://localhost:5173';
+  await page.goto(origin);
+  await page.evaluate(() => {
+    localStorage.setItem('cj_user', JSON.stringify({ phone: '13800138003', name: '测试用户', token: 'local-demo-test', roles: ['user'] }));
+    localStorage.setItem('cj_current_archive_id', 'review-test');
+    localStorage.setItem('cj_archives', JSON.stringify([{ id: 'review-test', name: '测试传主' }]));
+    localStorage.setItem('cj_biography_chapters_review-test', JSON.stringify(['童年', '求学'].map((title) => ({ title, materials: 0, status: 'generated', updatedAt: null, content: `${title}原始正文` }))));
+  });
+  await page.goto(`${origin}/#/biography/review`);
+  await page.reload();
+  const button = (name) => page.getByRole('button', { name, exact: true });
+  await page.locator('.workflow-editor-textarea').waitFor();
+  assert.equal(await button('保存修改').count(), 0);
+  await button('确认终稿').click();
+  assert.equal(await button('确认终稿并查看').count(), 0);
+  await page.locator('.review-pending-item').last().click();
+  assert.equal(await page.locator('.workflow-editor-title').innerText(), '求学');
+  await page.locator('.workflow-editor-textarea').fill('测试自动保存正文');
+  await page.getByRole('status').filter({ hasText: '已自动保存' }).waitFor();
+  await page.reload();
+  await page.locator('.workflow-chapter-item').last().click();
+  assert.equal(await page.locator('.workflow-editor-textarea').inputValue(), '测试自动保存正文');
+  await button('本章确认完成').click();
+  await button('保存版本').click();
+  await page.getByLabel('版本名称（可选）').fill('回归测试版本');
+  await page.locator('.modal-footer').getByRole('button', { name: '保存版本', exact: true }).click();
+  await page.locator('.workflow-editor-textarea').fill('恢复前的修改');
+  await page.getByRole('button', { name: /^历史版本/ }).click();
+  await button('预览').click();
+  assert.ok((await page.locator('.review-version-chapter').last().innerText()).includes('测试自动保存正文'));
+  await button('返回历史版本').click();
+  await button('恢复').click();
+  await button('确认恢复').click();
+  await page.locator('.workflow-chapter-item').last().click();
+  assert.equal(await page.locator('.workflow-editor-textarea').inputValue(), '测试自动保存正文');
+  assert.ok((await page.locator('.workflow-editor-meta').innerText()).includes('本章已校对'));
+  await page.getByRole('button', { name: /^历史版本/ }).click();
+  assert.equal(await page.locator('.biography-version-item').count(), 2);
+  await page.locator('.biography-version-item').first().getByTitle('删除版本').click();
+  await button('取消').click();
+  assert.equal(await page.locator('.biography-version-item').count(), 2);
+  await page.locator('.biography-version-item').first().getByTitle('删除版本').click();
+  await button('确认删除').click();
+  assert.equal(await page.locator('.biography-version-item').count(), 1);
+  await page.locator('.modal-close').click();
+  await button('邀请补充').click();
+  assert.equal(await button('模拟接受').count(), 0);
+  await button('查找').click();
+  await page.getByRole('alert').filter({ hasText: '请输入对方注册的手机号或身份证号' }).waitFor();
+  await page.getByLabel('手机号 / 身份证号').fill('13800138003');
+  await button('查找').click();
+  await page.getByRole('alert').filter({ hasText: '不能邀请自己' }).waitFor();
+  await page.getByLabel('手机号 / 身份证号').fill('13900002222');
+  await button('查找').click();
+  await page.getByLabel('与传主关系').selectOption('朋友');
+  await button('发送邀请').click();
+  const invite = page.locator('.review-invite-item').filter({ hasText: '13900002222' });
+  assert.equal(await invite.locator('.review-invite-state').innerText(), '待对方同意');
+  assert.equal(await button('查找').isDisabled(), true);
+  assert.equal(await button('发送邀请').count(), 0);
+  await page.locator('.modal-close').click();
+  await page.reload();
+  await button('邀请补充').click();
+  assert.equal(await button('查找').isDisabled(), true);
+  await invite.getByRole('button', { name: '撤销邀请', exact: true }).click();
+  await button('取消').click();
+  assert.equal(await button('查找').isDisabled(), true);
+  await invite.getByRole('button', { name: '撤销邀请', exact: true }).click();
+  await button('确认撤销').click();
+  assert.equal(await invite.count(), 0);
+  assert.equal(await button('查找').isEnabled(), true);
+  // 身份证查找与采访共用本地账号查找规则。
+  await page.getByLabel('手机号 / 身份证号').fill('110101199001011234');
+  await button('查找').click();
+  await button('发送邀请').click();
+  // 使用现有本地邀请模块模拟对方已在首页接受；不是校审页提供的操作。
+  await page.evaluate(async () => {
+    const module = await import('/src/data/interviewCollaboration.ts');
+    const pending = module.invitesForArchive('review-test').find((item) => item.status === 'pending');
+    module.respondCollabInvite(pending.id, true, '测试亲友');
+    window.dispatchEvent(new Event('focus'));
+  });
+  await page.locator('.review-invite-state').filter({ hasText: '已接受' }).waitFor();
+  assert.equal(await button('查找').isDisabled(), true);
+  await button('取消权限').click();
+  await button('确认取消权限').click();
+  assert.equal(await button('查找').isEnabled(), true);
+  // 跨页面新邀请在发送时再次检查，不能占用第二个名额。
+  await page.getByLabel('手机号 / 身份证号').fill('13900003333');
+  await button('查找').click();
+  await page.evaluate(async () => {
+    const module = await import('/src/data/interviewCollaboration.ts');
+    module.createCollabInvite({ kind: 'collab', scope: 'interview', archiveId: 'review-test', archiveName: '测试传主', subjectName: '测试传主', inviterName: '测试用户', targetPhone: '13900004444', relation: '朋友' });
+  });
+  await button('发送邀请').click();
+  await page.getByRole('alert').filter({ hasText: '当前已有协助人或待接受邀请' }).waitFor();
+  assert.equal(await page.locator('.review-invite-item').count(), 1);
+  const pendingCount = await page.evaluate(() => JSON.parse(localStorage.getItem('cj_collab_invites')).filter((item) => item.archiveId === 'review-test' && item.status === 'pending').length);
+  assert.equal(pendingCount, 1);
+  await page.locator('.modal-close').click();
+  await page.locator('.workflow-chapter-item').first().click();
+  await button('本章确认完成').click();
+  await button('确认终稿').click();
+  await button('继续检查').click();
+  assert.ok(page.url().endsWith('/biography/review'));
+  await button('确认终稿').click();
+  await button('确认终稿并查看').click();
+  await page.waitForURL('**/#/my-works');
+  const final = await page.evaluate(() => JSON.parse(localStorage.getItem('cj_biography_review-test')));
+  assert.equal(final.status, 'final');
+  assert.equal(final.chapters[1].content, '测试自动保存正文');
+  assert.deepEqual(errors, []);
+  console.log('PASS: 自动保存刷新、待校对定位、版本快照预览恢复备份和删除、邀请状态及撤销持久化、终稿取消和确认、无页面运行错误。');
+} finally {
+  await browser.close();
+}

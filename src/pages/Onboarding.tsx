@@ -67,6 +67,7 @@ interface RegistrationProfile {
 
 interface OnboardingLocationState {
   mode?: string;
+  flow?: 'four-step';
   from?: string;
   startStep?: number;
   profile?: RegistrationProfile;
@@ -88,10 +89,21 @@ function saveArchive(archive: { id: string; name: string; gender: '男' | '女';
   localStorage.setItem('cj_current_archive_id', archive.id);
 }
 
+const unifiedChapterTitles = [
+  '故里童年 · 初心萌芽',
+  '求学成长 · 岁月积淀',
+  '择业入行 · 缘起初心',
+  '事业深耕 · 厚绩成长',
+  '风雨磨砺 · 破局成长',
+  '行业感悟 · 职业修为',
+  '家风人生 · 温情生活',
+  '人生回望 · 未来愿景',
+];
+
 function generateOutline(basic: { name: string; occupation: string; origin: string; birthYear: string }, stages: LifeStage[], importedText = ''): OutlineGroup[] {
   const groups: OutlineGroup[] = [
     {
-      title: '成长与家庭',
+      title: unifiedChapterTitles[0],
       items: [
         { text: `${basic.name}出生在${basic.origin}，童年记忆中最难忘的画面是什么？` },
         { text: '小时候家里的长辈对您影响最大的一句话是什么？' },
@@ -99,7 +111,7 @@ function generateOutline(basic: { name: string; occupation: string; origin: stri
       ],
     },
     {
-      title: '学习与成长',
+      title: unifiedChapterTitles[1],
       items: [
         { text: '求学期间遇到过哪些改变人生轨迹的老师或同学？' },
         { text: '为什么选择现在的职业方向？' },
@@ -121,7 +133,7 @@ function generateOutline(basic: { name: string; occupation: string; origin: stri
   if (stages.length > 0) {
     stages.forEach((stage) => {
       groups.push({
-        title: `${stage.startYear}-${stage.endYear} ${stage.title}`,
+        title: unifiedChapterTitles[groups.length] || `${stage.startYear}-${stage.endYear} ${stage.title}`,
         items: [
           { text: `在${stage.title}阶段，您印象最深的一件事是什么？` },
           { text: stage.desc ? `关于“${stage.desc}”，能详细讲讲吗？` : '这一阶段您最大的收获或挑战是什么？' },
@@ -132,7 +144,7 @@ function generateOutline(basic: { name: string; occupation: string; origin: stri
   } else {
     groups.push(
       {
-        title: '工作与事业',
+        title: unifiedChapterTitles[2],
         items: [
           { text: `作为一名${basic.occupation}，您职业生涯中最重要的转折点是什么？` },
           { text: '工作中最让您自豪的成就是什么？' },
@@ -140,14 +152,14 @@ function generateOutline(basic: { name: string; occupation: string; origin: stri
         ],
       },
       {
-        title: '人生转折',
+        title: unifiedChapterTitles[3],
         items: [
           { text: '人生中有哪些关键选择，后来改变了您的方向？' },
           { text: '遇到过哪些困难或低谷，您是怎样走出来的？' },
         ],
       },
       {
-        title: '家庭与亲情',
+        title: unifiedChapterTitles[4],
         items: [
           { text: '您和伴侣相识、相知的经历是怎样的？' },
           { text: '作为父母，您最希望孩子记住什么？' },
@@ -155,14 +167,14 @@ function generateOutline(basic: { name: string; occupation: string; origin: stri
         ],
       },
       {
-        title: '时代与社会',
+        title: unifiedChapterTitles[5],
         items: [
           { text: '您经历过哪些时代变化，对生活影响最大？' },
           { text: '那个年代的人和事，给您留下了什么印象？' },
         ],
       },
       {
-        title: '家风与传承',
+        title: unifiedChapterTitles[6],
         items: [
           { text: '家里一直坚持的家风家训是什么？' },
           { text: '您最想把哪些生活经验传给下一代？' },
@@ -172,7 +184,7 @@ function generateOutline(basic: { name: string; occupation: string; origin: stri
   }
 
   groups.push({
-    title: '人生感悟',
+    title: unifiedChapterTitles[7],
     items: [
       { text: '回顾一生，您最想对晚辈说的话是什么？' },
       { text: '您心中的家风家训是什么？' },
@@ -192,6 +204,7 @@ export default function Onboarding() {
   const navigationState = (location.state as OnboardingLocationState | null) || {};
   const registrationProfile = navigationState.profile;
   const uploadMode = navigationState.mode === 'upload';
+  const fourStepFlow = navigationState.flow === 'four-step';
   const startStep = navigationState.startStep;
   const registrationDemo = startStep === 3;
 
@@ -242,11 +255,11 @@ export default function Onboarding() {
       });
       const options = Array.from(merged.values());
       setArchiveOptions(options);
-      setStep(uploadMode ? 1 : startStep || (options.length > 0 ? 0 : 2));
+      setStep(uploadMode ? 1 : startStep || (options.length > 0 && !fourStepFlow ? 0 : 2));
       setCheckingArchives(false);
     };
     load();
-  }, [uploadMode, startStep]);
+  }, [uploadMode, startStep, fourStepFlow]);
 
   const selectArchive = (option: ArchiveOption) => {
     localStorage.setItem('cj_current_archive_id', option.id);
@@ -337,6 +350,10 @@ export default function Onboarding() {
   };
 
   const back = () => {
+    if (fourStepFlow && step === 2) {
+      navigate('/', { replace: true });
+      return;
+    }
     if (step === 1 && archiveOptions.length > 0) setStep(0);
     else if (step > 1) setStep(step - 1);
   };
@@ -396,14 +413,14 @@ export default function Onboarding() {
             </div>
           </div>
           {step > 0 && (
-            <div className="onboarding-steps onboarding-steps-five">
-              {Array.from({ length: registrationDemo ? 3 : 5 }, (_, index) => {
-                const stepNumber = registrationDemo ? index + 1 : index + 1;
-                const internalStep = registrationDemo ? index + 3 : index + 1;
+            <div className={`onboarding-steps ${fourStepFlow ? 'onboarding-steps-four' : 'onboarding-steps-five'}`}>
+              {Array.from({ length: fourStepFlow ? 4 : (registrationDemo ? 3 : 5) }, (_, index) => {
+                const stepNumber = index + 1;
+                const internalStep = fourStepFlow ? index + 2 : (registrationDemo ? index + 3 : index + 1);
                 return (
                   <div key={stepNumber} className="onboarding-step-indicator">
                     <div className={`step-dot ${step >= internalStep ? 'active' : ''}`}>{stepNumber}</div>
-                    {index < (registrationDemo ? 2 : 4) && <div className="step-line" />}
+                    {index < (fourStepFlow ? 3 : (registrationDemo ? 2 : 4)) && <div className="step-line" />}
                   </div>
                 );
               })}
@@ -450,7 +467,7 @@ export default function Onboarding() {
           {step === 1 && (
             <div className="onboarding-step onboarding-upload-step">
               <h2><FileText size={20} /> 第一步：上传已有传记</h2>
-              <p className="step-desc">上传已有文字资料，系统会将它作为人生档案素材，并在后续提纲中继续补充。没有资料也可以跳过。</p>
+              <p className="step-desc">上传已有文字资料后，系统会将它作为人生档案素材，并在后续提纲中继续补充。</p>
               <div className="onboarding-import-card">
                 <div className="onboarding-import-heading">
                   <div className="onboarding-import-icon"><FileText size={18} /></div>
@@ -477,7 +494,6 @@ export default function Onboarding() {
                     <Upload size={14} /> {importing ? '读取中…' : '上传已有传记'}
                   </button>
                 )}
-                <button type="button" className="onboarding-import-skip" onClick={goToLifeEvents}>跳过此步</button>
               </div>
             </div>
           )}
@@ -485,7 +501,7 @@ export default function Onboarding() {
           {step === 2 && (
             <Annotate id="onboarding.basic-form">
             <div className="onboarding-step">
-              <h2><User size={20} /> 第二步：填写基本信息</h2>
+              <h2><User size={20} /> {fourStepFlow ? '第一步' : '第二步'}：填写基本信息</h2>
               <p className="step-desc">这些信息会用于生成采访提纲和人生档案。</p>
               <div className="form-grid">
                 <div className="form-row">
@@ -572,9 +588,9 @@ export default function Onboarding() {
             </Annotate>
           )}
 
-          {step === 3 && <LifeEvents embedded stepNumber={registrationDemo ? 1 : 3} onContinue={goToEnrichment} onSkip={goToEnrichment} />}
+          {step === 3 && <LifeEvents embedded stepNumber={fourStepFlow ? 2 : (registrationDemo ? 1 : 3)} onContinue={goToEnrichment} onSkip={goToEnrichment} />}
 
-          {step === 4 && <ArchiveEnrichment embedded stepNumber={registrationDemo ? 2 : 4} onContinue={goToOutline} onSkip={goToOutline} />}
+          {step === 4 && <ArchiveEnrichment embedded stepNumber={fourStepFlow ? 3 : (registrationDemo ? 2 : 4)} onContinue={goToOutline} onSkip={goToOutline} />}
 
           {step === 5 && (
             <Annotate id="onboarding.outline">
@@ -582,10 +598,9 @@ export default function Onboarding() {
               <div className="outline-heading">
                 <div>
                   <div className="outline-eyebrow"><Sparkles size={14} /> 采访前的最后确认</div>
-                  <h2>{registrationDemo ? '第三步：确认传记提纲' : '第五步：确认传记提纲'}</h2>
+                  <h2>{fourStepFlow ? '第四步：确认采访提纲' : (registrationDemo ? '第三步：确认传记提纲' : '第五步：确认传记提纲')}</h2>
                   <p className="step-desc">这是整本传记的写作骨架。确认后，AI 会按章节顺序逐章采访，不跳题、不跑题。</p>
                 </div>
-                <button type="button" className="btn btn-outline" onClick={addOutlineGroup}><Plus size={14} /> 新增章节</button>
               </div>
 
               <div className="outline-overview">
@@ -619,6 +634,9 @@ export default function Onboarding() {
                   </section>
                 ))}
               </div>
+              <div className="outline-add-group-bottom">
+                <button type="button" className="btn btn-outline" onClick={addOutlineGroup}><Plus size={14} /> 新增章节</button>
+              </div>
             </div>
             </Annotate>
           )}
@@ -627,7 +645,7 @@ export default function Onboarding() {
         <Annotate id="onboarding.start">
         {step > 0 && (
         <div className="onboarding-footer">
-          {(step > 1 || archiveOptions.length > 0) && (
+          {step > 1 && !(fourStepFlow && step === 2) && (
             <button className="btn btn-outline" onClick={back}>
               <ArrowLeft size={14} /> 上一步
             </button>

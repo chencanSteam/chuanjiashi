@@ -36,6 +36,7 @@ import { archiveApi } from '../api/archive';
 import { generateImageDataUrl, generateVideoPoster, generateAudioUrl } from '../utils/mediaPlaceholder';
 import LocationFootprints from './LocationFootprints';
 import Achievements from './Achievements';
+import ArchiveEnrichment from './ArchiveEnrichment';
 import { buildRelationNodes, relationTypeOptions, type RelationNode } from '../utils/familyRelations';
 import { regions } from '../data/regions';
 import { industryOptions, industryOccupations } from '../data/occupations';
@@ -53,6 +54,7 @@ import './LifeArchive.css';
 
 const tabs = [
   { key: 'timeline', label: '人生时间轴' },
+  { key: 'enrichment', label: '多维增补' },
   { key: 'media', label: '多媒体档案库' },
   { key: 'relations', label: '人物关系图谱' },
   { key: 'places', label: '地点足迹' },
@@ -525,6 +527,27 @@ export default function LifeArchive() {
     );
   };
 
+  const handleDeleteArchive = () => {
+    if (archives.length <= 1) {
+      addToast('至少保留一份人生档案，如需删除请先新建其他档案', 'info');
+      return;
+    }
+    if (!window.confirm(`确定删除「${currentArchive.name}」的人生档案吗？档案下的时间轴、素材和关系数据也会被清除。`)) return;
+
+    const nextArchives = archives.filter((archive) => archive.id !== currentArchiveId);
+    localStorage.setItem('cj_archives', JSON.stringify(nextArchives));
+    ['cj_events_', 'cj_event_tags_', 'cj_members_', 'cj_media_'].forEach((prefix) => {
+      localStorage.removeItem(`${prefix}${currentArchiveId}`);
+    });
+
+    const nextArchive = nextArchives[0];
+    setArchives(nextArchives);
+    setCurrentArchiveId(nextArchive.id);
+    localStorage.setItem('cj_current_archive_id', nextArchive.id);
+    handleSwitchArchive(nextArchive.id);
+    addToast('人生档案已删除', 'success');
+  };
+
   const handleCreateArchive = () => {
     const name = newName.trim();
     if (!name) {
@@ -809,6 +832,15 @@ export default function LifeArchive() {
             disabled={!canManageArchives}
           >
             <Plus size={14} /> 新建档案
+          </button>
+          <button
+            className="archive-delete-btn"
+            type="button"
+            onClick={handleDeleteArchive}
+            disabled={!canManageArchives}
+            title="删除当前档案"
+          >
+            <Trash2 size={14} /> 删除档案
           </button>
         </div>
         </Annotate>
@@ -1513,6 +1545,7 @@ export default function LifeArchive() {
 
       {activeTab === 'places' && <LocationFootprints />}
       {activeTab === 'achievements' && <Achievements />}
+      {activeTab === 'enrichment' && <ArchiveEnrichment hideTitle />}
         </div>
 
         {/* 档案概览：固定在右侧，切换标签时不变 */}

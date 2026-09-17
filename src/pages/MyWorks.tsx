@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Mic, Trash2, User, Plus, ChevronRight, UploadCloud, Download, Printer, QrCode, FileText, PenLine, Sparkles, UserPlus, type LucideIcon } from 'lucide-react';
+import { BookOpen, Mic, Trash2, User, Plus, ChevronRight, UploadCloud, Download, Printer, QrCode, FileText, PenLine, Sparkles, type LucideIcon } from 'lucide-react';
 import Avatar from '../components/ui/Avatar';
 import { useToast } from '../hooks/useToast';
 import { archiveApi } from '../api/archive';
@@ -8,11 +8,13 @@ import { orderApi } from '../api/order';
 import { paymentApi } from '../api/payment';
 import { bookshelfApi } from '../api/bookshelf';
 import PublishBookModal from '../components/PublishBookModal';
+import type { PublicBook } from '../mocks/types';
 import Modal from '../components/ui/Modal';
 import { getWorkStatus, type WorkStatus } from '../utils/works';
 import { loadReviewStates, loadWorkflowChapters } from '../utils/biographyWorkflow';
 import Annotate from '../components/annotation/Annotate';
 import './MyWorks.css';
+import { uploadedBiographyDemo } from '../data/uploadedBiographyDemo';
 
 interface Archive {
   id: string;
@@ -21,11 +23,13 @@ interface Archive {
   birthYear: string;
   origin: string;
   occupation: string;
+  industry?: string;
   tags?: string[];
 }
 
 interface WorkItem extends Archive {
   status: WorkStatus;
+  source?: 'offline-upload';
 }
 
 function loadLegacyArchives(): Archive[] {
@@ -107,6 +111,7 @@ export default function MyWorks() {
   const navigate = useNavigate();
   const { addToast } = useToast();
   const [works, setWorks] = useState<WorkItem[]>([]);
+  const [uploadedPreview, setUploadedPreview] = useState<'final' | 'brief' | null>(null);
   const [publishingWork, setPublishingWork] = useState<WorkItem | null>(null);
   const [licenseSettings, setLicenseSettings] = useState<Record<string, { isFree: boolean; price: number; trialWords: number }>>({});
   const [payTarget, setPayTarget] = useState<{ work: WorkItem; service: PaidService } | null>(null);
@@ -114,9 +119,11 @@ export default function MyWorks() {
   const [qrWork, setQrWork] = useState<WorkItem | null>(null);
   const [paidMap, setPaidMap] = useState<Record<string, PaidServiceKey[]>>({});
   const [briefReady, setBriefReady] = useState<Record<string, boolean>>({});
+  const [publishedBooks, setPublishedBooks] = useState<PublicBook[]>([]);
+  const [unpublishingId, setUnpublishingId] = useState<string | null>(null);
   const refreshBookStatuses = async () => {
     try {
-      await bookshelfApi.myList();
+      setPublishedBooks(await bookshelfApi.myList());
     } catch {
       // 书架状态仅用于刷新演示数据，不影响当前页面展示
     }
@@ -129,20 +136,22 @@ export default function MyWorks() {
         const legacyArchives = loadLegacyArchives();
         const mergedMap = new Map<string, Archive>();
         mockArchives.forEach((a) => {
+          const localArchive = legacyArchives.find((item) => item.id === a.id);
           mergedMap.set(a.id, {
             id: a.id,
             name: a.name,
             gender: a.gender === 'female' ? '女' : '男',
             birthYear: extractYear(a.birthDate),
             origin: a.birthPlace || '',
-            occupation: '',
+            occupation: localArchive?.occupation || '',
+            industry: localArchive?.industry,
           });
         });
         legacyArchives.forEach((a) => {
           if (!mergedMap.has(a.id)) mergedMap.set(a.id, a);
         });
         const items = Array.from(mergedMap.values()).map((a) => ({ ...a, status: getWorkStatus(a.id) }));
-        setWorks(items);
+        setWorks([...items.filter((item) => item.id !== uploadedBiographyDemo.id), uploadedBiographyDemo]);
         setLicenseSettings(loadLicenseSettings(items));
         const paid: Record<string, PaidServiceKey[]> = {};
         items.forEach((w) => { paid[w.id] = loadPaidServices(w.id); });
@@ -151,7 +160,7 @@ export default function MyWorks() {
       } catch {
         const legacyArchives = loadLegacyArchives();
         const items = legacyArchives.map((a) => ({ ...a, status: getWorkStatus(a.id) }));
-        setWorks(items);
+        setWorks([...items.filter((item) => item.id !== uploadedBiographyDemo.id), uploadedBiographyDemo]);
         setLicenseSettings(loadLicenseSettings(items));
         const paid: Record<string, PaidServiceKey[]> = {};
         items.forEach((w) => { paid[w.id] = loadPaidServices(w.id); });
@@ -204,7 +213,27 @@ export default function MyWorks() {
     }
   };
 
+  const viewBiography = (work: WorkItem) => {
+    if (work.source === 'offline-upload') { setUploadedPreview('final'); return; }
+    localStorage.setItem('cj_current_archive_id', work.id);
+    navigate('/biography/print', { state: { from: '/my-works' } });
+  };
+
   const canPublish = (work: WorkItem) => work.status === '已完成';
+
+  const unpublishBook = async (book: PublicBook) => {
+    if (unpublishingId || !window.confirm('确定下架该传记吗？下架后可重新上架。')) return;
+    setUnpublishingId(book.id);
+    try {
+      const updated = await bookshelfApi.review(book.id, 'off_shelf');
+      setPublishedBooks((prev) => prev.map((item) => item.id === updated.id ? updated : item));
+      addToast('传记已下架', 'success');
+    } catch {
+      addToast('下架失败，请稍后重试', 'error');
+    } finally {
+      setUnpublishingId(null);
+    }
+  };
 
   // 付费服务：已购买直接执行，未购买先弹支付确认
   const runPaidService = (work: WorkItem, service: PaidService) => {
@@ -251,6 +280,7 @@ export default function MyWorks() {
   };
 
   const openDraft = (work: WorkItem, draftKey: string) => {
+    if (work.source === 'offline-upload') { setUploadedPreview(draftKey === 'brief' ? 'brief' : 'final'); return; }
     localStorage.setItem('cj_current_archive_id', work.id);
     if (draftKey === 'draft') navigate('/biography');
     else if (draftKey === 'review') navigate('/biography/review');
@@ -260,10 +290,6 @@ export default function MyWorks() {
   const startReview = (work: WorkItem) => {
     localStorage.setItem('cj_current_archive_id', work.id);
     navigate('/biography/review');
-  };
-
-  const inviteSupplement = (work: WorkItem, draftName: string) => {
-    addToast(`已生成《${work.name}的传记》${draftName}补充邀请，可分享给家人朋友共同完善`, 'success');
   };
 
   const extractBrief = (work: WorkItem) => {
@@ -279,6 +305,11 @@ export default function MyWorks() {
 
   return (
     <div className="my-works-page">
+      <Modal open={uploadedPreview !== null} title={`陈文华的传记 · ${uploadedPreview === 'brief' ? '简稿' : '终稿'}`} onClose={() => setUploadedPreview(null)}>
+        <div style={{ lineHeight: 1.9, whiteSpace: 'pre-wrap' }}>
+          {uploadedPreview === 'brief' ? <p>{uploadedBiographyDemo.brief}</p> : uploadedBiographyDemo.chapters.map((chapter) => <section key={chapter.title}><h3>{chapter.title}</h3><p>{chapter.text}</p></section>)}
+        </div>
+      </Modal>
       <header className="page-header">
         <h1 className="page-title">我的传记</h1>
         <Annotate id="my-works.new-biography" inline>
@@ -302,7 +333,7 @@ export default function MyWorks() {
             const earnings = mockEarnings(work.id);
             const setting = licenseSettings[work.id];
             // 原型按作品完成状态展示收益：已完成的传记可展示 mock 收益，未完成作品不展示。
-            const showEarnings = work.status === '已完成';
+            const showEarnings = work.status === '已完成' && work.source !== 'offline-upload';
             // 单价优先使用创作者实际设置的售价，取不到再退回 mock 伪随机
             const unitPrice = setting ? setting.price : earnings.price;
             const totalEarnings = earnings.sold * unitPrice;
@@ -311,27 +342,58 @@ export default function MyWorks() {
             const reviewStates = loadReviewStates(work.id);
             const reviewChapters = loadWorkflowChapters(work.id);
             const reviewStarted = Object.values(reviewStates).some((state) => state.status === 'reviewing');
+            const listedBook = publishedBooks.find((book) => book.archiveId === work.id && (book.status === 'approved' || book.status === 'pending'));
             const finalReady = work.status === '已完成';
             const reviewReady = finalReady || (reviewChapters.length > 0 && reviewChapters.every((chapter) => reviewStates[chapter.title]?.status === 'reviewed'));
-            const briefGenerated = isBriefGenerated(work.id);
-            const drafts: Array<{ key: string; name: string; process: boolean; icon: LucideIcon; desc: string; ready: boolean; invite?: boolean }> = [
-              { key: 'draft', name: '初稿', process: true, icon: FileText, desc: '所有篇章整合串联，统一时间线、统一文风、统一叙事逻辑', ready: draftReady, invite: true },
-              { key: 'review', name: '校审稿', process: true, icon: PenLine, desc: '逐字校对纠错、优化语句、补充细节、去除机械感，全文打磨至温润、庄重、有温度', ready: reviewReady, invite: true },
+            const briefGenerated = work.source === 'offline-upload' || isBriefGenerated(work.id);
+            const drafts: Array<{ key: string; name: string; process: boolean; icon: LucideIcon; desc: string; ready: boolean }> = [
+              { key: 'draft', name: '初稿', process: true, icon: FileText, desc: '所有篇章整合串联，统一时间线、统一文风、统一叙事逻辑', ready: draftReady },
+              { key: 'review', name: '校审稿', process: true, icon: PenLine, desc: '逐字校对纠错、优化语句、补充细节、去除机械感，全文打磨至温润、庄重、有温度', ready: reviewReady },
               { key: 'final', name: '终稿', process: false, icon: BookOpen, desc: '八大篇章齐全 · 全人生记录', ready: finalReady },
               { key: 'brief', name: '简稿', process: false, icon: Sparkles, desc: '1000字以内 · 人生梗概 · 极简留存', ready: briefGenerated },
             ];
             return (
             <div className="card work-card" key={work.id}>
               <div className="card-body work-body">
+                <div className="work-summary">
                 <Annotate id="my-works.work-status">
                 <div className="work-main">
                   <Avatar name={work.name} size={48} />
                   <div className="work-info">
                     <div className="work-name">{work.name}的传记</div>
                     <span className={`work-status ${getStatusClass(work.status)}`}>{work.status}</span>
+                    {work.source === 'offline-upload' && <span className="work-status">线下成稿上传</span>}
                   </div>
                 </div>
                 </Annotate>
+                <Annotate id="my-works.work-actions">
+                <div className="work-actions">
+                  {work.status !== '已完成' ? (
+                    <button className="btn btn-primary btn-sm" onClick={() => openWork(work)}>
+                      <Mic size={14} /> 继续完成 <ChevronRight size={14} />
+                    </button>
+                  ) : (
+                    <button className="btn btn-primary btn-sm" onClick={() => viewBiography(work)}>
+                      <BookOpen size={14} /> 查看传记
+                    </button>
+                  )}
+                  {canPublish(work) && (
+                    <button className="btn btn-outline btn-sm work-publish" disabled={!!unpublishingId} onClick={() => listedBook ? void unpublishBook(listedBook) : setPublishingWork(work)}>
+                      {listedBook ? <Download size={14} /> : <UploadCloud size={14} />}
+                      {unpublishingId === listedBook?.id ? '下架中…' : listedBook ? '下架' : '上架'}
+                    </button>
+                  )}
+                  <button
+                    className="icon-btn work-delete"
+                    title="删除"
+                    aria-label={`删除${work.name}的传记`}
+                    onClick={() => deleteWork(work.id)}
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+                </Annotate>
+                </div>
                 <div className="work-extra">
                   <Annotate id="my-works.earnings">
                   {showEarnings ? (
@@ -371,11 +433,10 @@ export default function MyWorks() {
                 <div className="work-drafts">
                   <div className="work-drafts-header">
                     <span className="work-drafts-title">稿件版本</span>
-                    <span className="work-drafts-tip">初稿、校审稿为过程稿，最终沉淀终稿与简稿两个版本</span>
                   </div>
                   <div className="work-drafts-grid">
-                    {drafts.map((draft) => (
-                      <div className="work-draft-item" key={draft.key}>
+                    {drafts.filter((draft) => !draft.process || (!finalReady && work.source !== 'offline-upload')).map((draft) => (
+                      <div className="work-draft-item" key={draft.key} title={work.source === 'offline-upload' && draft.key === 'final' ? '线下撰写完成 · 原文完整留存' : draft.desc}>
                         <div className="work-draft-head">
                           <draft.icon size={14} />
                           <span className="work-draft-name">{draft.name}</span>
@@ -383,12 +444,11 @@ export default function MyWorks() {
                             {draft.process ? '过程稿' : '最终版'}
                           </em>
                         </div>
-                        <p className="work-draft-desc">{draft.desc}</p>
                         <div className="work-draft-foot">
                           {draft.key === 'brief' ? (
                             briefGenerated ? (
                               <>
-                                <span className="work-draft-status ready">已生成 · 986 字</span>
+                                <span className="work-draft-status ready">{work.source === 'offline-upload' ? '已提炼 · 人生梗概' : '已生成 · 986 字'}</span>
                                 <button type="button" className="work-draft-btn" onClick={() => openDraft(work, draft.key)}>查看</button>
                               </>
                             ) : finalReady ? (
@@ -406,11 +466,6 @@ export default function MyWorks() {
                             <>
                               <span className="work-draft-status ready">已生成</span>
                               <button type="button" className="work-draft-btn" onClick={() => openDraft(work, draft.key)}>查看</button>
-                              {draft.invite && (
-                                <button type="button" className="work-draft-btn" onClick={() => inviteSupplement(work, draft.name)}>
-                                  <UserPlus size={12} /> 邀请补充
-                                </button>
-                              )}
                             </>
                           ) : (
                             <span className="work-draft-status">未生成</span>
@@ -420,31 +475,6 @@ export default function MyWorks() {
                     ))}
                   </div>
                 </div>
-                <Annotate id="my-works.work-actions">
-                <div className="work-actions">
-                  {work.status !== '已完成' ? (
-                    <button className="btn btn-primary btn-sm" onClick={() => openWork(work)}>
-                      <Mic size={14} /> 继续完成 <ChevronRight size={14} />
-                    </button>
-                  ) : (
-                    <button className="btn btn-outline btn-sm" onClick={() => openWork(work)}>
-                      <BookOpen size={14} /> 查看传记
-                    </button>
-                  )}
-                  {canPublish(work) && (
-                    <button className="btn btn-outline btn-sm work-publish" onClick={() => setPublishingWork(work)}>
-                      <UploadCloud size={14} /> 上架
-                    </button>
-                  )}
-                  <button
-                    className="icon-btn work-delete"
-                    title="删除"
-                    onClick={() => deleteWork(work.id)}
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-                </Annotate>
                 {work.status === '已完成' && (
                   <Annotate id="my-works.paid-services">
                   <div className="work-paid-services">
@@ -525,12 +555,14 @@ export default function MyWorks() {
 
       {publishingWork && (
         <PublishBookModal
+          key={publishingWork.id}
           archive={{
             id: publishingWork.id,
             name: publishingWork.name,
             birthYear: publishingWork.birthYear,
             origin: publishingWork.origin,
             occupation: publishingWork.occupation,
+            industry: publishingWork.industry,
           }}
           onClose={() => setPublishingWork(null)}
           onPublished={refreshBookStatuses}

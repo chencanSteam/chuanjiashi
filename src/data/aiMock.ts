@@ -302,7 +302,7 @@ export const biographyChapterTitles = [
   '故里童年 · 初心萌芽',
   '求学成长 · 岁月积淀',
   '择业入行 · 缘起初心',
-  '深耕岁月 · 历练成长',
+  '事业深耕 · 厚绩成长',
   '风雨磨砺 · 破局成长',
   '行业感悟 · 职业修为',
   '家风人生 · 温情生活',
@@ -354,7 +354,7 @@ export function getDigitalAnswer(question: string, name: string): { answer: stri
   if (q.includes('创业') || q.includes('为什么创业') || q.includes('明远')) {
     return {
       answer: `${name}选择创业，是因为看准了改革开放带来的机遇，更想和伙伴们一起做出真正过硬的产品。`,
-      source: '传记《深耕岁月 · 历练成长》第 3 段、采访记录 2024-05-22',
+      source: '传记《事业深耕 · 厚绩成长》第 3 段、采访记录 2024-05-22',
       hasMemory: true,
     };
   }

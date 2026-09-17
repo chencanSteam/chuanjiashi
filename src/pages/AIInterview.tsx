@@ -77,6 +77,7 @@ interface TranscriptLine {
   text: string;
   /** 该条对话所属的采访主题 */
   topic?: string;
+  invalid?: boolean;
 }
 
 interface InterviewSession {
@@ -101,6 +102,26 @@ interface InterviewMaterial {
   text?: string;
   createdAt: string;
 }
+
+const demoCollaborator: Collaborator = {
+  id: 'demo-collaborator-001',
+  name: '李秀梅',
+  relation: '女儿',
+  phone: '13800138002',
+  remark: '补充童年与家庭记忆',
+  joinedAt: '2026-09-12T10:00:00.000Z',
+  status: 'active',
+};
+
+const demoCollaboratorTranscript: TranscriptLine[] = [
+  { speaker: 'AI采访官', time: '10:12', text: '您印象中，家里最能体现家风的一件小事是什么？', topic: '故里童年 · 初心萌芽' },
+  { speaker: '李秀梅', time: '10:13', text: '父亲一直要求我们做事要认真，答应别人的事情一定要做到。小时候家里条件虽然普通，但一家人彼此照应，这种踏实和守信的家风一直影响着我们。', topic: '故里童年 · 初心萌芽' },
+];
+
+const demoSubjectTranscript: TranscriptLine[] = [
+  { speaker: 'AI采访官', time: '09:45', text: '请谈谈您的故里童年经历，它是怎么开始的？', topic: '故里童年 · 初心萌芽' },
+  { speaker: '用户8000', time: '09:47', text: '我出生在苏州的一个普通家庭，小时候家里虽然不富裕，但父母一直鼓励我读书、学手艺，也教我做人要诚实踏实。', topic: '故里童年 · 初心萌芽' },
+];
 
 function loadCurrentArchive(): Archive | null {
   try {
@@ -292,6 +313,12 @@ function AIInterviewPage() {
   const [inviteRelation, setInviteRelation] = useState('配偶');
   const [inviteFound, setInviteFound] = useState<{ phone: string; name?: string } | null>(null);
   const [showCollaborators, setShowCollaborators] = useState(false);
+  const [showInterviewRecord, setShowInterviewRecord] = useState(false);
+  const [recordPreview, setRecordPreview] = useState<TranscriptLine[]>([]);
+  const [subjectRecordPreview, setSubjectRecordPreview] = useState<TranscriptLine[]>([]);
+  const [recordTab, setRecordTab] = useState<'subject' | 'collaborator'>('subject');
+  const [editingRecordIndex, setEditingRecordIndex] = useState<number | null>(null);
+  const [recordEditText, setRecordEditText] = useState('');
   const [invitesRefresh, setInvitesRefresh] = useState(0);
   // 本档案已发出、待对方同意的邀请
   const pendingInvites = useMemo(
@@ -299,6 +326,29 @@ function AIInterviewPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [archiveId, invitesRefresh, collaborators]
   );
+  const visibleCollaborators = collaborators.length > 0 ? collaborators : [demoCollaborator];
+
+  const openInterviewRecord = () => {
+    const saved = loadInterviewTranscript(archiveId, demoCollaborator.id) as TranscriptLine[];
+    const ownSaved = transcript.length > 0 ? transcript : demoSubjectTranscript;
+    setRecordPreview(saved.length > 0 ? saved : demoCollaboratorTranscript);
+    setSubjectRecordPreview(ownSaved);
+    setRecordTab('subject');
+    setEditingRecordIndex(null);
+    setShowInterviewRecord(true);
+  };
+
+  const updateRecordPreview = (next: TranscriptLine[]) => {
+    setRecordPreview(next);
+    saveJson(`cj_interview_transcript_${archiveId}_${demoCollaborator.id}`, next);
+  };
+
+  useEffect(() => {
+    const key = `cj_interview_transcript_${archiveId}_${demoCollaborator.id}`;
+    if (!localStorage.getItem(key)) {
+      localStorage.setItem(key, JSON.stringify(demoCollaboratorTranscript));
+    }
+  }, [archiveId]);
   // 创建者视角：在主题区切换查看某位协助人的问答
 
   const voiceTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -363,7 +413,7 @@ function AIInterviewPage() {
   const [chatInput, setChatInput] = useState('');
   const chatBodyRef = useRef<HTMLDivElement>(null);
   const materialInputRef = useRef<HTMLInputElement>(null);
-  const imageInputRef = useRef<HTMLInputElement>(null);
+  const chapterImageInputRef = useRef<HTMLInputElement>(null);
   const chapterContentKey = `cj_interview_chapter_content_${interviewStorageId}`;
   const [chapterContent, setChapterContent] = useState(() => loadJson<string>(chapterContentKey, ''));
   const [contentBusy, setContentBusy] = useState<'generate' | 'polish' | null>(null);
@@ -422,6 +472,7 @@ function AIInterviewPage() {
       addToast(error instanceof Error ? error.message : '文件读取失败', 'error');
     }
     if (materialInputRef.current) materialInputRef.current.value = '';
+    if (chapterImageInputRef.current) chapterImageInputRef.current.value = '';
   };
 
   useEffect(() => {
@@ -928,11 +979,8 @@ function AIInterviewPage() {
               </div>
               {isSubjectMode && (
                 <>
-                  <button className="btn btn-outline btn-sm" onClick={() => setShowInviteModal(true)}>
+                  <button className="btn btn-outline btn-sm" onClick={() => setShowCollaborators(true)}>
                     邀请补充
-                  </button>
-                  <button className="btn btn-ghost btn-sm" onClick={() => setShowCollaborators(true)}>
-                    协作者
                   </button>
                 </>
               )}
@@ -945,6 +993,22 @@ function AIInterviewPage() {
             )}
           </div>
         </div>
+      </div>
+
+      <div className="interview-chapter-bar card">
+        <strong>采访章节</strong>
+        <select value={activeChapterId} onChange={(event) => handleSelectChapter(event.target.value)} aria-label="选择采访章节">
+          {chapterOptions.map((chapter, index) => <option key={chapter.id} value={chapter.id}>{String(index + 1).padStart(2, '0')} {chapter.title}</option>)}
+        </select>
+        {!showAddTopic ? (
+          <button className="btn btn-outline btn-sm" onClick={() => setShowAddTopic(true)}><Plus size={14} /> 添加采访话题</button>
+        ) : (
+          <div className="interview-chapter-add-form">
+            <input value={newTopicTitle} onChange={(event) => setNewTopicTitle(event.target.value)} placeholder="话题名称，如：第一次领工资" autoFocus />
+            <button className="btn btn-ghost btn-sm" onClick={() => { setShowAddTopic(false); setNewTopicTitle(''); }}>取消</button>
+            <button className="btn btn-primary btn-sm" onClick={handleAddTopic}>添加</button>
+          </div>
+        )}
       </div>
 
       <div className="interview-grid">
@@ -1049,6 +1113,9 @@ function AIInterviewPage() {
             <h3 className="card-title">
               <Mic size={16} /> 采访对话
             </h3>
+            <button className="btn btn-outline btn-sm" onClick={openInterviewRecord}>
+              <FileText size={13} /> 采访记录
+            </button>
           </div>
           <div className="chat-body" ref={chatBodyRef}>
             {!currentQuestion ? (
@@ -1092,21 +1159,11 @@ function AIInterviewPage() {
                 ref={materialInputRef}
                 className="visually-hidden"
                 type="file"
-                accept=".txt,.md,.docx"
+                accept=".txt,.md,.docx,image/*"
                 onChange={(e) => handleImportMaterial(e.target.files?.[0])}
               />
-              <input
-                ref={imageInputRef}
-                className="visually-hidden"
-                type="file"
-                accept="image/*"
-                onChange={(e) => handleImportMaterial(e.target.files?.[0])}
-              />
-              <button className="chat-material-btn" onClick={() => materialInputRef.current?.click()} title="导入文件">
-                <FileText size={15} /> 文件
-              </button>
-              <button className="chat-material-btn" onClick={() => imageInputRef.current?.click()} title="导入图片">
-                <ImageIcon size={15} /> 图片
+              <button className="chat-material-btn chat-upload-btn" onClick={() => materialInputRef.current?.click()} title="上传文件或图片" aria-label="上传文件或图片">
+                <Plus size={16} />
               </button>
               <button
                 className="chat-mic-btn"
@@ -1181,12 +1238,21 @@ function AIInterviewPage() {
       <section className="card chapter-content-card">
         <div className="card-header chapter-content-header">
           <div>
-            <h3 className="card-title"><Sparkles size={16} /> {activeChapter?.title || '本章'} · 内容整理</h3>
-            <p className="chapter-content-subtitle">采访过程中即可生成和润色，保存后作为本章内容使用。</p>
+            <h3 className="card-title"><Sparkles size={16} /> 传记初稿生成</h3>
           </div>
           <div className="chapter-content-actions">
             <button className="btn btn-outline btn-sm" onClick={generateChapterContent} disabled={contentBusy !== null}>
               <Sparkles size={13} /> {contentBusy === 'generate' ? '生成中…' : '生成本章内容'}
+            </button>
+            <input
+              ref={chapterImageInputRef}
+              className="visually-hidden"
+              type="file"
+              accept="image/*"
+              onChange={(e) => handleImportMaterial(e.target.files?.[0])}
+            />
+            <button className="btn btn-outline btn-sm" onClick={() => chapterImageInputRef.current?.click()}>
+              <ImageIcon size={13} /> 插入图片
             </button>
             <button className="btn btn-outline btn-sm" onClick={polishChapterContent} disabled={contentBusy !== null}>
               <Sparkles size={13} /> {contentBusy === 'polish' ? '润色中…' : '润色'}
@@ -1204,21 +1270,32 @@ function AIInterviewPage() {
             placeholder="先完成几轮采访，再点击“生成本章内容”；也可以直接编辑这里的文字。"
             rows={8}
           />
-          <div className="chapter-materials">
-            <div className="chapter-materials-title"><FileText size={14} /> 本章素材 {chapterMaterials.length ? `（${chapterMaterials.length}）` : ''}</div>
-            {chapterMaterials.length === 0 ? (
-              <span className="chapter-materials-empty">可在采访对话框导入文件或图片，作为本章整理素材。</span>
-            ) : (
-              chapterMaterials.map((material) => (
-                <span className="chapter-material-chip" key={material.id}>
-                  {material.type === 'image' ? <ImageIcon size={12} /> : <FileText size={12} />}
-                  {material.name}
-                </span>
-              ))
-            )}
-          </div>
         </div>
       </section>
+
+      {showInterviewRecord && (
+        <div className="modal-overlay" onClick={() => setShowInterviewRecord(false)}>
+          <div className="modal-content interview-record-preview-modal" onClick={(event) => event.stopPropagation()}>
+            <div className="modal-header">
+              <div><h3>采访记录</h3><p className="modal-desc">查看本人采访和协作者补充内容。</p></div>
+              <button className="modal-close" onClick={() => setShowInterviewRecord(false)}><X size={18} /></button>
+            </div>
+            <div className="modal-body interview-record-preview-body">
+              <div className="interview-record-tabs"><button className={recordTab === 'subject' ? 'active' : ''} onClick={() => { setRecordTab('subject'); setEditingRecordIndex(null); }}>我的记录</button><button className={recordTab === 'collaborator' ? 'active' : ''} onClick={() => { setRecordTab('collaborator'); setEditingRecordIndex(null); }}>协作者记录</button></div>
+              {(recordTab === 'subject' ? subjectRecordPreview : recordPreview).map((line, index) => (
+                <div className={`interview-record-preview-line ${line.speaker === 'AI采访官' ? 'ai' : 'respondent'} ${line.invalid ? 'invalid' : ''}`} key={`${line.time}-${index}`}>
+                  <div className="interview-record-preview-meta"><strong>{line.speaker}</strong><span>{line.time}</span></div>
+                  {editingRecordIndex === index ? (
+                    <div className="interview-record-editing"><textarea value={recordEditText} onChange={(event) => setRecordEditText(event.target.value)} /><div><button className="btn btn-ghost btn-sm" onClick={() => setEditingRecordIndex(null)}>取消</button><button className="btn btn-primary btn-sm" disabled={!recordEditText.trim()} onClick={() => { updateRecordPreview(recordPreview.map((item, itemIndex) => itemIndex === index ? { ...item, text: recordEditText.trim() } : item)); setEditingRecordIndex(null); }}>保存修改</button></div></div>
+                  ) : (
+                    <><p>{line.text}</p>{line.speaker !== 'AI采访官' && <div className="interview-record-preview-actions">{recordTab === 'collaborator' && <><button className="btn btn-outline btn-xs" onClick={() => { setEditingRecordIndex(index); setRecordEditText(line.text); }}><Pencil size={12} /> 修改</button><button className={`btn btn-xs ${line.invalid ? 'btn-primary' : 'btn-outline'}`} onClick={() => updateRecordPreview(recordPreview.map((item, itemIndex) => itemIndex === index ? { ...item, invalid: !item.invalid } : item))}>{line.invalid ? '采用' : '不采用'}</button></>}</div>}</>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {showFinishPrompt && (
         <div className="modal-overlay" onClick={() => setShowFinishPrompt(false)}>
@@ -1296,7 +1373,8 @@ function AIInterviewPage() {
               <button className="modal-close" onClick={() => setShowCollaborators(false)}><X size={18} /></button>
             </div>
             <div className="modal-body">
-              {collaborators.length === 0 && pendingInvites.length === 0 ? (
+              {isSubjectMode && <button className="btn btn-primary btn-sm interview-collab-invite-btn" onClick={() => { setShowCollaborators(false); setShowInviteModal(true); }}><Plus size={14} /> 邀请补充</button>}
+              {visibleCollaborators.length === 0 && pendingInvites.length === 0 ? (
                 <div className="collab-empty">暂无协作者，点击「邀请补充」查找并邀请家人或朋友。</div>
               ) : (
                 <>
@@ -1315,9 +1393,9 @@ function AIInterviewPage() {
                       ))}
                     </div>
                   )}
-                  {collaborators.length > 0 && (
+                  {visibleCollaborators.length > 0 && (
                     <div className="collab-list">
-                      {collaborators.map((c) => (
+                      {visibleCollaborators.map((c) => (
                         <div className="collab-item" key={c.id}>
                           <div className="collab-info">
                             <strong>{c.name}</strong>
@@ -1325,9 +1403,6 @@ function AIInterviewPage() {
                             <span className="collab-count">对话 {transcriptCountFor(c.id)} 条</span>
                           </div>
                           <div className="collab-actions">
-                            <button className="btn btn-outline btn-sm" onClick={() => { setShowCollaborators(false); navigate(`/interview-review?respondent=${c.id}`); }}>
-                              查看对话
-                            </button>
                             <button className="btn btn-ghost btn-sm danger" onClick={() => handleRemoveCollaborator(c.id)}>
                               取消权限
                             </button>

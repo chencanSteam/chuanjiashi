@@ -149,9 +149,9 @@ export default function BiographyPrint() {
         <div className="print-empty no-print">
           <BookOpen size={48} color="#9ca3af" />
           <h3>暂无传记内容</h3>
-          <p>请先在「AI 传记生成」页面生成并保存章节内容。</p>
-          <button className="btn btn-primary" onClick={() => navigate('/biography')}>
-            去生成传记
+          <p>当前作品还没有可阅读的章节内容。</p>
+          <button className="btn btn-outline" onClick={() => navigate('/my-works')}>
+            返回我的传记
           </button>
         </div>
       ) : (

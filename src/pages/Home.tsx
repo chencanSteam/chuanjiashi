@@ -301,7 +301,7 @@ export default function Home() {
       return;
     }
     setBasicForm(EMPTY_BASIC_FORM);
-    setShowBasicModal(true);
+    navigate('/onboarding', { state: { flow: 'four-step', startStep: 2 } });
   };
 
   const handlePickArchive = (archive: Archive) => {
@@ -312,8 +312,7 @@ export default function Home() {
   const handleInterviewScenario = (scenario: 'new' | 'continue' | 'upload') => {
     setShowInterviewScenarios(false);
     if (scenario === 'new') {
-      setBasicForm({ ...EMPTY_BASIC_FORM });
-      setShowBasicModal(true);
+      navigate('/onboarding', { state: { flow: 'four-step', startStep: 2 } });
       return;
     }
     if (scenario === 'upload') {
@@ -813,14 +812,6 @@ export default function Home() {
             <span className="interview-scenario-copy">
               <strong>继续已有采访</strong>
               <small>已有档案或采访记录，直接进入当前采访进度。</small>
-            </span>
-            <ChevronRight size={17} />
-          </button>
-          <button type="button" className="interview-scenario-item" onClick={() => handleInterviewScenario('upload')}>
-            <span className="interview-scenario-icon"><Upload size={18} /></span>
-            <span className="interview-scenario-copy">
-              <strong>已有传记资料</strong>
-              <small>上传已有传记内容，系统基于资料继续补充和采访。</small>
             </span>
             <ChevronRight size={17} />
           </button>

@@ -44,7 +44,7 @@ const chapterStatusMap: Record<ChapterStatus, { label: string; className: string
   done: { label: '已完成', className: 'work-chapter-status done' },
 };
 
-const sampleChapterTitles = ['故里童年 · 初心萌芽', '求学成长 · 岁月积淀', '择业入行 · 缘起初心', '深耕岁月 · 历练成长', '风雨磨砺 · 破局成长', '行业感悟 · 职业修为', '家风人生 · 温情生活', '人生回望 · 未来愿景'];
+const sampleChapterTitles = ['故里童年 · 初心萌芽', '求学成长 · 岁月积淀', '择业入行 · 缘起初心', '事业深耕 · 厚绩成长', '风雨磨砺 · 破局成长', '行业感悟 · 职业修为', '家风人生 · 温情生活', '人生回望 · 未来愿景'];
 
 const sampleParagraphs: Record<string, string> = {
   '故里童年 · 初心萌芽': '主人公出生于江南水乡的一个普通家庭，家中兄妹五人，他排行老三。\n\n童年的记忆里，最深刻的是村口的那棵大樟树。夏天傍晚，父亲收工回来，总会在树下给他讲旧时的故事。母亲则在灶间忙碌，饭菜的香气混着蝉鸣，成为他一生难忘的画面。\n\n家境虽不富裕，父母却坚持让几个孩子都念书。"再穷不能穷教育"，这是父亲常挂在嘴边的话。',

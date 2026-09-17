@@ -21,7 +21,7 @@ function getDefaultPublicBooks(): PublicBook[] {
       intro: '从苏州老巷到创业舞台，记录一个普通中国家庭的奋斗与传承。',
       category: '企业家',
       occupationTags: ['企业家'],
-      lifeStageTags: ['深耕岁月 · 历练成长', '家风人生 · 温情生活', '人生回望 · 未来愿景'],
+      lifeStageTags: ['事业深耕 · 厚绩成长', '家风人生 · 温情生活', '人生回望 · 未来愿景'],
       price: 0,
       isFree: true,
       status: 'approved',
@@ -119,7 +119,7 @@ function getDefaultPublicBooks(): PublicBook[] {
       intro: '一把刨子、一根墨线，老木匠用双手丈量半个世纪的时光。',
       category: '工匠',
       occupationTags: ['手工艺人'],
-      lifeStageTags: ['深耕岁月 · 历练成长', '行业感悟 · 职业修为'],
+      lifeStageTags: ['事业深耕 · 厚绩成长', '行业感悟 · 职业修为'],
       price: 6.9,
       isFree: false,
       status: 'approved',
@@ -199,7 +199,7 @@ function getDefaultPublicBooks(): PublicBook[] {
       intro: '从摆地摊到上市公司董事长，一部改革开放后的民营经济个人史。',
       category: '企业家',
       occupationTags: ['企业家'],
-      lifeStageTags: ['择业入行 · 缘起初心', '深耕岁月 · 历练成长'],
+      lifeStageTags: ['择业入行 · 缘起初心', '事业深耕 · 厚绩成长'],
       price: 19.9,
       isFree: false,
       status: 'approved',
@@ -283,7 +283,7 @@ function ensureDemoBiographies(books: PublicBook[]): void {
     if (biographies.some((b) => b.archiveId === book.archiveId)) return
 
     const name = archives.find((a) => a.id === book.archiveId)?.name || book.title.slice(0, 6)
-    const chapterTitles = [  '故里童年 · 初心萌芽',  '求学成长 · 岁月积淀',  '择业入行 · 缘起初心',  '深耕岁月 · 历练成长',  '风雨磨砺 · 破局成长',  '行业感悟 · 职业修为',  '家风人生 · 温情生活',  '人生回望 · 未来愿景',]
+    const chapterTitles = [  '故里童年 · 初心萌芽',  '求学成长 · 岁月积淀',  '择业入行 · 缘起初心',  '事业深耕 · 厚绩成长',  '风雨磨砺 · 破局成长',  '行业感悟 · 职业修为',  '家风人生 · 温情生活',  '人生回望 · 未来愿景',]
     const chapters: BiographyChapter[] = chapterTitles.map((title, idx) => ({
       id: generateId(),
       order: idx,

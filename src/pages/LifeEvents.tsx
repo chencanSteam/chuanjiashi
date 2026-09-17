@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Camera, Check, ChevronDown, ChevronRight, ChevronUp, Clock3, Plus, Upload } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { Camera, Check, ChevronDown, ChevronRight, ChevronUp, Clock3, Mic, Plus, Upload } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 import './LifeEvents.css';
 
@@ -11,8 +11,6 @@ type CustomEventItem = {
   title: string;
   year: string;
   desc: string;
-  stage: string;
-  customStage: string;
 };
 export type LifeEventsProps = {
   embedded?: boolean;
@@ -28,24 +26,12 @@ const defaultDetails = {
   children: '和妻子一起陪伴孩子成长，把诚实、责任和感恩教给下一代。',
 };
 
-const lifeStageOptions = [
-  '童年少年',
-  '求学成长',
-  '择业从业',
-  '事业深耕',
-  '人生风雨磨砺',
-  '家庭人生',
-  '收获沉淀',
-];
-
 function createCustomEvent(): CustomEventItem {
   return {
     id: 'custom-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
     title: '',
     year: '',
     desc: '',
-    stage: lifeStageOptions[0],
-    customStage: '',
   };
 }
 
@@ -92,6 +78,8 @@ export default function LifeEvents({ embedded = false, onContinue, onSkip, stepN
   const [details, setDetails] = useState<Record<string, string>>(defaultDetails);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [customEvents, setCustomEvents] = useState<CustomEventItem[]>([createCustomEvent()]);
+  const [recordingDetailId, setRecordingDetailId] = useState<string | null>(null);
+  const recognitionRef = useRef<{ start: () => void; stop: () => void } | null>(null);
   const [savedRecord] = useState<SavedLifeEvents | null>(() => loadSavedLifeEvents());
   const [isEditing, setIsEditing] = useState(() => embedded ? !loadSavedLifeEvents() : false);
 
@@ -100,6 +88,63 @@ export default function LifeEvents({ embedded = false, onContinue, onSkip, stepN
   const uploadPhoto = () => {
     const shouldRestore = window.confirm('是否修复老照片？');
     addToast(shouldRestore ? '老照片已修复并保存（演示）' : '图片已保存（演示）', 'success');
+  };
+  const startVoiceInput = (id: string) => {
+    if (recordingDetailId === id) {
+      recognitionRef.current?.stop();
+      setRecordingDetailId(null);
+      return;
+    }
+    recognitionRef.current?.stop();
+    const speechWindow = window as typeof window & {
+      SpeechRecognition?: new () => {
+        lang: string;
+        interimResults: boolean;
+        maxAlternatives: number;
+        onresult: ((event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null;
+        onend: (() => void) | null;
+        onerror: (() => void) | null;
+        start: () => void;
+        stop: () => void;
+      };
+      webkitSpeechRecognition?: new () => {
+        lang: string;
+        interimResults: boolean;
+        maxAlternatives: number;
+        onresult: ((event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null;
+        onend: (() => void) | null;
+        onerror: (() => void) | null;
+        start: () => void;
+        stop: () => void;
+      };
+    };
+    const Recognition = speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition;
+    if (!Recognition) {
+      updateDetail(id, `${details[id] ? `${details[id]} ` : ''}这段经历让我印象深刻，也让我更加理解家人的影响。`);
+      addToast('当前浏览器不支持语音识别，已填入演示转写内容', 'info');
+      return;
+    }
+    const recognition = new Recognition();
+    recognition.lang = 'zh-CN';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+    recognition.onresult = (event) => {
+      const transcript = event.results[0]?.[0]?.transcript?.trim();
+      if (transcript) updateDetail(id, `${details[id] ? `${details[id]} ` : ''}${transcript}`);
+    };
+    recognition.onend = () => {
+      setRecordingDetailId(null);
+      recognitionRef.current = null;
+    };
+    recognition.onerror = () => {
+      setRecordingDetailId(null);
+      recognitionRef.current = null;
+      addToast('语音识别未完成，请重试或直接输入文字', 'error');
+    };
+    recognitionRef.current = recognition;
+    setRecordingDetailId(id);
+    recognition.start();
+    addToast('请开始说话，语音会自动转成文字', 'info');
   };
   const updateCustom = (id: string, key: keyof Omit<CustomEventItem, 'id'>, value: string) => {
     setCustomEvents((items) => items.map((item) => item.id === id ? { ...item, [key]: value } : item));
@@ -157,21 +202,23 @@ export default function LifeEvents({ embedded = false, onContinue, onSkip, stepN
           const isCollapsed = collapsed[group.id];
           return (
             <section className="life-events-group card" key={group.id}>
-              <button className="life-events-group-head" onClick={() => setCollapsed((prev) => ({ ...prev, [group.id]: !prev[group.id] }))}>
+              <div className="life-events-group-head" role="button" tabIndex={0} onClick={() => setCollapsed((prev) => ({ ...prev, [group.id]: !prev[group.id] }))} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') setCollapsed((prev) => ({ ...prev, [group.id]: !prev[group.id] })); }}>
                 <span className="life-events-group-index">{String(eventGroups.indexOf(group) + 1).padStart(2, '0')}</span>
                 <span className="life-events-group-title"><strong>{group.title}</strong><small>{group.desc}</small></span>
-                <span className="life-events-group-count">已选 {groupSelected} 项 {isCollapsed ? <ChevronDown size={17} /> : <ChevronUp size={17} />}</span>
-              </button>
+                <span className="life-events-group-count">已选 {groupSelected} 项</span>
+                {isCollapsed ? <ChevronDown size={17} /> : <ChevronUp size={17} />}
+              </div>
               {!isCollapsed && <div className="life-events-group-body">
                 <div className="life-events-options">
                   {group.items.map((item) => {
                     const active = !!selected[item.id];
                     return <div className={`life-events-option ${active ? 'active' : ''}`} key={item.id}>
-                      <label><input type="checkbox" checked={active} onChange={() => toggleEvent(item.id)} /><span>{item.label}</span></label>
-                      {active && <div className="life-events-detail"><textarea value={details[item.id] || ''} onChange={(e) => updateDetail(item.id, e.target.value)} placeholder="简单写一两句话即可，选填" /><button className="life-events-upload" onClick={uploadPhoto}><Camera size={14} /> 上传老照片</button></div>}
+                      <div className="life-events-option-row"><label><input type="checkbox" checked={active} onChange={() => toggleEvent(item.id)} /><span>{item.label}</span></label><button type="button" className="life-events-upload" onClick={uploadPhoto}><Camera size={14} /> 上传图片</button></div>
+                      {active && <div className="life-events-detail"><textarea value={details[item.id] || ''} onChange={(e) => updateDetail(item.id, e.target.value)} placeholder="简单写一两句话即可，选填" /><button type="button" className={`life-events-voice ${recordingDetailId === item.id ? 'active' : ''}`} onClick={() => startVoiceInput(item.id)}><Mic size={14} /> {recordingDetailId === item.id ? '结束输入' : '语音输入'}</button></div>}
                     </div>;
                   })}
                 </div>
+                <input className="life-events-group-supplement-input" placeholder="其他补充（选填）" aria-label={`${group.title}其他补充`} />
               </div>}
             </section>
           );
@@ -185,11 +232,6 @@ export default function LifeEvents({ embedded = false, onContinue, onSkip, stepN
             <span className="life-events-custom-no">{index + 1}</span>
             <input aria-label="事件名称（选填）" value={item.title} onChange={(e) => updateCustom(item.id, 'title', e.target.value)} placeholder="事件名称（选填）" />
             <input className="life-events-date-input" aria-label="发生时间（选填）" type="date" value={item.year} onChange={(e) => updateCustom(item.id, 'year', e.target.value)} />
-            <select aria-label="所属人生阶段（选填）" value={item.stage} onChange={(e) => updateCustom(item.id, 'stage', e.target.value)}>
-              {lifeStageOptions.map((stage) => <option key={stage} value={stage}>{stage}</option>)}
-              <option value="custom">自定义阶段</option>
-            </select>
-            {item.stage === 'custom' && <input aria-label="自定义阶段名称" value={item.customStage} onChange={(e) => updateCustom(item.id, 'customStage', e.target.value)} placeholder="填写自定义阶段" />}
             <input className="life-events-custom-desc" value={item.desc} onChange={(e) => updateCustom(item.id, 'desc', e.target.value)} placeholder="一句话概括经历" />
             <button className="life-events-upload" onClick={uploadPhoto}><Upload size={14} /> 图片</button>
           </div>)}

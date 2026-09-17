@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ChevronLeft, ChevronRight, X, Mic, FolderOpen, BookOpen, HelpCircle, Sparkles } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, Mic, CalendarDays, Layers, BookOpen, Sparkles } from 'lucide-react';
 import './GuideTour.css';
 
 interface GuideStep {
@@ -15,24 +15,24 @@ const steps: GuideStep[] = [
     description: '这里是 AI 数字人生与家风传承平台。我们会一步步带您了解如何记录人生故事、整理家庭记忆。',
   },
   {
+    icon: <CalendarDays size={48} color="#1B5E4B" />,
+    title: '人生大事件',
+    description: '从求学、工作到家庭生活，记录人生中的重要时刻，按时间梳理您或家人的经历，建立人生故事的脉络。',
+  },
+  {
+    icon: <Layers size={48} color="#1B5E4B" />,
+    title: '多维增补',
+    description: '补充时代背景、家乡风貌、难忘的人和事，以及一生坚守的价值观与家风，让人生故事更丰富、更有温度。',
+  },
+  {
     icon: <Mic size={48} color="#1B5E4B" />,
     title: '开始智能采访',
     description: '点击首页的「开始智能采访」，AI 会循序渐进地提问，帮您或家人轻松回忆人生经历。',
   },
   {
-    icon: <FolderOpen size={48} color="#1B5E4B" />,
-    title: '管理人生档案',
-    description: '照片、视频、音频和人生事件都可以保存在「人生档案」里，成为传记素材。',
-  },
-  {
     icon: <BookOpen size={48} color="#1B5E4B" />,
     title: '生成传记作品',
     description: '采访和档案素材整理好后，进入「AI传记生成」，AI 会自动帮您写成章节传记。',
-  },
-  {
-    icon: <HelpCircle size={48} color="#1B5E4B" />,
-    title: '随时获取帮助',
-    description: '使用过程中遇到任何问题，都可以点击页面右上角的「帮助中心」按钮，重新打开这份引导。',
   },
 ];
 

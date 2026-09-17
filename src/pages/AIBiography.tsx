@@ -93,6 +93,7 @@ function loadCurrentArchive(): Archive | null {
 
 function mockChapterHtml(title: string): string {
   const text = chapterMockContents[title]
+    || (title === '事业深耕 · 厚绩成长' ? chapterMockContents['深耕岁月 · 历练成长'] : '')
     || `本章内容根据「${title}」的采访记录同步生成，可在此基础上继续润色完善。`;
   return text.split(/\n{2,}/).map((p) => `<p>${p.trim()}</p>`).join('');
 }

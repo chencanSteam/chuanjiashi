@@ -210,3 +210,50 @@
   gap: 8px;
   align-items: flex-start;
 }
+
+.publish-book-default-covers {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.publish-book-cover-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 8px;
+  border: 2px solid var(--border-light);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.publish-book-cover-option img {
+  display: block;
+  width: 72px;
+  max-width: 100%;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+}
+
+.publish-book-cover-option[aria-pressed='true'] {
+  border-color: var(--primary);
+  background: var(--primary-50, #f0f7f4);
+  color: var(--primary);
+}
+
+.publish-book-cover-option:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.publish-book-cover-option:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
