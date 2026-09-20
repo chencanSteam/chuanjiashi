@@ -1,3 +1,4 @@
+import BiographerServiceOrders from '../components/BiographerServiceOrders';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
@@ -276,6 +277,8 @@ export default function MyOrders() {
           <p className="page-subtitle">查看全部商品与服务订单</p>
         </div>
       </header>
+
+      {(typeFilter === 'all' || typeFilter === 'biographer_service') && <BiographerServiceOrders role="customer" />}
 
       <div className="card my-order-list-card">
         <div className="card-header my-order-list-header">

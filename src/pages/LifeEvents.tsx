@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Camera, Check, ChevronDown, ChevronRight, ChevronUp, Clock3, Mic, Plus, Upload } from 'lucide-react';
+import { Camera, Check, ChevronDown, ChevronRight, ChevronUp, Clock3, Mic, Pencil, Plus, Upload } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 import './LifeEvents.css';
 
@@ -157,6 +157,49 @@ export default function LifeEvents({ embedded = false, onContinue, onSkip, stepN
     setIsEditing(true);
   };
 
+  const archiveName = savedRecord?.archiveName || '张明远';
+
+  if (!embedded && !isEditing) {
+    return (
+      <div className="life-events-page life-events-standalone life-events-reading">
+        <header className="page-header life-events-header">
+          <h1 className="page-title">人生大事件</h1>
+          <div className="life-events-read-actions">
+            <div className="life-events-subject">传主 <span>{archiveName}的档案</span></div>
+            <button className="btn btn-outline btn-sm" onClick={() => setIsEditing(true)}><Pencil size={14} /> 编辑信息</button>
+          </div>
+        </header>
+        <div className="life-events-read-view">
+          {eventGroups.map((group, index) => {
+            const items = group.items.filter((item) => selected[item.id]);
+            return (
+              <section className={`life-events-read-section${items.length ? '' : ' is-empty'}`} key={group.id} aria-labelledby={`life-events-stage-${group.id}`}>
+                <header><span className="life-events-read-index">{String(index + 1).padStart(2, '0')}</span><h2 id={`life-events-stage-${group.id}`}>{group.title}</h2></header>
+                <div className="life-events-read-body">
+                  {items.length > 0 ? <div className="life-events-read-grid">
+                    {items.map((item) => <article className="life-events-read-note" key={item.id}>
+                      <h3>{item.label}</h3>
+                      {details[item.id]?.trim() ? <p>{details[item.id]}</p> : <p className="life-events-read-empty">暂无补充说明</p>}
+                    </article>)}
+                  </div> : <p className="life-events-read-empty">暂无相关经历</p>}
+                </div>
+              </section>
+            );
+          })}
+          <section className={`life-events-read-section${customEvents.some((item) => item.title || item.year || item.desc) ? '' : ' is-empty'}`} aria-labelledby="life-events-stage-custom">
+            <header><span className="life-events-read-index">08</span><h2 id="life-events-stage-custom">自定义重大事件</h2></header>
+            <div className="life-events-read-body">
+              {customEvents.some((item) => item.title || item.year || item.desc) ? customEvents.filter((item) => item.title || item.year || item.desc).map((item) => <article className="life-events-read-custom" key={item.id}>
+                <div className="life-events-read-date"><Clock3 size={14} />{item.year ? <time dateTime={item.year}>{item.year}</time> : <span>日期未填写</span>}</div>
+                <div className="life-events-read-note"><h3>{item.title || '未命名事件'}</h3><p className={item.desc ? undefined : 'life-events-read-empty'}>{item.desc || '暂无补充说明'}</p></div>
+              </article>) : <p className="life-events-read-empty">暂无自定义重大事件</p>}
+            </div>
+          </section>
+        </div>
+      </div>
+    );
+  }
+
   if (!isEditing && (!embedded || savedRecord)) {
     const record = savedRecord || {
       id: 'mock-life-events',
@@ -186,14 +229,12 @@ export default function LifeEvents({ embedded = false, onContinue, onSkip, stepN
   }
 
   return (
-    <div className="life-events-page">
+    <div className={`life-events-page${embedded ? '' : ' life-events-standalone'}`}>
       <header className="page-header life-events-header">
         <div>
           <h1 className="page-title">{embedded ? `第${stepNumber}步：人生大事件` : '人生大事件'}</h1>
         </div>
-        <div className="life-events-actions">
-          {embedded && <button className="btn btn-outline" onClick={onSkip}>跳过此步</button>}
-        </div>
+        {embedded ? <div className="life-events-actions"><button className="btn btn-outline" onClick={onSkip}>跳过此步</button></div> : <div className="life-events-subject">传主 <span>{archiveName}的档案</span></div>}
       </header>
 
       <div className="life-events-groups">
@@ -240,6 +281,7 @@ export default function LifeEvents({ embedded = false, onContinue, onSkip, stepN
 
       <div className="life-events-footer-tip"><Clock3 size={15} /> 所有补充内容均为选填，不填写不会阻断页面使用；勾选越准确，后续采访展示越贴合。</div>
       {embedded && <div className="life-events-embedded-footer"><button className="btn btn-primary" onClick={onContinue}>保存并进入下一步 <ChevronUp size={14} /></button></div>}
+      {!embedded && <div className="life-events-embedded-footer"><button className="btn btn-primary" onClick={() => setIsEditing(false)}>完成</button></div>}
     </div>
   );
 }

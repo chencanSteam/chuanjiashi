@@ -1,11 +1,14 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { archiveApi } from '../api/archive';
+import { loadLegacyArchives, saveLegacyArchives, setCurrentArchiveId, type MobileArchive } from '../utils/mobileArchives';
 import { Camera, Check, ChevronDown, ChevronUp, Mic, Plus, Users } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 import { generateImageDataUrl } from '../utils/mediaPlaceholder';
 import './ArchiveEnrichment.css';
 
 type ChoiceGroup = { id: string; title: string; options: string[]; multiple?: boolean };
-type SavedEnrichment = { id: string; archiveName: string; updatedAt: string; selectedLabels: string[]; people: string[]; style: string };
+type EnrichmentPerson = { id: number; name: string; relation: string; story: string };
+type SavedEnrichment = { id: string; archiveName: string; updatedAt: string; selectedLabels: string[]; people: string[]; style: string; personDetails?: EnrichmentPerson[] };
 export type ArchiveEnrichmentProps = {
   embedded?: boolean;
   hideTitle?: boolean;
@@ -46,9 +49,63 @@ function loadSavedEnrichment(): SavedEnrichment | null {
   }
 }
 
-export default function ArchiveEnrichment({ embedded = false, hideTitle = false, onContinue, onSkip, stepNumber = 4 }: ArchiveEnrichmentProps) {
+export default function ArchiveEnrichment(props: ArchiveEnrichmentProps) {
+  const [archiveId, selectArchive] = useState(() => localStorage.getItem('cj_current_archive_id') || 'default');
+  const [archives, setArchives] = useState<MobileArchive[]>(() => {
+    const local = loadLegacyArchives();
+    return local.some((archive) => archive.id === 'default') ? local : [{ id: 'default', name: '张明远', gender: '男', birthYear: '1958', origin: '江苏省苏州市', occupation: '企业家' }, ...local];
+  });
+
+  useEffect(() => {
+    if (props.embedded) return;
+    let active = true;
+    archiveApi.list().then((records) => {
+      if (!active) return;
+      setArchives((local) => {
+        const merged = new Map(local.map((archive) => [archive.id, archive]));
+        records.forEach((archive) => {
+          if (!merged.has(archive.id)) merged.set(archive.id, {
+            id: archive.id, name: archive.name, gender: archive.gender === 'female' ? '女' : '男',
+            birthYear: archive.birthDate?.split('-')[0] || '', origin: archive.birthPlace || '', occupation: '',
+          });
+        });
+        return Array.from(merged.values());
+      });
+    }).catch(() => { /* 保留本地传主，沿用人生档案的离线展示。 */ });
+    return () => { active = false; };
+  }, [props.embedded]);
+
+  const archiveName = archives.find((archive) => archive.id === archiveId)?.name || loadSavedEnrichment()?.archiveName || '当前传主';
+  if (props.embedded) return <ArchiveEnrichmentContent {...props} archiveName={archiveName} />;
+
+  return <div className="archive-enrichment-page">
+    {!props.hideTitle && <header className="page-header archive-enrichment-header">
+      <h1 className="page-title">多维增补</h1>
+      <label className="archive-enrichment-subject">传主
+        <select aria-label="选择传主" value={archiveId} onChange={(event) => {
+          const nextId = event.target.value;
+          const nextArchive = archives.find((archive) => archive.id === nextId);
+          const local = loadLegacyArchives();
+          // 人生档案先从本地列表恢复传主，缓存选中的 mock 档案以保持跨页上下文。
+          if (nextArchive && !local.some((archive) => archive.id === nextId)) saveLegacyArchives([...local, nextArchive]);
+          setCurrentArchiveId(nextId);
+          selectArchive(nextId);
+        }}>
+          {!archives.some((archive) => archive.id === archiveId) && <option value={archiveId}>{archiveName}的档案</option>}
+          {archives.map((archive) => <option key={archive.id} value={archive.id}>{archive.name}的档案</option>)}
+        </select>
+      </label>
+    </header>}
+    <ArchiveEnrichmentContent key={archiveId} {...props} hideTitle archiveName={archiveName} />
+  </div>;
+}
+
+function ArchiveEnrichmentContent({ embedded = false, hideTitle = false, onContinue, onSkip, stepNumber = 4, archiveName }: ArchiveEnrichmentProps & { archiveName: string }) {
   const { addToast } = useToast();
-  const [selected, setSelected] = useState<Record<string, string[]>>({
+  const [savedRecord] = useState<SavedEnrichment | null>(() => loadSavedEnrichment());
+  const [selected, setSelected] = useState<Record<string, string[]>>(() => savedRecord
+    ? Object.fromEntries(choiceGroups.map((group) => [group.id, group.options.filter((option) => savedRecord.selectedLabels.includes(option))]))
+    : {
     era: ['80年代', '改革开放初期'],
     hometown: ['江南水乡', '工矿城镇'],
     change: ['改革开放浪潮', '科技飞速进步'],
@@ -58,14 +115,16 @@ export default function ArchiveEnrichment({ embedded = false, hideTitle = false,
     'family-style': ['重视教育', '家庭和睦'],
   });
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
-  const [people, setPeople] = useState([
+  const [people, setPeople] = useState<EnrichmentPerson[]>(() => savedRecord?.personDetails ?? savedRecord?.people.map((person, index) => {
+    const [name, relation = relationOptions[0]] = person.split(' · ');
+    return { id: index + 1, name, relation, story: '' };
+  }) ?? [
     { id: 1, name: '王老师', relation: '恩师', story: '在我刚参加工作时给过很多指导。' },
     { id: 2, name: '张师傅', relation: '前辈', story: '带我熟悉车间和设备，让我真正打牢了技术基础。' },
     { id: 3, name: '李晓如', relation: '配偶', story: '在创业和家庭生活中始终给予理解与支持。' },
   ]);
   const [uploadedPhotos, setUploadedPhotos] = useState<Record<string, number>>({});
-  const [style, setStyle] = useState('温情家常');
-  const [savedRecord] = useState<SavedEnrichment | null>(() => loadSavedEnrichment());
+  const [style, setStyle] = useState(savedRecord?.style || '温情家常');
   const sampleImages = useMemo(() => [
     { title: '家乡老街', src: generateImageDataUrl('江南水乡 · 老街记忆') },
     { title: '车间岁月', src: generateImageDataUrl('工厂宿舍 · 工作岁月') },
@@ -104,10 +163,11 @@ export default function ArchiveEnrichment({ embedded = false, hideTitle = false,
     const selectedLabels = Object.values(selected).flat();
     localStorage.setItem(enrichmentStorageKey(), JSON.stringify({
       id: 'mock-enrichment',
-      archiveName: savedRecord?.archiveName || '张明远',
+      archiveName,
       updatedAt: '刚刚更新',
       selectedLabels,
       people: people.map((person) => `${person.name} · ${person.relation}`),
+      personDetails: people,
       style,
     } satisfies SavedEnrichment));
     setIsEditing(false);

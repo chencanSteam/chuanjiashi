@@ -1,3 +1,4 @@
+import BiographerServiceOrders from '../components/BiographerServiceOrders';
 import { useEffect, useMemo, useState } from 'react';
 import { ClipboardList, Search, X } from 'lucide-react';
 import { biographerApi } from '../api/biographer';
@@ -171,6 +172,8 @@ export default function BiographerOrders() {
   return (
     <div className="biographer-orders-page">
       <header className="page-header"><h1 className="page-title">我的订单</h1></header>
+
+      <BiographerServiceOrders role="biographer" />
 
       <div className="card">
         <div className="card-header partner-center-list-header">

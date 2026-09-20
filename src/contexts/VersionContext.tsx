@@ -11,15 +11,8 @@ interface VersionContextValue {
 const VERSION_KEY = 'cj_app_version';
 
 function loadVersion(): AppVersion {
-  try {
-    const raw = localStorage.getItem(VERSION_KEY);
-    if (raw === 'full') return 'full';
-    // 旧的 'mvp' 值迁移为 'v1.0'
-    if (raw === 'v1.0' || raw === 'mvp') return 'v1.0';
-  } catch {
-    // ignore
-  }
-  return 'full';
+  // 当前产品阶段固定展示 V1.0，暂不向用户开放其他版本内容。
+  return 'v1.0';
 }
 
 const VersionContext = createContext<VersionContextValue | null>(null);

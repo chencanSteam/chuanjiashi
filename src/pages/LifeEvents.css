@@ -71,6 +71,55 @@
 .life-events-custom-row select:focus, .life-events-date-input:focus { border-color: #1b5e4b; }
 .life-events-date-input { min-height: 36px; }
 .life-events-custom-desc { min-width: 0; }
+
+/* 独立页与多维增补保持一致，注册流程继续沿用原有样式。 */
+.life-events-standalone { width: 100%; min-width: 0; }
+.life-events-standalone .life-events-header { gap: 18px; }
+.life-events-subject { display: flex; align-items: center; gap: 8px; color: var(--text-secondary); font-size: 14px; }
+.life-events-subject > span { max-width: 240px; padding: 8px 12px; border: 1px solid var(--border-medium); border-radius: 6px; background: #fff; color: var(--text); overflow-wrap: anywhere; }
+.life-events-reading .life-events-header { align-items: center; }
+.life-events-read-view { display: flex; flex-direction: column; padding: 0 24px; background: #fff; border-top: 2px solid #d6b786; border-bottom: 1px solid #e9e3da; }
+.life-events-read-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 16px; }
+.life-events-read-actions > button { flex-shrink: 0; }
+.life-events-read-section { position: relative; display: grid; grid-template-columns: 184px minmax(0, 1fr); gap: 24px; padding: 20px 0; }
+.life-events-read-section + .life-events-read-section { border-top: 1px solid #f0ece6; }
+.life-events-read-section::before { content: ''; position: absolute; top: 0; bottom: 0; left: 14px; width: 1px; background: #e8e1d6; }
+.life-events-read-section:first-child::before { top: 24px; }
+.life-events-read-section:last-child::before { bottom: calc(100% - 30px); }
+.life-events-read-section > header { position: relative; display: flex; align-items: flex-start; gap: 12px; }
+.life-events-read-index { display: grid; place-items: center; flex-shrink: 0; width: 29px; height: 29px; border: 1px solid #e8dac4; border-radius: 50%; background: #faf5ec; color: #966f3e; font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.life-events-read-section h2 { margin: 4px 0 0; color: #302921; font-size: 14px; line-height: 21px; }
+.life-events-read-body { min-width: 0; padding-top: 3px; }
+.life-events-read-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 24px; }
+.life-events-read-note { min-width: 0; }
+.life-events-read-note:only-child { grid-column: 1 / -1; }
+.life-events-read-note h3 { margin: 0 0 6px; color: #1b5e4b; font-size: 14px; font-weight: 600; line-height: 22px; overflow-wrap: anywhere; }
+.life-events-read-note p { max-width: 70ch; margin: 0; color: #5e554b; font-size: 13px; line-height: 1.85; white-space: pre-wrap; overflow-wrap: anywhere; }
+.life-events-read-empty, .life-events-read-note p.life-events-read-empty { margin: 0; color: #92887c; font-size: 12px; line-height: 22px; }
+.life-events-read-section.is-empty { padding-top: 12px; padding-bottom: 12px; }
+.life-events-read-section.is-empty h2 { color: #82796d; font-weight: 500; }
+.life-events-read-section.is-empty .life-events-read-index { border-color: #ece7df; background: #faf9f6; color: #9c9182; }
+.life-events-read-custom { display: grid; grid-template-columns: 118px minmax(0, 1fr); align-items: baseline; gap: 16px; padding: 16px 0; border-bottom: 1px solid #f0ece6; overflow-wrap: anywhere; }
+.life-events-read-custom:first-child { padding-top: 0; }
+.life-events-read-custom:last-child { padding-bottom: 0; border-bottom: 0; }
+.life-events-read-date { display: flex; align-items: center; gap: 6px; color: #966f3e; font-size: 12px; line-height: 22px; font-variant-numeric: tabular-nums; }
+.life-events-read-date svg { flex-shrink: 0; }
+@media (max-width: 900px) { .life-events-reading .life-events-header { flex-direction: row; flex-wrap: wrap; } .life-events-read-section { grid-template-columns: 160px minmax(0, 1fr); gap: 16px; } .life-events-read-grid { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 640px) { .life-events-read-view { padding: 0 16px; } .life-events-read-actions { justify-content: flex-start; gap: 10px; } .life-events-read-section { grid-template-columns: minmax(0, 1fr); gap: 10px; } .life-events-read-body { padding: 0 0 0 41px; } .life-events-read-custom { grid-template-columns: minmax(0, 1fr); gap: 5px; } }
+.life-events-standalone .life-events-groups { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+.life-events-standalone .life-events-group-index { flex-shrink: 0; background: #f5efe5; color: #966f3e; }
+.life-events-standalone .life-events-group-head { gap: 13px; padding: 17px 19px; }
+.life-events-standalone .life-events-group-body { padding: 0 19px 19px; }
+.life-events-standalone .life-events-options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; padding-top: 17px; }
+.life-events-standalone .life-events-option { min-width: 0; padding: 0; border: 0; border-radius: 0; background: transparent; }
+.life-events-standalone .life-events-option-row { flex-wrap: wrap; }
+.life-events-standalone .life-events-detail { flex-wrap: wrap; padding-left: 0; }
+.life-events-standalone .life-events-detail textarea { box-sizing: border-box; flex-basis: 100%; min-width: 0; min-height: 70px; border-color: #e5ded3; padding: 9px 10px; }
+.life-events-standalone .life-events-upload, .life-events-standalone .life-events-voice { border-color: #d9e4dc; border-radius: 7px; background: #fff; color: #1b5e4b; font-size: 11px; }
+.life-events-standalone .life-events-upload:hover, .life-events-standalone .life-events-voice:hover, .life-events-standalone .life-events-voice.active { border-color: #1b5e4b; background: #f4faf7; }
+.life-events-standalone .life-events-custom { padding: 19px; }
+@media (max-width: 900px) { .life-events-standalone .life-events-options { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .life-events-standalone .life-events-options { grid-template-columns: minmax(0, 1fr); } .life-events-standalone .life-events-section-title { align-items: flex-start; flex-wrap: wrap; } }
 @media (max-width: 900px) { .life-events-groups { grid-template-columns: 1fr; } .life-events-header { flex-direction: column; } }
 @media (max-width: 1100px) { .life-events-custom-row { grid-template-columns: 28px 1fr 140px; } .life-events-custom-desc { grid-column: 2 / -1; } .life-events-custom-row .life-events-upload { grid-column: 3; } }
 @media (max-width: 640px) { .life-events-custom-row { grid-template-columns: 24px 1fr; } .life-events-custom-row input, .life-events-custom-row select, .life-events-custom-row .life-events-upload { grid-column: 2; } .life-events-detail { flex-direction: column; padding-left: 0; } .life-events-detail textarea { width: 100%; } }

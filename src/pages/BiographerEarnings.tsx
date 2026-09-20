@@ -1,3 +1,4 @@
+import BiographerServiceOrders from '../components/BiographerServiceOrders';
 import { useEffect, useState } from 'react';
 import {
   DollarSign,
@@ -97,9 +98,11 @@ export default function BiographerEarnings() {
       <header className="page-header">
         <div>
           <h1 className="page-title">结算提现</h1>
-          <p className="page-subtitle">订单收入由平台托管，服务完成后转入可提现金额</p>
+          <p className="page-subtitle">查看服务订单阶段结算、收入与提现记录</p>
         </div>
       </header>
+
+      <BiographerServiceOrders role="biographer" earningsOnly />
 
       <Annotate id="biographer-earnings.overview">
       <div className="card earnings-overview-card">

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { MapPin, Star, Award, Phone, Mail, BookOpen, Image, MessageCircle, Calendar, Briefcase, Edit2, Eye, X, Users, User, FileText } from 'lucide-react';
 import { biographerApi } from '../api/biographer';
-import { paymentApi } from '../api/payment';
+import { createServiceOrder, serviceTerms } from '../data/biographerServiceOrders';
 import { useToast } from '../hooks/useToast';
 import { useAuth } from '../hooks/useAuth';
 import type { Biographer as MockBiographer, BiographerReview, BiographerService, BiographerBookingForm } from '../mocks/types';
@@ -31,12 +31,6 @@ function isImageUrl(cert: string): boolean {
   return /^(https?:|data:|blob:|\/)/.test(cert);
 }
 
-/** 未下单时隐藏中间四位，如 139****9001 */
-function maskPhone(phone?: string): string {
-  if (!phone) return '暂未公开';
-  return phone.length > 7 ? `${phone.slice(0, 3)}****${phone.slice(-4)}` : phone;
-}
-
 export default function BiographerProfile({ biographerId, embedded, onClose, onBookService }: BiographerProfileProps) {
   const navigate = useNavigate();
   const { addToast } = useToast();
@@ -45,7 +39,6 @@ export default function BiographerProfile({ biographerId, embedded, onClose, onB
   const { user } = useAuth();
   const [biographer, setBiographer] = useState<MockBiographer | null>(null);
   const [reviews, setReviews] = useState<BiographerReview[]>([]);
-  const [contactUnlocked, setContactUnlocked] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const [bookingService, setBookingService] = useState<BiographerService | null>(null);
@@ -98,13 +91,10 @@ export default function BiographerProfile({ biographerId, embedded, onClose, onB
 
   useEffect(() => {
     const fetchBio = id ? biographerApi.get(id) : biographerApi.me();
-    const fetchContactAccess = id ? biographerApi.getContactAccess(id) : Promise.resolve({ unlocked: true });
-    Promise.all([fetchBio, fetchContactAccess])
-      .then(async ([bio, contactAccess]) => {
+    fetchBio.then(async (bio) => {
         const revs = await biographerApi.getReviews(bio.id).catch(() => [] as BiographerReview[]);
         setBiographer(bio);
         setReviews(revs);
-        setContactUnlocked(contactAccess.unlocked);
         if (user?.phone && !bookingForm.contactPhone) {
           setBookingForm((prev) => ({ ...prev, contactPhone: user.phone || '' }));
         }
@@ -112,7 +102,6 @@ export default function BiographerProfile({ biographerId, embedded, onClose, onB
       .catch(() => {
         setBiographer(null);
         setReviews([]);
-        setContactUnlocked(false);
       })
       .finally(() => setLoading(false));
   }, [id, user?.phone]);
@@ -144,7 +133,7 @@ export default function BiographerProfile({ biographerId, embedded, onClose, onB
   );
 
   const handleBookClick = (service: BiographerService) => {
-    setBookingService(service);
+    setBookingService(serviceTerms(service));
     setBookingForm((prev) => ({
       ...emptyBookingForm,
       contactPhone: prev.contactPhone || user?.phone || '',
@@ -152,24 +141,20 @@ export default function BiographerProfile({ biographerId, embedded, onClose, onB
   };
 
   const handleBookingSubmit = async () => {
-    if (!bookingService || !biographer) return;
-    if (!bookingForm.interviewee || !bookingForm.relation || !bookingForm.contactPhone) {
-      addToast('请填写完整的预约信息', 'error');
-      return;
-    }
+    if (!bookingService || !biographer || !user) return;
     try {
       setBookingSubmitting(true);
       if (onBookService) {
         await onBookService(bookingService, bookingForm);
       } else {
-        const { order } = await biographerApi.createOrder(biographer.id, bookingService.id, bookingForm);
-        await paymentApi.pay((order as any).id, 'wechat');
-        addToast('预约成功，等待传记师确认采访时间', 'success');
+        const order = createServiceOrder(biographer, bookingService, bookingForm, user);
+        addToast('需求订单已提交', 'success');
+        navigate(`/my-orders?type=biographer_service&serviceOrder=${order.id}`);
       }
       setBookingService(null);
       if (embedded && onClose) onClose();
-    } catch (err: any) {
-      addToast(err.message || '预约失败', 'error');
+    } catch (err: unknown) {
+      addToast(err instanceof Error ? err.message : '提交失败', 'error');
     } finally {
       setBookingSubmitting(false);
     }
@@ -262,7 +247,7 @@ export default function BiographerProfile({ biographerId, embedded, onClose, onB
                 <div className="biographer-profile-service-footer">
                   <div className="biographer-profile-service-price">¥{s.price.toLocaleString()}<span> 起</span></div>
                   <button className="biographer-profile-service-btn" onClick={() => handleBookClick(s)}>
-                    预约此套餐
+                    选择此套餐
                   </button>
                 </div>
               </div>
@@ -388,10 +373,7 @@ export default function BiographerProfile({ biographerId, embedded, onClose, onB
           )}
           <div className="biographer-profile-meta-item"><Calendar size={16} /> 从业 {biographer.experience || 0} 年</div>
           <div className="biographer-profile-meta-item">
-            <Phone size={16} /> {isOwnProfile || contactUnlocked ? biographer.phone : maskPhone(biographer.phone)}
-            {!isOwnProfile && !contactUnlocked && (
-              <span className="biographer-profile-phone-tip">下单套餐后可见完整号码</span>
-            )}
+            <Phone size={16} /> {isOwnProfile ? biographer.phone : '请在订单详情查看'}
           </div>
           {biographer.email && <div className="biographer-profile-meta-item"><Mail size={16} /> {biographer.email}</div>}
         </div>
@@ -399,13 +381,13 @@ export default function BiographerProfile({ biographerId, embedded, onClose, onB
 
       <div className="biographer-profile-cta">
         <h3>为家人留下一份珍贵的记忆</h3>
-        <p>立即预约 {biographer.name}，开启专属传记服务</p>
-        {onBookService && biographer.services && biographer.services.length > 0 ? (
+        <p>提交服务需求 {biographer.name}，开启专属传记服务</p>
+        {biographer.services && biographer.services.length > 0 ? (
           <button
             className="biographer-profile-cta-btn"
             onClick={() => handleBookClick(biographer.services![recommendedIndex >= 0 ? recommendedIndex : 0])}
           >
-            立即预约
+            提交服务需求
           </button>
         ) : (
           <button className="biographer-profile-cta-btn" onClick={() => navigate('/biographers')}>免费咨询</button>
@@ -417,17 +399,19 @@ export default function BiographerProfile({ biographerId, embedded, onClose, onB
         <div className="modal-overlay" onClick={() => setBookingService(null)}>
           <div className="modal-content biographer-booking-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h4>预约 {biographer.name} 的「{bookingService.name}」</h4>
+              <h4>提交 {biographer.name} 的「{bookingService.name}」需求</h4>
               <button className="modal-close" onClick={() => setBookingService(null)}><X size={16} /></button>
             </div>
             <div className="modal-body">
               <div className="biographer-booking-summary">
                 <div className="biographer-booking-price">
-                  <span>服务价格</span>
+                  <span>套餐价格</span>
                   <strong>¥{bookingService.price.toLocaleString()}</strong>
                 </div>
               </div>
 
+              <p className="biographer-profile-phone-tip">服务内容</p>
+              <p>采访 {bookingService.interviewCount || '按套餐说明'} · 字数 {bookingService.wordCount || '按套餐说明'} · 周期 {bookingService.deliveryPeriod || '按套餐说明'} · 修改 {bookingService.revisionCount || '按套餐说明'} · 实体书 {bookingService.physicalBook || '按套餐说明'}</p>
               <div className="form-row">
                 <label><Users size={12} /> 采访对象姓名</label>
                 <input
@@ -462,6 +446,8 @@ export default function BiographerProfile({ biographerId, embedded, onClose, onB
                   placeholder="用于传记师与您联系"
                 />
               </div>
+              <div className="form-row"><label>方便联系时间</label><input aria-label="方便联系时间" value={bookingForm.preferredTime} onChange={e => setBookingForm(prev => ({ ...prev, preferredTime: e.target.value }))} placeholder="例如：工作日晚上 19:00 后" /></div>
+              <div className="form-row"><label>访谈方式或地点</label><input aria-label="访谈方式或地点" value={bookingForm.location} onChange={e => setBookingForm(prev => ({ ...prev, location: e.target.value }))} placeholder="例如：电话访谈 / 杭州市上门采访" /></div>
               <div className="form-row">
                 <label><FileText size={12} /> 特殊需求</label>
                 <textarea
@@ -477,7 +463,7 @@ export default function BiographerProfile({ biographerId, embedded, onClose, onB
                 disabled={bookingSubmitting}
                 onClick={handleBookingSubmit}
               >
-                {bookingSubmitting ? '提交中…' : `确认预约并支付 ¥${bookingService.price.toLocaleString()}`}
+                {bookingSubmitting ? '提交中…' : '提交需求订单'}
               </button>
             </div>
           </div>
