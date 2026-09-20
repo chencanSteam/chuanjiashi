@@ -174,7 +174,7 @@ function ArchiveEnrichmentContent({ embedded = false, hideTitle = false, onConti
     addToast('多维增补已保存', 'success');
   };
 
-  if (!isEditing) {
+  if (!embedded && !isEditing) {
     const dimensionGroups = [
       { title: '时代地域背景', items: [{ id: 'era', title: '主要成长年代' }, { id: 'hometown', title: '家乡地域特色' }, { id: 'change', title: '深刻的时代变化' }], images: sampleImages.slice(0, 2) },
       { title: '记忆锚点', items: [{ id: 'scene', title: '难忘生活老场景' }, { id: 'object', title: '珍藏老物件类型' }], images: sampleImages.slice(2, 4) },
