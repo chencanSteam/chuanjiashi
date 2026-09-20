@@ -15,6 +15,7 @@ import type { AdminOrder } from '../api/order';
 import type { PublicBook, MediaReviewItem } from '../mocks/types';
 import Annotate from '../components/annotation/Annotate';
 import './ContentReview.css';
+import BiographerApplications from './BiographerApplications';
 
 const sections = [
   { key: 'books', label: '传记内容审核' },
@@ -85,6 +86,11 @@ const REFUND_AMOUNT_DEMO: Record<string, number> = {
 };
 
 export default function ContentReview() {
+  const { section } = useParams<{ section: string }>();
+  return section === 'biographer-applications' ? <BiographerApplications /> : <ContentReviewSection />;
+}
+
+function ContentReviewSection() {
   const { addToast } = useToast();
   const { section } = useParams<{ section: string }>();
   const activeTab = section as SectionKey;

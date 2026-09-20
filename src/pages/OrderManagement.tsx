@@ -1,3 +1,4 @@
+import BiographerServiceOrders from '../components/BiographerServiceOrders';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Search, RefreshCw, CreditCard, Package, CheckCircle, AlertCircle, Clock, XCircle, X, UserCheck, Calendar, MapPin, Truck, Upload, FileText, ExternalLink, Paperclip, Download, RotateCcw } from 'lucide-react';
 import type { AdminOrder } from '../api/order';
@@ -517,6 +518,8 @@ export default function OrderManagement() {
           </button>
         </div>
       </header>
+
+      <BiographerServiceOrders role="admin" />
 
       <div className="card order-list-card">
         <div className="card-header order-list-header">

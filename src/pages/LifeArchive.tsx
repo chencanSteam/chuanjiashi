@@ -36,7 +36,6 @@ import { archiveApi } from '../api/archive';
 import { generateImageDataUrl, generateVideoPoster, generateAudioUrl } from '../utils/mediaPlaceholder';
 import LocationFootprints from './LocationFootprints';
 import Achievements from './Achievements';
-import ArchiveEnrichment from './ArchiveEnrichment';
 import { buildRelationNodes, relationTypeOptions, type RelationNode } from '../utils/familyRelations';
 import { regions } from '../data/regions';
 import { industryOptions, industryOccupations } from '../data/occupations';
@@ -54,7 +53,6 @@ import './LifeArchive.css';
 
 const tabs = [
   { key: 'timeline', label: '人生时间轴' },
-  { key: 'enrichment', label: '多维增补' },
   { key: 'media', label: '多媒体档案库' },
   { key: 'relations', label: '人物关系图谱' },
   { key: 'places', label: '地点足迹' },
@@ -1545,7 +1543,6 @@ export default function LifeArchive() {
 
       {activeTab === 'places' && <LocationFootprints />}
       {activeTab === 'achievements' && <Achievements />}
-      {activeTab === 'enrichment' && <ArchiveEnrichment hideTitle />}
         </div>
 
         {/* 档案概览：固定在右侧，切换标签时不变 */}

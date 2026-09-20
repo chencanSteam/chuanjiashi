@@ -3,6 +3,7 @@ import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import type { LucideIcon } from 'lucide-react';
 import {
   LayoutDashboard,
+  CalendarDays,
   Mic,
   BookOpen,
   BookMarked,
@@ -53,7 +54,7 @@ interface NavGroup {
 // 独立入口
 const homeNavItem: NavItem = { to: '/home', icon: LayoutDashboard, label: '首页' };
 
-// 「传记创作」组（提纲、人生大事件和多维增补通过创作流程进入，不在主导航单独展示）
+// 「传记创作」组（提纲通过创作流程进入）
 const creationGroupItemsV1: NavItem[] = [
   { to: '/interview', icon: Mic, label: 'AI智能采访' },
   { to: '/biography', icon: BookOpen, label: 'AI传记生成' },
@@ -65,9 +66,11 @@ const creationGroupItemsFull: NavItem[] = [
   { to: '/digital-assets', icon: Gem, label: '数字资产' },
 ];
 
-// 「人生记录」组（大事件和多维增补通过创作流程进入，不在主导航单独展示）
+// 「人生记录」组
 const lifeGroupItemsV1: NavItem[] = [
   { to: '/archive', icon: FolderOpen, label: '人生档案' },
+  { to: '/life-events', icon: CalendarDays, label: '人生大事件' },
+  { to: '/archive-enrichment', icon: Sparkles, label: '多维增补' },
 ];
 
 const lifeGroupItemsFull: NavItem[] = [

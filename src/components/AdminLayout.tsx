@@ -87,8 +87,9 @@ const adminNavGroups: NavGroup[] = [
   {
     key: 'content',
     icon: FileCheck,
-    label: '内容与合规',
+    label: '审核中心',
     items: [
+      { to: '/admin/content-review/biographer-applications', icon: UserCheck, label: '传记师入驻申请' },
       { to: '/admin/book-review', icon: BookOpen, label: '传记上架审核' },
       { to: '/admin/sensitive-hits', icon: ShieldAlert, label: '敏感词命中' },
       { to: '/admin/sensitive-words', icon: Tags, label: '敏感词库' },
@@ -133,8 +134,9 @@ const adminNavGroupsV1: NavGroup[] = [
   {
     key: 'content',
     icon: FileCheck,
-    label: '内容审核',
+    label: '审核中心',
     items: [
+      { to: '/admin/content-review/biographer-applications', icon: UserCheck, label: '传记师入驻申请' },
       { to: '/admin/book-review', icon: BookOpen, label: '传记上架审核' },
       { to: '/admin/sensitive-hits', icon: ShieldAlert, label: '敏感词命中' },
       { to: '/admin/sensitive-words', icon: Tags, label: '敏感词库' },

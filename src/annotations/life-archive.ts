@@ -14,7 +14,8 @@ export const lifeArchiveAnnotations: PageAnnotations = {
       target: '当前档案切换下拉框',
       logic: `① 下拉数据来自 localStorage「cj_archives」（无则内置「张明远」默认档案），并合并 archiveApi.list() 的 mock 档案（同 id 不覆盖本地数据）。
 ② 切换后写入「cj_current_archive_id」，并按档案重新加载事件（cj_events_<id>）、事件标签（cj_event_tags_<id>）、成员（cj_members_<id>）、素材（cj_media_<id>）。
-③ 切换后时间轴默认选中 1992 年事件，无则选中第一个事件。`,
+③ 切换后时间轴默认选中 1992 年事件，无则选中第一个事件。
+④ 多维增补已独立至「人生记录 → 多维增补」（/archive-enrichment），不再作为档案标签；沿用当前传主 cj_current_archive_id 与 cj_archive_enrichment_confirmed_<id> 存储，独立页切换传主后同步该上下文。`,
     },
     {
       id: 'life-archive.new-archive',

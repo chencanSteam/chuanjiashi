@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Search, MapPin, Star, User, ArrowUpDown } from 'lucide-react';
 import { biographerApi } from '../api/biographer';
-import { paymentApi } from '../api/payment';
+import { createServiceOrder } from '../data/biographerServiceOrders';
+import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/useToast';
 import Avatar from '../components/ui/Avatar';
 import BiographerProfile from './BiographerProfile';
@@ -41,6 +43,8 @@ function getMinPrice(b: Biographer): number {
 }
 
 export default function BiographerList() {
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const { addToast } = useToast();
   const [biographers, setBiographers] = useState<Biographer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -87,15 +91,15 @@ export default function BiographerList() {
   }, [biographers, province, city, keyword, sort]);
 
   const handleBook = async (service: BiographerService, formData: BiographerBookingForm) => {
-    if (!selected) return;
+    if (!selected || !user) return;
     try {
       setBooking(true);
-      const { order } = await biographerApi.createOrder(selected.id, service.id, formData);
-      await paymentApi.pay((order as any).id, 'wechat');
-      addToast('预约成功，等待传记师确认采访时间', 'success');
+      const order = createServiceOrder(selected, service, formData, user);
+      addToast('需求订单已提交', 'success');
+      navigate(`/my-orders?type=biographer_service&serviceOrder=${order.id}`);
       setSelected(null);
-    } catch (err: any) {
-      addToast(err.message || '预约失败', 'error');
+    } catch (err: unknown) {
+      addToast(err instanceof Error ? err.message : '提交失败', 'error');
     } finally {
       setBooking(false);
     }
@@ -105,6 +109,7 @@ export default function BiographerList() {
     <div className="biographer-list-page">
       <div className="biographer-list-hero">
         <h1 className="biographer-list-title">找到合适的传记师</h1>
+        <button className="btn btn-outline" onClick={() => navigate('/biographer-apply')}>传记师入驻 / 申请进度</button>
         <p className="biographer-list-subtitle">
           专业传记师为您和家人记录珍贵记忆，整理家族故事，传承家风精神
         </p>
