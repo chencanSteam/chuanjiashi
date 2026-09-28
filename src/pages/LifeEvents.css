@@ -20,8 +20,10 @@
 .life-events-group-title small { overflow: hidden; color: #958a7e; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
 .life-events-group-count { display: flex; align-items: center; gap: 4px; color: #8e806f; font-size: 12px; white-space: nowrap; }
 .life-events-group-body { padding: 0 18px 18px; border-top: 1px solid #f0ece6; }
-.life-events-group-supplement-input { box-sizing: border-box; width: 100%; margin-top: 12px; border: 1px solid #e5ded3; border-radius: 8px; padding: 9px 10px; background: #fff; color: #403830; font: inherit; font-size: 12px; outline: none; }
-.life-events-group-supplement-input:focus { border-color: #1b5e4b; box-shadow: 0 0 0 3px rgba(27, 94, 75, .08); }
+.life-events-editable-label { flex: 1; min-width: 0; border: 1px solid transparent; border-radius: 6px; padding: 3px 6px; background: transparent; color: #51483f; font: inherit; font-size: 13px; outline: none; }
+.life-events-editable-label:hover { border-color: #e5ded3; }
+.life-events-editable-label:focus { border-color: #1b5e4b; background: #fff; box-shadow: 0 0 0 3px rgba(27, 94, 75, .08); }
+.life-events-group-body > .life-events-option:last-child { margin-top: 12px; }
 .life-events-options { display: flex; flex-direction: column; gap: 9px; padding-top: 14px; }
 .life-events-option { padding: 10px 12px; border: 1px solid #eee9e1; border-radius: 10px; background: #fff; }
 .life-events-option.active { border-color: #b9d6ca; background: #f5faf7; }
@@ -33,6 +35,14 @@
 .life-events-detail textarea:focus, .life-events-custom-row input:focus { border-color: #1b5e4b; }
 .life-events-upload { display: inline-flex; align-items: center; justify-content: center; gap: 4px; border: 1px solid #dfd6c9; border-radius: 8px; padding: 7px 9px; background: #fff; color: #6f6255; font-size: 12px; cursor: pointer; white-space: nowrap; }
 .life-events-upload:hover { border-color: #1b5e4b; color: #1b5e4b; }
+.life-events-photo-thumb { width: 34px; height: 34px; border: 1px solid #e5ded3; border-radius: 8px; object-fit: cover; }
+.life-events-photo-modal-mask { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 20px; background: rgba(32, 28, 22, .45); }
+.life-events-photo-modal { display: flex; flex-direction: column; align-items: center; gap: 10px; width: min(420px, 100%); border-radius: 14px; padding: 22px 22px 20px; background: #fff; box-shadow: 0 18px 46px rgba(27, 94, 75, .22); }
+.life-events-photo-modal h3 { margin: 0; color: #302921; font-size: 16px; }
+.life-events-photo-preview { max-width: 100%; max-height: 260px; border: 1px solid #eee9e1; border-radius: 10px; object-fit: contain; }
+.life-events-photo-name { margin: 0; max-width: 100%; overflow: hidden; color: #958a7e; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.life-events-photo-question { margin: 2px 0 0; color: #51483f; font-size: 14px; font-weight: 600; }
+.life-events-photo-actions { display: flex; justify-content: center; gap: 10px; margin-top: 4px; }
 .life-events-voice { display: inline-flex; align-items: center; justify-content: center; gap: 4px; border: 1px solid #cfe2d9; border-radius: 8px; padding: 7px 9px; background: #f5faf7; color: #1b5e4b; font-size: 12px; cursor: pointer; white-space: nowrap; }
 .life-events-voice:hover, .life-events-voice.active { border-color: #1b5e4b; background: #e6f4ed; color: #14513f; }
 .life-events-custom { padding: 18px; }
@@ -70,6 +80,8 @@
 .life-events-custom-row select { box-sizing: border-box; width: 100%; border: 1px solid #e6e0d6; border-radius: 8px; padding: 9px 10px; background: #fff; color: #403830; font: inherit; font-size: 12px; outline: none; }
 .life-events-custom-row select:focus, .life-events-date-input:focus { border-color: #1b5e4b; }
 .life-events-date-input { min-height: 36px; }
+.life-events-custom-desc-wrap { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.life-events-custom-desc-wrap .life-events-custom-desc { flex: 1; }
 .life-events-custom-desc { min-width: 0; }
 
 /* 独立页与多维增补保持一致，注册流程继续沿用原有样式。 */
@@ -121,5 +133,5 @@
 @media (max-width: 900px) { .life-events-standalone .life-events-options { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 640px) { .life-events-standalone .life-events-options { grid-template-columns: minmax(0, 1fr); } .life-events-standalone .life-events-section-title { align-items: flex-start; flex-wrap: wrap; } }
 @media (max-width: 900px) { .life-events-groups { grid-template-columns: 1fr; } .life-events-header { flex-direction: column; } }
-@media (max-width: 1100px) { .life-events-custom-row { grid-template-columns: 28px 1fr 140px; } .life-events-custom-desc { grid-column: 2 / -1; } .life-events-custom-row .life-events-upload { grid-column: 3; } }
-@media (max-width: 640px) { .life-events-custom-row { grid-template-columns: 24px 1fr; } .life-events-custom-row input, .life-events-custom-row select, .life-events-custom-row .life-events-upload { grid-column: 2; } .life-events-detail { flex-direction: column; padding-left: 0; } .life-events-detail textarea { width: 100%; } }
+@media (max-width: 1100px) { .life-events-custom-row { grid-template-columns: 28px 1fr 140px; } .life-events-custom-desc-wrap { grid-column: 2 / -1; } .life-events-custom-row .life-events-upload { grid-column: 3; } }
+@media (max-width: 640px) { .life-events-custom-row { grid-template-columns: 24px 1fr; } .life-events-custom-row input, .life-events-custom-row select, .life-events-custom-row .life-events-custom-desc-wrap, .life-events-custom-row .life-events-upload { grid-column: 2; } .life-events-custom-desc-wrap { flex-direction: column; align-items: stretch; } .life-events-detail { flex-direction: column; padding-left: 0; } .life-events-detail textarea { width: 100%; } }

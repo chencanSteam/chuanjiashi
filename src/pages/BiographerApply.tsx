@@ -111,7 +111,7 @@ function EnrollmentPage({ standalone }: { standalone?: boolean }) {
       addToast('押金模拟缴纳成功，已开通服务', 'success');
     } catch { fail('本地保存失败，请稍后重试'); }
   };
-  const activeStep = form.status === 'draft' ? 0 : ['pending', 'supplement', 'rejected'].includes(form.status) ? 1 : form.status === 'approved' ? 2 : 3;
+  const activeStep = form.status === 'draft' ? 0 : ['pending', 'rejected'].includes(form.status) ? 1 : form.status === 'approved' ? 2 : 3;
   return <main className={`enroll-page ${standalone ? 'enroll-standalone' : ''}`}>
     <nav className="enroll-nav"><button className="btn btn-ghost" onClick={() => navigate('/home')}><ArrowLeft size={16} /> 返回首页</button><span>传家世 · 传记师入驻</span></nav>
     <header className="enroll-hero"><div><span className="enroll-eyebrow">以文字留住人生，以故事传承家风</span><h1>成为传家世传记师</h1><p>提交经历与作品，开启为家庭记录人生的旅程。</p></div><PenLine size={48} strokeWidth={1.2} /></header>
@@ -159,7 +159,7 @@ function EnrollmentPage({ standalone }: { standalone?: boolean }) {
       </section> : <section className="enroll-card">
         <div className={`enroll-status enroll-status-${form.status}`}><CheckCircle2 size={28} /><div><h2>{statusLabels[form.status]}</h2><p>{form.status === 'pending' ? '资料已收到，预计 1～3 个工作日完成审核。请留意本页进度。' : form.status === 'approved' ? '平台已完成审核，确认合作并缴纳 1,000 元押金后即可开通。' : form.status === 'active' ? '您已完成入驻，可进入传记师工作台。' : form.reason}</p></div></div>
         <EnrollmentSummary record={form} />
-        {['supplement', 'rejected'].includes(form.status) && <button className="btn btn-primary" onClick={() => { setEditing(true); setStep(0); }}>修改资料重新提交</button>}
+        {form.status === 'rejected' && <button className="btn btn-primary" onClick={() => { setEditing(true); setStep(0); }}>修改资料重新提交</button>}
         {form.status === 'pending' && <p className="enroll-muted">资料审核期间暂不可修改；如需补充，平台将在审核意见中说明。</p>}
         {form.status === 'approved' && <div className="enroll-cooperation"><h3>确认合作并缴纳押金</h3><p>身份与收款安排已由平台人工确认，具体订单报酬在接单前确认。</p><CooperationRules /><section className="enroll-deposit"><div><h3>入驻押金</h3><strong>¥1,000</strong><p>{form.depositPaidAt ? `已模拟缴纳 · ${time(form.depositPaidAt)}` : '审核已通过，缴纳押金后开通接单；申请与审核阶段不收费。'}</p></div></section><label className="enroll-check"><input type="checkbox" checked={cooperation} onChange={e => setCooperation(e.target.checked)} /><span>我已阅读并同意以上合作规则（版本 V1.0）</span></label><button className="btn btn-primary" onClick={activate}>{form.depositPaidAt ? '确认合作并开通' : '确认合作并缴纳押金'}</button></div>}
         {form.status === 'active' && <button className="btn btn-primary" onClick={openWorkbench}>进入传记师工作台 <ArrowRight size={16} /></button>}

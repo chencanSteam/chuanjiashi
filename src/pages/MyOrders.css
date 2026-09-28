@@ -565,6 +565,56 @@
   border-radius: var(--radius);
 }
 
+.my-order-review-stars.interactive button {
+  border: 0;
+  padding: 4px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.my-order-review-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.my-order-review-tags button {
+  padding: 6px 10px;
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.my-order-review-tags button.selected {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--primary-50);
+}
+
+.my-order-review-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  padding: 10px 12px;
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  font: inherit;
+  font-size: 13px;
+}
+
+.my-order-review-notice,
+.my-order-reviewed-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--primary);
+  font-size: 13px;
+}
+
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }

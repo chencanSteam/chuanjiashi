@@ -288,8 +288,8 @@ export function ensureDemoContent() {
   // 用户邀请：演示账号（13800138003）已邀请 2 位好友（邀请页「我邀请的用户」）
   const registeredUsers = loadList<{ phone: string }>('cj_registered_users');
   const registeredSeeds = [
-    { phone: '13800006666', name: '张子涵', inviteCode: 'ZZH2026', roles: ['user'] },
-    { phone: '13800007777', name: '张雨桐', inviteCode: 'ZYT2026', roles: ['user'] },
+    { phone: '13800006666', name: '张子涵', inviteCode: '662026', roles: ['user'] },
+    { phone: '13800007777', name: '张雨桐', inviteCode: '772026', roles: ['user'] },
   ];
   const registeredMissing = registeredSeeds.filter((s) => !registeredUsers.some((u) => u.phone === s.phone));
   if (registeredMissing.length > 0) {

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Plus,
   Search,
@@ -23,6 +24,9 @@ import BiographerProfile from './BiographerProfile';
 import BiographerProfilePreview from '../components/BiographerProfilePreview';
 import Annotate from '../components/annotation/Annotate';
 import './BiographerManagement.css';
+import { ENROLLMENT_EVENT, readEnrollments, enrollmentStatusLabel, enrollmentAccountForm, generateEnrollmentAccount, saveEnrollment, type Enrollment } from '../data/biographerEnrollment';
+import Modal from '../components/ui/Modal';
+import { EnrollmentSummary } from './BiographerApply';
 
 const emptyForm: BiographerFormData = {
   name: '',
@@ -47,17 +51,47 @@ export default function BiographerManagement() {
   const [selectedBiographerId, setSelectedBiographerId] = useState<string | null>(null);
   const [selectedProfileReview, setSelectedProfileReview] = useState<Biographer | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
+  const [enrollments, setEnrollments] = useState(readEnrollments);
+  const [saving, setSaving] = useState(false);
+  const [selectedEnrollment, setSelectedEnrollment] = useState<Enrollment | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [generatingOwner, setGeneratingOwner] = useState<string | null>(null);
+  const localRows = enrollments.filter(item => item.status === 'approved' &&
+    (!keyword || [item.name, item.phone, item.intro].some(value => value.includes(keyword))) &&
+    statusFilter === 'all'
+  );
+  const localEnrollment = (id: string) => readEnrollments().find(item => item.status === 'active' && `enrollment-${item.owner}` === id);
 
   useEffect(() => {
-    biographerApi
-      .adminList()
-      .then((list) => setBiographers(list.map(mapMockBiographer)))
+    const owner = searchParams.get('enrollment');
+    if (!owner) return;
+    const record = readEnrollments().find(item => item.owner === owner);
+    if (record?.status === 'approved' && record.depositPaidAt) {
+      setEditing(null);
+      setGeneratingOwner(owner);
+      setForm(enrollmentAccountForm(record));
+      setShowModal(true);
+    }
+    const next = new URLSearchParams(searchParams);
+    next.delete('enrollment');
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
+
+  useEffect(() => {
+    biographerApi.adminList().then(list => setBiographers(list.map(mapMockBiographer)))
       .catch(() => setBiographers([]));
+    const refresh = () => setEnrollments(readEnrollments());
+    window.addEventListener(ENROLLMENT_EVENT, refresh);
+    window.addEventListener('storage', refresh);
+    return () => { window.removeEventListener(ENROLLMENT_EVENT, refresh); window.removeEventListener('storage', refresh); };
   }, []);
 
   const filtered = useMemo(() => {
-    return biographers.filter((item) => {
+    const generated: Biographer[] = enrollments.filter(item => item.status === 'active').map(item => ({
+      ...enrollmentAccountForm(item), id: `enrollment-${item.owner}`,
+      createdAt: item.accountGeneratedAt || item.activatedAt || item.updatedAt,
+    }));
+    return [...generated, ...biographers].filter((item) => {
       const matchKeyword =
         !keyword ||
         item.name.includes(keyword) ||
@@ -67,9 +101,10 @@ export default function BiographerManagement() {
       const matchStatus = statusFilter === 'all' || item.status === statusFilter;
       return matchKeyword && matchStatus;
     });
-  }, [biographers, keyword, statusFilter]);
+  }, [biographers, enrollments, keyword, statusFilter]);
 
   const openCreate = () => {
+    setGeneratingOwner(null);
     setEditing(null);
     setForm(emptyForm);
     setShowModal(true);
@@ -99,8 +134,10 @@ export default function BiographerManagement() {
   };
 
   const openEdit = (item: Biographer) => {
+    setGeneratingOwner(null);
     setEditing(item);
     setForm({
+      avatar: item.avatar,
       name: item.name,
       phone: item.phone,
       email: item.email || '',
@@ -114,16 +151,38 @@ export default function BiographerManagement() {
   };
 
   const closeModal = () => {
+    setGeneratingOwner(null);
     setShowModal(false);
     setEditing(null);
   };
 
   const handleSubmit = async () => {
-    if (!form.name.trim() || !form.phone.trim()) {
+    if (saving) return;
+    if (!form.name.trim() || !/^1\d{10}$/.test(form.phone.trim())) {
       addToast('请填写姓名和手机号', 'error');
       return;
     }
+    if (!Number.isFinite(form.experience) || form.experience < 0) {
+      addToast('请填写有效的从业年限', 'error');
+      return;
+    }
+    setSaving(true);
     try {
+      const enrollment = editing && localEnrollment(editing.id);
+      if (generatingOwner || enrollment) {
+        if (generatingOwner) {
+          if (!generateEnrollmentAccount(generatingOwner, form)) {
+            addToast('申请状态已变化，请返回申请详情查看', 'error');
+            return;
+          }
+          addToast('演示账号生成成功', 'success');
+        } else if (enrollment) {
+          saveEnrollment({ ...enrollment, accountProfile: form });
+          addToast('传记师信息已更新', 'success');
+        }
+        closeModal();
+        return;
+      }
       if (editing) {
         await biographerApi.update(editing.id, toMockBiographerData(form));
         addToast('传记师信息已更新', 'success');
@@ -136,19 +195,40 @@ export default function BiographerManagement() {
       closeModal();
     } catch (err: any) {
       addToast(err.message || '操作失败', 'error');
-    }
+    } finally { setSaving(false); }
   };
 
   const handleDisable = async () => {
     if (!showDelete) return;
     try {
-      await biographerApi.update(showDelete.id, { status: 'suspended' });
-      const list = await biographerApi.adminList();
-      setBiographers(list.map(mapMockBiographer));
+      const enrollment = localEnrollment(showDelete.id);
+      if (enrollment) {
+        saveEnrollment({ ...enrollment, accountProfile: { ...enrollmentAccountForm(enrollment), status: 'inactive' } });
+      } else {
+        await biographerApi.update(showDelete.id, { status: 'suspended' });
+        const list = await biographerApi.adminList();
+        setBiographers(list.map(mapMockBiographer));
+      }
       setShowDelete(null);
       addToast('传记师已停用', 'success');
     } catch (err: any) {
       addToast(err.message || '停用失败', 'error');
+    }
+  };
+
+  const handleEnable = async (item: Biographer) => {
+    try {
+      const enrollment = localEnrollment(item.id);
+      if (enrollment) {
+        saveEnrollment({ ...enrollment, accountProfile: { ...enrollmentAccountForm(enrollment), status: 'active' } });
+      } else {
+        await biographerApi.update(item.id, { status: 'approved' });
+        const list = await biographerApi.adminList();
+        setBiographers(list.map(mapMockBiographer));
+      }
+      addToast('传记师已启用', 'success');
+    } catch (err) {
+      addToast(err instanceof Error ? err.message : '启用失败', 'error');
     }
   };
 
@@ -223,7 +303,7 @@ export default function BiographerManagement() {
           </Annotate>
         </div>
         <div className="card-body bio-list-body">
-          {filtered.length === 0 ? (
+          {filtered.length === 0 && localRows.length === 0 ? (
             <div className="bio-empty">暂无符合条件的传记师</div>
           ) : (
             <Annotate id="admin-biographers.list-table">
@@ -239,11 +319,18 @@ export default function BiographerManagement() {
                 </tr>
               </thead>
               <tbody>
+              {localRows.map(item => <tr key={`enrollment-${item.owner}`}>
+                <td className="admin-table-text-left"><div className="bio-name-cell"><Avatar name={item.name} size={40} /><div><strong>{item.name}</strong><div className="bio-contact-item">入驻审核关联</div></div></div></td>
+                <td><div className="bio-contact-item"><Phone size={12} /> {item.phone}</div><div className="bio-contact-item">{item.status === 'active' ? '演示账号手机号' : '联系手机号 · 账号尚未生成'}</div></td>
+                <td>{enrollmentAccountForm(item).experience} 年</td>
+                <td><span className={`bio-status ${item.status === 'active' ? 'active' : 'pending'}`}>{enrollmentStatusLabel(item)}</span></td>
+                <td><button className="admin-table-link" onClick={() => setSelectedEnrollment(item)}>查看详情</button></td>
+              </tr>)}
               {filtered.map((item) => {
                 return (
                 <tr key={item.id}>
                   <td className="admin-table-text-left">
-                    <div className="bio-name-cell bio-cell-clickable" onClick={() => setSelectedBiographerId(item.id)}>
+                    <div className="bio-name-cell bio-cell-clickable" onClick={() => localEnrollment(item.id) ? openEdit(item) : setSelectedBiographerId(item.id)}>
                       {item.avatar ? (
                         <img src={item.avatar} alt={item.name} className="bio-avatar" />
                       ) : (
@@ -288,7 +375,9 @@ export default function BiographerManagement() {
                       <button className="admin-table-link" onClick={() => setSelectedProfileReview(item)}>主页审核</button>
                     )}
                     <button className="admin-table-link" onClick={() => openEdit(item)}>编辑</button>
-                    {item.status !== 'inactive' && <button className="admin-table-link danger" onClick={() => setShowDelete(item)}>停用</button>}
+                    {item.status !== 'inactive'
+                      ? <button className="admin-table-link danger" onClick={() => setShowDelete(item)}>停用</button>
+                      : <button className="admin-table-link" onClick={() => handleEnable(item)}>启用</button>}
                   </td>
                 </tr>
                 );
@@ -300,6 +389,10 @@ export default function BiographerManagement() {
           )}
         </div>
       </div>
+
+      <Modal open={!!selectedEnrollment} title={`${selectedEnrollment?.name || ''}的入驻资料`} onClose={() => setSelectedEnrollment(null)} className="enroll-admin enroll-review-modal">
+        {selectedEnrollment && <><div className="enroll-notice">{selectedEnrollment.status === 'active' ? '已关联演示账号 · 账号手机号' : '账号尚未生成 · 联系手机号'}：{selectedEnrollment.phone} · {enrollmentStatusLabel(selectedEnrollment)}</div><EnrollmentSummary record={selectedEnrollment} /></>}
+      </Modal>
 
       {showModal && (
         <Annotate id="admin-biographers.biographer-form">
@@ -378,8 +471,8 @@ export default function BiographerManagement() {
                   placeholder="请输入个人简介"
                 />
               </div>
-              <button className="btn btn-primary" style={{ width: '100%', marginTop: 8 }} onClick={handleSubmit}>
-                {editing ? '保存修改' : '确认新增'}
+              <button className="btn btn-primary" style={{ width: '100%', marginTop: 8 }} disabled={saving} onClick={handleSubmit}>
+                {saving ? '保存中…' : editing ? '保存修改' : generatingOwner ? '确认生成账号' : '确认新增'}
               </button>
             </div>
           </div>

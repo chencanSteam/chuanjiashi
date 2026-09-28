@@ -1,3 +1,5 @@
+.enroll-review-modal { max-width: 820px; }
+.enroll-review-modal .enroll-actions { flex-wrap: wrap; margin: 20px 0; }
 .enroll-page { --enroll-green: #2d5a4a; color: var(--text); font-family: var(--font-family-sans); }
 .enroll-standalone { max-width: 1160px; margin: 0 auto; padding: 24px 32px 64px; }
 .enroll-nav, .enroll-hero, .enroll-actions, .enroll-actions > div, .enroll-avatar { display: flex; align-items: center; justify-content: space-between; gap: 14px; }

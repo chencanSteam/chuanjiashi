@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, type ChangeEvent } from 'react';
 import { Camera, Check, ChevronDown, ChevronRight, ChevronUp, Clock3, Mic, Pencil, Plus, Upload } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 import './LifeEvents.css';
@@ -77,19 +77,40 @@ export default function LifeEvents({ embedded = false, onContinue, onSkip, stepN
   const [selected, setSelected] = useState<Record<string, boolean>>(defaultSelected);
   const [details, setDetails] = useState<Record<string, string>>(defaultDetails);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [supplementTitles, setSupplementTitles] = useState<Record<string, string>>({});
   const [customEvents, setCustomEvents] = useState<CustomEventItem[]>([createCustomEvent()]);
   const [recordingDetailId, setRecordingDetailId] = useState<string | null>(null);
   const recognitionRef = useRef<{ start: () => void; stop: () => void } | null>(null);
   const [savedRecord] = useState<SavedLifeEvents | null>(() => loadSavedLifeEvents());
   const [isEditing, setIsEditing] = useState(() => embedded ? !loadSavedLifeEvents() : false);
+  const [uploadedPhotos, setUploadedPhotos] = useState<Record<string, { url: string; name: string }>>({});
+  const [photoConfirm, setPhotoConfirm] = useState<{ itemId: string; url: string; name: string } | null>(null);
+  const photoInputRef = useRef<HTMLInputElement | null>(null);
+  const pendingPhotoItemRef = useRef<string | null>(null);
 
   const toggleEvent = (id: string) => setSelected((prev) => ({ ...prev, [id]: !prev[id] }));
   const updateDetail = (id: string, value: string) => setDetails((prev) => ({ ...prev, [id]: value }));
-  const uploadPhoto = () => {
-    const shouldRestore = window.confirm('是否修复老照片？');
-    addToast(shouldRestore ? '老照片已修复并保存（演示）' : '图片已保存（演示）', 'success');
+  const updateSupplementTitle = (groupId: string, value: string) => setSupplementTitles((prev) => ({ ...prev, [groupId]: value }));
+  const uploadPhoto = (itemId: string) => {
+    pendingPhotoItemRef.current = itemId;
+    photoInputRef.current?.click();
   };
-  const startVoiceInput = (id: string) => {
+  const onPhotoSelected = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    const itemId = pendingPhotoItemRef.current;
+    if (!file || !itemId) return;
+    const reader = new FileReader();
+    reader.onload = () => setPhotoConfirm({ itemId, url: String(reader.result), name: file.name });
+    reader.readAsDataURL(file);
+  };
+  const confirmPhoto = (restore: boolean) => {
+    if (!photoConfirm) return;
+    setUploadedPhotos((prev) => ({ ...prev, [photoConfirm.itemId]: { url: photoConfirm.url, name: photoConfirm.name } }));
+    addToast(restore ? '老照片已修复并保存（演示）' : '图片已保存（演示）', 'success');
+    setPhotoConfirm(null);
+  };
+  const startVoiceInput = (id: string, getValue: () => string, setValue: (value: string) => void) => {
     if (recordingDetailId === id) {
       recognitionRef.current?.stop();
       setRecordingDetailId(null);
@@ -120,7 +141,7 @@ export default function LifeEvents({ embedded = false, onContinue, onSkip, stepN
     };
     const Recognition = speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition;
     if (!Recognition) {
-      updateDetail(id, `${details[id] ? `${details[id]} ` : ''}这段经历让我印象深刻，也让我更加理解家人的影响。`);
+      setValue(`${getValue() ? `${getValue()} ` : ''}这段经历让我印象深刻，也让我更加理解家人的影响。`);
       addToast('当前浏览器不支持语音识别，已填入演示转写内容', 'info');
       return;
     }
@@ -130,7 +151,7 @@ export default function LifeEvents({ embedded = false, onContinue, onSkip, stepN
     recognition.maxAlternatives = 1;
     recognition.onresult = (event) => {
       const transcript = event.results[0]?.[0]?.transcript?.trim();
-      if (transcript) updateDetail(id, `${details[id] ? `${details[id]} ` : ''}${transcript}`);
+      if (transcript) setValue(`${getValue() ? `${getValue()} ` : ''}${transcript}`);
     };
     recognition.onend = () => {
       setRecordingDetailId(null);
@@ -254,12 +275,24 @@ export default function LifeEvents({ embedded = false, onContinue, onSkip, stepN
                   {group.items.map((item) => {
                     const active = !!selected[item.id];
                     return <div className={`life-events-option ${active ? 'active' : ''}`} key={item.id}>
-                      <div className="life-events-option-row"><label><input type="checkbox" checked={active} onChange={() => toggleEvent(item.id)} /><span>{item.label}</span></label><button type="button" className="life-events-upload" onClick={uploadPhoto}><Camera size={14} /> 上传图片</button></div>
-                      {active && <div className="life-events-detail"><textarea value={details[item.id] || ''} onChange={(e) => updateDetail(item.id, e.target.value)} placeholder="简单写一两句话即可，选填" /><button type="button" className={`life-events-voice ${recordingDetailId === item.id ? 'active' : ''}`} onClick={() => startVoiceInput(item.id)}><Mic size={14} /> {recordingDetailId === item.id ? '结束输入' : '语音输入'}</button></div>}
+                      <div className="life-events-option-row"><label><input type="checkbox" checked={active} onChange={() => toggleEvent(item.id)} /><span>{item.label}</span></label>{uploadedPhotos[item.id] && <img className="life-events-photo-thumb" src={uploadedPhotos[item.id].url} alt={uploadedPhotos[item.id].name} />}<button type="button" className="life-events-upload" onClick={() => uploadPhoto(item.id)}><Camera size={14} /> {uploadedPhotos[item.id] ? '重新上传' : '上传图片'}</button></div>
+                      {active && <div className="life-events-detail"><textarea value={details[item.id] || ''} onChange={(e) => updateDetail(item.id, e.target.value)} placeholder="简单写一两句话即可，选填" /><button type="button" className={`life-events-voice ${recordingDetailId === item.id ? 'active' : ''}`} onClick={() => startVoiceInput(item.id, () => details[item.id] || '', (value) => updateDetail(item.id, value))}><Mic size={14} /> {recordingDetailId === item.id ? '结束输入' : '语音输入'}</button></div>}
                     </div>;
                   })}
                 </div>
-                <input className="life-events-group-supplement-input" placeholder="其他补充（选填）" aria-label={`${group.title}其他补充`} />
+                {(() => {
+                  const supplementId = `${group.id}-supplement`;
+                  const supplementActive = !!selected[supplementId];
+                  const supplementPhoto = uploadedPhotos[supplementId];
+                  return <div className={`life-events-option ${supplementActive ? 'active' : ''}`}>
+                    <div className="life-events-option-row">
+                      <label><input type="checkbox" checked={supplementActive} onChange={() => toggleEvent(supplementId)} />{supplementActive ? <input className="life-events-editable-label" aria-label={`${group.title}其他补充主题（可编辑）`} value={supplementTitles[group.id] ?? ''} onChange={(event) => updateSupplementTitle(group.id, event.target.value)} placeholder="可编辑主题" /> : <span>{supplementTitles[group.id]?.trim() || '其他补充'}</span>}</label>
+                      {supplementPhoto && <img className="life-events-photo-thumb" src={supplementPhoto.url} alt={supplementPhoto.name} />}
+                      <button type="button" className="life-events-upload" onClick={() => uploadPhoto(supplementId)}><Camera size={14} /> {supplementPhoto ? '重新上传' : '上传图片'}</button>
+                    </div>
+                    {supplementActive && <div className="life-events-detail"><textarea value={details[supplementId] || ''} onChange={(e) => updateDetail(supplementId, e.target.value)} placeholder="简单写一两句话即可，选填" /><button type="button" className={`life-events-voice ${recordingDetailId === supplementId ? 'active' : ''}`} onClick={() => startVoiceInput(supplementId, () => details[supplementId] || '', (value) => updateDetail(supplementId, value))}><Mic size={14} /> {recordingDetailId === supplementId ? '结束输入' : '语音输入'}</button></div>}
+                  </div>;
+                })()}
               </div>}
             </section>
           );
@@ -273,8 +306,12 @@ export default function LifeEvents({ embedded = false, onContinue, onSkip, stepN
             <span className="life-events-custom-no">{index + 1}</span>
             <input aria-label="事件名称（选填）" value={item.title} onChange={(e) => updateCustom(item.id, 'title', e.target.value)} placeholder="事件名称（选填）" />
             <input className="life-events-date-input" aria-label="发生时间（选填）" type="date" value={item.year} onChange={(e) => updateCustom(item.id, 'year', e.target.value)} />
-            <input className="life-events-custom-desc" value={item.desc} onChange={(e) => updateCustom(item.id, 'desc', e.target.value)} placeholder="一句话概括经历" />
-            <button className="life-events-upload" onClick={uploadPhoto}><Upload size={14} /> 图片</button>
+            <div className="life-events-custom-desc-wrap">
+              <input className="life-events-custom-desc" value={item.desc} onChange={(e) => updateCustom(item.id, 'desc', e.target.value)} placeholder="一句话概括经历" />
+              <button type="button" className={`life-events-voice ${recordingDetailId === item.id ? 'active' : ''}`} onClick={() => startVoiceInput(item.id, () => customEvents.find((event) => event.id === item.id)?.desc || '', (value) => updateCustom(item.id, 'desc', value))}><Mic size={14} /> {recordingDetailId === item.id ? '结束输入' : '语音输入'}</button>
+            </div>
+            <button className="life-events-upload" onClick={() => uploadPhoto(item.id)}><Upload size={14} /> {uploadedPhotos[item.id] ? '重新上传' : '图片'}</button>
+            {uploadedPhotos[item.id] && <img className="life-events-photo-thumb" src={uploadedPhotos[item.id].url} alt={uploadedPhotos[item.id].name} />}
           </div>)}
         </div>
       </section>
@@ -282,6 +319,22 @@ export default function LifeEvents({ embedded = false, onContinue, onSkip, stepN
       <div className="life-events-footer-tip"><Clock3 size={15} /> 所有补充内容均为选填，不填写不会阻断页面使用；勾选越准确，后续采访展示越贴合。</div>
       {embedded && <div className="life-events-embedded-footer"><button className="btn btn-primary" onClick={onContinue}>保存并进入下一步 <ChevronUp size={14} /></button></div>}
       {!embedded && <div className="life-events-embedded-footer"><button className="btn btn-primary" onClick={() => setIsEditing(false)}>完成</button></div>}
+
+      <input ref={photoInputRef} type="file" accept="image/*" hidden onChange={onPhotoSelected} />
+      {photoConfirm && (
+        <div className="life-events-photo-modal-mask" onClick={() => setPhotoConfirm(null)}>
+          <div className="life-events-photo-modal" onClick={(event) => event.stopPropagation()}>
+            <h3>图片已上传成功</h3>
+            <img className="life-events-photo-preview" src={photoConfirm.url} alt={photoConfirm.name} />
+            <p className="life-events-photo-name">{photoConfirm.name}</p>
+            <p className="life-events-photo-question">是否修复老照片？</p>
+            <div className="life-events-photo-actions">
+              <button className="btn btn-outline" onClick={() => confirmPhoto(false)}>不修复，直接保存</button>
+              <button className="btn btn-primary" onClick={() => confirmPhoto(true)}>修复老照片</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

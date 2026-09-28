@@ -1844,10 +1844,11 @@
   font-size: 12px;
 }
 
-.chapter-content-actions {
+.chapter-content-footer {
   display: flex;
+  justify-content: flex-end;
   gap: 8px;
-  flex-shrink: 0;
+  padding: 0 16px 16px;
 }
 
 .chapter-content-body {
@@ -1912,8 +1913,7 @@
     flex-direction: column;
   }
 
-  .chapter-content-actions {
-    width: 100%;
+  .chapter-content-footer {
     flex-wrap: wrap;
   }
 }

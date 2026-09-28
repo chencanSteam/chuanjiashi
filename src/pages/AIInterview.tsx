@@ -1240,27 +1240,6 @@ function AIInterviewPage() {
           <div>
             <h3 className="card-title"><Sparkles size={16} /> 传记初稿生成</h3>
           </div>
-          <div className="chapter-content-actions">
-            <button className="btn btn-outline btn-sm" onClick={generateChapterContent} disabled={contentBusy !== null}>
-              <Sparkles size={13} /> {contentBusy === 'generate' ? '生成中…' : '生成本章内容'}
-            </button>
-            <input
-              ref={chapterImageInputRef}
-              className="visually-hidden"
-              type="file"
-              accept="image/*"
-              onChange={(e) => handleImportMaterial(e.target.files?.[0])}
-            />
-            <button className="btn btn-outline btn-sm" onClick={() => chapterImageInputRef.current?.click()}>
-              <ImageIcon size={13} /> 插入图片
-            </button>
-            <button className="btn btn-outline btn-sm" onClick={polishChapterContent} disabled={contentBusy !== null}>
-              <Sparkles size={13} /> {contentBusy === 'polish' ? '润色中…' : '润色'}
-            </button>
-            <button className="btn btn-primary btn-sm" onClick={saveChapterContent}>
-              <Save size={13} /> 保存本章
-            </button>
-          </div>
         </div>
         <div className="chapter-content-body">
           <textarea
@@ -1270,6 +1249,27 @@ function AIInterviewPage() {
             placeholder="先完成几轮采访，再点击“生成本章内容”；也可以直接编辑这里的文字。"
             rows={8}
           />
+        </div>
+        <div className="chapter-content-footer">
+          <input
+            ref={chapterImageInputRef}
+            className="visually-hidden"
+            type="file"
+            accept="image/*"
+            onChange={(e) => handleImportMaterial(e.target.files?.[0])}
+          />
+          <button className="btn btn-outline btn-sm" onClick={generateChapterContent} disabled={contentBusy !== null}>
+            <Sparkles size={13} /> {contentBusy === 'generate' ? '生成中…' : '生成本章内容'}
+          </button>
+          <button className="btn btn-outline btn-sm" onClick={() => chapterImageInputRef.current?.click()}>
+            <ImageIcon size={13} /> 插入图片
+          </button>
+          <button className="btn btn-outline btn-sm" onClick={polishChapterContent} disabled={contentBusy !== null}>
+            <Sparkles size={13} /> {contentBusy === 'polish' ? '润色中…' : '润色'}
+          </button>
+          <button className="btn btn-primary btn-sm" onClick={saveChapterContent}>
+            <Save size={13} /> 保存本章
+          </button>
         </div>
       </section>
 

@@ -11,7 +11,7 @@ function createUser(phone: string): User {
     id: generateId(),
     phone,
     nickname: `用户${phone.slice(-4)}`,
-    inviteCode: Math.random().toString(36).slice(2, 8).toUpperCase(),
+    inviteCode: String(Math.floor(100000 + Math.random() * 900000)),
     agreementAccepted: false,
     privacyAccepted: false,
     createdAt: new Date().toISOString(),

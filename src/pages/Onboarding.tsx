@@ -9,6 +9,7 @@ import Annotate from '../components/annotation/Annotate';
 import { regions } from '../data/regions';
 import { industryOptions, industryOccupations } from '../data/occupations';
 import { readDocumentText } from '../utils/documentImport';
+import { extractBasicInfoFromBiography } from '../utils/biographyExtract';
 import LifeEvents from './LifeEvents';
 import ArchiveEnrichment from './ArchiveEnrichment';
 import './Onboarding.css';
@@ -227,6 +228,8 @@ export default function Onboarding() {
   const [importedText, setImportedText] = useState('');
   const [importedFileName, setImportedFileName] = useState('');
   const [importing, setImporting] = useState(false);
+  const [lifeEventsStarted, setLifeEventsStarted] = useState(false);
+  const [enrichmentStarted, setEnrichmentStarted] = useState(false);
 
   const origin = `${originProvince}${originCity}${originDistrict}`;
   const basic = { name, occupation, origin, birthYear };
@@ -316,6 +319,8 @@ export default function Onboarding() {
     setOutline((current) => [...current, { title: '新章节', items: defaultOutlineItems.map((text) => ({ text })) }]);
   };
 
+  const [pendingDeleteGroup, setPendingDeleteGroup] = useState<number | null>(null);
+
   const removeOutlineGroup = (groupIndex: number) => {
     setOutline((current) => current.filter((_, index) => index !== groupIndex));
   };
@@ -341,7 +346,20 @@ export default function Onboarding() {
       }
       setImportedText(text);
       setImportedFileName(file.name);
-      addToast('已有传记已加入人生档案素材', 'success');
+      // 从传记文本中提取基本信息，仅填充当前为空的字段
+      const extracted = extractBasicInfoFromBiography(text, file.name);
+      const filled: string[] = [];
+      if (!name && extracted.name) { setName(extracted.name); filled.push('姓名'); }
+      if (!registrationProfile?.gender && extracted.gender && extracted.gender !== gender) { setGender(extracted.gender); filled.push('性别'); }
+      if (!birthYear && extracted.birthYear) { setBirthYear(extracted.birthYear); filled.push('出生日期'); }
+      if (!birthMonth && extracted.birthMonth) setBirthMonth(extracted.birthMonth);
+      if (!birthDay && extracted.birthDay) setBirthDay(extracted.birthDay);
+      if (!originProvince && extracted.originProvince) { setOriginProvince(extracted.originProvince); filled.push('籍贯'); }
+      if (!originCity && extracted.originCity) setOriginCity(extracted.originCity);
+      if (!originDistrict && extracted.originDistrict) setOriginDistrict(extracted.originDistrict);
+      if (!industry && extracted.industry) { setIndustry(extracted.industry); filled.push('行业/职业'); }
+      if (!occupation && extracted.occupation) setOccupation(extracted.occupation);
+      addToast(filled.length > 0 ? `已从传记中提取：${filled.join('、')}，请在下一步核对` : '已有传记已加入人生档案素材', 'success');
     } catch (err: unknown) {
       addToast(err instanceof Error ? err.message : '文件暂时无法读取，请上传 .docx 或 .txt 文件', 'error');
     } finally {
@@ -359,6 +377,8 @@ export default function Onboarding() {
   };
 
   const startInterview = async () => {
+    let archiveId = '';
+    let archiveName = name.trim();
     try {
       const archive = await archiveApi.create({
         type: 'self',
@@ -368,34 +388,40 @@ export default function Onboarding() {
         birthPlace: origin,
         status: 'living',
       });
-      // 兼容旧 localStorage 格式，供未迁移页面读取
-      const legacyArchive = {
-        id: archive.id,
-        name: archive.name,
-        gender,
-        birthYear,
-        birthDate: birthYear ? `${birthYear}-${birthMonth}-${birthDay}` : undefined,
-        origin,
-        originDetail: originDetail.trim() || undefined,
-        industry: industry || undefined,
-        occupation,
-      };
-      saveArchive(legacyArchive);
-      localStorage.setItem(`cj_interview_outline_${archive.id}`, JSON.stringify(outline));
-      if (importedText.trim()) {
-        localStorage.setItem(`cj_imported_biography_${archive.id}`, JSON.stringify({
-          fileName: importedFileName || '已有传记素材',
-          text: importedText,
-          updatedAt: new Date().toLocaleString('zh-CN'),
-        }));
-      }
-      setNewUser(false);
-      addToast('档案已创建，开始 AI 采访', 'success');
-      const returnTo = (location.state as { from?: string } | null)?.from;
-      navigate(returnTo || '/interview', { replace: true });
+      archiveId = archive.id;
+      archiveName = archive.name;
     } catch (err: any) {
-      addToast(err.message || '创建档案失败', 'error');
+      // mock 接口不可用（如静态部署下 Service Worker 未生效）时，用本地档案继续演示流程
+      // eslint-disable-next-line no-console
+      console.warn('[onboarding] 创建档案接口不可用，改用本地演示档案', err);
+      archiveId = `local-${Date.now()}`;
+      addToast('接口暂不可用，已切换到本地演示模式', 'info');
     }
+    // 兼容旧 localStorage 格式，供未迁移页面读取
+    const legacyArchive = {
+      id: archiveId,
+      name: archiveName,
+      gender,
+      birthYear,
+      birthDate: birthYear ? `${birthYear}-${birthMonth}-${birthDay}` : undefined,
+      origin,
+      originDetail: originDetail.trim() || undefined,
+      industry: industry || undefined,
+      occupation,
+    };
+    saveArchive(legacyArchive);
+    localStorage.setItem(`cj_interview_outline_${archiveId}`, JSON.stringify(outline));
+    if (importedText.trim()) {
+      localStorage.setItem(`cj_imported_biography_${archiveId}`, JSON.stringify({
+        fileName: importedFileName || '已有传记素材',
+        text: importedText,
+        updatedAt: new Date().toLocaleString('zh-CN'),
+      }));
+    }
+    setNewUser(false);
+    addToast('档案已创建，开始 AI 采访', 'success');
+    const returnTo = (location.state as { from?: string } | null)?.from;
+    navigate(returnTo || '/interview', { replace: true });
   };
 
   return (
@@ -588,9 +614,29 @@ export default function Onboarding() {
             </Annotate>
           )}
 
-          {step === 3 && <LifeEvents embedded stepNumber={fourStepFlow ? 2 : (registrationDemo ? 1 : 3)} onContinue={goToEnrichment} onSkip={goToEnrichment} />}
+          {step === 3 && !lifeEventsStarted && (
+            <div className="onboarding-step onboarding-intro-step">
+              <h2><Sparkles size={20} /> {fourStepFlow ? '第二步' : (registrationDemo ? '第一步' : '第三步')}：人生大事件</h2>
+              <p className="step-desc">接下来按人生阶段勾选对您重要的经历，可以为每段经历补充文字、语音和图片。填写越完整，AI 生成的采访提纲越贴合您的故事；所有内容均为选填，也可以稍后再补充。</p>
+              <div className="onboarding-intro-actions">
+                <button type="button" className="btn btn-primary" onClick={() => setLifeEventsStarted(true)}>填写</button>
+                <button type="button" className="btn btn-outline" onClick={goToEnrichment}>跳过</button>
+              </div>
+            </div>
+          )}
+          {step === 3 && lifeEventsStarted && <LifeEvents embedded stepNumber={fourStepFlow ? 2 : (registrationDemo ? 1 : 3)} onContinue={goToEnrichment} onSkip={goToEnrichment} />}
 
-          {step === 4 && <ArchiveEnrichment embedded stepNumber={fourStepFlow ? 3 : (registrationDemo ? 2 : 4)} onContinue={goToOutline} onSkip={goToOutline} />}
+          {step === 4 && !enrichmentStarted && (
+            <div className="onboarding-step onboarding-intro-step">
+              <h2><Sparkles size={20} /> {fourStepFlow ? '第三步' : (registrationDemo ? '第二步' : '第四步')}：多维增补</h2>
+              <p className="step-desc">接下来补充成长年代、性格特质、关键人物、记忆锚点等信息，帮助 AI 更准确地把握访谈语气和传记风格。所有内容均为选填，也可以稍后再补充。</p>
+              <div className="onboarding-intro-actions">
+                <button type="button" className="btn btn-primary" onClick={() => setEnrichmentStarted(true)}>填写</button>
+                <button type="button" className="btn btn-outline" onClick={goToOutline}>跳过</button>
+              </div>
+            </div>
+          )}
+          {step === 4 && enrichmentStarted && <ArchiveEnrichment embedded stepNumber={fourStepFlow ? 3 : (registrationDemo ? 2 : 4)} onContinue={goToOutline} onSkip={goToOutline} />}
 
           {step === 5 && (
             <Annotate id="onboarding.outline">
@@ -618,7 +664,7 @@ export default function Onboarding() {
                       <div className="outline-group-actions">
                         <button type="button" aria-label="上移章节" onClick={() => moveOutlineGroup(gi, -1)} disabled={gi === 0}><ChevronUp size={15} /></button>
                         <button type="button" aria-label="下移章节" onClick={() => moveOutlineGroup(gi, 1)} disabled={gi === outline.length - 1}><ChevronDown size={15} /></button>
-                        <button type="button" className="outline-delete" aria-label="删除章节" onClick={() => removeOutlineGroup(gi)} disabled={outline.length <= 1}><Trash2 size={15} /></button>
+                        <button type="button" className="outline-delete" aria-label="删除章节" onClick={() => setPendingDeleteGroup(gi)} disabled={outline.length <= 1}><Trash2 size={15} /></button>
                       </div>
                     </div>
                     <div className="outline-topic-list">
@@ -657,9 +703,11 @@ export default function Onboarding() {
               </button>
             </div>
           ) : step === 2 ? (
-            <button className="btn btn-primary" onClick={next}>
-              下一步 <ArrowRight size={14} />
-            </button>
+            <div className="onboarding-footer-actions">
+              <button className="btn btn-primary" onClick={next}>
+                下一步 <ArrowRight size={14} />
+              </button>
+            </div>
           ) : step === 5 ? (
             <button className="btn btn-primary" onClick={startInterview}>
               确认提纲，开始 AI 采访 <Mic size={14} />
@@ -668,6 +716,19 @@ export default function Onboarding() {
         </div>
         )}
         </Annotate>
+
+        {pendingDeleteGroup !== null && (
+          <div className="outline-confirm-mask" onClick={() => setPendingDeleteGroup(null)}>
+            <div className="outline-confirm-modal" onClick={(event) => event.stopPropagation()}>
+              <h3>确认删除该章节？</h3>
+              <p>「{outline[pendingDeleteGroup]?.title || `第${pendingDeleteGroup + 1}章`}」及其下 {outline[pendingDeleteGroup]?.items.length ?? 0} 个采访话题将一并删除，删除后不可恢复。</p>
+              <div className="outline-confirm-actions">
+                <button type="button" className="btn btn-outline" onClick={() => setPendingDeleteGroup(null)}>取消</button>
+                <button type="button" className="btn btn-primary outline-confirm-delete" onClick={() => { removeOutlineGroup(pendingDeleteGroup); setPendingDeleteGroup(null); }}>确认删除</button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920" viewBox="0 0 1080 1920" role="img" aria-labelledby="title desc">
+  <title id="title">传家世合伙人招募</title>
+  <desc id="desc">记录人生故事，传承家风记忆。传家世合伙人招募宣传长图。</desc>
+  <rect width="1080" height="1920" fill="#f7f4ed"/>
+  <rect width="1080" height="650" fill="#174f42"/>
+  <path d="M0 610 C220 550 360 690 570 610 C760 540 900 590 1080 520 L1080 760 L0 760Z" fill="#205f50"/>
+  <path d="M0 690 C220 630 390 790 640 690 C820 620 940 670 1080 620 L1080 820 L0 820Z" fill="#e9dfc9"/>
+
+  <g transform="translate(74 76)">
+    <circle cx="43" cy="43" r="41" fill="#f1e4c7"/>
+    <circle cx="43" cy="43" r="34" fill="#205f50" stroke="#b89046" stroke-width="2"/>
+    <text x="43" y="56" text-anchor="middle" fill="#fff" font-size="32" font-weight="700" font-family="serif">传</text>
+    <text x="108" y="38" fill="#fff" font-size="29" font-weight="700" font-family="serif">传家世</text>
+    <text x="108" y="68" fill="#d8e6df" font-size="14" letter-spacing="2" font-family="sans-serif">AI数字人生与家风传承平台</text>
+  </g>
+
+  <g transform="translate(74 215)">
+    <text x="0" y="0" fill="#d8b56b" font-size="20" letter-spacing="6" font-family="sans-serif">PARTNER PROGRAM</text>
+    <text x="0" y="108" fill="#fff" font-size="68" font-weight="700" font-family="serif">合伙人招募</text>
+    <rect x="0" y="140" width="118" height="5" fill="#d8b56b"/>
+    <text x="0" y="204" fill="#edf4ef" font-size="30" font-family="serif">一起记录人生，传承每个家庭的故事</text>
+    <text x="0" y="258" fill="#c9ddd4" font-size="18" font-family="sans-serif">把珍贵记忆留给现在，也留给未来</text>
+  </g>
+
+  <g transform="translate(74 875)">
+    <text x="0" y="0" fill="#174f42" font-size="34" font-weight="700" font-family="serif">成为合伙人，你将获得</text>
+    <rect x="0" y="28" width="72" height="4" fill="#b89046"/>
+
+    <g transform="translate(0 88)">
+      <rect width="932" height="150" rx="8" fill="#fff" stroke="#e5ddcf"/>
+      <circle cx="72" cy="75" r="38" fill="#e8f1ed"/>
+      <path d="M58 76h28M72 62v28" stroke="#1f6855" stroke-width="5" stroke-linecap="round"/>
+      <text x="140" y="64" fill="#174f42" font-size="24" font-weight="700" font-family="serif">区域合作支持</text>
+      <text x="140" y="101" fill="#6e766f" font-size="17" font-family="sans-serif">了解平台服务，获得清晰的合作指引与物料支持</text>
+    </g>
+
+    <g transform="translate(0 262)">
+      <rect width="932" height="150" rx="8" fill="#fff" stroke="#e5ddcf"/>
+      <circle cx="72" cy="75" r="38" fill="#fbf0d9"/>
+      <path d="M53 80l19-22 19 22-19 15zM60 78h24" fill="none" stroke="#a87825" stroke-width="4" stroke-linejoin="round"/>
+      <text x="140" y="64" fill="#174f42" font-size="24" font-weight="700" font-family="serif">客户服务工具</text>
+      <text x="140" y="101" fill="#6e766f" font-size="17" font-family="sans-serif">从档案建立到传记交付，陪伴客户完成一次人生记录</text>
+    </g>
+
+    <g transform="translate(0 436)">
+      <rect width="932" height="150" rx="8" fill="#fff" stroke="#e5ddcf"/>
+      <circle cx="72" cy="75" r="38" fill="#e8f1ed"/>
+      <path d="M54 88V64h36v24M62 64v-9h20v9M50 88h44" fill="none" stroke="#1f6855" stroke-width="4" stroke-linejoin="round"/>
+      <text x="140" y="64" fill="#174f42" font-size="24" font-weight="700" font-family="serif">透明合作机制</text>
+      <text x="140" y="101" fill="#6e766f" font-size="17" font-family="sans-serif">客户归属、服务进度与佣金结算规则清晰可查</text>
+    </g>
+  </g>
+
+  <g transform="translate(74 1570)">
+    <rect width="932" height="228" rx="10" fill="#174f42"/>
+    <text x="52" y="66" fill="#d8b56b" font-size="18" letter-spacing="4" font-family="sans-serif">JOIN US</text>
+    <text x="52" y="122" fill="#fff" font-size="32" font-weight="700" font-family="serif">让更多家庭，留下自己的故事</text>
+    <text x="52" y="168" fill="#c9ddd4" font-size="18" font-family="sans-serif">欢迎联系平台顾问，获取合伙人合作资料</text>
+    <rect x="708" y="72" width="170" height="72" rx="36" fill="#d8b56b"/>
+    <text x="793" y="117" text-anchor="middle" fill="#174f42" font-size="22" font-weight="700" font-family="sans-serif">立即了解</text>
+  </g>
+
+  <text x="540" y="1860" text-anchor="middle" fill="#8e938b" font-size="15" letter-spacing="2" font-family="sans-serif">传家世 · 记录人生 · 传承家风</text>
+</svg>

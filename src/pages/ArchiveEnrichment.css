@@ -74,10 +74,16 @@
 .archive-enrichment-block-head strong { font-size: 15px; }
 .archive-enrichment-block-head small { color: #958a7e; font-size: 12px; }
 .archive-enrichment-block-body { padding: 0 19px 19px; border-top: 1px solid #f0ece6; }
-.archive-enrichment-choice-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; padding-top: 17px; }
+.archive-enrichment-choice-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; padding-top: 17px; align-items: stretch; }
+.archive-enrichment-choice-index { display: grid; place-items: center; width: 22px; height: 22px; flex-shrink: 0; border-radius: 7px; background: #edf6f2; color: #1b5e4b; font-size: 11px; font-weight: 700; }
+.archive-enrichment-choice-section { display: flex; flex-direction: column; border: 1px solid #f0ece6; border-radius: 12px; padding: 14px 16px; background: #fff; }
+.archive-enrichment-choice-section:only-child { grid-column: 1 / -1; }
+.archive-enrichment-choice-section.bare { border: 0; padding: 0; }
+.archive-enrichment-choice-section.bare .archive-enrichment-other-field.archive-enrichment-supplement { margin-top: 12px; padding-top: 0; }
 .archive-enrichment-choice-section h3 { display: flex; align-items: center; justify-content: space-between; margin: 0 0 9px; color: #4c4034; font-size: 13px; }
 .archive-enrichment-choice-section h3 > span { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .archive-enrichment-choice-section h3 small { color: #aa9d8e; font-size: 11px; font-weight: 400; }
+.archive-enrichment-choice-desc { margin: -4px 0 8px; color: #aa9d8e; font-size: 11px; }
 .archive-enrichment-section-upload { display: inline-flex; align-items: center; gap: 4px; border: 1px solid #d9e4dc; border-radius: 7px; padding: 5px 7px; background: #fff; color: #1b5e4b; font-size: 11px; cursor: pointer; white-space: nowrap; }
 .archive-enrichment-section-upload:hover { border-color: #1b5e4b; background: #f4faf7; }
 .archive-enrichment-chips { display: flex; flex-wrap: wrap; gap: 7px; }
@@ -87,26 +93,34 @@
 .archive-enrichment-other, .archive-enrichment-textarea { box-sizing: border-box; width: 100%; border: 1px solid #e5ded3; border-radius: 8px; padding: 9px 10px; background: #fff; color: #403830; font: inherit; font-size: 12px; outline: none; }
 .archive-enrichment-other { margin-top: 9px; }
 .archive-enrichment-textarea { min-height: 70px; margin-top: 17px; resize: vertical; }
-.archive-enrichment-supplement { display: flex; align-items: flex-end; gap: 8px; margin-top: 17px; }
-.archive-enrichment-supplement textarea { box-sizing: border-box; flex: 1; min-height: 70px; border: 1px solid #e5ded3; border-radius: 8px; padding: 9px 10px; background: #fff; color: #403830; font: inherit; font-size: 12px; outline: none; resize: vertical; }
+.archive-enrichment-supplement { display: flex; flex-direction: column; align-items: stretch; gap: 8px; margin-top: 17px; }
+.archive-enrichment-supplement textarea { box-sizing: border-box; width: 100%; min-height: 70px; border: 1px solid #e5ded3; border-radius: 8px; padding: 9px 10px; background: #fff; color: #403830; font: inherit; font-size: 12px; outline: none; resize: vertical; }
 .archive-enrichment-supplement textarea:focus { border-color: #1b5e4b; box-shadow: 0 0 0 2px rgba(27, 94, 75, 0.08); }
-.archive-enrichment-supplement-actions { display: flex; flex-direction: column; gap: 6px; }
+.archive-enrichment-supplement-actions { display: flex; gap: 8px; }
 .archive-enrichment-supplement-action { display: inline-flex; align-items: center; justify-content: center; gap: 4px; border: 1px solid #d9e4dc; border-radius: 7px; padding: 7px 9px; background: #fff; color: #1b5e4b; font-size: 11px; cursor: pointer; white-space: nowrap; }
 .archive-enrichment-supplement-action:hover, .archive-enrichment-supplement-action.active { border-color: #1b5e4b; background: #f4faf7; }
-.archive-enrichment-other-field { margin-top: 9px; }
-.archive-enrichment-other-field textarea { min-height: 42px; }
-.archive-enrichment-other-field .archive-enrichment-supplement-actions { flex-direction: row; }
+.archive-enrichment-other-field.archive-enrichment-supplement { margin-top: auto; padding-top: 12px; }
+.archive-enrichment-other-field.archive-enrichment-supplement textarea { min-height: 54px; }
 .archive-enrichment-people-list { display: flex; flex-direction: column; gap: 9px; padding: 17px 0 12px; }
 .archive-enrichment-person { display: grid; grid-template-columns: 20px 1fr 130px 1.7fr auto; gap: 8px; align-items: center; }
+.archive-enrichment-person-story { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.archive-enrichment-person-story input { flex: 1; }
 .archive-enrichment-person > svg { color: #1b5e4b; }
 .archive-enrichment-person input, .archive-enrichment-person select { box-sizing: border-box; width: 100%; border: 1px solid #e5ded3; border-radius: 8px; padding: 9px 10px; background: #fff; color: #403830; font: inherit; font-size: 12px; outline: none; }
 .archive-enrichment-photo { display: inline-flex; align-items: center; gap: 4px; border: 1px solid #e5ded3; border-radius: 8px; padding: 8px 10px; background: #fff; color: #75695b; font-size: 12px; cursor: pointer; white-space: nowrap; }
-.archive-enrichment-style-upload { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 16px; color: #75695b; font-size: 12px; }
 .archive-enrichment-style-row { display: flex; align-items: center; gap: 9px; padding-top: 17px; }
 .archive-enrichment-style-row label { margin-right: 4px; color: #5f5347; font-size: 13px; }
 .archive-enrichment-checks { display: flex; gap: 22px; margin-top: 16px; color: #5f5347; font-size: 13px; }
 .archive-enrichment-checks input { accent-color: #1b5e4b; }
 .archive-enrichment-tip { color: #958a7e; font-size: 12px; }
+.archive-enrichment-other-block { padding: 14px 19px; }
+.archive-enrichment-other-row { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border: 1px solid #eee9e1; border-radius: 10px; background: #fff; }
+.archive-enrichment-other-row.active { border-color: #b9d6ca; background: #f5faf7; }
+.archive-enrichment-other-row > label { display: flex; flex: 1; align-items: center; gap: 8px; min-width: 0; color: #51483f; font-size: 13px; cursor: pointer; }
+.archive-enrichment-other-row input[type="checkbox"] { accent-color: #1b5e4b; }
+.archive-enrichment-editable-label { flex: 1; min-width: 0; border: 1px solid transparent; border-radius: 6px; padding: 3px 6px; background: transparent; color: #51483f; font: inherit; font-size: 13px; outline: none; }
+.archive-enrichment-editable-label:hover { border-color: #e5ded3; }
+.archive-enrichment-editable-label:focus { border-color: #1b5e4b; background: #fff; box-shadow: 0 0 0 3px rgba(27, 94, 75, .08); }
 .archive-enrichment-embedded-footer { display: flex; justify-content: flex-end; padding-top: 4px; }
 .archive-enrichment-record-card { padding: 20px; }
 .archive-enrichment-record-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
@@ -129,7 +143,7 @@
 .archive-enrichment-list-main strong { font-size: 14px; }
 .archive-enrichment-list-main small, .archive-enrichment-list-meta { color: #8c8276; font-size: 12px; }
 .archive-enrichment-list-meta { white-space: nowrap; }
-@media (max-width: 900px) { .archive-enrichment-choice-grid { grid-template-columns: 1fr 1fr; } .archive-enrichment-person { grid-template-columns: 20px 1fr 1fr; } .archive-enrichment-person input:nth-of-type(2), .archive-enrichment-person button { grid-column: 2 / -1; } }
+@media (max-width: 900px) { .archive-enrichment-choice-grid { grid-template-columns: 1fr 1fr; } .archive-enrichment-person { grid-template-columns: 20px 1fr 1fr; } .archive-enrichment-person .archive-enrichment-person-story, .archive-enrichment-person > .archive-enrichment-photo { grid-column: 2 / -1; } }
 @media (max-width: 640px) { .archive-enrichment-header, .archive-enrichment-summary { align-items: flex-start; flex-direction: column; } .archive-enrichment-summary > span { margin-left: 0; } .archive-enrichment-choice-grid { grid-template-columns: 1fr; } .archive-enrichment-style-row, .archive-enrichment-checks { flex-wrap: wrap; } }
 @media (max-width: 800px) { .archive-enrichment-summary-people { grid-template-columns: 1fr; } }
 @media (max-width: 900px) { .archive-enrichment-dimension-list { grid-template-columns: 1fr 1fr; } }

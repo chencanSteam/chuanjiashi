@@ -43,7 +43,7 @@ function createLocalUser(phone: string, options?: { isRegister?: boolean; name?:
     name: options?.name || `用户${phone.slice(-4)}`,
     token: `local_token_${generateId()}`,
     isNewUser: options?.isRegister ? true : undefined,
-    inviteCode: options?.inviteCode || Math.random().toString(36).slice(2, 8).toUpperCase(),
+    inviteCode: options?.inviteCode || String(Math.floor(100000 + Math.random() * 900000)),
     roles,
   };
 }
@@ -72,6 +72,12 @@ function loadStoredUser(): User | null {
     if (!raw) return null;
     const parsed = JSON.parse(raw) as User;
     if (!parsed?.phone || !parsed?.token) return null;
+    // 老用户的字母邀请码迁移为纯数字（按手机号派生，保证同一账号稳定不变）
+    if (!parsed.inviteCode || /\D/.test(parsed.inviteCode)) {
+      let hash = 0;
+      for (const ch of parsed.phone) hash = (hash * 31 + ch.charCodeAt(0)) % 1000000;
+      parsed.inviteCode = String(hash).padStart(6, '0');
+    }
     return parsed;
   } catch {
     return null;

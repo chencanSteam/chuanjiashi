@@ -239,8 +239,34 @@ export const biographerHandlers: HttpHandler[] = [
   http.get('/api/biographer-orders', async () => {
     const userId = getCurrentUserId()
     if (!userId) return unauthorized()
-    const orders = getItem<BiographerOrder[]>(storeKeys.biographerOrders, []).filter((o) => o.userId === userId)
-    return success(orders)
+    const orders = getItem<BiographerOrder[]>(storeKeys.biographerOrders, [])
+    const demoOrderId = 'bio_order_review_demo_001'
+    if (!orders.some((order) => order.id === demoOrderId)) {
+      orders.push({
+        id: demoOrderId,
+        userId,
+        customerName: '体验用户 · 评价演示',
+        orderId: 'ord_review_demo_001',
+        biographerId: 'bio_001',
+        serviceId: 'svc_001',
+        serviceName: '家族记忆整理套餐（评价演示）',
+        amount: 1999,
+        status: 'completed',
+        deadline: '2026-09-01T18:00:00.000Z',
+        remark: '演示资料：已完成交付，待体验用户提交服务评价。',
+        schedule: { time: '2026-08-12 14:00', address: '线上视频采访' },
+        progress: [
+          { node: '预约采访', status: 'done', time: '2026-08-12T06:00:00.000Z' },
+          { node: '提交初稿', status: 'done', time: '2026-08-20T06:00:00.000Z' },
+          { node: '修改完善', status: 'done', time: '2026-08-26T06:00:00.000Z' },
+          { node: '交付定稿', status: 'done', time: '2026-08-30T06:00:00.000Z' },
+        ],
+        createdAt: '2026-08-10T02:00:00.000Z',
+        updatedAt: '2026-08-30T06:00:00.000Z',
+      })
+      setItem(storeKeys.biographerOrders, orders)
+    }
+    return success(orders.filter((o) => o.userId === userId))
   }),
 
   http.put('/api/biographer-orders/:id/schedule', async ({ params, request }) => {
@@ -299,7 +325,13 @@ export const biographerHandlers: HttpHandler[] = [
     const orders = getItem<BiographerOrder[]>(storeKeys.biographerOrders, [])
     const orderIdx = orders.findIndex((o) => o.id === params.id)
     if (orderIdx < 0) return notFound('订单不存在')
+    if (orders[orderIdx].userId !== userId) return notFound('订单不存在')
     if (orders[orderIdx].status !== 'completed') return fail('订单未完成，无法评价')
+    if (!Number.isInteger(body.rating) || body.rating < 1 || body.rating > 5) return fail('评分须为 1-5 星')
+    if (!body.content?.trim()) return fail('请填写评价内容')
+
+    const existingReview = ensureReviews().find((review) => review.orderId === params.id && review.userId === userId)
+    if (existingReview) return fail('该订单已评价')
 
     const currentUser = getItem<{ nickname?: string } | null>(storeKeys.currentUser, null)
     const review: BiographerReview = {

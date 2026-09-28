@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import {
   ChevronRight,
@@ -96,6 +97,31 @@ function mockChapterHtml(title: string): string {
     || (title === '事业深耕 · 厚绩成长' ? chapterMockContents['深耕岁月 · 历练成长'] : '')
     || `本章内容根据「${title}」的采访记录同步生成，可在此基础上继续润色完善。`;
   return text.split(/\n{2,}/).map((p) => `<p>${p.trim()}</p>`).join('');
+}
+
+/** 原型阶段的「AI 选中润色」：用词与句式层面的模拟改写（与传记润色页同一套规则） */
+const POLISH_RULES: Array<[RegExp, string]> = [
+  [/然后/g, '此后'],
+  [/但是/g, '然而'],
+  [/所以/g, '因此'],
+  [/特别/g, '格外'],
+  [/非常/g, '十分'],
+  [/高兴/g, '欣慰'],
+  [/难过/g, '伤感'],
+  [/心里/g, '心底'],
+];
+
+function mockPolishSelection(text: string): { result: string; changes: number } {
+  let result = text.replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n');
+  let changes = 0;
+  POLISH_RULES.forEach(([pattern, replacement]) => {
+    const count = (result.match(pattern) || []).length;
+    if (count > 0) {
+      changes += count;
+      result = result.replace(pattern, replacement);
+    }
+  });
+  return { result, changes };
 }
 
 function initChapters(archiveId: string): ChapterData[] {
@@ -501,6 +527,60 @@ export default function AIBiography() {
   const activeChapter = chapters[activeIndex];
   const editorRef = useRef<HTMLDivElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
+  const [selectedText, setSelectedText] = useState('');
+  const [selectionPos, setSelectionPos] = useState<{ top: number; left: number } | null>(null);
+  const selectionRangeRef = useRef<Range | null>(null);
+
+  // 记录编辑器内的选区，供「润色选中」使用；浮动按钮只在鼠标松开/键盘停下时出现
+  const lastSelectedTextRef = useRef('');
+  const isDraggingRef = useRef(false);
+  const captureSelection = (mode?: 'mouse' | 'keyboard', point?: { clientX: number; clientY: number }) => {
+    const selection = window.getSelection();
+    const el = editorRef.current;
+    const clear = () => { setSelectedText(''); setSelectionPos(null); selectionRangeRef.current = null; lastSelectedTextRef.current = ''; };
+    if (!selection || !el || selection.isCollapsed || selection.rangeCount === 0) { clear(); return; }
+    const range = selection.getRangeAt(0);
+    const text = selection.toString();
+    if (!el.contains(range.commonAncestorContainer) || !text.trim()) { clear(); return; }
+    selectionRangeRef.current = range.cloneRange();
+    setSelectedText(text);
+    if (mode === 'mouse' && point) {
+      // 鼠标松开：按钮放在光标旁
+      const left = Math.max(12, Math.min(point.clientX - 30, window.innerWidth - 130));
+      const top = point.clientY + 12;
+      setSelectionPos({ top: top > window.innerHeight - 70 ? point.clientY - 46 : top, left });
+      lastSelectedTextRef.current = text;
+    } else if (mode === 'keyboard') {
+      // 键盘选择：按钮放在选区末行下方
+      const rects = range.getClientRects();
+      const last = rects[rects.length - 1] || range.getBoundingClientRect();
+      setSelectionPos({ top: last.bottom + 6, left: Math.max(12, Math.min(last.left, window.innerWidth - 130)) });
+      lastSelectedTextRef.current = text;
+    } else if (isDraggingRef.current) {
+      // 拖选过程中的 selectionchange：选区还在变化，隐藏浮动按钮
+      setSelectionPos(null);
+      lastSelectedTextRef.current = text;
+    }
+  };
+
+  // 滚动/缩放时浮动按钮会错位，直接隐藏
+  useEffect(() => {
+    if (!selectionPos) return;
+    const hide = () => setSelectionPos(null);
+    window.addEventListener('scroll', hide, true);
+    window.addEventListener('resize', hide);
+    return () => {
+      window.removeEventListener('scroll', hide, true);
+      window.removeEventListener('resize', hide);
+    };
+  }, [selectionPos]);
+
+  // 切换章节后清空选区
+  useEffect(() => {
+    setSelectedText('');
+    setSelectionPos(null);
+    selectionRangeRef.current = null;
+  }, [activeIndex]);
 
   // 切换章节或 AI 生成内容后，同步编辑器内容，但不破坏光标
   useEffect(() => {
@@ -629,6 +709,36 @@ export default function AIBiography() {
       setGenerating(false);
       addToast(`「${activeChapter.title}」润色完成`, 'success');
     }, 800);
+  };
+
+  // 只润色编辑器中选中的文字
+  const handlePolishSelection = () => {
+    const range = selectionRangeRef.current;
+    const el = editorRef.current;
+    if (!range || !el || !el.contains(range.commonAncestorContainer) || !selectedText.trim()) {
+      addToast('请先在正文中拖动选中一段要润色的文字', 'info');
+      return;
+    }
+    const source = selectedText;
+    setGenerating(true);
+    try {
+      const { result, changes } = mockPolishSelection(source);
+      range.deleteContents();
+      range.insertNode(document.createTextNode(result));
+      window.getSelection()?.removeAllRanges();
+      handleEditorInput();
+      setSelectedText('');
+      setSelectionPos(null);
+      selectionRangeRef.current = null;
+      updateChapter(activeIndex, { status: 'edited', updatedAt: new Date().toLocaleString('zh-CN') });
+      setTimeout(() => {
+        setGenerating(false);
+        addToast(changes > 0 ? `选中内容已润色，优化了 ${changes} 处表达（演示）` : '选中文字已经很顺畅，暂未改动', 'success');
+      }, 600);
+    } catch {
+      setGenerating(false);
+      addToast('选区已失效，请重新选中文字', 'error');
+    }
   };
 
   const saveDraft = () => {
@@ -921,7 +1031,7 @@ export default function AIBiography() {
                 >
                   <div className="chapter-item-left">
                     <BookOpen size={16} />
-                    <span>{chapter.title}</span>
+                    <span title={chapter.title}>{chapter.title}</span>
                   </div>
                   <div className="chapter-item-right">
                     {reviewStatusBadge(chapter)}
@@ -1014,14 +1124,33 @@ export default function AIBiography() {
                 suppressContentEditableWarning
                 onInput={isFinalized ? undefined : handleEditorInput}
                 onBlur={isFinalized ? undefined : handleEditorInput}
-                dangerouslySetInnerHTML={{ __html: activeChapter.content }}
+                onSelect={isFinalized ? undefined : () => captureSelection()}
+                onKeyUp={isFinalized ? undefined : () => captureSelection('keyboard')}
+                onMouseDown={isFinalized ? undefined : () => { isDraggingRef.current = true; }}
+                onMouseUp={isFinalized ? undefined : (e) => { isDraggingRef.current = false; captureSelection('mouse', { clientX: e.clientX, clientY: e.clientY }); }}
                 data-placeholder="在此编辑本章内容…"
               />
+            )}
+            {!isFinalized && !collabMode && !reviewAuthor && selectionPos && selectedText.trim() && createPortal(
+              <button
+                type="button"
+                className="polish-float-btn"
+                style={{ top: selectionPos.top, left: selectionPos.left }}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={handlePolishSelection}
+                disabled={generating}
+              >
+                <PenLine size={12} /> 润色选中
+              </button>,
+              document.body
             )}
           </div>
           <div className="editor-toolbar">
             {isFinalized && <span className="generating-hint">传记已完成，仅支持查看、导出和排版</span>}
             {collabMode && <span className="generating-hint">协助修改模式：点击上方正文中的句子，即可对该句提出修改建议</span>}
+            {!isFinalized && !collabMode && !reviewAuthor && <button className="btn btn-outline" onClick={handlePolishSelection} disabled={generating || !selectedText.trim() || activeChapter.status === 'notGenerated'}>
+              <PenLine size={14} /> 润色选中{selectedText.trim() ? `（${selectedText.trim().replace(/\s/g, '').length}字）` : ''}
+            </button>}
             {!isFinalized && !collabMode && !reviewAuthor && <button className="btn btn-outline" onClick={handlePolish} disabled={generating || activeChapter.status === 'notGenerated'}>
               <Wand2 size={14} /> 润色本章
             </button>}

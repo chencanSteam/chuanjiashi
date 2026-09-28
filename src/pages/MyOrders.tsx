@@ -17,8 +17,8 @@ import {
   Copy,
   User,
   Phone,
-  Calendar,
   MessageCircle,
+  Star,
   CreditCard as PayIcon,
 } from 'lucide-react';
 import { orderApi } from '../api/order';
@@ -150,6 +150,10 @@ export default function MyOrders() {
     return typeOptions.some((o) => o.value === t) ? (t as Order['type']) : 'all';
   });
   const [selected, setSelected] = useState<Order | null>(null);
+  const [selectedBioOrder, setSelectedBioOrder] = useState<BiographerOrder | null>(null);
+  const [reviewedBioOrderIds, setReviewedBioOrderIds] = useState<Set<string>>(new Set());
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
   const [payingId, setPayingId] = useState<string | null>(null);
   const [refundOrder, setRefundOrder] = useState<Order | null>(null);
   const [refundReasons, setRefundReasons] = useState<RefundReasonOption[]>([]);
@@ -165,10 +169,19 @@ export default function MyOrders() {
   const loadOrders = () => {
     setLoading(true);
     Promise.all([orderApi.list(), biographerApi.orders(), biographerApi.list(), refundReasonApi.list()])
-      .then(([orderList, bioOrderList, bioList, refundReasonList]) => {
+      .then(async ([orderList, bioOrderList, bioList, refundReasonList]) => {
         const visibleOrders = orderList.length > 0 ? orderList : demoOrders;
         const visibleBioOrders = bioOrderList.length > 0 ? bioOrderList : demoBiographerOrders;
         const visibleBiographers = bioList.length > 0 ? bioList : defaultBiographers.filter((b) => b.status === 'approved');
+        const reviewResults = await Promise.all(visibleBioOrders.map(async (order) => {
+          try {
+            const reviews = await biographerApi.getReviews(order.biographerId);
+            return [order.id, reviews.some((review) => review.orderId === order.id)] as const;
+          } catch {
+            return [order.id, false] as const;
+          }
+        }));
+        setReviewedBioOrderIds(new Set(reviewResults.filter(([, reviewed]) => reviewed).map(([id]) => id)));
         setOrders(visibleOrders);
         setBioOrders(visibleBioOrders);
         setRefundReasons(refundReasonList.length > 0 ? refundReasonList : defaultRefundReasonOptions);
@@ -268,6 +281,32 @@ export default function MyOrders() {
   const canRefund = (order: Order) =>
     ['paid', 'delivering'].includes(order.status) &&
     (!order.refundRequest || order.refundRequest.status === 'rejected');
+
+  const openBioOrder = (order: BiographerOrder) => {
+    setSelectedBioOrder(order);
+    setReviewRating(5);
+  };
+
+  const submitBioReview = async () => {
+    if (!selectedBioOrder) return;
+    try {
+      setReviewSubmitting(true);
+      await biographerApi.submitReview(selectedBioOrder.id, {
+        rating: reviewRating,
+        content: '',
+        tags: [],
+      });
+      setReviewedBioOrderIds((current) => new Set(current).add(selectedBioOrder.id));
+      addToast('评价提交成功，感谢您的反馈', 'success');
+      setSelectedBioOrder(null);
+      loadOrders();
+    } catch (err: any) {
+      addToast(err.message || '评价提交失败', 'error');
+    } finally {
+      setReviewSubmitting(false);
+    }
+  };
+
 
   return (
     <div className="my-orders-page">
@@ -390,12 +429,6 @@ export default function MyOrders() {
                           <span><Phone size={12} /> 订单号 {o.id.slice(-8)}</span>
                           <span>订单金额 ¥{o.amount.toLocaleString()}</span>
                         </div>
-                        {o.schedule?.time && (
-                          <div className="my-bio-order-schedule">
-                            <Calendar size={12} /> {o.schedule.time}
-                            <MapPin size={12} /> {o.schedule.address}
-                          </div>
-                        )}
                       </div>
                       <div
                         className="my-bio-order-status"
@@ -403,6 +436,16 @@ export default function MyOrders() {
                       >
                         {bioStatusMap[o.status].label}
                       </div>
+                    </div>
+                    <div className="my-order-detail-actions">
+                      <button className="btn btn-ghost btn-sm" onClick={() => openBioOrder(o)}>查看详情</button>
+                      {o.status === 'completed' && (
+                        reviewedBioOrderIds.has(o.id) ? (
+                          <span className="my-order-reviewed-label"><CheckCircle size={13} /> 已评价</span>
+                        ) : (
+                          <button className="btn btn-primary btn-sm" onClick={() => openBioOrder(o)}><Star size={13} /> 去评价</button>
+                        )
+                      )}
                     </div>
 
                     <div className="my-bio-order-progress">
@@ -434,6 +477,45 @@ export default function MyOrders() {
         </div>
         </Annotate>
       </div>
+
+      {selectedBioOrder && (
+        <div className="modal-overlay" onClick={() => setSelectedBioOrder(null)}>
+          <div className="modal-content my-order-detail-modal" onClick={(event) => event.stopPropagation()}>
+            <div className="modal-header">
+              <h4>传记师订单详情</h4>
+              <button className="modal-close" onClick={() => setSelectedBioOrder(null)}><X size={16} /></button>
+            </div>
+            <div className="modal-body">
+              <div className="my-order-detail-row"><span>服务</span><span>{selectedBioOrder.serviceName}</span></div>
+              <div className="my-order-detail-row"><span>传记师</span><span>{biographers[selectedBioOrder.biographerId]?.name || '李传记'}</span></div>
+              <div className="my-order-detail-row"><span>订单状态</span><span className="my-order-status my-order-status-completed">已完成</span></div>
+              <div className="my-order-detail-row"><span>订单金额</span><span className="my-order-detail-amount">¥{selectedBioOrder.amount.toLocaleString()}</span></div>
+              <div className="my-order-detail-section">
+                <h5><CheckCircle size={14} /> 服务进度</h5>
+                <p className="my-order-detail-remark">采访、初稿、修改和终稿均已完成。演示资料：本订单专用于体验评价流程。</p>
+              </div>
+              {reviewedBioOrderIds.has(selectedBioOrder.id) ? (
+                <div className="my-order-review-notice"><CheckCircle size={15} /> 该订单已完成评价</div>
+              ) : (
+                <div className="my-order-detail-section">
+                  <h5><Star size={14} /> 评价服务</h5>
+                  <div className="my-order-review-stars interactive" role="radiogroup" aria-label="服务评分">
+                    {[1, 2, 3, 4, 5].map((score) => (
+                      <button type="button" key={score} aria-label={`${score} 星`} aria-pressed={reviewRating === score} onClick={() => setReviewRating(score)}>
+                        <Star size={24} className={score <= reviewRating ? 'filled' : ''} />
+                      </button>
+                    ))}
+                  </div>
+                  <div className="my-order-detail-actions">
+                    <button className="btn btn-outline" onClick={() => setSelectedBioOrder(null)}>暂不评价</button>
+                    <button className="btn btn-primary" disabled={reviewSubmitting} onClick={submitBioReview}>{reviewSubmitting ? '提交中…' : '提交评价'}</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {selected && (
         <Annotate id="my-orders.detail-modal">
