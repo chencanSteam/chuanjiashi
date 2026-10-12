@@ -12,7 +12,7 @@
 .life-events-progress-track span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #1b5e4b, #3d8d75); transition: width .2s ease; }
 .life-events-progress p { margin: 10px 0 0; color: #8c8276; font-size: 12px; }
 .life-events-groups { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
-.life-events-group { overflow: hidden; }
+.life-events-group { min-width: 0; overflow: visible; }
 .life-events-group-head { display: flex; align-items: center; width: 100%; gap: 12px; padding: 16px 18px; border: 0; background: #fff; color: #302921; text-align: left; cursor: pointer; }
 .life-events-group-index { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: #edf6f2; color: #1b5e4b; font-size: 12px; font-weight: 700; }
 .life-events-group-title { display: flex; flex: 1; flex-direction: column; gap: 3px; min-width: 0; }

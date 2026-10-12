@@ -31,6 +31,7 @@ import {
   Building2,
   Gem,
   Handshake,
+  Upload,
 } from 'lucide-react';
 import Avatar from './ui/Avatar';
 import { useAuth } from '../hooks/useAuth';
@@ -54,10 +55,11 @@ interface NavGroup {
 // 独立入口
 const homeNavItem: NavItem = { to: '/home', icon: LayoutDashboard, label: '首页' };
 
-// 「传记创作」组（提纲通过创作流程进入）
+// 「传记创作」组（提纲通过创作流程进入；「已有传记上传」为旧版上传润色页，两个版本均开放）
 const creationGroupItemsV1: NavItem[] = [
   { to: '/interview', icon: Mic, label: 'AI智能采访' },
   { to: '/biography', icon: BookOpen, label: 'AI传记生成' },
+  { to: '/polish', icon: Upload, label: '已有传记上传' },
   { to: '/my-works', icon: BookMarked, label: '我的传记' },
 ];
 

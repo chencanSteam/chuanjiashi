@@ -328,7 +328,6 @@ export const biographerHandlers: HttpHandler[] = [
     if (orders[orderIdx].userId !== userId) return notFound('订单不存在')
     if (orders[orderIdx].status !== 'completed') return fail('订单未完成，无法评价')
     if (!Number.isInteger(body.rating) || body.rating < 1 || body.rating > 5) return fail('评分须为 1-5 星')
-    if (!body.content?.trim()) return fail('请填写评价内容')
 
     const existingReview = ensureReviews().find((review) => review.orderId === params.id && review.userId === userId)
     if (existingReview) return fail('该订单已评价')

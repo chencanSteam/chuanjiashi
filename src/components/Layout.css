@@ -1,11 +1,13 @@
 .layout {
   display: flex;
-  min-height: 100vh;
+  height: 100vh;
+  min-height: 0;
   background: var(--bg);
 }
 
 .sidebar {
   width: 240px;
+  height: 100%;
   background: linear-gradient(180deg, #FCFAF7 0%, #F8F5F0 100%);
   border-right: 1px solid var(--border-light);
   display: flex;
@@ -253,6 +255,7 @@
 
 .main {
   flex: 1;
+  min-height: 0;
   margin-left: 240px;
   display: flex;
   flex-direction: column;
@@ -261,6 +264,7 @@
 
 .topbar {
   height: 68px;
+  flex-shrink: 0;
   background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -365,8 +369,11 @@
 
 .content {
   flex: 1;
+  min-height: 0;
   padding: 24px 28px 32px;
+  overflow-x: hidden;
   overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .page-header {

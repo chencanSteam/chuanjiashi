@@ -94,13 +94,13 @@
 .my-order-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 
 .my-order-item {
   position: relative;
   overflow: hidden;
-  padding: 16px 18px 14px 20px;
+  padding: 12px 14px 10px 16px;
   border: 1px solid var(--border-light);
   border-radius: 12px;
   background: var(--card-bg);
@@ -694,24 +694,24 @@
   }
 }
 
-/* ===== 传记师订单卡片（合并自 MyBiographerOrders） ===== */
+/* ===== 传记师订单：与普通订单统一为紧凑列表行 ===== */
 .my-bio-order-item {
   position: relative;
   overflow: hidden;
-  padding: 18px 18px 16px 20px;
+  padding: 12px 14px 10px 16px;
   border: 1px solid var(--border-light);
-  border-radius: 12px;
+  border-radius: 8px;
   background: var(--card-bg);
   box-shadow: var(--shadow-sm);
   transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
 }
 
 .my-bio-order-main {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
   gap: 16px;
-  margin-bottom: 16px;
+  margin-bottom: 8px;
 }
 
 .my-bio-order-info {
@@ -775,7 +775,9 @@
 }
 
 .my-bio-order-progress {
-  margin-top: 12px;
+  padding-top: 8px;
+  margin-top: 4px;
+  border-top: 1px solid var(--border-light);
 }
 
 .my-bio-order-progress-header {

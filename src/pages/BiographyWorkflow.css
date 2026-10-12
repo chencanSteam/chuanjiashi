@@ -75,7 +75,8 @@
 }
 
 .workflow-panel {
-  overflow: hidden;
+  min-width: 0;
+  overflow: visible;
   border: 1px solid #e8ecea;
   border-radius: 16px;
   background: #fff;

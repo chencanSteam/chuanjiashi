@@ -43,34 +43,18 @@
   --font-family-sans: "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
 }
 
-/* 页面顶部 KPI 只保留主要内容，不作为首屏展示；详情内部指标不受影响 */
-.ad-stats,
-.ai-usage-overview,
-.ai-usage-stats,
-.bio-stats,
-.order-stats,
-.book-review-stats,
-.commission-stats,
-.withdrawal-stats,
-.user-invite-stats,
-.partner-mgmt-stats,
-.partner-center-stats,
-.earnings-stats,
-.hall-stats-row,
-.digital-stats-row,
-.genealogy-stats-row,
-.gov-stats-row,
-.gov-stats,
-.stats-wide,
-.partner-center-local-share {
-  display: none !important;
-}
-
 * {
   box-sizing: border-box;
 }
 
-html, body {
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+html,
+body {
   margin: 0;
   padding: 0;
   font-family: var(--font-family-sans);

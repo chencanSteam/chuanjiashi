@@ -67,7 +67,7 @@
 .archive-enrichment-summary-people strong { color: #302921; font-size: 13px; }
 .archive-enrichment-summary-people span { margin-left: 8px; color: #1b5e4b; font-size: 11px; }
 .archive-enrichment-summary-people p { margin: 7px 0 0; color: #75695b; font-size: 12px; line-height: 1.6; }
-.archive-enrichment-block { overflow: hidden; }
+.archive-enrichment-block { min-width: 0; overflow: visible; }
 .archive-enrichment-block-head { display: flex; align-items: center; width: 100%; gap: 13px; border: 0; padding: 17px 19px; background: #fff; color: #302921; text-align: left; cursor: pointer; }
 .archive-enrichment-number { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: #f5efe5; color: #966f3e; font-size: 12px; font-weight: 700; }
 .archive-enrichment-block-head > span:nth-child(2) { display: flex; flex: 1; flex-direction: column; gap: 3px; }

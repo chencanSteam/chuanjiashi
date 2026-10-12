@@ -21,7 +21,7 @@ export const homeAnnotations: PageAnnotations = {
       logic: `① 点击按三种情况分流：已有智能采访记录（任一档案的采访逐字稿 cj_interview_transcript_<档案id> 非空）→ 直接跳转 /interview（优先当前档案，否则取第一个有记录的档案并设为当前档案）。
 ② 无采访记录但有档案 → 弹出「选择采访档案」弹窗，选择后设为当前档案并跳转 /interview；弹窗也可点「新建档案」进入新建流程。
 ③ 无采访记录也无档案 → 打开「完善基础信息」弹窗新建档案（archive_时间戳 生成 id），保存后写入 cj_archives 并设为当前档案，随后跳转 /interview。
-④ 主视觉区另有「已有传记上传」快捷入口，点击跳转 /polish（上传已有传记文档并进行 AI 润色）；「进入家庭空间」按钮仅完整版显示（家庭空间为 V1.2 功能）。`,
+④ 主视觉区另有「已有传记上传」快捷入口，点击跳转 /onboarding（mode=upload）走新传记生成流程：上传已有传记 → 填写基本信息（自动从原文提取）→ 人生大事件 → 多维增补 → 确认提纲 → AI 采访；上传的原文存入 cj_imported_biography_<档案id> 作为 AI 资料融入提纲与采访。旧版上传润色页 /polish 的入口在左侧菜单「传记创作」组；「进入家庭空间」按钮仅完整版显示（家庭空间为 V1.2 功能）。`,
     },
     {
       id: 'home.archive-picker',
