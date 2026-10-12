@@ -1,5 +1,5 @@
 import type { Biographer, BiographerBookingForm, BiographerService } from '../mocks/types';
-import { defaultBiographerSettlements } from '../mocks/data/seed';
+import { defaultBiographers, defaultBiographerSettlements } from '../mocks/data/seed';
 export const SERVICE_ORDER_KEY = 'cj_biographer_service_orders_v1';
 export const SERVICE_ORDER_EVENT = 'cj-service-orders-updated';
 export type ServiceRole = 'customer' | 'biographer' | 'admin';
@@ -18,8 +18,78 @@ export interface ServiceOrder {
   history: { at: string; text: string }[];
 }
 export const money = (value: number) => `¥${value.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+/** 首次打开时注入演示订单：待接单 / 服务中 / 已完成各一笔，便于演示接单-交付-验收-结算全流程 */
+function seedDemoServiceOrders() {
+  // 先写入空数组占位，避免 createServiceOrder 内部读存储时递归触发播种
+  localStorage.setItem(SERVICE_ORDER_KEY, '[]');
+  const biographer = defaultBiographers.find((item) => item.id === 'bio_001');
+  if (!biographer) return;
+  const customer = { phone: '13800138003', name: '张明远' };
+  const asBiographer = { role: 'biographer' as ServiceRole, phone: biographer.phone };
+  const asCustomer = { role: 'customer' as ServiceRole, phone: customer.phone };
+
+  createServiceOrder(biographer, biographer.services[0], {
+    interviewee: '父亲张守业', relation: '父子', preferredTime: '周末上午', location: '线上视频访谈', contactPhone: customer.phone,
+    remark: '父亲明年八十岁，想把他的经历整理成一本传记，作为生日礼物。',
+  }, customer);
+
+  const working = createServiceOrder(biographer, biographer.services[1], {
+    interviewee: '张明远', relation: '本人', preferredTime: '工作日晚间', location: '客户家中（杭州）', contactPhone: customer.phone,
+    remark: '希望突出创业阶段的细节，语言平实一些。',
+  }, customer);
+  updateServiceOrder(working.id, 'accept', asBiographer);
+  updateServiceOrder(working.id, 'pay', asCustomer);
+  updateServiceOrder(working.id, 'deliver', asBiographer, {
+    stageIndex: 0,
+    text: '访谈安排：10 月 12 日晚 7 点第一次上门访谈（客户家中），10 月 19 日晚第二次补充访谈，每次约 90 分钟。\n大纲：一、童年与家乡；二、求学之路；三、下海经商；四、创业坎坷与转机；五、家庭与子女教育；六、人生感悟与寄语。',
+  });
+
+  const completed = createServiceOrder(biographer, biographer.services[2], {
+    interviewee: '母亲李秀兰', relation: '母子', preferredTime: '随时', location: '电话访谈', contactPhone: customer.phone,
+    remark: '母亲年事已高，希望尽快把她的故事记录下来。',
+  }, customer);
+  updateServiceOrder(completed.id, 'accept', asBiographer);
+  updateServiceOrder(completed.id, 'pay', asCustomer);
+  updateServiceOrder(completed.id, 'deliver', asBiographer, {
+    stageIndex: 0,
+    text: '访谈安排：10 月 15 日、10 月 18 日两次电话访谈，每次约 90 分钟。\n大纲：一、江南水乡的童年；二、进厂当女工的岁月；三、成家与养育子女；四、改革开放后的个体经营；五、退休生活与家风传承。',
+  });
+  updateServiceOrder(completed.id, 'approve', asCustomer, { stageIndex: 0 });
+  updateServiceOrder(completed.id, 'deliver', asBiographer, {
+    stageIndex: 1,
+    text: '第一章初稿：李秀兰，1948 年生于江苏吴江。七岁丧父，随母亲缫丝度日。1965 年进镇丝绸厂当挡车工，是厂里第一批女工……（初稿，求学与工作经历细节待补充）',
+  });
+  updateServiceOrder(completed.id, 'revise', asCustomer, { stageIndex: 1, text: '请补充母亲学缫丝手艺的细节，还有她和父亲相识的经过，语气再温暖一些。' });
+  updateServiceOrder(completed.id, 'deliver', asBiographer, {
+    stageIndex: 1,
+    text: '第一章修订稿：李秀兰，1948 年生于江苏吴江。七岁丧父，随母亲缫丝度日，十三岁已能独自上机。1965 年进镇丝绸厂当挡车工，是厂里第一批女工。1969 年经媒人介绍认识同厂机修工张师傅，两人凭一手好手艺和一副热心肠，把日子过得踏实温暖……',
+  });
+  updateServiceOrder(completed.id, 'approve', asCustomer, { stageIndex: 1 });
+  updateServiceOrder(completed.id, 'deliver', asBiographer, {
+    stageIndex: 2,
+    text: '校审稿说明：已完成全文校对——统一称谓与年代表述，修正两处时间错误，删减重复段落，新增「与父亲相识」一节，语言润色至温润平实。',
+  });
+  updateServiceOrder(completed.id, 'approve', asCustomer, { stageIndex: 2 });
+  updateServiceOrder(completed.id, 'deliver', asBiographer, {
+    stageIndex: 3,
+    text: '终稿说明：全文十二章共 3.2 万字已定稿，增补老照片说明与家谱附录，实体书排版文件同步交付，可直接安排印刷。',
+  });
+  updateServiceOrder(completed.id, 'approve', asCustomer, { stageIndex: 3 });
+}
+
 export function readServiceOrders(): ServiceOrder[] {
-  try { const value = JSON.parse(localStorage.getItem(SERVICE_ORDER_KEY) || '[]'); return Array.isArray(value) ? value : []; } catch { return []; }
+  try {
+    const value = JSON.parse(localStorage.getItem(SERVICE_ORDER_KEY) || '[]');
+    if (!Array.isArray(value)) return [];
+    // 订单没有删除入口，空数组即视为尚未播种，注入演示订单
+    if (value.length === 0) {
+      seedDemoServiceOrders();
+      const seeded = JSON.parse(localStorage.getItem(SERVICE_ORDER_KEY) || '[]');
+      return Array.isArray(seeded) ? seeded : [];
+    }
+    return value;
+  } catch { return []; }
 }
 function writeOrders(orders: ServiceOrder[]) { localStorage.setItem(SERVICE_ORDER_KEY, JSON.stringify(orders)); window.dispatchEvent(new Event(SERVICE_ORDER_EVENT)); }
 export function createServiceOrder(biographer: Biographer, service: BiographerService, requirements: BiographerBookingForm, user: { phone: string; name?: string }) {
