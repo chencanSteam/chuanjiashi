@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Phone, Lock, ArrowRight, User, Briefcase, Shield, PenLine, Smartphone, MessageCircle } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/useToast';
@@ -65,7 +65,6 @@ function ensureDemoArchive() {
 
 export default function Login() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const { addToast } = useToast();
   const { login, addRole, isAuthenticated } = useAuth();
   const isV1 = true;
@@ -79,21 +78,9 @@ export default function Login() {
   const [agreement, setAgreement] = useState<AgreementType | null>(null);
   const hasRedirected = useRef(false);
 
-  // 邀请链接（#/login?invite=xxx）携带的邀请码，登录成功后写入 localStorage 供佣金体系使用
-  const inviteCode = searchParams.get('invite');
-  const saveInviteCode = () => {
-    if (!inviteCode) return;
-    try {
-      localStorage.setItem('cj_invite_code', inviteCode);
-    } catch {
-      // 忽略存储失败
-    }
-  };
-
   useEffect(() => {
     if (isAuthenticated && !hasRedirected.current) {
       hasRedirected.current = true;
-      saveInviteCode();
       navigate(hasArchives() ? '/home' : '/onboarding', { replace: true });
     }
   }, [isAuthenticated, navigate]);
@@ -131,7 +118,6 @@ export default function Login() {
     }
     ensureDemoArchive();
     hasRedirected.current = true;
-    saveInviteCode();
     addToast('登录成功', 'success');
     navigate(targetPath, { replace: true });
   };
@@ -159,7 +145,6 @@ export default function Login() {
       return;
     }
     hasRedirected.current = true;
-    saveInviteCode();
     addToast('登录成功', 'success');
     navigate(hasArchives() ? '/home' : '/onboarding', { replace: true });
   };
@@ -173,7 +158,6 @@ export default function Login() {
     }
     ensureDemoArchive();
     hasRedirected.current = true;
-    saveInviteCode();
     addToast('微信授权成功', 'success');
     navigate(hasArchives() ? '/home' : '/onboarding', { replace: true });
   };

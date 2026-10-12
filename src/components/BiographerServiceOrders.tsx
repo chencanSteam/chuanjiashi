@@ -9,7 +9,7 @@ import './BiographerServiceOrders.css';
 
 const date = (value: string) => new Date(value).toLocaleString('zh-CN', { hour12: false });
 const actionLabels: Record<ServiceAction, string> = { accept: '确认接单', decline: '无法承接', cancel: '取消订单', pay: '模拟全款支付', deliver: '提交稿件', revise: '提交修改意见', approve: '确认验收通过', settle: '确认结算', help: '申请平台介入', refund: '申请退款', resolve: '确认处理完成', reject_request: '驳回申请' };
-export default function BiographerServiceOrders({ role, earningsOnly = false }: { role: ServiceRole; earningsOnly?: boolean }) {
+export default function BiographerServiceOrders({ role, earningsOnly = false, modalOnly = false, controlledId, onControlledClose }: { role: ServiceRole; earningsOnly?: boolean; modalOnly?: boolean; controlledId?: string | null; onControlledClose?: () => void }) {
   const { user } = useAuth(); const { addToast } = useToast(); const navigate = useNavigate(); const [params] = useSearchParams();
   const [orders, setOrders] = useState(readServiceOrders);
   const [selectedId, setSelectedId] = useState<string | null>(() => params.get('serviceOrder'));
@@ -19,7 +19,7 @@ export default function BiographerServiceOrders({ role, earningsOnly = false }: 
   const phone = user?.phone || '';
   const ownOrders = orders.filter(item => serviceOrderVisible(item, role, phone));
   const visible = ownOrders.filter(item => (status === 'all' || item.status === status) && `${item.id} ${item.customerName} ${item.biographerName} ${item.service.name} ${item.requirements.interviewee}`.includes(keyword.trim()));
-  const selected = ownOrders.find(item => item.id === selectedId);
+  const selected = ownOrders.find(item => item.id === (controlledId !== undefined ? controlledId : selectedId));
   const actionOrder = ownOrders.find(item => item.id === action?.orderId);
   useEffect(() => {
     const sync = () => setOrders(readServiceOrders());
@@ -37,15 +37,38 @@ export default function BiographerServiceOrders({ role, earningsOnly = false }: 
     } catch (error) { addToast(error instanceof Error ? error.message : '操作失败，请重试', 'error'); }
   };
   const renderSettlements = (order: ServiceOrder) => <div className="bs-settlements"><p>订单全款 {money(order.amount)} · 平台服务费 {Math.round(order.commissionRate * 100)}%（{money(order.platformFee)}） · 传记师应得 {money(order.providerAmount)}</p><div className="bs-stage-payments">{order.stages.slice(1).map((stage, index) => <div key={stage.name}><strong>{stage.name} · {[30, 40, 30][index]}%</strong><b>{money(stage.amount)}</b><span>{stage.settledAt ? `已结算 · ${date(stage.settledAt)}` : order.status === 'refunded' ? '订单退款结束，停止结算' : stage.status === 'accepted' ? '待平台结算' : '验收通过后结算'}</span>{role === 'admin' && stage.status === 'accepted' && !stage.settledAt && order.status !== 'refunded' && <button className="btn btn-outline" disabled={order.requests.some(item => item.status === 'pending')} onClick={() => openAction(order, 'settle', index + 1)}>结算{stage.name}</button>}</div>)}</div></div>;
-  return <section className="bs-orders" aria-label={earningsOnly ? '服务订单阶段结算' : '传记师服务订单'}>
+  return <>{!modalOnly && <section className="bs-orders" aria-label={earningsOnly ? '服务订单阶段结算' : '传记师服务订单'}>
     <header className="bs-head"><div><h2>{earningsOnly ? '服务订单阶段结算' : '传记师服务订单'}</h2><p>{earningsOnly ? '初稿 30% · 校审稿 40% · 终稿 30%，用户验收后由平台确认结算' : '查看服务需求、交付进度与订单记录'}</p></div>{role === 'customer' && <button className="btn btn-outline" onClick={() => navigate('/biographers')}>选择传记师</button>}</header>
     <div className="bs-filters"><input aria-label="搜索服务订单" placeholder="搜索订单号、人物或套餐" value={keyword} onChange={e => setKeyword(e.target.value)} /><select aria-label="服务订单状态" value={status} onChange={e => setStatus(e.target.value as ServiceStatus | 'all')}><option value="all">全部服务状态</option>{Object.entries(serviceStatusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></div>
-    {visible.length === 0 ? <p className="bs-empty">暂无符合条件的服务订单{role === 'customer' ? '，可先选择传记师提交需求。' : '。'}</p> : visible.map(order => <article className="bs-order" key={order.id}>
+    {visible.length === 0 ? <p className="bs-empty">暂无符合条件的服务订单{role === 'customer' ? '，可先选择传记师提交需求。' : '。'}</p> : earningsOnly ? visible.map(order => <article className="bs-order" key={order.id}>
       <div className="bs-row"><small>{order.id} · {date(order.createdAt)}</small><span className="bs-badge">{serviceStatusLabels[order.status]}{order.requests.some(item => item.status === 'pending') ? ' · 平台处理中' : ''}</span></div>
       <div className="bs-row"><div><h3>{order.biographerName} · {order.service.name}</h3><p>传主：{order.requirements.interviewee || '待补充'} · 客户：{order.customerName}</p></div><strong className="bs-price">{money(order.amount)}</strong></div>
-      {earningsOnly ? renderSettlements(order) : <div className="bs-row"><span className="bs-muted">{order.paidAt ? `${order.stages.filter(item => item.status === 'accepted').length}/4 个交付阶段已确认` : ''}</span><button className="btn btn-primary" onClick={() => setSelectedId(order.id)}>查看服务订单</button></div>}
-    </article>)}
-    <Modal open={!!selected} title="传记师服务订单详情" onClose={() => setSelectedId(null)} className="bs-detail-modal">
+      {renderSettlements(order)}
+    </article>) : (
+      <div className="admin-table-wrap">
+        <table className="admin-table">
+          <thead>
+            <tr><th>订单号</th><th>服务</th><th>传主 / 客户</th><th>金额</th><th>交付进度</th><th>状态</th><th>下单时间</th><th>操作</th></tr>
+          </thead>
+          <tbody>
+            {visible.map(order => (
+              <tr key={order.id}>
+                <td>{order.id}</td>
+                <td className="admin-table-text-left">{order.service.name}<br /><small>{order.biographerName}</small></td>
+                <td>{order.requirements.interviewee || '待补充'} / {order.customerName}</td>
+                <td>{money(order.amount)}</td>
+                <td>{order.paidAt ? `${order.stages.filter(item => item.status === 'accepted').length}/4 个交付阶段已确认` : '待付款'}</td>
+                <td><span className="bs-badge">{serviceStatusLabels[order.status]}{order.requests.some(item => item.status === 'pending') ? ' · 平台处理中' : ''}</span></td>
+                <td>{date(order.createdAt)}</td>
+                <td><button className="btn btn-primary btn-sm" onClick={() => setSelectedId(order.id)}>查看服务订单</button></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )}
+    </section>}
+    <Modal open={!!selected} title="传记师服务订单详情" onClose={() => { if (controlledId !== undefined) onControlledClose?.(); else setSelectedId(null); }} className="bs-detail-modal">
       {selected && <div className="bs-detail">
         <div className="bs-row"><strong>{selected.id}</strong><span className="bs-badge">{serviceStatusLabels[selected.status]}</span></div>
         <h3>{selected.biographerName} · {selected.service.name}</h3>
@@ -83,5 +106,5 @@ export default function BiographerServiceOrders({ role, earningsOnly = false }: 
         {action.kind === 'resolve' && actionOrder.requests.some(item => item.status === 'pending' && item.type === 'refund') && <><label>协商退款金额<input aria-label="协商退款金额" type="number" value={refundAmount} onChange={e => setRefundAmount(e.target.value)} /></label><p>订单实付 {money(actionOrder.amount)}，请结合已完成工作和既有结算协商处理。退款处理完成后结束该订单。</p></>}
       </div>}
     </Modal>
-  </section>;
+  </>;
 }

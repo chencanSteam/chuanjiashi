@@ -29,7 +29,6 @@ function getDefaultPublicBooks(): PublicBook[] {
       likes: 86,
       sales: 236,
       collects: 42,
-      shares: 15,
       createdAt: new Date().toISOString(),
     },
     {
@@ -49,7 +48,6 @@ function getDefaultPublicBooks(): PublicBook[] {
       likes: 34,
       sales: 45,
       collects: 12,
-      shares: 8,
       createdAt: new Date().toISOString(),
     },
     {
@@ -68,7 +66,6 @@ function getDefaultPublicBooks(): PublicBook[] {
       views: 0,
       likes: 0,
       collects: 0,
-      shares: 0,
       createdAt: new Date().toISOString(),
     },
     {
@@ -87,7 +84,6 @@ function getDefaultPublicBooks(): PublicBook[] {
       views: 0,
       likes: 0,
       collects: 0,
-      shares: 0,
       createdAt: new Date().toISOString(),
     },
     {
@@ -107,7 +103,6 @@ function getDefaultPublicBooks(): PublicBook[] {
       likes: 67,
       sales: 128,
       collects: 35,
-      shares: 11,
       createdAt: new Date().toISOString(),
     },
     {
@@ -127,7 +122,6 @@ function getDefaultPublicBooks(): PublicBook[] {
       likes: 29,
       sales: 73,
       collects: 18,
-      shares: 5,
       createdAt: new Date().toISOString(),
     },
     {
@@ -147,7 +141,6 @@ function getDefaultPublicBooks(): PublicBook[] {
       likes: 51,
       sales: 158,
       collects: 27,
-      shares: 9,
       createdAt: new Date().toISOString(),
     },
     {
@@ -167,7 +160,6 @@ function getDefaultPublicBooks(): PublicBook[] {
       likes: 93,
       sales: 187,
       collects: 46,
-      shares: 17,
       createdAt: new Date().toISOString(),
     },
     {
@@ -187,7 +179,6 @@ function getDefaultPublicBooks(): PublicBook[] {
       likes: 24,
       sales: 96,
       collects: 14,
-      shares: 4,
       createdAt: new Date().toISOString(),
     },
     {
@@ -207,7 +198,6 @@ function getDefaultPublicBooks(): PublicBook[] {
       likes: 142,
       sales: 312,
       collects: 78,
-      shares: 26,
       createdAt: new Date().toISOString(),
     },
   ]
@@ -498,7 +488,6 @@ export const bookshelfHandlers: HttpHandler[] = [
         views: 0,
         likes: 0,
         collects: 0,
-        shares: 0,
         trialWords: body.trialWords,
         restricted,
         createdAt: new Date().toISOString(),

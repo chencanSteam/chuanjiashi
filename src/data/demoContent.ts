@@ -463,9 +463,9 @@ export function ensureDemoContent() {
     if (currentUser?.id && !cleaned.some((o) => typeof o.id === 'string' && o.id.startsWith('ord_demo_paid_'))) {
       const uid = currentUser.id;
       cleaned.push(
-        { id: 'ord_demo_paid_1', userId: uid, type: 'biography', productId: 'download_default', productName: '张明远的传记 · 下载 PDF', amount: 9.9, quantity: 1, status: 'completed', payTime: at(6), createdAt: at(6), updatedAt: at(6), deliverables: [{ type: 'pdf', name: '张明远的传记.pdf', url: '#', createdAt: at(6) }] },
-        { id: 'ord_demo_paid_2', userId: uid, type: 'book', productId: 'publish_default', productName: '张明远的传记 · 出版实体书', amount: 59, quantity: 1, status: 'delivering', payTime: at(3), createdAt: at(3), updatedAt: at(3), address: { name: '张明远', phone: '138****8003', province: '江苏省', city: '苏州市', district: '姑苏区', detail: '平江路 12 号' }, logistics: { company: '顺丰速运', trackingNo: 'SF20260908003', shippedAt: at(2) } },
-        { id: 'ord_demo_paid_3', userId: uid, type: 'qrcode', productId: 'qrcode_default', productName: '张明远的传记 · 生成二维码', amount: 19.9, quantity: 1, status: 'completed', payTime: at(1), createdAt: at(1), updatedAt: at(1), deliverables: [{ type: 'qrcode', name: '家风纪念馆二维码', url: '#', createdAt: at(1) }] },
+        { id: 'ord_demo_paid_1', userId: uid, type: 'biography', productId: 'download_default', productName: '张明远的传记 · 下载 PDF', amount: 9.9, status: 'completed', payTime: at(6), createdAt: at(6), updatedAt: at(6), deliverables: [{ type: 'pdf', name: '张明远的传记.pdf', url: '#', createdAt: at(6) }] },
+        { id: 'ord_demo_paid_2', userId: uid, type: 'book', productId: 'publish_default', productName: '张明远的传记 · 出版实体书', amount: 59, status: 'delivering', payTime: at(3), createdAt: at(3), updatedAt: at(3), address: { name: '张明远', phone: '138****8003', province: '江苏省', city: '苏州市', district: '姑苏区', detail: '平江路 12 号' }, logistics: { company: '顺丰速运', trackingNo: 'SF20260908003', shippedAt: at(2) } },
+        { id: 'ord_demo_paid_3', userId: uid, type: 'qrcode', productId: 'qrcode_default', productName: '张明远的传记 · 生成二维码', amount: 19.9, status: 'completed', payTime: at(1), createdAt: at(1), updatedAt: at(1), deliverables: [{ type: 'qrcode', name: '家风纪念馆二维码', url: '#', createdAt: at(1) }] },
       );
     }
     localStorage.setItem(ORDERS_KEY, JSON.stringify(cleaned));

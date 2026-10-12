@@ -250,11 +250,7 @@ export interface Order {
   productId: string
   productName: string
   amount: number
-  /** 购买份数（实体书等实物商品，默认 1） */
-  quantity?: number
   status: OrderStatus
-  sku?: string
-  remark?: string
   address?: OrderAddress
   logistics?: OrderLogistics
   deliverables?: Deliverable[]
@@ -383,7 +379,6 @@ export interface PublicBook {
   /** 已售出份数（展示用） */
   sales?: number
   collects: number
-  shares: number
   /** 试看字数（按字数从全本截取试读内容，未设置时默认试读第一章） */
   trialWords?: number
   /** 第一章试读文本 */

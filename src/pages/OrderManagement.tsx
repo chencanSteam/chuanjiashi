@@ -2,6 +2,7 @@ import BiographerServiceOrders from '../components/BiographerServiceOrders';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Search, RefreshCw, CreditCard, Package, CheckCircle, AlertCircle, Clock, XCircle, X, UserCheck, Calendar, MapPin, Truck, Upload, FileText, ExternalLink, Paperclip, Download, RotateCcw } from 'lucide-react';
 import type { AdminOrder } from '../api/order';
+import { readServiceOrders, SERVICE_ORDER_EVENT, type ServiceOrder } from '../data/biographerServiceOrders';
 import { useToast } from '../hooks/useToast';
 import type { BiographerOrder, Deliverable, OrderLogistics } from '../mocks/types';
 import Annotate from '../components/annotation/Annotate';
@@ -82,36 +83,36 @@ const fileDeliverableAccept: Partial<Record<Deliverable['type'], string>> = {
 const DEMO_ORDERS: AdminOrder[] = [
   {
     id: 'ord_demo_001', userId: 'u_demo_001', userName: '张明远', userPhone: '138****8003',
-    type: 'biography', productId: 'download_default', productName: '张明远的传记 · 下载 PDF', amount: 9.9, quantity: 1,
+    type: 'biography', productId: 'download_default', productName: '张明远的传记 · 下载 PDF', amount: 9.9,
     status: 'completed', payTime: '2026-09-01T10:20:00', createdAt: '2026-09-01T10:18:00', updatedAt: '2026-09-01T10:30:00',
     deliverables: [{ type: 'pdf', name: '张明远的传记.pdf', url: '#', createdAt: '2026-09-01T10:30:00' }],
   },
   {
     id: 'ord_demo_002', userId: 'u_demo_002', userName: '李女士', userPhone: '139****8002',
-    type: 'book', productId: 'publish_default', productName: '张明远的传记 · 出版实体书', amount: 59, quantity: 2,
+    type: 'book', productId: 'publish_default', productName: '张明远的传记 · 出版实体书', amount: 59,
     status: 'delivering', payTime: '2026-09-02T14:05:00', createdAt: '2026-09-02T14:02:00', updatedAt: '2026-09-03T09:10:00',
     address: { name: '李女士', phone: '139****8002', province: '江苏省', city: '苏州市', district: '姑苏区', detail: '平江路 12 号' },
     logistics: { company: '顺丰速运', trackingNo: 'SF20260903002', shippedAt: '2026-09-03T09:10:00' },
   },
   {
     id: 'ord_demo_003', userId: 'u_demo_003', userName: '王先生', userPhone: '137****8003',
-    type: 'qrcode', productId: 'qrcode_default', productName: '张明远的传记 · 生成二维码', amount: 19.9, quantity: 1,
+    type: 'qrcode', productId: 'qrcode_default', productName: '张明远的传记 · 生成二维码', amount: 19.9,
     status: 'completed', payTime: '2026-09-03T16:40:00', createdAt: '2026-09-03T16:38:00', updatedAt: '2026-09-03T16:45:00',
     deliverables: [{ type: 'qrcode', name: '家风纪念馆二维码', url: '#', createdAt: '2026-09-03T16:45:00' }],
   },
   {
     id: 'ord_demo_004', userId: 'u_demo_004', userName: '陈女士', userPhone: '136****8004',
-    type: 'biographer_service', productId: 'bio_service_001', productName: '传记师深度采访服务', amount: 1999, quantity: 1,
+    type: 'biographer_service', productId: 'bio_service_001', productName: '传记师深度采访服务', amount: 1999,
     status: 'paid', payTime: '2026-09-04T09:15:00', createdAt: '2026-09-04T09:12:00', updatedAt: '2026-09-04T09:15:00',
   },
   {
     id: 'ord_demo_005', userId: 'u_demo_005', userName: '赵女士', userPhone: '135****8005',
-    type: 'book', productId: 'publish_default', productName: '家风传记 · 实体书精装版', amount: 288, quantity: 1,
+    type: 'book', productId: 'publish_default', productName: '家风传记 · 实体书精装版', amount: 288,
     status: 'paid', payTime: '2026-09-05T11:25:00', createdAt: '2026-09-05T11:20:00', updatedAt: '2026-09-05T11:25:00',
   },
   {
     id: 'ord_demo_006', userId: 'u_demo_006', userName: '刘先生', userPhone: '134****8006',
-    type: 'biography', productId: 'download_default', productName: '家族传记 · 下载 PDF', amount: 9.9, quantity: 1,
+    type: 'biography', productId: 'download_default', productName: '家族传记 · 下载 PDF', amount: 9.9,
     status: 'refunded', payTime: '2026-09-06T13:10:00', createdAt: '2026-09-06T13:08:00', updatedAt: '2026-09-06T15:00:00',
     refundRequest: { reason: '不需要该商品', reasonOptionLabel: '不需要该商品', status: 'completed', createdAt: '2026-09-06T14:20:00', processedAt: '2026-09-06T15:00:00' },
   },
@@ -170,6 +171,20 @@ export default function OrderManagement() {
   const [batchDeliverableName, setBatchDeliverableName] = useState('');
   const [batchDeliverableUrl, setBatchDeliverableUrl] = useState('');
   const [batchSubmitting, setBatchSubmitting] = useState(false);
+  const [serviceOrders, setServiceOrders] = useState<ServiceOrder[]>([]);
+  const [serviceOrderId, setServiceOrderId] = useState<string | null>(null);
+
+  // 新版传记师服务订单：读本地服务订单库，监听变更事件刷新
+  useEffect(() => {
+    const load = () => setServiceOrders(readServiceOrders());
+    load();
+    window.addEventListener(SERVICE_ORDER_EVENT, load);
+    window.addEventListener('storage', load);
+    return () => {
+      window.removeEventListener(SERVICE_ORDER_EVENT, load);
+      window.removeEventListener('storage', load);
+    };
+  }, []);
 
   useEffect(() => {
     loadOrders();
@@ -235,8 +250,41 @@ export default function OrderManagement() {
     }
   };
 
+  const serviceOrderIds = useMemo(() => new Set(serviceOrders.map((o) => o.id)), [serviceOrders]);
+
+  // 服务订单映射为统一订单行，与商品订单合并进同一张表
+  const mergedOrders = useMemo<AdminOrder[]>(() => {
+    const mapped: AdminOrder[] = serviceOrders.map((o) => {
+      const refund = [...o.requests].reverse().find((r) => r.type === 'refund');
+      return {
+        id: o.id,
+        userId: o.customerPhone,
+        userName: o.customerName,
+        userPhone: o.customerPhone,
+        type: 'biographer_service',
+        productId: o.service.id,
+        productName: o.service.name,
+        amount: o.amount,
+        status: (o.status === 'working' ? 'delivering' : o.status === 'pending_accept' ? 'pending_pay' : o.status) as AdminOrder['status'],
+        payTime: o.paidAt || undefined,
+        createdAt: o.createdAt,
+        updatedAt: o.updatedAt,
+        refundRequest: refund
+          ? {
+              reason: refund.reason,
+              reasonOptionLabel: refund.reason,
+              status: (refund.status === 'resolved' ? 'completed' : refund.status) as 'pending' | 'completed' | 'rejected',
+              createdAt: refund.at,
+              processedAt: refund.status === 'pending' ? undefined : refund.at,
+            }
+          : undefined,
+      };
+    });
+    return [...orders, ...mapped];
+  }, [orders, serviceOrders]);
+
   const filtered = useMemo(() => {
-    return orders.filter((o) => {
+    return mergedOrders.filter((o) => {
       const matchKeyword =
         !keyword ||
         o.id.includes(keyword) ||
@@ -252,7 +300,7 @@ export default function OrderManagement() {
       const matchDateTo = !dateTo || orderDate <= dateTo;
       return matchKeyword && matchStatus && matchType && matchAfterSale && matchDateFrom && matchDateTo;
     });
-  }, [orders, keyword, statusFilter, typeFilter, afterSaleFilter, dateFrom, dateTo]);
+  }, [mergedOrders, keyword, statusFilter, typeFilter, afterSaleFilter, dateFrom, dateTo]);
 
   const resetFilters = () => {
     setKeyword('');
@@ -264,13 +312,12 @@ export default function OrderManagement() {
   };
 
   const exportFilteredOrders = () => {
-    const header = ['订单号', '客户', '商品/服务', '类型', '数量', '实付金额', '订单状态', '售后状态', '下单时间', '支付时间'];
+    const header = ['订单号', '客户', '商品/服务', '类型', '实付金额', '订单状态', '售后状态', '下单时间', '支付时间'];
     const rows = filtered.map((item) => [
       item.id,
       item.userName || `用户${item.userId.slice(-4)}`,
       item.productName,
       typeLabelMap[item.type],
-      String(item.quantity || 1),
       item.amount.toFixed(2),
       statusMap[item.status].label,
       item.refundRequest ? (item.refundRequest.status === 'pending' ? '退款待审核' : item.refundRequest.status === 'rejected' ? '退款已驳回' : '已退款') : '无售后',
@@ -387,6 +434,14 @@ export default function OrderManagement() {
   };
 
   const renderActionButtons = (item: AdminOrder) => {
+    // 新版传记师服务订单：走共享服务订单详情弹窗（结算/平台介入等操作在弹窗内）
+    if (serviceOrderIds.has(item.id)) {
+      return (
+        <button className="admin-table-link" onClick={() => setServiceOrderId(item.id)}>
+          查看服务订单
+        </button>
+      );
+    }
     const statusActions: OrderAction[] = [];
 
     if (item.status === 'delivering') {
@@ -519,8 +574,6 @@ export default function OrderManagement() {
         </div>
       </header>
 
-      <BiographerServiceOrders role="admin" />
-
       <div className="card order-list-card">
         <div className="card-header order-list-header">
           <Annotate id="order-management.filters" inline>
@@ -602,7 +655,6 @@ export default function OrderManagement() {
                     <th>客户</th>
                     <th>商品/服务</th>
                     <th>类型</th>
-                    <th>数量</th>
                     <th>实付金额</th>
                     <th>订单状态</th>
                     <th>售后状态</th>
@@ -638,7 +690,6 @@ export default function OrderManagement() {
                           </div>
                         </td>
                         <td>{typeLabelMap[item.type]}</td>
-                        <td>{item.quantity || 1}</td>
                         <td className="order-cell-amount">¥{item.amount.toLocaleString()}</td>
                         <td>
                           <span className={`order-status ${status.className}`}>
@@ -668,6 +719,8 @@ export default function OrderManagement() {
         </div>
       </div>
 
+      <BiographerServiceOrders role="admin" modalOnly controlledId={serviceOrderId} onControlledClose={() => setServiceOrderId(null)} />
+
       {selectedOrder && (
         <Annotate id="order-management.detail">
         <div className="modal-overlay" onClick={() => { setSelectedOrder(null); setSelectedBiographerOrder(null); }}>
@@ -691,19 +744,9 @@ export default function OrderManagement() {
                 <span className="order-detail-label">商品/服务</span>
                 <span className="order-detail-value">{selectedOrder.productName}</span>
               </div>
-              {selectedOrder.sku && (
-                <div className="order-detail-row">
-                  <span className="order-detail-label">SKU</span>
-                  <span className="order-detail-value">{selectedOrder.sku}</span>
-                </div>
-              )}
               <div className="order-detail-row">
                 <span className="order-detail-label">类型</span>
                 <span className="order-detail-value">{typeLabelMap[selectedOrder.type]}</span>
-              </div>
-              <div className="order-detail-row">
-                <span className="order-detail-label">购买数量</span>
-                <span className="order-detail-value">{selectedOrder.quantity || 1}</span>
               </div>
               <div className="order-detail-row">
                 <span className="order-detail-label">实付金额</span>
@@ -733,12 +776,6 @@ export default function OrderManagement() {
                 <div className="order-detail-row">
                   <span className="order-detail-label">支付时间</span>
                   <span className="order-detail-value">{new Date(selectedOrder.payTime).toLocaleString()}</span>
-                </div>
-              )}
-              {selectedOrder.remark && (
-                <div className="order-detail-row">
-                  <span className="order-detail-label">备注</span>
-                  <span className="order-detail-value" style={{ maxWidth: 260, lineHeight: 1.5 }}>{selectedOrder.remark}</span>
                 </div>
               )}
 

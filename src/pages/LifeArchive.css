@@ -166,12 +166,6 @@
   margin-top: 4px;
 }
 
-.event-detail-subtitle {
-  font-size: 14px;
-  color: #4b5563;
-  font-weight: 600;
-}
-
 .event-detail-content {
   font-size: 13px;
   color: #6b7280;
@@ -1609,22 +1603,6 @@ select:disabled {
   font-size: 13px;
   outline: none;
   font-family: inherit;
-}
-
-/* 档案概览：人生标签展示 */
-.profile-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 8px;
-}
-
-.profile-tag {
-  padding: 3px 10px;
-  background: rgba(27, 94, 75, 0.08);
-  color: #1B5E4B;
-  border-radius: 999px;
-  font-size: 12px;
 }
 
 /* 新建档案：日期/籍贯级联选择行 */

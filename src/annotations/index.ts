@@ -1,8 +1,6 @@
 import type { LogicAnnotation, PageAnnotations } from './types';
 import { adminNotificationsAnnotations } from './admin-notifications';
 import { adminSettingsAnnotations } from './admin-settings';
-import { adminAiTasksAnnotations } from './adminAiTasks';
-import { adminArchivesAnnotations } from './adminArchives';
 import { adminBiographersAnnotations } from './adminBiographers';
 import { adminDashboardAnnotations } from './adminDashboard';
 import { adminPartnerApplicationsAnnotations } from './adminPartnerApplications';
@@ -11,12 +9,10 @@ import { adminPartnersAnnotations } from './adminPartners';
 import { adminRolesAnnotations } from './adminRoles';
 import { adminUsersAnnotations } from './adminUsers';
 import { aiRefineAnnotations } from './ai-refine';
-import { aiUsageAnnotations } from './ai-usage';
 import { albumDetailAnnotations } from './album-detail';
 import { applicationDetailAnnotations } from './application-detail';
 import { archiveMediaAnnotations } from './archive-media';
 import { archivePlacesAnnotations } from './archive-places';
-import { archiveSectionAnnotations } from './archive-section';
 import { biographerApplyAnnotations } from './biographer-apply';
 import { biographerCenterAnnotations } from './biographer-center';
 import { biographerEarningsAnnotations } from './biographer-earnings';
@@ -112,8 +108,6 @@ import { withdrawalManagementAnnotations } from './withdrawalManagement';
 export const annotationPages: PageAnnotations[] = [
   adminNotificationsAnnotations,
   adminSettingsAnnotations,
-  adminAiTasksAnnotations,
-  adminArchivesAnnotations,
   adminBiographersAnnotations,
   adminDashboardAnnotations,
   adminPartnerApplicationsAnnotations,
@@ -122,12 +116,10 @@ export const annotationPages: PageAnnotations[] = [
   adminRolesAnnotations,
   adminUsersAnnotations,
   aiRefineAnnotations,
-  aiUsageAnnotations,
   albumDetailAnnotations,
   applicationDetailAnnotations,
   archiveMediaAnnotations,
   archivePlacesAnnotations,
-  archiveSectionAnnotations,
   biographerApplyAnnotations,
   biographerCenterAnnotations,
   biographerEarningsAnnotations,

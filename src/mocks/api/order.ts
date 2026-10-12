@@ -2,7 +2,7 @@ import { http, type HttpHandler } from 'msw'
 import { success, fail, unauthorized, notFound } from '../utils/response'
 import { getItem, setItem, generateId, storeKeys } from '../utils/store'
 import { getRefundReasonOptions } from './refundReasons'
-import type { Order, OrderStatus, User, Deliverable, OrderLogistics, RefundRequest } from '../types'
+import type { Order, OrderStatus, User, RefundRequest } from '../types'
 
 function getCurrentUserId(): string | null {
   const user = getItem<{ id: string } | null>(storeKeys.currentUser, null)
@@ -57,9 +57,6 @@ export function createOrder(userId: string, data: Partial<Order>): Order {
     productId: data.productId || '',
     productName: data.productName || '未知商品',
     amount: data.amount || 0,
-    quantity: data.quantity ?? 1,
-    sku: data.sku,
-    remark: data.remark,
     address: data.address,
     status: 'pending_pay',
     expireAt,
@@ -168,22 +165,20 @@ function getOrderUserInfo(order: Order): { userName?: string; userPhone?: string
 
 function enrichDemoOrder(order: Order): Order {
   const now = new Date().toISOString()
-  const common = { quantity: order.quantity || 1 }
   if (order.id === 'ord_demo_paid_1' && !order.deliverables) {
-    return { ...order, ...common, deliverables: [{ type: 'pdf', name: '张明远的传记.pdf', url: '#', createdAt: order.payTime || now }] }
+    return { ...order, deliverables: [{ type: 'pdf', name: '张明远的传记.pdf', url: '#', createdAt: order.payTime || now }] }
   }
   if (order.id === 'ord_demo_paid_2' && !order.logistics) {
     return {
       ...order,
-      ...common,
       address: { name: '张明远', phone: '138****8003', province: '江苏省', city: '苏州市', district: '姑苏区', detail: '平江路 12 号' },
       logistics: { company: '顺丰速运', trackingNo: 'SF20260908003', shippedAt: order.updatedAt || now },
     }
   }
   if (order.id === 'ord_demo_paid_3' && !order.deliverables) {
-    return { ...order, ...common, deliverables: [{ type: 'qrcode', name: '家风纪念馆二维码', url: '#', createdAt: order.payTime || now }] }
+    return { ...order, deliverables: [{ type: 'qrcode', name: '家风纪念馆二维码', url: '#', createdAt: order.payTime || now }] }
   }
-  return { ...order, ...common }
+  return { ...order }
 }
 
 export const orderHandlers: HttpHandler[] = [
@@ -233,74 +228,6 @@ export const orderHandlers: HttpHandler[] = [
     return success(orders.map((o) => ({ ...enrichDemoOrder(o), ...getOrderUserInfo(o) })))
   }),
 
-  // 手动补单（创建一条已支付订单）
-  http.post('/api/admin/orders', async ({ request }) => {
-    const userId = getCurrentUserId()
-    if (!userId) return unauthorized()
-    const body = (await request.json()) as { userId?: string; type?: Order['type']; productName?: string; amount?: number; remark?: string }
-    if (!body.userId) return fail('请选择用户')
-    if (!body.amount || body.amount <= 0) return fail('请填写有效金额')
-    const now = new Date().toISOString()
-    const order: Order = {
-      id: generateId(),
-      userId: body.userId,
-      type: body.type || 'biography',
-      productId: '',
-      productName: body.productName?.trim() || '手动补单',
-      amount: body.amount,
-      remark: body.remark,
-      status: 'paid',
-      payTime: now,
-      createdAt: now,
-      updatedAt: now,
-    }
-    saveOrder(order)
-    return success({ ...order, ...getOrderUserInfo(order) }, '补单成功')
-  }),
-
-  http.put('/api/admin/orders/:id/status', async ({ request, params }) => {
-    const userId = getCurrentUserId()
-    if (!userId) return unauthorized()
-    const order = findOrder(params.id as string)
-    if (!order) return notFound('订单不存在')
-    const { status } = (await request.json()) as { status: OrderStatus }
-    if (status === 'refunded') return fail('请通过退款审核操作完成退款')
-    order.status = status
-    order.updatedAt = new Date().toISOString()
-    if (status === 'paid' && !order.payTime) order.payTime = new Date().toISOString()
-    saveOrder(order)
-    return success({ ...order, ...getOrderUserInfo(order) })
-  }),
-
-  http.put('/api/admin/orders/:id/deliver', async ({ request, params }) => {
-    const userId = getCurrentUserId()
-    if (!userId) return unauthorized()
-    const order = findOrder(params.id as string)
-    if (!order) return notFound('订单不存在')
-    if (!['book', 'derivative'].includes(order.type)) {
-      return success(order, '当前订单类型不支持物流发货')
-    }
-    const { logistics } = (await request.json()) as { logistics: OrderLogistics }
-    order.logistics = logistics
-    order.status = 'delivering'
-    order.updatedAt = new Date().toISOString()
-    saveOrder(order)
-    return success({ ...order, ...getOrderUserInfo(order) }, '物流信息已保存')
-  }),
-
-  http.put('/api/admin/orders/:id/deliverable', async ({ request, params }) => {
-    const userId = getCurrentUserId()
-    if (!userId) return unauthorized()
-    const order = findOrder(params.id as string)
-    if (!order) return notFound('订单不存在')
-    const { deliverable } = (await request.json()) as { deliverable: Deliverable }
-    order.deliverables = [...(order.deliverables || []), deliverable]
-    if (order.status === 'paid') order.status = 'delivering'
-    order.updatedAt = new Date().toISOString()
-    saveOrder(order)
-    return success({ ...order, ...getOrderUserInfo(order) }, '交付物已上传')
-  }),
-
   http.post('/api/orders/:id/refund', async ({ request, params }) => {
     const userId = getCurrentUserId()
     if (!userId) return unauthorized()
@@ -326,37 +253,6 @@ export const orderHandlers: HttpHandler[] = [
     order.updatedAt = new Date().toISOString()
     saveOrder(order)
     return success(order, '退款申请已提交，等待平台审核')
-  }),
-
-  http.post('/api/admin/orders/:id/refund/approve', async ({ params }) => {
-    const userId = getCurrentUserId()
-    if (!userId) return unauthorized()
-    const order = findOrder(params.id as string)
-    if (!order) return notFound('订单不存在')
-    if (!order.refundRequest || order.refundRequest.status !== 'pending') return fail('当前没有待审核的退款申请')
-    const now = new Date().toISOString()
-    order.refundRequest = { ...order.refundRequest, status: 'completed', processedAt: now, processorId: userId, rejectionReason: undefined }
-    order.status = 'refunded'
-    order.updatedAt = now
-    saveOrder(order)
-    return success({ ...order, ...getOrderUserInfo(order) }, '退款审核通过，退款已完成')
-  }),
-
-  http.post('/api/admin/orders/:id/refund/reject', async ({ request, params }) => {
-    const userId = getCurrentUserId()
-    if (!userId) return unauthorized()
-    const order = findOrder(params.id as string)
-    if (!order) return notFound('订单不存在')
-    if (!order.refundRequest || order.refundRequest.status !== 'pending') return fail('当前没有待审核的退款申请')
-    const { rejectionReason } = (await request.json()) as { rejectionReason?: string }
-    const reasonText = rejectionReason?.trim()
-    if (!reasonText) return fail('请填写驳回原因')
-    if (reasonText.length > 500) return fail('驳回原因不能超过 500 个字')
-    const now = new Date().toISOString()
-    order.refundRequest = { ...order.refundRequest, status: 'rejected', processedAt: now, processorId: userId, rejectionReason: reasonText }
-    order.updatedAt = now
-    saveOrder(order)
-    return success({ ...order, ...getOrderUserInfo(order) }, '退款申请已驳回')
   }),
 
 ]

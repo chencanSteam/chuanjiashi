@@ -217,7 +217,6 @@ export default function MobileArchive() {
       icon: existing?.icon || 'Star',
       color: existing?.color || '#8b6f47',
       bg: existing?.bg || '#f3ead7',
-      tags: existing?.tags || [],
     };
     const nextEvents = editingEventYear
       ? events.map((item) => item.year === editingEventYear ? nextEvent : item)
@@ -234,7 +233,7 @@ export default function MobileArchive() {
       const newStage = `${year}·${title}`;
       persistMedia(mediaItems.map((item) => item.stage === oldStage ? { ...item, stage: newStage } : item));
     }
-    localStorage.setItem(`event-${archiveId}-${year}`, JSON.stringify({ title, subtitle: title, content: desc, tags: [] }));
+    localStorage.setItem(`event-${archiveId}-${year}`, JSON.stringify({ title, content: desc }));
     setEventOpen(false);
     addToast(editingEventYear ? '人生事件已更新' : '人生事件已添加', 'success');
     if (!editingEventYear) navigate(`/m/archive/event/${year}`);

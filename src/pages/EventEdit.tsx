@@ -61,11 +61,11 @@ function formatYearRange(year: string, endYear?: string): string {
   return year;
 }
 
-const eventDetails: Record<string, { title: string; subtitle: string; content: string; tags: string[] }> = {
-  '1958': { title: '出生', subtitle: '出生于江苏苏州', content: '1958年3月12日，张明远出生于江苏苏州一个普通的教师家庭。', tags: ['出生', '苏州', '童年'] },
-  '1992': { title: '创业', subtitle: '创立明远机械有限公司', content: '在国家改革开放的浪潮中，辞去稳定的工作，与两位合作伙伴共同创立明远机械有限公司，专注于精密零部件加工与设备研发。', tags: ['创业初心', '精密制造', '团队协作', '创新突破'] },
-  '2020': { title: '退休', subtitle: '享受生活', content: '2020年，张明远正式退休，将公司交给年轻一代打理。', tags: ['退休', '传承', '家庭'] },
-  '2024': { title: '当下', subtitle: '持续学习，传承家风', content: '如今，张明远坚持每日读书、练字，并通过「传家世」平台记录人生故事。', tags: ['当下', '家风', '传承'] },
+const eventDetails: Record<string, { title: string; content: string }> = {
+  '1958': { title: '出生', content: '1958年3月12日，张明远出生于江苏苏州一个普通的教师家庭。' },
+  '1992': { title: '创业', content: '在国家改革开放的浪潮中，辞去稳定的工作，与两位合作伙伴共同创立明远机械有限公司，专注于精密零部件加工与设备研发。' },
+  '2020': { title: '退休', content: '2020年，张明远正式退休，将公司交给年轻一代打理。' },
+  '2024': { title: '当下', content: '如今，张明远坚持每日读书、练字，并通过「传家世」平台记录人生故事。' },
 };
 
 export default function EventEdit() {
@@ -82,9 +82,7 @@ export default function EventEdit() {
         const parsed = JSON.parse(saved);
         return {
           title: parsed.title ?? detail.title,
-          subtitle: parsed.subtitle ?? detail.subtitle,
           content: parsed.content ?? detail.content,
-          tags: parsed.tags ?? detail.tags,
           attachments: Array.isArray(parsed.attachments) ? parsed.attachments : [],
         };
       } catch { /* ignore */ }
@@ -109,7 +107,7 @@ export default function EventEdit() {
     if (startYear !== safeYear) {
       localStorage.removeItem(`event-${archiveId}-${safeYear}`);
     }
-    localStorage.setItem(`event-${archiveId}-${startYear}`, JSON.stringify({ title, subtitle: '', content, tags: [], attachments }));
+    localStorage.setItem(`event-${archiveId}-${startYear}`, JSON.stringify({ title, content, attachments }));
     const nextEvents = archiveEvents.map((e) =>
       e.year === safeYear ? { ...e, year: startYear, endYear: endYear || undefined } : e
     );

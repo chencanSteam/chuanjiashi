@@ -5,10 +5,8 @@ import { biographyHandlers } from './api/biography'
 import { museumHandlers } from './api/museum'
 import { digitalPersonHandlers } from './api/digitalPerson'
 import { uploadHandlers } from './api/upload'
-import { productHandlers } from './api/product'
 import { orderHandlers } from './api/order'
 import { refundReasonHandlers } from './api/refundReasons'
-import { dictionaryHandlers } from './api/dictionary'
 import { paymentHandlers } from './api/payment'
 import { groupBuyHandlers } from './api/groupBuy'
 import { commissionHandlers } from './api/commission'
@@ -18,8 +16,6 @@ import { partnerHandlers } from './api/partner'
 import { familyHandlers } from './api/family'
 import { quotaHandlers } from './api/quota'
 import { adminUserHandlers } from './api/adminUsers'
-import { adminArchiveHandlers } from './api/adminArchives'
-import { aiTaskHandlers } from './api/aiTasks'
 import { complianceHandlers } from './api/compliance'
 import { contentReviewHandlers } from './api/contentReview'
 import { sensitiveWordsHandlers } from './api/sensitiveWords'
@@ -33,10 +29,8 @@ export const handlers = [
   ...museumHandlers,
   ...digitalPersonHandlers,
   ...uploadHandlers,
-  ...productHandlers,
   ...orderHandlers,
   ...refundReasonHandlers,
-  ...dictionaryHandlers,
   ...paymentHandlers,
   ...groupBuyHandlers,
   ...commissionHandlers,
@@ -46,8 +40,6 @@ export const handlers = [
   ...familyHandlers,
   ...quotaHandlers,
   ...adminUserHandlers,
-  ...adminArchiveHandlers,
-  ...aiTaskHandlers,
   ...complianceHandlers,
   ...contentReviewHandlers,
   ...sensitiveWordsHandlers,

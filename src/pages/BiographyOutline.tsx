@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 import { loadTimelineEvents } from '../utils/eventSync';
+import { loadImportedBiography } from '../utils/importedBiography';
 import {
   buildDraftOutline,
   loadOutline,
@@ -49,6 +50,7 @@ export default function BiographyOutline() {
   const archiveName = archive?.name || '张明远';
 
   const timelineEvents = useMemo(() => loadTimelineEvents(archiveId), [archiveId]);
+  const importedBio = useMemo(() => loadImportedBiography(archiveId), [archiveId]);
 
   const [outline, setOutline] = useState<BiographyOutline>(() => {
     const saved = loadOutline(archiveId);
@@ -169,7 +171,7 @@ export default function BiographyOutline() {
           <button className="outline-list-row" onClick={() => setIsEditing(true)}>
             <span className="outline-list-icon"><BookOpen size={16} /></span>
             <span className="outline-list-main"><strong>{archiveName}的传记提纲</strong><small>{outline.status === 'confirmed' ? '最近更新：' : '当前状态：草稿 · 更新于：'}{outline.updatedAt}</small></span>
-            <span className="outline-list-meta">{outline.chapters.length} 个章节 · {timelineEvents.length} 条时间轴素材</span>
+            <span className="outline-list-meta">{outline.chapters.length} 个章节 · {timelineEvents.length} 条时间轴素材{importedBio ? ` · 1 份上传传记《${importedBio.fileName}》` : ''}</span>
             <ChevronRight size={17} />
           </button>
         </section>
@@ -207,7 +209,7 @@ export default function BiographyOutline() {
         </div>
         <div className="outline-status-right">
           <span>{outline.chapters.length} 个章节</span>
-          <span>{timelineEvents.length} 条时间轴素材</span>
+          <span>{timelineEvents.length} 条时间轴素材{importedBio ? ` · 1 份上传传记《${importedBio.fileName}》` : ''}</span>
           <span className={unassignedEvents.length > 0 ? 'outline-warn' : ''}>
             {unassignedEvents.length} 条待分配
           </span>

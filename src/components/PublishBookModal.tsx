@@ -24,6 +24,19 @@ function loadBiography(archiveId: string): { title?: string; author?: string } {
   }
 }
 
+// 上架提交成功后，把编辑后的署名回写传记快照，保持传记封面与书架署名一致
+function saveBiographyAuthor(archiveId: string, author: string) {
+  if (!author.trim()) return;
+  try {
+    const raw = localStorage.getItem(`cj_biography_${archiveId}`);
+    if (!raw) return;
+    const snapshot = JSON.parse(raw);
+    localStorage.setItem(`cj_biography_${archiveId}`, JSON.stringify({ ...snapshot, author: author.trim() }));
+  } catch {
+    // 回写失败不影响上架
+  }
+}
+
 // 本地生成三款位图封面，沿用现有 cover 字段，无需上传服务。
 function createDefaultCovers() {
   return [
@@ -203,6 +216,7 @@ export default function PublishBookModal({ archive, onClose, onPublished }: Publ
       } else {
         addToast(existing ? '已重新提交审核' : '上架申请已提交，等待平台审核', 'success');
       }
+      saveBiographyAuthor(archive.id, form.author);
       onPublished?.();
       onClose();
     } catch (err: unknown) {

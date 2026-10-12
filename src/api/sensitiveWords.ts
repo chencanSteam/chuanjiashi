@@ -3,7 +3,6 @@ import type {
   SensitiveWord,
   SensitiveWordAction,
   SensitiveWordCategory,
-  SensitiveHit,
 } from '../mocks/types'
 
 export const sensitiveWordsApi = {
@@ -16,9 +15,4 @@ export const sensitiveWordsApi = {
   toggleStatus: (id: string, enabled: boolean) =>
     api.patch<SensitiveWord>(`/api/admin/sensitive-words/${id}/status`, { enabled }),
   remove: (id: string) => api.delete<null>(`/api/admin/sensitive-words/${id}`),
-
-  // 命中记录
-  hitList: () => api.get<SensitiveHit[]>('/api/admin/sensitive-hits'),
-  processHit: (id: string, status: 'blocked' | 'released') =>
-    api.patch<SensitiveHit>(`/api/admin/sensitive-hits/${id}`, { status }),
 }

@@ -21,8 +21,7 @@ export const loginAnnotations: PageAnnotations = {
       logic: `① 点击任一卡片即用对应演示账号直接登录：用户端/合伙人/移动端用 13800138003（姓名「张明远」），管理后台/传记师端用 13800138000，密码固定 123456。
 ② 进入合伙人中心、传记师端时通过 addRole 追加对应角色，控制后续页面权限。
 ③ 本地无档案时自动写入默认演示档案（localStorage \`cj_archives\` + \`cj_current_archive_id\`）。
-④ 已登录状态访问本页会自动跳转：有档案进 /home，无档案进 /onboarding。
-⑤ URL 携带 ?invite=xxx 邀请码时，登录成功后写入 localStorage \`cj_invite_code\`，供佣金体系结算。`,
+④ 已登录状态访问本页会自动跳转：有档案进 /home，无档案进 /onboarding。`,
     },
     {
       id: 'login.agreement',

@@ -8,7 +8,6 @@ export interface StoredTimelineEvent {
   icon?: string;
   color?: string;
   bg?: string;
-  tags?: Array<{ label: string; color: string; bg: string }>;
 }
 
 const EVENT_KEY = (archiveId: string) => `cj_events_${archiveId}`;
@@ -69,12 +68,6 @@ export function syncReviewEventToTimeline(archiveId: string, event: ReviewEvent)
   if (isDuplicate) return;
 
   const { color, bg } = inferColor(event.type, event.title);
-  const tags: Array<{ label: string; color: string; bg: string }> = [];
-  if (event.location) {
-    tags.push({ label: event.location, color: '#6b7280', bg: '#f3f4f6' });
-  }
-  tags.push({ label: event.type || '采访', color, bg });
-
   const newEvent: StoredTimelineEvent = {
     year,
     title: event.title,
@@ -82,7 +75,6 @@ export function syncReviewEventToTimeline(archiveId: string, event: ReviewEvent)
     icon: inferIcon(event.type, event.title),
     color,
     bg,
-    tags,
   };
 
   saveTimelineEvents(archiveId, [...existing, newEvent]);

@@ -108,14 +108,4 @@ export const archiveHandlers: HttpHandler[] = [
     if (!userId) return unauthorized()
     return success(getSortedQuestions())
   }),
-
-  http.get('/api/archive-types', async () => {
-    return success([
-      { value: 'self', label: '本人' },
-      { value: 'parent', label: '父母' },
-      { value: 'grandparent', label: '祖辈' },
-      { value: 'relative', label: '亲友' },
-      { value: 'other', label: '其他' },
-    ])
-  }),
 ]

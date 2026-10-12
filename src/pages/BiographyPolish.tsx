@@ -413,7 +413,6 @@ export default function BiographyPolish() {
     saveJson(`cj_biography_${archiveId}`, {
       title: `${archiveName}传记`,
       author: '用户上传整理',
-      source: 'polish',
       createdAt: new Date().toLocaleString('zh-CN'),
       completedAt: new Date().toISOString(),
       status: 'final',

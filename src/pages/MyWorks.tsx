@@ -24,7 +24,6 @@ interface Archive {
   origin: string;
   occupation: string;
   industry?: string;
-  tags?: string[];
 }
 
 interface WorkItem extends Archive {
@@ -179,7 +178,6 @@ export default function MyWorks() {
     setWorks(next);
     localStorage.setItem('cj_archives', JSON.stringify(next));
     localStorage.removeItem(`cj_events_${id}`);
-    localStorage.removeItem(`cj_event_tags_${id}`);
     localStorage.removeItem(`cj_media_${id}`);
     localStorage.removeItem(`cj_members_${id}`);
     localStorage.removeItem(`cj_biography_${id}`);

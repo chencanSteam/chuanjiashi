@@ -22,12 +22,12 @@ const statusMap: Record<PublicBook['status'], { label: string; className: string
 };
 
 const mockBooks: PublicBook[] = [
-  { id: 'review-001', archiveId: 'archive-001', userId: 'u_demo_001', title: '张明远：一位苏州企业家的六十年', author: '张立群', intro: '从苏州老巷走到创业舞台，记录一个普通中国家庭的奋斗与传承。', category: '企业家', price: 0, isFree: true, status: 'approved', views: 1820, likes: 96, sales: 236, collects: 42, shares: 18, createdAt: '2026-09-08T15:56:57' },
-  { id: 'review-002', archiveId: 'archive-002', userId: 'u_demo_002', title: '山村教师王桂芬', author: '王建华', intro: '四十年讲台生涯，用知识点亮山村孩子的未来。', category: '教师', price: 9.9, isFree: false, status: 'approved', views: 860, likes: 54, sales: 45, collects: 12, shares: 8, createdAt: '2026-09-08T14:36:21' },
-  { id: 'review-003', archiveId: 'archive-003', userId: 'u_demo_003', title: '医者仁心：李华亭回忆录', author: '李文静', intro: '从赤脚医生到三甲医院专家，五十载悬壶济世的动人故事。', category: '医生', price: 19.9, isFree: false, status: 'pending', views: 0, likes: 0, sales: 0, collects: 6, shares: 0, createdAt: '2026-09-08T13:18:09' },
-  { id: 'review-004', archiveId: 'archive-004', userId: 'u_demo_004', title: '我的母亲周秀英', author: '周国强', intro: '一位普通农村母亲养育五个子女的艰辛与慈爱。', category: '家庭', price: 0, isFree: true, status: 'pending', views: 0, likes: 0, sales: 0, collects: 3, shares: 0, createdAt: '2026-09-08T11:42:10' },
-  { id: 'review-005', archiveId: 'archive-005', userId: 'u_demo_005', title: '铁血芳华：老兵陈建国', author: '陈志远', intro: '从战火纷飞到和平年代，一位老兵六十年不变的信仰与坚守。', category: '军人', price: 12.9, isFree: false, status: 'off_shelf', views: 1250, likes: 88, sales: 128, collects: 35, shares: 22, createdAt: '2026-09-08T10:21:32' },
-  { id: 'review-006', archiveId: 'archive-006', userId: 'u_demo_006', title: '匠心五十年：木匠徐长顺', author: '徐晓东', intro: '一把刨子、一根墨线，老木匠用双手量半个世纪的时光。', category: '工匠', price: 6.9, isFree: false, status: 'rejected', views: 0, likes: 0, sales: 0, collects: 2, shares: 0, createdAt: '2026-09-07T18:02:46' },
+  { id: 'review-001', archiveId: 'archive-001', userId: 'u_demo_001', title: '张明远：一位苏州企业家的六十年', author: '张立群', intro: '从苏州老巷走到创业舞台，记录一个普通中国家庭的奋斗与传承。', category: '企业家', price: 0, isFree: true, status: 'approved', views: 1820, likes: 96, sales: 236, collects: 42, createdAt: '2026-09-08T15:56:57' },
+  { id: 'review-002', archiveId: 'archive-002', userId: 'u_demo_002', title: '山村教师王桂芬', author: '王建华', intro: '四十年讲台生涯，用知识点亮山村孩子的未来。', category: '教师', price: 9.9, isFree: false, status: 'approved', views: 860, likes: 54, sales: 45, collects: 12, createdAt: '2026-09-08T14:36:21' },
+  { id: 'review-003', archiveId: 'archive-003', userId: 'u_demo_003', title: '医者仁心：李华亭回忆录', author: '李文静', intro: '从赤脚医生到三甲医院专家，五十载悬壶济世的动人故事。', category: '医生', price: 19.9, isFree: false, status: 'pending', views: 0, likes: 0, sales: 0, collects: 6, createdAt: '2026-09-08T13:18:09' },
+  { id: 'review-004', archiveId: 'archive-004', userId: 'u_demo_004', title: '我的母亲周秀英', author: '周国强', intro: '一位普通农村母亲养育五个子女的艰辛与慈爱。', category: '家庭', price: 0, isFree: true, status: 'pending', views: 0, likes: 0, sales: 0, collects: 3, createdAt: '2026-09-08T11:42:10' },
+  { id: 'review-005', archiveId: 'archive-005', userId: 'u_demo_005', title: '铁血芳华：老兵陈建国', author: '陈志远', intro: '从战火纷飞到和平年代，一位老兵六十年不变的信仰与坚守。', category: '军人', price: 12.9, isFree: false, status: 'off_shelf', views: 1250, likes: 88, sales: 128, collects: 35, createdAt: '2026-09-08T10:21:32' },
+  { id: 'review-006', archiveId: 'archive-006', userId: 'u_demo_006', title: '匠心五十年：木匠徐长顺', author: '徐晓东', intro: '一把刨子、一根墨线，老木匠用双手量半个世纪的时光。', category: '工匠', price: 6.9, isFree: false, status: 'rejected', views: 0, likes: 0, sales: 0, collects: 2, createdAt: '2026-09-07T18:02:46' },
 ];
 
 const mockReviewTimes: Record<string, string> = {

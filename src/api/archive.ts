@@ -8,5 +8,4 @@ export const archiveApi = {
   update: (id: string, data: Partial<Archive>) => api.put<Archive>(`/api/archives/${id}`, data),
   delete: (id: string) => api.delete<null>(`/api/archives/${id}`),
   questions: (id: string) => api.get('/api/archives/:id/questions'.replace(':id', id)),
-  types: () => api.get<{ value: string; label: string }[]>('/api/archive-types'),
 }

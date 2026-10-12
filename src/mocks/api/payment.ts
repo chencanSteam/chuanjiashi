@@ -48,7 +48,9 @@ export const paymentHandlers: HttpHandler[] = [
     }
     savePayment(payment)
 
-    order.status = 'paid'
+    // 数字商品（传记导出/二维码/纪念视频/数字人）无需物流交付，支付成功即完成；实体商品支付后进入已支付待发货
+    const DIGITAL_TYPES = ['biography', 'qrcode', 'video', 'digital_person']
+    order.status = DIGITAL_TYPES.includes(order.type) ? 'completed' : 'paid'
     order.payTime = payment.paidAt || new Date().toISOString()
     order.updatedAt = payment.paidAt || new Date().toISOString()
     saveOrder(order)

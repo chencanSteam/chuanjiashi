@@ -88,7 +88,6 @@ interface Archive {
   originDetail?: string;
   industry?: string;
   occupation: string;
-  tags?: string[];
   createdAt?: string;
 }
 
@@ -309,14 +308,10 @@ export default function Home() {
     setShowArchivePicker(false);
     navigate('/interview');
   };
-  const handleInterviewScenario = (scenario: 'new' | 'continue' | 'upload') => {
+  const handleInterviewScenario = (scenario: 'new' | 'continue') => {
     setShowInterviewScenarios(false);
     if (scenario === 'new') {
       navigate('/onboarding', { state: { flow: 'four-step', startStep: 2 } });
-      return;
-    }
-    if (scenario === 'upload') {
-      navigate('/onboarding', { state: { mode: 'upload' } });
       return;
     }
     handleStartInterview();

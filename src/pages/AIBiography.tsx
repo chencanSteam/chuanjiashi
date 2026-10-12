@@ -35,6 +35,7 @@ import Modal from '../components/ui/Modal';
 import { generateImageDataUrl, generateVideoPoster, generateAudioUrl } from '../utils/mediaPlaceholder';
 import { biographyChapterTitles, chapterMockContents, loadJson, saveJson, type ChapterData } from '../data/aiMock';
 import { loadConfirmedOutline } from '../utils/biographyOutline';
+import { loadImportedBiography } from '../utils/importedBiography';
 import { loadReviewStates } from '../utils/biographyWorkflow';
 import { htmlToText, splitSentences, replaceSentence } from '../utils/sentences';
 import {
@@ -99,6 +100,14 @@ function mockChapterHtml(title: string): string {
   return text.split(/\n{2,}/).map((p) => `<p>${p.trim()}</p>`).join('');
 }
 
+/** 档案存在「已有传记上传」素材时，生成内容末尾附参考说明（体现上传资料被 AI 使用） */
+function appendImportedRef(html: string, archiveId: string): string {
+  const imported = loadImportedBiography(archiveId);
+  if (!imported) return html;
+  const excerpt = imported.text.replace(/\s+/g, ' ').slice(0, 50);
+  return `${html}<p>【参考上传传记《${imported.fileName}》】本章结合上传资料整理：${excerpt}……</p>`;
+}
+
 /** 原型阶段的「AI 选中润色」：用词与句式层面的模拟改写（与传记润色页同一套规则） */
 const POLISH_RULES: Array<[RegExp, string]> = [
   [/然后/g, '此后'],
@@ -134,7 +143,7 @@ function initChapters(archiveId: string): ChapterData[] {
     materials: 5,
     status: 'generated' as const,
     updatedAt: now,
-    content: mockChapterHtml(title),
+    content: appendImportedRef(mockChapterHtml(title), archiveId),
   }));
 }
 
@@ -310,7 +319,7 @@ export default function AIBiography() {
           materials: 5,
           status: 'generated' as const,
           updatedAt: new Date().toLocaleString('zh-CN'),
-          content: mockChapterHtml(oc.title),
+          content: appendImportedRef(mockChapterHtml(oc.title), archiveId),
         }
       );
     });
@@ -324,6 +333,7 @@ export default function AIBiography() {
   const [activeVersionId, setActiveVersionId] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const archiveMediaItems = useMemo(() => loadArchiveMediaItems(archiveId), [archiveId]);
+  const importedBio = useMemo(() => loadImportedBiography(archiveId), [archiveId]);
   const [showImportModal, setShowImportModal] = useState(false);
   const [importText, setImportText] = useState('');
   const [importingFile, setImportingFile] = useState(false);
@@ -1188,12 +1198,28 @@ export default function AIBiography() {
               </span>
             </div>
             <div className="card-body settings-body">
-              {archiveMediaItems.length === 0 ? (
+              {archiveMediaItems.length === 0 && !importedBio ? (
                 <div className="material-empty">
                   暂无人生档案素材，上传后可作为本章生成参考
                 </div>
               ) : (
                 <div className="material-groups">
+                  {importedBio && (
+                    <div className="material-group">
+                      <div className="material-group-header">
+                        <span className="material-group-title">
+                          <FileText size={14} /> 上传传记
+                        </span>
+                        <span className="material-group-count">1</span>
+                      </div>
+                      <div className="material-group-list">
+                        <div className="material-item" title={importedBio.fileName}>
+                          <span className="material-item-name">{importedBio.fileName}</span>
+                          <span className="material-item-stage">已有传记上传 · {importedBio.updatedAt}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   {[
                     { type: 'image' as const, label: '照片', icon: Image },
                     { type: 'video' as const, label: '视频', icon: Video },

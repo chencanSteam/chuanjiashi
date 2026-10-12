@@ -1,8 +1,8 @@
 import { http, type HttpHandler } from 'msw'
 import { success, fail, unauthorized, notFound } from '../utils/response'
 import { getItem, setItem, storeKeys } from '../utils/store'
-import { defaultMediaReviewItems, defaultContentReports } from '../data/seed'
-import type { MediaReviewItem, ContentReport } from '../types'
+import { defaultMediaReviewItems } from '../data/seed'
+import type { MediaReviewItem } from '../types'
 
 function getCurrentUserId(): string | null {
   const user = getItem<{ id: string } | null>(storeKeys.currentUser, null)
@@ -16,15 +16,6 @@ function ensureMediaReviewItems(): MediaReviewItem[] {
     return defaultMediaReviewItems
   }
   return items
-}
-
-function ensureContentReports(): ContentReport[] {
-  const reports = getItem<ContentReport[]>(storeKeys.contentReports, [])
-  if (reports.length === 0) {
-    setItem(storeKeys.contentReports, defaultContentReports)
-    return defaultContentReports
-  }
-  return reports
 }
 
 export const contentReviewHandlers: HttpHandler[] = [
@@ -47,26 +38,5 @@ export const contentReviewHandlers: HttpHandler[] = [
     items[idx] = { ...items[idx], status }
     setItem(storeKeys.mediaReviewItems, items)
     return success(items[idx], status === 'approved' ? '素材已通过' : '素材已驳回')
-  }),
-
-  // 举报列表
-  http.get('/api/admin/content-review/reports', async () => {
-    const userId = getCurrentUserId()
-    if (!userId) return unauthorized()
-    return success(ensureContentReports())
-  }),
-
-  // 举报标记已处理
-  http.patch('/api/admin/content-review/reports/:id', async ({ params, request }) => {
-    const userId = getCurrentUserId()
-    if (!userId) return unauthorized()
-    const { status } = (await request.json()) as { status?: ContentReport['status'] }
-    if (status !== 'processed') return fail('状态错误')
-    const reports = ensureContentReports()
-    const idx = reports.findIndex((r) => r.id === params.id)
-    if (idx < 0) return notFound('举报记录不存在')
-    reports[idx] = { ...reports[idx], status }
-    setItem(storeKeys.contentReports, reports)
-    return success(reports[idx], '举报已处理')
   }),
 ]

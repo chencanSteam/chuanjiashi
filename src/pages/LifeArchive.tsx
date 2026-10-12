@@ -37,8 +37,6 @@ import { generateImageDataUrl, generateVideoPoster, generateAudioUrl } from '../
 import LocationFootprints from './LocationFootprints';
 import Achievements from './Achievements';
 import { buildRelationNodes, relationTypeOptions, type RelationNode } from '../utils/familyRelations';
-import { regions } from '../data/regions';
-import { industryOptions, industryOccupations } from '../data/occupations';
 import { familyApi } from '../api/family';
 import {
   findAccountByPhoneOrIdCard,
@@ -60,15 +58,15 @@ const tabs = [
   { key: 'privacy', label: '隐私与权限' },
 ];
 
-const eventDetails: Record<string, { title: string; subtitle: string; content: string; tags: string[] }> = {
-  '1958': { title: '出生', subtitle: '出生于江苏苏州', content: '1958年3月12日，张明远出生于江苏苏州一个普通的教师家庭。童年的苏州小巷、评弹声与父亲的教诲，构成了他最早的记忆底色。', tags: ['出生', '苏州', '童年'] },
-  '1970': { title: '求学', subtitle: '苏州市立实验小学', content: '在苏州市立实验小学，张明远养成了良好的学习习惯。班主任王老师的影响深远，让他明白了知识改变命运的道理。', tags: ['小学', '求学', '启蒙'] },
-  '1976': { title: '求学', subtitle: '苏州市中学', content: '中学时期，张明远对机械产生了浓厚兴趣，常常拆卸家中闹钟和收音机。这段经历为他后来的职业选择埋下了种子。', tags: ['中学', '机械', '兴趣'] },
-  '1980': { title: '婚姻', subtitle: '组建家庭', content: '1980年，张明远与相恋多年的李晓如结婚。两人在简朴的婚礼中许下承诺，携手走过了四十余年的风风雨雨。', tags: ['婚姻', '家庭', '责任'] },
-  '1988': { title: '工作', subtitle: '进入机械行业', content: '从苏州大学机械工程专业毕业后，张明远进入一家国营机械厂工作。他踏实肯干，很快成为技术骨干，积累了丰富的行业经验。', tags: ['职业', '机械', '成长'] },
-  '1992': { title: '创业', subtitle: '创立明远机械有限公司', content: '在国家改革开放的浪潮中，辞去稳定的工作，与两位合作伙伴共同创立明远机械有限公司，专注于精密零部件加工与设备研发。创业初期条件艰苦，但团队齐心协力，逐步打开市场，产品远销海外，为公司奠定了坚实基础。', tags: ['创业初心', '精密制造', '团队协作', '创新突破'] },
-  '2020': { title: '退休', subtitle: '享受生活', content: '2020年，张明远正式退休，将公司交给年轻一代打理。他开始有更多时间陪伴家人、整理人生档案，并思考家风传承。', tags: ['退休', '传承', '家庭'] },
-  '2024': { title: '当下', subtitle: '持续学习，传承家风', content: '如今，张明远坚持每日读书、练字，并通过「传家世」平台记录人生故事。他希望把正直、担当、勤俭、善良的家风传递给子孙后代。', tags: ['当下', '家风', '传承'] },
+const eventDetails: Record<string, { title: string; content: string }> = {
+  '1958': { title: '出生', content: '1958年3月12日，张明远出生于江苏苏州一个普通的教师家庭。童年的苏州小巷、评弹声与父亲的教诲，构成了他最早的记忆底色。' },
+  '1970': { title: '求学', content: '在苏州市立实验小学，张明远养成了良好的学习习惯。班主任王老师的影响深远，让他明白了知识改变命运的道理。' },
+  '1976': { title: '求学', content: '中学时期，张明远对机械产生了浓厚兴趣，常常拆卸家中闹钟和收音机。这段经历为他后来的职业选择埋下了种子。' },
+  '1980': { title: '婚姻', content: '1980年，张明远与相恋多年的李晓如结婚。两人在简朴的婚礼中许下承诺，携手走过了四十余年的风风雨雨。' },
+  '1988': { title: '工作', content: '从苏州大学机械工程专业毕业后，张明远进入一家国营机械厂工作。他踏实肯干，很快成为技术骨干，积累了丰富的行业经验。' },
+  '1992': { title: '创业', content: '在国家改革开放的浪潮中，辞去稳定的工作，与两位合作伙伴共同创立明远机械有限公司，专注于精密零部件加工与设备研发。创业初期条件艰苦，但团队齐心协力，逐步打开市场，产品远销海外，为公司奠定了坚实基础。' },
+  '2020': { title: '退休', content: '2020年，张明远正式退休，将公司交给年轻一代打理。他开始有更多时间陪伴家人、整理人生档案，并思考家风传承。' },
+  '2024': { title: '当下', content: '如今，张明远坚持每日读书、练字，并通过「传家世」平台记录人生故事。他希望把正直、担当、勤俭、善良的家风传递给子孙后代。' },
 };
 
 interface Archive {
@@ -84,13 +82,6 @@ interface Archive {
   /** 所属行业 */
   industry?: string;
   occupation: string;
-  tags?: string[];
-}
-
-interface TagItem {
-  label: string;
-  color: string;
-  bg: string;
 }
 
 interface StoredTimelineEvent {
@@ -101,7 +92,6 @@ interface StoredTimelineEvent {
   icon?: string;
   color?: string;
   bg?: string;
-  tags?: TagItem[];
 }
 
 interface TimelineEvent {
@@ -113,13 +103,9 @@ interface TimelineEvent {
   iconName: string;
   color: string;
   bg: string;
-  tags: TagItem[];
 }
 
 const DEFAULT_ARCHIVE_ID = 'default';
-// 出生日期下拉的年份范围：1900 至今
-const currentYear = new Date().getFullYear();
-const birthYearOptions = Array.from({ length: currentYear - 1900 + 1 }, (_, i) => String(currentYear - i));
 const DEFAULT_ARCHIVE: Archive = {
   id: DEFAULT_ARCHIVE_ID,
   name: '张明远',
@@ -277,7 +263,6 @@ function enrichEvents(list: StoredTimelineEvent[]): TimelineEvent[] {
       iconName,
       color: e.color ?? '#6b7280',
       bg: e.bg ?? '#f3f4f6',
-      tags: e.tags ?? [],
     };
   });
 }
@@ -304,18 +289,6 @@ function resolveCurrentArchiveId(archives: Archive[]): string {
 
 function loadEventsForArchive(archiveId: string): TimelineEvent[] {
   return enrichEvents(loadStoredEventsForArchive(archiveId));
-}
-
-function loadTagsForArchive(archiveId: string): Record<string, string[]> {
-  try {
-    const raw = localStorage.getItem(`cj_event_tags_${archiveId}`);
-    if (raw) return JSON.parse(raw);
-  } catch {
-    // ignore
-  }
-  return archiveId === DEFAULT_ARCHIVE_ID
-    ? Object.fromEntries(Object.entries(eventDetails).map(([year, d]) => [year, d.tags]))
-    : {};
 }
 
 function loadPrivacyValues(): Record<string, string> {
@@ -355,7 +328,7 @@ function getSavedDetail(year: string, archiveId: string) {
   const raw = localStorage.getItem(`event-${archiveId}-${year}`);
   if (!raw) return null;
   try {
-    return JSON.parse(raw) as { title: string; subtitle: string; content: string; tags: string[] };
+    return JSON.parse(raw) as { title: string; content: string };
   } catch {
     return null;
   }
@@ -369,7 +342,6 @@ export default function LifeArchive() {
   const initialArchives = loadArchives();
   const initialArchiveId = resolveCurrentArchiveId(initialArchives);
   const initialEvents = loadEventsForArchive(initialArchiveId);
-  const initialTags = loadTagsForArchive(initialArchiveId);
   const initialSelectedYear = initialEvents.some((e) => e.year === '1992')
     ? '1992'
     : initialEvents[0]?.year ?? '';
@@ -403,7 +375,6 @@ export default function LifeArchive() {
           setCurrentArchiveId(first.id);
           localStorage.setItem('cj_current_archive_id', first.id);
           setEvents(loadEventsForArchive(first.id));
-          setEventTags(loadTagsForArchive(first.id));
           setMembers(loadMembers(first.id));
           setMediaItems(loadMediaItems(first.id));
         }
@@ -413,7 +384,6 @@ export default function LifeArchive() {
       })
       .finally(() => {});
   }, []);
-  const [eventTags, setEventTags] = useState<Record<string, string[]>>(initialTags);
   const [privacyValues, setPrivacyValues] = useState<Record<string, string>>(loadPrivacyValues);
   const [mediaItems, setMediaItems] = useState<MediaItem[]>(() => loadMediaItems(currentArchiveId));
 
@@ -438,19 +408,6 @@ export default function LifeArchive() {
   const [newEventEndYear, setNewEventEndYear] = useState('');
   const [newEventTitle, setNewEventTitle] = useState('');
   const [newEventDesc, setNewEventDesc] = useState('');
-
-  const [showNewArchive, setShowNewArchive] = useState(false);
-  const [newName, setNewName] = useState('');
-  const [newGender, setNewGender] = useState<'男' | '女'>('男');
-  const [newBirthYear, setNewBirthYear] = useState('');
-  const [newBirthMonth, setNewBirthMonth] = useState('');
-  const [newBirthDay, setNewBirthDay] = useState('');
-  const [newOriginProvince, setNewOriginProvince] = useState('');
-  const [newOriginCity, setNewOriginCity] = useState('');
-  const [newOriginDistrict, setNewOriginDistrict] = useState('');
-  const [newOriginDetail, setNewOriginDetail] = useState('');
-  const [newIndustry, setNewIndustry] = useState('');
-  const [newOccupation, setNewOccupation] = useState('');
 
   const initialMembers = loadMembers(initialArchiveId);
   const [members, setMembers] = useState<Member[]>(initialMembers);
@@ -506,7 +463,6 @@ export default function LifeArchive() {
       icon: e.iconName,
       color: e.color,
       bg: e.bg,
-      tags: e.tags,
     }));
     localStorage.setItem(`cj_events_${archiveId}`, JSON.stringify(stored));
   };
@@ -516,7 +472,6 @@ export default function LifeArchive() {
     localStorage.setItem('cj_current_archive_id', id);
     const nextEvents = loadEventsForArchive(id);
     setEvents(nextEvents);
-    setEventTags(loadTagsForArchive(id));
     setMembers(loadMembers(id));
     setMediaItems(loadMediaItems(id));
     setShowInvite(false);
@@ -534,7 +489,7 @@ export default function LifeArchive() {
 
     const nextArchives = archives.filter((archive) => archive.id !== currentArchiveId);
     localStorage.setItem('cj_archives', JSON.stringify(nextArchives));
-    ['cj_events_', 'cj_event_tags_', 'cj_members_', 'cj_media_'].forEach((prefix) => {
+    ['cj_events_', 'cj_members_', 'cj_media_'].forEach((prefix) => {
       localStorage.removeItem(`${prefix}${currentArchiveId}`);
     });
 
@@ -544,62 +499,6 @@ export default function LifeArchive() {
     localStorage.setItem('cj_current_archive_id', nextArchive.id);
     handleSwitchArchive(nextArchive.id);
     addToast('人生档案已删除', 'success');
-  };
-
-  const handleCreateArchive = () => {
-    const name = newName.trim();
-    if (!name) {
-      addToast('请输入姓名', 'error');
-      return;
-    }
-    if (!newOriginProvince || !newOriginCity || !newOriginDistrict) {
-      addToast('请选择完整的籍贯（省 / 市 / 区）', 'error');
-      return;
-    }
-    const birthParts = [newBirthYear, newBirthMonth, newBirthDay];
-    if (birthParts.some(Boolean) && !birthParts.every(Boolean)) {
-      addToast('请完整选择出生日期（年 / 月 / 日）', 'error');
-      return;
-    }
-    const archive: Archive = {
-      id: Date.now().toString(),
-      name,
-      gender: newGender,
-      birthYear: newBirthYear,
-      birthDate: newBirthYear ? `${newBirthYear}-${newBirthMonth}-${newBirthDay}` : undefined,
-      origin: `${newOriginProvince}${newOriginCity}${newOriginDistrict}`,
-      originDetail: newOriginDetail.trim() || undefined,
-      industry: newIndustry || undefined,
-      occupation: newOccupation,
-    };
-    const nextArchives = [...archives, archive];
-    setArchives(nextArchives);
-    localStorage.setItem('cj_archives', JSON.stringify(nextArchives));
-
-    setCurrentArchiveId(archive.id);
-    localStorage.setItem('cj_current_archive_id', archive.id);
-    setEvents([]);
-    localStorage.setItem(`cj_events_${archive.id}`, JSON.stringify([]));
-    setEventTags({});
-    localStorage.setItem(`cj_event_tags_${archive.id}`, JSON.stringify({}));
-    setMembers([]);
-    localStorage.setItem(`cj_members_${archive.id}`, JSON.stringify([]));
-    setMediaItems([]);
-    setSelectedYear('');
-
-    setNewName('');
-    setNewGender('男');
-    setNewBirthYear('');
-    setNewBirthMonth('');
-    setNewBirthDay('');
-    setNewOriginProvince('');
-    setNewOriginCity('');
-    setNewOriginDistrict('');
-    setNewOriginDetail('');
-    setNewIndustry('');
-    setNewOccupation('');
-    setShowNewArchive(false);
-    addToast('档案已创建', 'success');
   };
 
   const openUploadModal = () => {
@@ -685,14 +584,13 @@ export default function LifeArchive() {
       iconName: 'Star',
       color: '#6b7280',
       bg: '#f3f4f6',
-      tags: [],
     };
     const next = [...events, newEvent];
     setEvents(next);
     saveEvents(currentArchiveId, next);
     localStorage.setItem(
       `event-${currentArchiveId}-${year}`,
-      JSON.stringify({ title, subtitle: title, content: desc, tags: [] })
+      JSON.stringify({ title, content: desc })
     );
     setSelectedYear(year);
     setNewEventYear('');
@@ -803,9 +701,7 @@ export default function LifeArchive() {
   const baseDetail = selectedYear ? eventDetails[selectedYear] : undefined;
   const selectedDetail = {
     title: savedDetail?.title ?? baseDetail?.title ?? selectedEvent?.title ?? '-',
-    subtitle: savedDetail?.subtitle ?? baseDetail?.subtitle ?? selectedEvent?.desc ?? '',
     content: savedDetail?.content ?? baseDetail?.content ?? selectedEvent?.desc ?? '暂无事件描述',
-    tags: selectedYear ? eventTags[selectedYear] ?? savedDetail?.tags ?? baseDetail?.tags ?? [] : [],
   };
 
   return (
@@ -825,13 +721,6 @@ export default function LifeArchive() {
             </select>
           </div>
           <button
-            className="btn btn-primary"
-            onClick={() => setShowNewArchive(true)}
-            disabled={!canManageArchives}
-          >
-            <Plus size={14} /> 新建档案
-          </button>
-          <button
             className="archive-delete-btn"
             type="button"
             onClick={handleDeleteArchive}
@@ -843,118 +732,6 @@ export default function LifeArchive() {
         </div>
         </Annotate>
       </header>
-
-      {showNewArchive && (
-        <Annotate id="life-archive.new-archive">
-        <div className="card new-archive-card">
-          <div className="card-header">
-            <h3 className="card-title">新建档案</h3>
-            <button className="icon-btn" onClick={() => setShowNewArchive(false)}>
-              <X size={16} />
-            </button>
-          </div>
-          <div className="card-body new-archive-body">
-            <div className="form-row">
-              <label>姓名</label>
-              <input
-                type="text"
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                placeholder="请输入姓名"
-              />
-            </div>
-            <div className="form-row">
-              <label>性别</label>
-              <select value={newGender} onChange={(e) => setNewGender(e.target.value as '男' | '女')}>
-                <option value="男">男</option>
-                <option value="女">女</option>
-              </select>
-            </div>
-            <div className="form-row">
-              <label>出生日期</label>
-              <div className="date-select-row">
-                <select value={newBirthYear} onChange={(e) => { setNewBirthYear(e.target.value); setNewBirthDay((d) => d); }}>
-                  <option value="">年</option>
-                  {birthYearOptions.map((y) => (
-                    <option value={y} key={y}>{y} 年</option>
-                  ))}
-                </select>
-                <select value={newBirthMonth} onChange={(e) => setNewBirthMonth(e.target.value)}>
-                  <option value="">月</option>
-                  {Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0')).map((m) => (
-                    <option value={m} key={m}>{Number(m)} 月</option>
-                  ))}
-                </select>
-                <select value={newBirthDay} onChange={(e) => setNewBirthDay(e.target.value)}>
-                  <option value="">日</option>
-                  {Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, '0')).map((d) => (
-                    <option value={d} key={d}>{Number(d)} 日</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            <div className="form-row">
-              <label>籍贯 <span style={{ color: '#dc2626' }}>*</span></label>
-              <div className="date-select-row">
-                <select value={newOriginProvince} onChange={(e) => { setNewOriginProvince(e.target.value); setNewOriginCity(''); setNewOriginDistrict(''); }}>
-                  <option value="">省份</option>
-                  {regions.map((p) => (
-                    <option value={p.name} key={p.name}>{p.name}</option>
-                  ))}
-                </select>
-                <select value={newOriginCity} onChange={(e) => { setNewOriginCity(e.target.value); setNewOriginDistrict(''); }} disabled={!newOriginProvince}>
-                  <option value="">城市</option>
-                  {(regions.find((p) => p.name === newOriginProvince)?.cities || []).map((c) => (
-                    <option value={c.name} key={c.name}>{c.name}</option>
-                  ))}
-                </select>
-                <select value={newOriginDistrict} onChange={(e) => setNewOriginDistrict(e.target.value)} disabled={!newOriginCity}>
-                  <option value="">区/县</option>
-                  {(regions.find((p) => p.name === newOriginProvince)?.cities.find((c) => c.name === newOriginCity)?.districts || []).map((d) => (
-                    <option value={d} key={d}>{d}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            <div className="form-row">
-              <label>详细地址</label>
-              <input
-                type="text"
-                value={newOriginDetail}
-                onChange={(e) => setNewOriginDetail(e.target.value)}
-                placeholder="选填，如 平江路 12 号"
-              />
-            </div>
-            <div className="form-row">
-              <label>行业</label>
-              <select value={newIndustry} onChange={(e) => { setNewIndustry(e.target.value); setNewOccupation(''); }}>
-                <option value="">请选择行业</option>
-                {industryOptions.map((i) => (
-                  <option value={i} key={i}>{i}</option>
-                ))}
-              </select>
-            </div>
-            <div className="form-row">
-              <label>职业</label>
-              <select value={newOccupation} onChange={(e) => setNewOccupation(e.target.value)} disabled={!newIndustry}>
-                <option value="">{newIndustry ? '请选择职业' : '请先选择行业'}</option>
-                {(industryOccupations[newIndustry] || []).map((o) => (
-                  <option value={o} key={o}>{o}</option>
-                ))}
-              </select>
-            </div>
-            <div className="form-actions">
-              <button className="btn btn-outline" onClick={() => setShowNewArchive(false)}>
-                取消
-              </button>
-              <button className="btn btn-primary" onClick={handleCreateArchive}>
-                创建
-              </button>
-            </div>
-          </div>
-        </div>
-        </Annotate>
-      )}
 
       <div className="tabs">
         {tabs.filter((t) => !isV1 || t.key !== 'privacy').map((t) => (
@@ -1107,7 +884,6 @@ export default function LifeArchive() {
                       <div className="event-detail-year">{formatYearRange(selectedYear, selectedEvent?.endYear)}年</div>
                       <div className="event-detail-title">{selectedDetail.title}</div>
                     </div>
-                    <div className="event-detail-subtitle">{selectedDetail.subtitle}</div>
                   </div>
                   <p className="event-detail-content">{selectedDetail.content}</p>
                   {(() => {
@@ -1560,14 +1336,6 @@ export default function LifeArchive() {
                   </div>
                   <div className="profile-meta">出生地：{currentArchive.origin || '-'}</div>
                   <div className="profile-meta">职业：{currentArchive.occupation || '-'}</div>
-                  <div className="profile-meta">当前阶段：享受生活，传承家风</div>
-                  {currentArchive.tags && currentArchive.tags.length > 0 && (
-                    <div className="profile-tags">
-                      {currentArchive.tags.map((tag) => (
-                        <span className="profile-tag" key={tag}>{tag}</span>
-                      ))}
-                    </div>
-                  )}
                 </div>
               </div>
               <div className="activity-section">

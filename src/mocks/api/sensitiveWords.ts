@@ -1,12 +1,11 @@
 import { http, type HttpHandler } from 'msw'
 import { success, fail, unauthorized, notFound } from '../utils/response'
 import { generateId, getItem, setItem, storeKeys } from '../utils/store'
-import { defaultSensitiveWords, defaultSensitiveHits } from '../data/seed'
+import { defaultSensitiveWords } from '../data/seed'
 import type {
   SensitiveWord,
   SensitiveWordAction,
   SensitiveWordCategory,
-  SensitiveHit,
 } from '../types'
 
 function getCurrentUserId(): string | null {
@@ -21,15 +20,6 @@ function ensureSensitiveWords(): SensitiveWord[] {
     return defaultSensitiveWords
   }
   return words
-}
-
-function ensureSensitiveHits(): SensitiveHit[] {
-  const hits = getItem<SensitiveHit[]>(storeKeys.sensitiveHits, [])
-  if (hits.length === 0) {
-    setItem(storeKeys.sensitiveHits, defaultSensitiveHits)
-    return defaultSensitiveHits
-  }
-  return hits
 }
 
 const CATEGORY_SET: SensitiveWordCategory[] = ['politics', 'porn', 'violence', 'ads', 'abuse', 'custom']
@@ -143,26 +133,5 @@ export const sensitiveWordsHandlers: HttpHandler[] = [
     list.splice(idx, 1)
     setItem(storeKeys.sensitiveWords, list)
     return success(null, '敏感词已删除')
-  }),
-
-  // 命中记录列表
-  http.get('/api/admin/sensitive-hits', async () => {
-    const userId = getCurrentUserId()
-    if (!userId) return unauthorized()
-    return success(ensureSensitiveHits())
-  }),
-
-  // 命中复核处置（放行/拦截）
-  http.patch('/api/admin/sensitive-hits/:id', async ({ params, request }) => {
-    const userId = getCurrentUserId()
-    if (!userId) return unauthorized()
-    const { status } = (await request.json()) as { status?: SensitiveHit['status'] }
-    if (status !== 'blocked' && status !== 'released') return fail('状态错误')
-    const hits = ensureSensitiveHits()
-    const idx = hits.findIndex((h) => h.id === params.id)
-    if (idx < 0) return notFound('命中记录不存在')
-    hits[idx] = { ...hits[idx], status, processorId: userId, processedAt: new Date().toISOString() }
-    setItem(storeKeys.sensitiveHits, hits)
-    return success(hits[idx], status === 'blocked' ? '已拦截' : '已放行')
   }),
 ]

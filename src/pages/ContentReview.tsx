@@ -54,25 +54,25 @@ const orderTypeLabels: Record<AdminOrder['type'], string> = {
 const REFUND_DEMO_ORDERS: AdminOrder[] = [
   {
     id: 'ord_demo_006', userId: 'u_demo_006', userName: '刘先生', userPhone: '134****8006',
-    type: 'biography', productId: 'download_default', productName: '家族传记 · 下载 PDF', amount: 9.9, quantity: 1,
+    type: 'biography', productId: 'download_default', productName: '家族传记 · 下载 PDF', amount: 9.9,
     status: 'refunded', payTime: '2026-09-06T13:10:00', createdAt: '2026-09-06T13:08:00', updatedAt: '2026-09-06T15:00:00',
     refundRequest: { reason: '不需要该商品', reasonOptionLabel: '不需要该商品', status: 'completed', createdAt: '2026-09-06T14:20:00', processedAt: '2026-09-06T15:00:00' },
   },
   {
     id: 'ord_demo_007', userId: 'u_demo_007', userName: '周女士', userPhone: '133****8007',
-    type: 'book', productId: 'publish_default', productName: '家庭传记 · 实体书精装版', amount: 288, quantity: 1,
+    type: 'book', productId: 'publish_default', productName: '家庭传记 · 实体书精装版', amount: 288,
     status: 'paid', payTime: '2026-09-07T10:15:00', createdAt: '2026-09-07T10:12:00', updatedAt: '2026-09-07T11:00:00',
     refundRequest: { reason: '商品与描述不符', reasonOptionLabel: '商品与描述不符', customReason: '希望更换装帧版本', status: 'pending', createdAt: '2026-09-07T11:00:00' },
   },
   {
     id: 'ord_demo_008', userId: 'u_demo_008', userName: '王先生', userPhone: '132****8008',
-    type: 'qrcode', productId: 'qrcode_default', productName: '张明远的传记 · 生成二维码', amount: 19.9, quantity: 1,
+    type: 'qrcode', productId: 'qrcode_default', productName: '张明远的传记 · 生成二维码', amount: 19.9,
     status: 'paid', payTime: '2026-09-08T09:30:00', createdAt: '2026-09-08T09:28:00', updatedAt: '2026-09-08T10:00:00',
     refundRequest: { reason: '重复购买', reasonOptionLabel: '重复购买', status: 'pending', createdAt: '2026-09-08T10:00:00' },
   },
   {
     id: 'ord_demo_009', userId: 'u_demo_009', userName: '陈女士', userPhone: '131****8009',
-    type: 'biographer_service', productId: 'bio_service_001', productName: '传记师深度采访服务', amount: 1999, quantity: 1,
+    type: 'biographer_service', productId: 'bio_service_001', productName: '传记师深度采访服务', amount: 1999,
     status: 'paid', payTime: '2026-09-05T15:40:00', createdAt: '2026-09-05T15:35:00', updatedAt: '2026-09-06T09:00:00',
     refundRequest: { reason: '暂时无法安排时间', reasonOptionLabel: '暂时无法安排时间', status: 'rejected', rejectionReason: '服务已进入排期，暂不支持直接退款', createdAt: '2026-09-06T09:00:00', processedAt: '2026-09-06T11:20:00' },
   },

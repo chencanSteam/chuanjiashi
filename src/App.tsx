@@ -81,7 +81,6 @@ const MemorialDetail = lazy(() => import('./pages/MemorialDetail'));
 const ArchiveMedia = lazy(() => import('./pages/ArchiveMedia'));
 const EventEdit = lazy(() => import('./pages/EventEdit'));
 const ArchivePlaces = lazy(() => import('./pages/ArchivePlaces'));
-const ArchiveSubPage = lazy(() => import('./pages/ArchiveSubPage'));
 const GenealogyTable = lazy(() => import('./pages/GenealogyTable'));
 const GenealogyDocuments = lazy(() => import('./pages/GenealogyDocuments'));
 const HallProjectDetail = lazy(() => import('./pages/HallProjectDetail'));
@@ -322,7 +321,6 @@ function App() {
                 <Route path="archive/media" element={<ArchiveMedia />} />
                 <Route path="archive/event/:year/edit" element={<EventEdit />} />
                 <Route path="archive/places" element={<ArchivePlaces />} />
-                <Route path="archive/:section" element={<ArchiveSubPage />} />
                 <Route path="genealogy/table" element={<V1Redirect><GenealogyTable /></V1Redirect>} />
                 <Route path="genealogy/documents" element={<V1Redirect><GenealogyDocuments /></V1Redirect>} />
                 <Route path="family-hall/project/:name" element={<V1Redirect><HallProjectDetail /></V1Redirect>} />
