@@ -1,0 +1,12 @@
+.order-service-view.bs-orders-detail-only { display: contents; }
+.order-service-view .bs-search { display: flex; align-items: center; gap: 8px; background: var(--bg-secondary); border: 1px solid var(--border-light); border-radius: 8px; padding: 0 12px; min-width: 240px; color: var(--text-muted); }
+.order-service-view .bs-search input { flex: 1; border: none; background: transparent; padding: 8px 0; font-size: 14px; outline: none; color: var(--text); min-width: 0; }
+.order-service-view .bs-filters select { padding: 8px 12px; border: 1px solid var(--border-light); border-radius: 8px; background: var(--card-bg); font-size: 14px; color: var(--text); outline: none; }
+.order-service-view .bs-pagination { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-light); }
+.order-service-view .bs-pagination-total { font-size: 13px; color: var(--text-secondary); }
+.order-service-view .bs-pagination-pages { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.order-service-view .bs-page-btn { border: 1px solid var(--border-light); background: var(--card-bg); color: var(--text-secondary); border-radius: 6px; padding: 6px 12px; font: inherit; font-size: 13px; cursor: pointer; }
+.order-service-view .bs-page-btn:hover:not(:disabled) { border-color: var(--primary); color: var(--primary); }
+.order-service-view .bs-page-btn.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+.order-service-view .bs-page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.order-service-view .bs-page-gap { color: var(--text-muted); padding: 0 2px; }
