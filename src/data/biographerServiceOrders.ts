@@ -1,6 +1,7 @@
 import type { Biographer, BiographerBookingForm, BiographerService } from '../mocks/types';
-import { defaultBiographers, defaultBiographerSettlements } from '../mocks/data/seed';
-export const SERVICE_ORDER_KEY = 'cj_biographer_service_orders_v1';
+import { defaultBiographers } from '../mocks/data/seed';
+import { getPlatformFeeRate } from './adminDictionary';
+export const SERVICE_ORDER_KEY = 'cj_biographer_service_orders_v2';
 export const SERVICE_ORDER_EVENT = 'cj-service-orders-updated';
 export type ServiceRole = 'customer' | 'biographer' | 'admin';
 export type ServiceStatus = 'pending_accept' | 'pending_pay' | 'working' | 'completed' | 'closed' | 'refunded';
@@ -19,9 +20,11 @@ export interface ServiceOrder {
 }
 export const money = (value: number) => `¥${value.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
+let seedingDemoServiceOrders = false;
+
 /** 首次打开时注入演示订单：待接单 / 服务中 / 已完成各一笔，便于演示接单-交付-验收-结算全流程 */
 function seedDemoServiceOrders() {
-  // 先写入空数组占位，避免 createServiceOrder 内部读存储时递归触发播种
+  // 初始化期间的内部读取由 seedingDemoServiceOrders 阻止再次播种
   localStorage.setItem(SERVICE_ORDER_KEY, '[]');
   const biographer = defaultBiographers.find((item) => item.id === 'bio_001');
   if (!biographer) return;
@@ -76,6 +79,60 @@ function seedDemoServiceOrders() {
     text: '终稿说明：全文十二章共 3.2 万字已定稿，增补老照片说明与家谱附录，实体书排版文件同步交付，可直接安排印刷。',
   });
   updateServiceOrder(completed.id, 'approve', asCustomer, { stageIndex: 3 });
+
+  // 追加演示订单：覆盖待接单 / 待付款 / 服务中各阶段 / 已完成 / 已关闭 / 已退款，分布在多位传记师与客户之间
+  const asAdmin = { role: 'admin' as ServiceRole, phone: '' };
+  const [b1, b2, b3, b4] = ['bio_001', 'bio_002', 'bio_003', 'bio_004'].map(id => defaultBiographers.find(item => item.id === id) || biographer);
+  // 推进到「已验收 acceptedStages 个阶段」，deliverNext 再提交下一阶段待验收，reviseNext 再补一条修改意见；正文留空时使用内置演示内容
+  const work = (id: string, bioPhone: string, custPhone: string, acceptedStages: number, deliverNext = false, reviseNext = false) => {
+    const asBio = { role: 'biographer' as ServiceRole, phone: bioPhone };
+    const asCust = { role: 'customer' as ServiceRole, phone: custPhone };
+    updateServiceOrder(id, 'accept', asBio); updateServiceOrder(id, 'pay', asCust);
+    for (let index = 0; index < acceptedStages; index += 1) { updateServiceOrder(id, 'deliver', asBio, { stageIndex: index }); updateServiceOrder(id, 'approve', asCust, { stageIndex: index }); }
+    if (deliverNext) updateServiceOrder(id, 'deliver', asBio, { stageIndex: acceptedStages });
+    if (reviseNext) updateServiceOrder(id, 'revise', asCust, { stageIndex: acceptedStages });
+  };
+  const book = (target: Biographer, serviceIndex: number, user: { phone: string; name: string }, interviewee: string, relation: string, remark = '') =>
+    createServiceOrder(target, target.services[serviceIndex % target.services.length], { interviewee, relation, preferredTime: '周末或工作日晚间', location: '线上视频访谈', contactPhone: user.phone, remark }, user);
+
+  // 待接单 ×3
+  book(b2, 0, { phone: '13800138101', name: '刘淑华' }, '母亲王桂香', '母女', '想给母亲七十大寿准备一本回忆录。');
+  book(b3, 1, { phone: '13800138102', name: '陈志远' }, '陈志远', '本人', '退休后想系统整理自己的创业经历。');
+  book(b1, 0, customer, '祖父张德海', '祖孙', '家里还保存着祖父的老照片和信件。');
+  // 待付款 ×3
+  const pay1 = book(b4, 1, { phone: '13800138103', name: '林晓东' }, '父亲林建国', '父子', '父亲是老党员，想记录他的工作生涯。');
+  updateServiceOrder(pay1.id, 'accept', { role: 'biographer', phone: b4.phone });
+  const pay2 = book(b2, 1, { phone: '13800138104', name: '赵婉婷' }, '外婆周彩云', '祖孙');
+  updateServiceOrder(pay2.id, 'accept', { role: 'biographer', phone: b2.phone });
+  const pay3 = book(b3, 0, customer, '张明远', '本人', '想为家族企业留一份完整的创业史。');
+  updateServiceOrder(pay3.id, 'accept', { role: 'biographer', phone: b3.phone });
+  // 服务中 · 各阶段进度 ×7
+  work(book(b4, 0, { phone: '13800138105', name: '孙建军' }, '父亲孙长顺', '父子').id, b4.phone, '13800138105', 0);
+  work(book(b2, 0, { phone: '13800138106', name: '周雅芳' }, '周雅芳', '本人', '想记录自己作为乡村教师的三十年。').id, b2.phone, '13800138106', 0, true);
+  work(book(b1, 1, { phone: '13800138107', name: '吴国栋' }, '父亲吴天祥', '父子').id, b1.phone, '13800138107', 1, true);
+  work(book(b3, 1, { phone: '13800138108', name: '郑立新' }, '郑立新', '本人').id, b3.phone, '13800138108', 1, true, true);
+  work(book(b4, 1, { phone: '13800138109', name: '冯丽娟' }, '母亲陈玉芬', '母女').id, b4.phone, '13800138109', 2, true);
+  work(book(b2, 1, { phone: '13800138110', name: '蒋鹏飞' }, '祖父蒋寿山', '祖孙').id, b2.phone, '13800138110', 3, true);
+  const settleDemo = book(b1, 2, { phone: '13800138111', name: '沈慧敏' }, '沈慧敏', '本人', '希望突出女性在职场打拼的经历。');
+  work(settleDemo.id, b1.phone, '13800138111', 2);
+  updateServiceOrder(settleDemo.id, 'settle', asAdmin, { stageIndex: 1 });
+  // 已完成 ×3（其中一单三个结算阶段全部结清，便于演示结算视图）
+  const doneAll = book(b3, 0, { phone: '13800138112', name: '韩春燕' }, '父亲韩守仁', '父女');
+  work(doneAll.id, b3.phone, '13800138112', 4);
+  [1, 2, 3].forEach(stageIndex => updateServiceOrder(doneAll.id, 'settle', asAdmin, { stageIndex }));
+  work(book(b4, 0, { phone: '13800138113', name: '曹志明' }, '曹志明', '本人').id, b4.phone, '13800138113', 4);
+  work(book(b1, 0, customer, '外婆李翠花', '祖孙').id, b1.phone, customer.phone, 4);
+  // 已关闭 ×2（传记师无法承接 / 客户取消）
+  const declined = book(b2, 0, { phone: '13800138114', name: '谢天佑' }, '父亲谢广坤', '父子');
+  updateServiceOrder(declined.id, 'decline', { role: 'biographer', phone: b2.phone });
+  const cancelled = book(b3, 1, { phone: '13800138115', name: '董雅静' }, '母亲董秀珍', '母女');
+  updateServiceOrder(cancelled.id, 'accept', { role: 'biographer', phone: b3.phone });
+  updateServiceOrder(cancelled.id, 'cancel', { role: 'customer', phone: '13800138115' });
+  // 已退款结束 ×1
+  const refunded = book(b1, 1, { phone: '13800138116', name: '邓建华' }, '邓建华', '本人');
+  work(refunded.id, b1.phone, '13800138116', 1);
+  updateServiceOrder(refunded.id, 'refund', { role: 'customer', phone: '13800138116' });
+  updateServiceOrder(refunded.id, 'resolve', asAdmin, { amount: Math.round(refunded.amount * 0.7 * 100) / 100 });
 }
 
 export function readServiceOrders(): ServiceOrder[] {
@@ -84,7 +141,13 @@ export function readServiceOrders(): ServiceOrder[] {
     if (!Array.isArray(value)) return [];
     // 订单没有删除入口，空数组即视为尚未播种，注入演示订单
     if (value.length === 0) {
-      seedDemoServiceOrders();
+      if (seedingDemoServiceOrders) return [];
+      seedingDemoServiceOrders = true;
+      try {
+        seedDemoServiceOrders();
+      } finally {
+        seedingDemoServiceOrders = false;
+      }
       const seeded = JSON.parse(localStorage.getItem(SERVICE_ORDER_KEY) || '[]');
       return Array.isArray(seeded) ? seeded : [];
     }
@@ -95,7 +158,7 @@ function writeOrders(orders: ServiceOrder[]) { localStorage.setItem(SERVICE_ORDE
 export function createServiceOrder(biographer: Biographer, service: BiographerService, requirements: BiographerBookingForm, user: { phone: string; name?: string }) {
   const now = new Date().toISOString();
   const amountCents = Math.round(service.price * 100);
-  const rate = defaultBiographerSettlements.find(item => item.biographerId === biographer.id)?.commissionRate ?? 0.15;
+  const rate = getPlatformFeeRate();
   const feeCents = Math.round(amountCents * rate), net = amountCents - feeCents;
   const first = Math.round(net * 0.3), second = Math.round(net * 0.4);
   const installments = [0, first, second, net - first - second];

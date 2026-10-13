@@ -1,4 +1,5 @@
 import BiographerServiceOrders from '../components/BiographerServiceOrders';
+import { readServiceOrders, SERVICE_ORDER_EVENT, serviceStatusLabels, type ServiceOrder, type ServiceStatus } from '../data/biographerServiceOrders';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Search, RefreshCw, CreditCard, Package, CheckCircle, AlertCircle, Clock, XCircle, X, UserCheck, Calendar, MapPin, Truck, Upload, FileText, ExternalLink, Paperclip, Download, RotateCcw } from 'lucide-react';
 import type { AdminOrder } from '../api/order';
@@ -15,10 +16,15 @@ const typeOptions: Array<{ value: AdminOrder['type'] | 'all'; label: string }> =
   { value: 'biography', label: '传记导出' },
 ];
 
-const statusOptions: Array<{ value: AdminOrder['status'] | 'all'; label: string }> = [
+type OrderStatusFilter = AdminOrder['status'] | ServiceStatus | 'all';
+type UnifiedOrderRow = { kind: 'regular'; order: AdminOrder } | { kind: 'service'; order: ServiceOrder };
+
+const statusOptions: Array<{ value: OrderStatusFilter; label: string }> = [
   { value: 'all', label: '全部状态' },
+  { value: 'pending_accept', label: '待传记师接单' },
   { value: 'pending_pay', label: '待支付' },
   { value: 'paid', label: '已支付' },
+  { value: 'working', label: '传记服务中' },
   { value: 'delivering', label: '服务中' },
   { value: 'completed', label: '已完成' },
   { value: 'refunded', label: '已退款' },
@@ -120,12 +126,22 @@ const DEMO_ORDERS: AdminOrder[] = [
 export default function OrderManagement() {
   const { addToast } = useToast();
   const [orders, setOrders] = useState<AdminOrder[]>(DEMO_ORDERS);
+  const [serviceOrders, setServiceOrders] = useState<ServiceOrder[]>(readServiceOrders);
+  const [selectedServiceOrderId, setSelectedServiceOrderId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
   const [keyword, setKeyword] = useState('');
-  const [statusFilter, setStatusFilter] = useState<AdminOrder['status'] | 'all'>('all');
+  const [statusFilter, setStatusFilter] = useState<OrderStatusFilter>('all');
   const [typeFilter, setTypeFilter] = useState<AdminOrder['type'] | 'all'>('all');
   const [afterSaleFilter, setAfterSaleFilter] = useState<(typeof afterSaleOptions)[number]['value']>('all');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  // 草稿条件：筛选控件只改草稿，点击「查询」后才应用到实际筛选
+  const [draftKeyword, setDraftKeyword] = useState('');
+  const [draftStatus, setDraftStatus] = useState<OrderStatusFilter>('all');
+  const [draftType, setDraftType] = useState<AdminOrder['type'] | 'all'>('all');
+  const [draftAfterSale, setDraftAfterSale] = useState<(typeof afterSaleOptions)[number]['value']>('all');
+  const [draftDateFrom, setDraftDateFrom] = useState('');
+  const [draftDateTo, setDraftDateTo] = useState('');
   const [loading, setLoading] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(null);
   const [selectedBiographerOrder, setSelectedBiographerOrder] = useState<BiographerOrder | null>(null);
@@ -172,12 +188,16 @@ export default function OrderManagement() {
   const [batchSubmitting, setBatchSubmitting] = useState(false);
 
   useEffect(() => {
-    loadOrders();
+    const syncServiceOrders = () => setServiceOrders(readServiceOrders());
+    window.addEventListener(SERVICE_ORDER_EVENT, syncServiceOrders);
+    window.addEventListener('storage', syncServiceOrders);
+    return () => { window.removeEventListener(SERVICE_ORDER_EVENT, syncServiceOrders); window.removeEventListener('storage', syncServiceOrders); };
   }, []);
 
   const loadOrders = () => {
     setLoading(true);
     setOrders(DEMO_ORDERS);
+    setServiceOrders(readServiceOrders());
     setSelectedIds(new Set());
     window.setTimeout(() => setLoading(false), 180);
   };
@@ -201,8 +221,8 @@ export default function OrderManagement() {
       setBatchDeliverModal(false);
       setBatchCompany('');
       setSelectedIds(new Set());
-    } catch (err: any) {
-      addToast(err.message || '批量发货失败', 'error');
+    } catch (err: unknown) {
+      addToast(err instanceof Error ? err.message : '批量发货失败', 'error');
     } finally {
       setBatchSubmitting(false);
     }
@@ -228,8 +248,8 @@ export default function OrderManagement() {
       setBatchDeliverableName('');
       setBatchDeliverableUrl('');
       setSelectedIds(new Set());
-    } catch (err: any) {
-      addToast(err.message || '批量上传失败', 'error');
+    } catch (err: unknown) {
+      addToast(err instanceof Error ? err.message : '批量上传失败', 'error');
     } finally {
       setBatchSubmitting(false);
     }
@@ -237,6 +257,8 @@ export default function OrderManagement() {
 
   const filtered = useMemo(() => {
     return orders.filter((o) => {
+      // 传记师服务以服务订单数据为准，避免旧演示订单重复出现。
+      if (o.type === 'biographer_service') return false;
       const matchKeyword =
         !keyword ||
         o.id.includes(keyword) ||
@@ -254,28 +276,69 @@ export default function OrderManagement() {
     });
   }, [orders, keyword, statusFilter, typeFilter, afterSaleFilter, dateFrom, dateTo]);
 
+  const filteredServiceOrders = useMemo(() => serviceOrders.filter((order) => {
+    const query = keyword.trim().toLowerCase();
+    const matchKeyword = !query || `${order.id} ${order.customerName} ${order.customerPhone} ${order.biographerName} ${order.service.name} ${order.requirements.interviewee}`.toLowerCase().includes(query);
+    const refund = order.requests.find(request => request.type === 'refund');
+    const refundStatus = refund?.status === 'resolved' ? 'completed' : refund?.status === 'rejected' ? 'rejected' : refund?.status === 'pending' ? 'pending' : 'none';
+    const orderDate = order.createdAt.slice(0, 10);
+    return matchKeyword
+      && (statusFilter === 'all' || order.status === statusFilter)
+      && (typeFilter === 'all' || typeFilter === 'biographer_service')
+      && (afterSaleFilter === 'all' || refundStatus === afterSaleFilter)
+      && (!dateFrom || orderDate >= dateFrom)
+      && (!dateTo || orderDate <= dateTo);
+  }), [serviceOrders, keyword, statusFilter, typeFilter, afterSaleFilter, dateFrom, dateTo]);
+
+  const visibleRows = useMemo<UnifiedOrderRow[]>(() => [
+    ...filtered.map(order => ({ kind: 'regular' as const, order })),
+    ...filteredServiceOrders.map(order => ({ kind: 'service' as const, order })),
+  ].sort((a, b) => b.order.createdAt.localeCompare(a.order.createdAt)), [filtered, filteredServiceOrders]);
+  const totalPages = Math.max(1, Math.ceil(visibleRows.length / 10));
+  const currentPage = Math.min(page, totalPages);
+  const pagedRows = visibleRows.slice((currentPage - 1) * 10, currentPage * 10);
+  const pageNumbers = totalPages > 7
+    ? [...new Set([1, currentPage - 1, currentPage, currentPage + 1, totalPages].filter(number => number >= 1 && number <= totalPages))].sort((a, b) => a - b)
+    : Array.from({ length: totalPages }, (_, index) => index + 1);
+
+  const applyFilters = () => {
+    setKeyword(draftKeyword);
+    setStatusFilter(draftStatus);
+    setTypeFilter(draftType);
+    setAfterSaleFilter(draftAfterSale);
+    setDateFrom(draftDateFrom);
+    setDateTo(draftDateTo);
+    setPage(1);
+  };
+
   const resetFilters = () => {
+    setDraftKeyword('');
+    setDraftStatus('all');
+    setDraftType('all');
+    setDraftAfterSale('all');
+    setDraftDateFrom('');
+    setDraftDateTo('');
     setKeyword('');
     setStatusFilter('all');
     setTypeFilter('all');
     setAfterSaleFilter('all');
     setDateFrom('');
     setDateTo('');
+    setPage(1);
   };
 
   const exportFilteredOrders = () => {
-    const header = ['订单号', '客户', '商品/服务', '类型', '数量', '实付金额', '订单状态', '售后状态', '下单时间', '支付时间'];
-    const rows = filtered.map((item) => [
-      item.id,
-      item.userName || `用户${item.userId.slice(-4)}`,
-      item.productName,
-      typeLabelMap[item.type],
-      String(item.quantity || 1),
-      item.amount.toFixed(2),
-      statusMap[item.status].label,
-      item.refundRequest ? (item.refundRequest.status === 'pending' ? '退款待审核' : item.refundRequest.status === 'rejected' ? '退款已驳回' : '已退款') : '无售后',
-      new Date(item.createdAt).toLocaleString('zh-CN'),
-      item.payTime ? new Date(item.payTime).toLocaleString('zh-CN') : '-',
+    const header = ['订单号', '用户', '商品/服务', '类型', '数量', '实付金额', '订单状态', '售后状态', '下单时间', '支付时间'];
+    const rows = visibleRows.map(({ kind, order }) => kind === 'service' ? [
+      order.id, order.customerName, `${order.service.name} · ${order.biographerName}`, '传记师服务', '1', order.amount.toFixed(2),
+      serviceStatusLabels[order.status],
+      order.requests.find(request => request.type === 'refund')?.status === 'pending' ? '退款待审核' : order.status === 'refunded' ? '已退款' : '无售后',
+      new Date(order.createdAt).toLocaleString('zh-CN'), order.paidAt ? new Date(order.paidAt).toLocaleString('zh-CN') : '-',
+    ] : [
+      order.id, order.userName || `用户${order.userId.slice(-4)}`, order.productName, typeLabelMap[order.type],
+      String(order.quantity || 1), order.amount.toFixed(2), statusMap[order.status].label,
+      order.refundRequest ? (order.refundRequest.status === 'pending' ? '退款待审核' : order.refundRequest.status === 'rejected' ? '退款已驳回' : '已退款') : '无售后',
+      new Date(order.createdAt).toLocaleString('zh-CN'), order.payTime ? new Date(order.payTime).toLocaleString('zh-CN') : '-',
     ]);
     const csv = [header, ...rows].map((row) => row.map((cell) => `"${cell.replace(/"/g, '""')}"`).join(',')).join('\n');
     const url = URL.createObjectURL(new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8' }));
@@ -284,7 +347,7 @@ export default function OrderManagement() {
     link.download = `订单列表-${new Date().toISOString().slice(0, 10)}.csv`;
     link.click();
     URL.revokeObjectURL(url);
-    addToast(`已导出 ${filtered.length} 条订单`, 'success');
+    addToast(`已导出 ${visibleRows.length} 条订单`, 'success');
   };
 
   const fulfillmentLabel = (item: AdminOrder) => {
@@ -315,8 +378,8 @@ export default function OrderManagement() {
     }
   };
 
-  const physicalSelected = useMemo(() => filtered.filter((o) => selectedIds.has(o.id) && isPhysicalProduct(o.type) && o.status === 'paid'), [filtered, selectedIds]);
-  const digitalSelected = useMemo(() => filtered.filter((o) => selectedIds.has(o.id) && isDigitalProduct(o.type) && o.status === 'paid'), [filtered, selectedIds]);
+  const physicalSelected = filtered.filter((o) => selectedIds.has(o.id) && isPhysicalProduct(o.type) && o.status === 'paid');
+  const digitalSelected = filtered.filter((o) => selectedIds.has(o.id) && isDigitalProduct(o.type) && o.status === 'paid');
 
   const executeAction = () => {
     if (!confirmAction) return;
@@ -510,7 +573,7 @@ export default function OrderManagement() {
       <header className="page-header">
         <h1 className="page-title">订单管理</h1>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button className="btn btn-outline" onClick={exportFilteredOrders} disabled={loading || filtered.length === 0}>
+          <button className="btn btn-outline" onClick={exportFilteredOrders} disabled={loading || visibleRows.length === 0}>
             <Download size={14} /> 导出当前结果
           </button>
           <button className="btn btn-outline" onClick={loadOrders} disabled={loading}>
@@ -518,8 +581,6 @@ export default function OrderManagement() {
           </button>
         </div>
       </header>
-
-      <BiographerServiceOrders role="admin" />
 
       <div className="card order-list-card">
         <div className="card-header order-list-header">
@@ -529,32 +590,36 @@ export default function OrderManagement() {
               <Search size={14} />
               <input
                 type="text"
-                placeholder="搜索订单号、商品、客户…"
-                value={keyword}
-                onChange={(e) => setKeyword(e.target.value)}
+                placeholder="搜索订单号、商品、用户…"
+                value={draftKeyword}
+                onChange={(e) => setDraftKeyword(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') applyFilters(); }}
               />
             </div>
-            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as AdminOrder['status'] | 'all')}>
+            <select value={draftStatus} onChange={(e) => setDraftStatus(e.target.value as OrderStatusFilter)}>
               {statusOptions.map((s) => (
                 <option value={s.value} key={s.value}>{s.label}</option>
               ))}
             </select>
-            <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as AdminOrder['type'] | 'all')}>
+            <select value={draftType} onChange={(e) => setDraftType(e.target.value as AdminOrder['type'] | 'all')}>
               {typeOptions.map((t) => (
                 <option value={t.value} key={t.value}>{t.label}</option>
               ))}
             </select>
-            <select value={afterSaleFilter} onChange={(e) => setAfterSaleFilter(e.target.value as typeof afterSaleFilter)}>
+            <select value={draftAfterSale} onChange={(e) => setDraftAfterSale(e.target.value as typeof draftAfterSale)}>
               {afterSaleOptions.map((item) => (
                 <option value={item.value} key={item.value}>{item.label}</option>
               ))}
             </select>
             <label className="order-filter-date">
               <span>下单时间</span>
-              <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+              <input type="date" value={draftDateFrom} onChange={(e) => setDraftDateFrom(e.target.value)} />
               <i>至</i>
-              <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+              <input type="date" value={draftDateTo} onChange={(e) => setDraftDateTo(e.target.value)} />
             </label>
+            <button className="btn btn-primary btn-sm" onClick={applyFilters}>
+              <Search size={13} /> 查询
+            </button>
             <button className="btn btn-ghost btn-sm order-reset-button" onClick={resetFilters}>
               <RotateCcw size={13} /> 重置
             </button>
@@ -584,7 +649,7 @@ export default function OrderManagement() {
         <div className="card-body order-list-body">
           {loading ? (
             <div className="admin-table-empty">加载中…</div>
-          ) : filtered.length === 0 ? (
+          ) : visibleRows.length === 0 ? (
             <div className="admin-table-empty">暂无符合条件的订单</div>
           ) : (
             <div className="admin-table-wrap">
@@ -599,7 +664,7 @@ export default function OrderManagement() {
                       />
                     </th>
                     <th>订单号</th>
-                    <th>客户</th>
+                    <th>用户</th>
                     <th>商品/服务</th>
                     <th>类型</th>
                     <th>数量</th>
@@ -612,7 +677,26 @@ export default function OrderManagement() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((item) => {
+                  {pagedRows.map((row) => {
+                    if (row.kind === 'service') {
+                      const order = row.order;
+                      const refund = order.requests.find(request => request.type === 'refund');
+                      const help = order.requests.find(request => request.type === 'help' && request.status === 'pending');
+                      const statusClass = order.status === 'working' ? 'order-status-delivering' : order.status === 'completed' ? 'order-status-completed' : order.status === 'refunded' ? 'order-status-refunded' : order.status === 'closed' ? 'order-status-closed' : 'order-status-pending';
+                      return <tr key={`service-${order.id}`}>
+                        <td className="admin-table-check"><input type="checkbox" disabled aria-label="传记师服务订单不支持批量处理" /></td>
+                        <td className="order-cell-id">{order.id}</td>
+                        <td><div className="order-user-name">{order.customerName}</div><div className="order-user-phone">{order.customerPhone}</div></td>
+                        <td className="admin-table-text-left order-cell-product"><div className="order-product-name">{order.service.name} · {order.biographerName}</div></td>
+                        <td>传记师服务</td><td>1</td><td className="order-cell-amount">¥{order.amount.toLocaleString()}</td>
+                        <td><span className={`order-status ${statusClass}`}>{serviceStatusLabels[order.status]}</span>{order.paidAt && <span className="order-fulfillment-label">{order.stages.filter(stage => stage.status === 'accepted').length}/4 个阶段已确认</span>}</td>
+                        <td>{refund ? <span className={`order-refund-review-badge ${refund.status === 'resolved' ? 'completed' : refund.status}`}>{refund.status === 'pending' ? '退款待处理' : refund.status === 'resolved' ? '已退款' : '退款已驳回'}</span> : help ? <span className="order-refund-review-badge pending">平台介入中</span> : <span className="order-no-after-sale">无售后</span>}</td>
+                        <td className="order-cell-time">{new Date(order.createdAt).toLocaleString()}</td>
+                        <td className="order-cell-time">{order.paidAt ? new Date(order.paidAt).toLocaleString() : '-'}</td>
+                        <td><button className="admin-table-link" onClick={() => setSelectedServiceOrderId(order.id)}>详情</button></td>
+                      </tr>;
+                    }
+                    const item = row.order;
                     const status = statusMap[item.status];
                     const StatusIcon = status.icon;
                     const selected = selectedIds.has(item.id);
@@ -666,7 +750,20 @@ export default function OrderManagement() {
             </div>
           )}
         </div>
+        {visibleRows.length > 0 && <div className="order-pagination">
+          <span>共 {visibleRows.length} 条</span>
+          <div className="order-pagination-pages">
+            <button type="button" disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)}>上一页</button>
+            {pageNumbers.map((number, index) => <span className="order-pagination-slot" key={number}>
+              {index > 0 && number - pageNumbers[index - 1] > 1 && <span className="order-pagination-gap">…</span>}
+              <button type="button" className={currentPage === number ? 'active' : ''} onClick={() => setPage(number)}>{number}</button>
+            </span>)}
+            <button type="button" disabled={currentPage === totalPages} onClick={() => setPage(currentPage + 1)}>下一页</button>
+          </div>
+        </div>}
       </div>
+
+      {selectedServiceOrderId && <BiographerServiceOrders role="admin" detailOnly selectedOrderId={selectedServiceOrderId} onCloseDetail={() => setSelectedServiceOrderId(null)} />}
 
       {selectedOrder && (
         <Annotate id="order-management.detail">
@@ -682,7 +779,7 @@ export default function OrderManagement() {
                 <span className="order-detail-value">{selectedOrder.id}</span>
               </div>
               <div className="order-detail-row">
-                <span className="order-detail-label">客户</span>
+                <span className="order-detail-label">用户</span>
                 <span className="order-detail-value">
                   {selectedOrder.userName || '未知用户'} {selectedOrder.userPhone ? `(${selectedOrder.userPhone})` : ''}
                 </span>
@@ -986,7 +1083,7 @@ export default function OrderManagement() {
               <button className="modal-close" onClick={() => setRefundRejectOrder(null)}><X size={16} /></button>
             </div>
             <div className="modal-body">
-              <p className="order-refund-reject-hint">请填写驳回原因，客户将可以看到该说明并重新申请退款。</p>
+              <p className="order-refund-reject-hint">请填写驳回原因，用户将可以看到该说明并重新申请退款。</p>
               <div className="order-form-row">
                 <label>驳回原因 <span className="order-form-required">*</span></label>
                 <textarea rows={4} maxLength={500} value={refundRejectionReason} onChange={(e) => setRefundRejectionReason(e.target.value)} placeholder="请输入驳回原因" />

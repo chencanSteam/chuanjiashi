@@ -16,7 +16,8 @@ import {
   X,
   Copy,
   User,
-  Phone,
+  Search,
+  RotateCcw,
   Calendar,
   MessageCircle,
   CreditCard as PayIcon,
@@ -92,6 +93,8 @@ const bioStatusMap: Record<BiographerOrder['status'], { label: string; color: st
 
 const bioProgressNodes = ['预约采访', '提交初稿', '修改完善', '交付定稿'];
 
+const PAGE_SIZE = 10;
+
 function formatCountdown(target: string): string {
   const diff = new Date(target).getTime() - Date.now();
   if (diff <= 0) return '已过期';
@@ -116,6 +119,21 @@ const demoOrders: Order[] = [
   { id: 'ord_demo_003', userId: 'u_demo_current', type: 'qrcode', productId: 'prod_qrcode', productName: '家风纪念馆二维码', amount: 19.9, status: 'completed', payTime: '2026-09-03T16:40:00', createdAt: '2026-09-03T16:30:00', updatedAt: '2026-09-03T16:40:00' },
   { id: 'ord_demo_004', userId: 'u_demo_current', type: 'biographer_service', productId: 'svc_001', productName: '李传记 · 基础采访套餐', amount: 1999, status: 'paid', payTime: '2026-09-02T11:15:00', createdAt: '2026-09-02T11:00:00', updatedAt: '2026-09-02T11:15:00' },
   { id: 'ord_demo_005', userId: 'u_demo_current', type: 'video', productId: 'prod_video', productName: '家族纪念视频制作', amount: 1288, status: 'refunded', payTime: '2026-08-28T09:30:00', createdAt: '2026-08-28T09:00:00', updatedAt: '2026-08-29T15:00:00' },
+  { id: 'ord_demo_006', userId: 'u_demo_current', type: 'biographer_service', productId: 'svc_003', productName: '王传记 · 回忆录短篇版', amount: 1299, status: 'delivering', payTime: '2026-08-24T09:45:00', createdAt: '2026-08-24T09:30:00', updatedAt: '2026-08-24T09:45:00' },
+  { id: 'ord_demo_007', userId: 'u_demo_current', type: 'book', productId: 'prod_book_hardcover', productName: '家风传记 · 精装实体书', amount: 288, quantity: 1, status: 'pending_pay', expireAt: '2027-12-31T23:59:59', createdAt: '2026-09-07T10:00:00', updatedAt: '2026-09-07T10:00:00' },
+  { id: 'ord_demo_008', userId: 'u_demo_current', type: 'derivative', productId: 'prod_deriv_badge', productName: '家徽定制徽章', amount: 69, status: 'paid', payTime: '2026-09-06T20:10:00', createdAt: '2026-09-06T20:00:00', updatedAt: '2026-09-06T20:10:00' },
+  { id: 'ord_demo_009', userId: 'u_demo_current', type: 'digital_person', productId: 'prod_digital_person', productName: '数字人定制（标准版）', amount: 999, status: 'delivering', payTime: '2026-09-05T09:15:00', createdAt: '2026-09-05T09:00:00', updatedAt: '2026-09-06T11:00:00' },
+  { id: 'ord_demo_010', userId: 'u_demo_current', type: 'video', productId: 'prod_video', productName: '家族纪念视频制作', amount: 999, status: 'completed', payTime: '2026-09-01T15:40:00', createdAt: '2026-09-01T15:30:00', updatedAt: '2026-09-04T10:00:00', deliverables: [{ type: 'video', name: '家族纪念视频成片', url: '#', createdAt: '2026-09-04T10:00:00' }] },
+  { id: 'ord_demo_011', userId: 'u_demo_current', type: 'qrcode', productId: 'prod_qrcode', productName: '纪念物二维码', amount: 29.9, status: 'closed', createdAt: '2026-08-30T11:00:00', updatedAt: '2026-08-30T11:30:00' },
+  { id: 'ord_demo_012', userId: 'u_demo_current', type: 'biography', productId: 'prod_bio_standard', productName: '标准传记服务', amount: 1999, status: 'refunded', payTime: '2026-08-26T14:10:00', createdAt: '2026-08-26T14:00:00', updatedAt: '2026-08-28T09:00:00', refundRequest: { reason: '不需要该商品', reasonOptionLabel: '不需要该商品', status: 'completed', createdAt: '2026-08-27T10:00:00', processedAt: '2026-08-28T09:00:00' } },
+  { id: 'ord_demo_013', userId: 'u_demo_current', type: 'book', productId: 'prod_book_hardcover', productName: '张明远的传记 · 精装实体书', amount: 864, quantity: 3, status: 'delivering', payTime: '2026-09-04T16:05:00', createdAt: '2026-09-04T16:00:00', updatedAt: '2026-09-05T10:00:00', address: { name: '张先生', phone: '138****8003', province: '浙江省', city: '杭州市', district: '西湖区', detail: '文三路 100 号' }, logistics: { company: '顺丰速运', trackingNo: 'SF20260905001', shippedAt: '2026-09-05T10:00:00' } },
+  { id: 'ord_demo_014', userId: 'u_demo_current', type: 'derivative', productId: 'prod_deriv_scarf', productName: '姓氏图腾丝巾', amount: 129, status: 'completed', payTime: '2026-08-25T13:20:00', createdAt: '2026-08-25T13:10:00', updatedAt: '2026-08-30T09:00:00' },
+  { id: 'ord_demo_015', userId: 'u_demo_current', type: 'biographer_service', productId: 'svc_002', productName: '李传记 · 深度采访套餐', amount: 3999, status: 'paid', payTime: '2026-09-07T09:15:00', createdAt: '2026-09-07T09:00:00', updatedAt: '2026-09-07T09:15:00' },
+  { id: 'ord_demo_016', userId: 'u_demo_current', type: 'digital_person', productId: 'prod_digital_person_pro', productName: '数字人定制（高级版）', amount: 1999, status: 'completed', payTime: '2026-08-20T10:40:00', createdAt: '2026-08-20T10:30:00', updatedAt: '2026-08-28T15:00:00' },
+  { id: 'ord_demo_017', userId: 'u_demo_current', type: 'biography', productId: 'prod_bio_pdf', productName: '家族传记 · 下载 PDF', amount: 9.9, status: 'completed', payTime: '2026-08-18T08:40:00', createdAt: '2026-08-18T08:30:00', updatedAt: '2026-08-18T08:40:00', deliverables: [{ type: 'pdf', name: '家族传记.pdf', url: '#', createdAt: '2026-08-18T08:40:00' }] },
+  { id: 'ord_demo_018', userId: 'u_demo_current', type: 'qrcode', productId: 'prod_qrcode', productName: '家风纪念馆二维码', amount: 19.9, status: 'paid', payTime: '2026-09-03T19:10:00', createdAt: '2026-09-03T19:00:00', updatedAt: '2026-09-03T19:10:00' },
+  { id: 'ord_demo_019', userId: 'u_demo_current', type: 'book', productId: 'prod_book_paperback', productName: '家风传记 · 平装实体书', amount: 118, quantity: 2, status: 'completed', payTime: '2026-08-15T14:20:00', createdAt: '2026-08-15T14:10:00', updatedAt: '2026-08-22T10:00:00', address: { name: '张先生', phone: '138****8003', province: '浙江省', city: '杭州市', district: '西湖区', detail: '文三路 100 号' } },
+  { id: 'ord_demo_020', userId: 'u_demo_current', type: 'derivative', productId: 'prod_deriv_calligraphy', productName: '家训书法作品', amount: 199, status: 'closed', createdAt: '2026-08-10T09:00:00', updatedAt: '2026-08-10T09:30:00' },
 ];
 
 const demoBiographerOrders: BiographerOrder[] = [
@@ -141,6 +159,8 @@ export default function MyOrders() {
   const [bioOrders, setBioOrders] = useState<BiographerOrder[]>([]);
   const [biographers, setBiographers] = useState<Record<string, Biographer>>({});
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [keyword, setKeyword] = useState('');
   const [statusFilter, setStatusFilter] = useState<Order['status'] | 'all'>(() => {
     const status = searchParams.get('status');
     return statusOptions.some((option) => option.value === status) ? (status as Order['status']) : 'all';
@@ -149,6 +169,10 @@ export default function MyOrders() {
     const t = searchParams.get('type');
     return typeOptions.some((o) => o.value === t) ? (t as Order['type']) : 'all';
   });
+  // 草稿条件：输入只改草稿，点击「查询」后才应用到实际筛选；初始值与 URL 参数初始化结果保持一致
+  const [draftKeyword, setDraftKeyword] = useState('');
+  const [draftStatus, setDraftStatus] = useState<Order['status'] | 'all'>(statusFilter);
+  const [draftType, setDraftType] = useState<Order['type'] | 'all'>(typeFilter);
   const [selected, setSelected] = useState<Order | null>(null);
   const [payingId, setPayingId] = useState<string | null>(null);
   const [refundOrder, setRefundOrder] = useState<Order | null>(null);
@@ -189,11 +213,19 @@ export default function MyOrders() {
 
   const filtered = useMemo(() => {
     return orders.filter((o) => {
+      const matchKeyword = !keyword || o.id.includes(keyword) || o.productName.includes(keyword);
       const matchStatus = statusFilter === 'all' || o.status === statusFilter;
       const matchType = typeFilter === 'all' || o.type === typeFilter;
-      return matchStatus && matchType;
+      return matchKeyword && matchStatus && matchType;
     });
-  }, [orders, statusFilter, typeFilter]);
+  }, [orders, keyword, statusFilter, typeFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const paged = useMemo(
+    () => filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE),
+    [filtered, currentPage],
+  );
 
   // 传记师订单：仅在「全部类型」或「传记师服务」下展示，不参与普通订单的状态筛选
   const visibleBioOrders = useMemo(() => {
@@ -202,6 +234,23 @@ export default function MyOrders() {
   }, [bioOrders, typeFilter]);
 
   const isBioType = typeFilter === 'biographer_service';
+
+  const applyFilters = () => {
+    setKeyword(draftKeyword);
+    setStatusFilter(draftStatus);
+    setTypeFilter(draftType);
+    setPage(1);
+  };
+
+  const resetFilters = () => {
+    setDraftKeyword('');
+    setDraftStatus('all');
+    setDraftType('all');
+    setKeyword('');
+    setStatusFilter('all');
+    setTypeFilter('all');
+    setPage(1);
+  };
 
   const handlePay = async (order: Order) => {
     try {
@@ -284,18 +333,34 @@ export default function MyOrders() {
         <div className="card-header my-order-list-header">
           <Annotate id="my-orders.filters" inline>
           <div className="my-order-filters">
+            <div className="my-order-search">
+              <Search size={14} />
+              <input
+                type="text"
+                placeholder="搜索订单号或商品名称"
+                value={draftKeyword}
+                onChange={(e) => setDraftKeyword(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') applyFilters(); }}
+              />
+            </div>
             {!isBioType && (
-              <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as Order['status'] | 'all')}>
+              <select value={draftStatus} onChange={(e) => setDraftStatus(e.target.value as Order['status'] | 'all')}>
                 {statusOptions.map((s) => (
                   <option value={s.value} key={s.value}>{s.label}</option>
                 ))}
               </select>
             )}
-            <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as Order['type'] | 'all')}>
+            <select value={draftType} onChange={(e) => setDraftType(e.target.value as Order['type'] | 'all')}>
               {typeOptions.map((t) => (
                 <option value={t.value} key={t.value}>{t.label}</option>
               ))}
             </select>
+            <button className="btn btn-primary btn-sm" onClick={applyFilters}>
+              <Search size={13} /> 查询
+            </button>
+            <button className="btn btn-outline btn-sm" onClick={resetFilters}>
+              <RotateCcw size={13} /> 重置
+            </button>
           </div>
           </Annotate>
         </div>
@@ -318,118 +383,166 @@ export default function MyOrders() {
               </div>
             )
           ) : (
-            <div className="my-order-list">
-              {filtered.map((order) => {
-                const status = statusMap[order.status];
-                const StatusIcon = status.icon;
-                const isExpired = order.status === 'pending_pay' && order.expireAt ? new Date(order.expireAt) < new Date() : false;
-                const canPay = order.status === 'pending_pay' && !isExpired;
-                return (
-                  <div className="my-order-item" key={order.id}>
-                    <div className="my-order-item-header">
-                      <div className="my-order-item-meta">
-                        <span className="my-order-item-time">{new Date(order.createdAt).toLocaleString()}</span>
-                        <span className="my-order-item-type">{typeLabelMap[order.type]}</span>
-                        {order.status === 'pending_pay' && order.expireAt && (
-                          <span className={`my-order-countdown ${isExpired ? 'expired' : ''}`}>
-                            <Clock size={10} /> {isExpired ? '已过期' : `剩 ${formatCountdown(order.expireAt)}`}
-                          </span>
-                        )}
-                      </div>
-                      <span className={`my-order-status ${status.className}`}>
-                        <StatusIcon size={12} /> {status.label}
-                      </span>
-                    </div>
-                    <div className="my-order-item-main">
-                      <div className="my-order-item-mark" aria-hidden="true">
-                        <Package size={18} />
-                      </div>
-                      <div className="my-order-item-product">
-                        <div className="my-order-item-name">
-                          {order.productName}
-                          {(order.quantity ?? 1) > 1 && <span className="my-order-item-qty">×{order.quantity} 份</span>}
-                        </div>
-                        {order.sku && <div className="my-order-item-sku">{order.sku}</div>}
-                      </div>
-                      <div className="my-order-item-total">
-                        <span className="my-order-item-total-label">订单金额</span>
-                        <span className="my-order-item-amount">¥{order.amount.toLocaleString()}</span>
-                      </div>
-                    </div>
-                    <div className="my-order-item-footer">
-                      <button className="btn btn-ghost btn-sm" onClick={() => setSelected(order)}>查看详情</button>
-                      {canRefund(order) && (
-                        <button className="btn btn-outline btn-sm" onClick={() => openRefund(order)}>
-                          申请退款
+            <>
+              {filtered.length > 0 && (
+                <>
+                  <div className="admin-table-wrap">
+                    <table className="admin-table">
+                      <thead>
+                        <tr>
+                          <th>订单号</th>
+                          <th>下单时间</th>
+                          <th>类型</th>
+                          <th>商品/服务</th>
+                          <th>金额</th>
+                          <th>状态</th>
+                          <th>操作</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {paged.map((order) => {
+                        const status = statusMap[order.status];
+                        const StatusIcon = status.icon;
+                        const isExpired = order.status === 'pending_pay' && order.expireAt ? new Date(order.expireAt) < new Date() : false;
+                        const canPay = order.status === 'pending_pay' && !isExpired;
+                        return (
+                          <tr key={order.id}>
+                            <td className="my-order-cell-id">{order.id}</td>
+                            <td className="my-order-cell-time">{new Date(order.createdAt).toLocaleString()}</td>
+                            <td>{typeLabelMap[order.type]}</td>
+                            <td className="admin-table-text-left my-order-cell-product">
+                              <div className="my-order-cell-product-name">
+                                {order.productName}
+                                {(order.quantity ?? 1) > 1 && <span className="my-order-cell-product-qty">×{order.quantity} 份</span>}
+                              </div>
+                              {order.sku && <div className="my-order-cell-product-sku">{order.sku}</div>}
+                            </td>
+                            <td className="my-order-cell-amount">¥{order.amount.toLocaleString()}</td>
+                            <td>
+                              <span className="my-order-cell-status">
+                                <span className={`my-order-status ${status.className}`}>
+                                  <StatusIcon size={12} /> {status.label}
+                                </span>
+                                {order.status === 'pending_pay' && order.expireAt && (
+                                  <span className={`my-order-countdown ${isExpired ? 'expired' : ''}`}>
+                                    <Clock size={10} /> {isExpired ? '已过期' : `剩 ${formatCountdown(order.expireAt)}`}
+                                  </span>
+                                )}
+                              </span>
+                            </td>
+                            <td>
+                              <button className="admin-table-link" onClick={() => setSelected(order)}>查看详情</button>
+                              {canRefund(order) && (
+                                <button className="admin-table-link" onClick={() => openRefund(order)}>申请退款</button>
+                              )}
+                              {canPay && (
+                                <button className="admin-table-link" disabled={payingId === order.id} onClick={() => handlePay(order)}>
+                                  {payingId === order.id ? '支付中…' : '去支付'}
+                                </button>
+                              )}
+                            </td>
+                            </tr>
+                        );
+                      })}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="my-order-pagination">
+                    <span className="my-order-pagination-total">共 {filtered.length} 条</span>
+                    <div className="my-order-pagination-actions">
+                      <button className="my-order-pagination-btn" disabled={currentPage <= 1} onClick={() => setPage(currentPage - 1)}>上一页</button>
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                        <button
+                          key={p}
+                          className={`my-order-pagination-btn ${p === currentPage ? 'active' : ''}`}
+                          onClick={() => setPage(p)}
+                        >
+                          {p}
                         </button>
-                      )}
-                      {canPay && (
-                        <button className="btn btn-primary btn-sm" disabled={payingId === order.id} onClick={() => handlePay(order)}>
-                          <PayIcon size={12} /> {payingId === order.id ? '支付中…' : '去支付'}
-                        </button>
-                      )}
+                      ))}
+                      <button className="my-order-pagination-btn" disabled={currentPage >= totalPages} onClick={() => setPage(currentPage + 1)}>下一页</button>
                     </div>
                   </div>
-                );
-              })}
-              {visibleBioOrders.map((o) => {
-                const bio = biographers[o.biographerId];
-                const doneCount = o.progress.filter((p) => p.status === 'done').length;
-                const progressPct = Math.round((doneCount / bioProgressNodes.length) * 100);
-                return (
-                  <div className="my-bio-order-item" key={o.id}>
-                    <div className="my-bio-order-main">
-                      <div className="my-bio-order-info">
-                        <div className="my-bio-order-service">{o.serviceName}</div>
-                        {bio && (
-                          <div className="my-bio-order-bio">
-                            <User size={12} /> 传记师：{bio.name} · {(bio.rating || 5).toFixed(1)} 分
-                          </div>
-                        )}
-                        <div className="my-bio-order-meta">
-                          <span><Phone size={12} /> 订单号 {o.id.slice(-8)}</span>
-                          <span>订单金额 ¥{o.amount.toLocaleString()}</span>
-                        </div>
-                        {o.schedule?.time && (
-                          <div className="my-bio-order-schedule">
-                            <Calendar size={12} /> {o.schedule.time}
-                            <MapPin size={12} /> {o.schedule.address}
-                          </div>
-                        )}
-                      </div>
-                      <div
-                        className="my-bio-order-status"
-                        style={{ '--bio-status-color': bioStatusMap[o.status].color } as React.CSSProperties}
-                      >
-                        {bioStatusMap[o.status].label}
-                      </div>
-                    </div>
-
-                    <div className="my-bio-order-progress">
-                      <div className="my-bio-order-progress-header">
-                        <span>服务进度</span>
-                        <span>{progressPct}%</span>
-                      </div>
-                      <div className="my-bio-order-progress-track">
-                        <div className="my-bio-order-progress-fill" style={{ width: `${progressPct}%` }} />
-                      </div>
-                      <div className="my-bio-order-progress-nodes">
-                        {bioProgressNodes.map((node) => {
-                          const p = o.progress.find((x) => x.node === node);
-                          const done = p?.status === 'done';
+                </>
+              )}
+              {visibleBioOrders.length > 0 && (
+                <>
+                  <div className="my-bio-order-table-title">传记师服务订单</div>
+                  <div className="admin-table-wrap">
+                    <table className="admin-table">
+                      <thead>
+                        <tr>
+                          <th>服务名称</th>
+                          <th>传记师</th>
+                          <th>订单号</th>
+                          <th>金额</th>
+                          <th>采访安排</th>
+                          <th>服务进度</th>
+                          <th>状态</th>
+                          <th>操作</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {visibleBioOrders.map((o) => {
+                          const bio = biographers[o.biographerId];
+                          const doneCount = o.progress.filter((p) => p.status === 'done').length;
+                          const progressPct = Math.round((doneCount / bioProgressNodes.length) * 100);
+                          const linkedOrder = orders.find((ord) => ord.id === o.orderId);
                           return (
-                            <div key={node} className={`my-bio-order-progress-node ${done ? 'done' : ''}`}>
-                              <div className="my-bio-order-progress-dot">{done && <CheckCircle size={10} />}</div>
-                              <span>{node}</span>
-                            </div>
+                            <tr key={o.id}>
+                              <td className="admin-table-text-left">{o.serviceName}</td>
+                              <td>
+                                {bio ? (
+                                  <span className="my-bio-cell-bio">
+                                    <User size={12} /> {bio.name} · {(bio.rating || 5).toFixed(1)} 分
+                                  </span>
+                                ) : '-'}
+                              </td>
+                              <td className="my-order-cell-id">{o.id.slice(-8)}</td>
+                              <td className="my-order-cell-amount">¥{o.amount.toLocaleString()}</td>
+                              <td>
+                                {o.schedule?.time ? (
+                                  <span className="my-bio-cell-schedule">
+                                    <span><Calendar size={12} /> {o.schedule.time}</span>
+                                    <span><MapPin size={12} /> {o.schedule.address}</span>
+                                  </span>
+                                ) : '待安排'}
+                              </td>
+                              <td>
+                                <span className="my-bio-progress">
+                                  <span className="my-bio-progress-track">
+                                    <span className="my-bio-progress-fill" style={{ width: `${progressPct}%` }} />
+                                  </span>
+                                  <span className="my-bio-progress-text">{doneCount}/{bioProgressNodes.length} · {progressPct}%</span>
+                                </span>
+                              </td>
+                              <td>
+                                <span
+                                  className="my-bio-order-status"
+                                  style={{ '--bio-status-color': bioStatusMap[o.status].color } as React.CSSProperties}
+                                >
+                                  {bioStatusMap[o.status].label}
+                                </span>
+                              </td>
+                              <td>
+                                <button
+                                  className="admin-table-link"
+                                  disabled={!linkedOrder}
+                                  title={linkedOrder ? undefined : '未找到关联订单'}
+                                  onClick={() => linkedOrder && setSelected(linkedOrder)}
+                                >
+                                  查看详情
+                                </button>
+                              </td>
+                            </tr>
                           );
                         })}
-                      </div>
-                    </div>
+                      </tbody>
+                    </table>
                   </div>
-                );
-              })}
-            </div>
+                </>
+              )}
+            </>
           )}
         </div>
         </Annotate>

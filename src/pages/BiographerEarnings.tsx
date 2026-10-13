@@ -6,29 +6,15 @@ import {
 import { useToast } from '../hooks/useToast';
 import Modal from '../components/ui/Modal';
 import { biographerEarningsApi } from '../api/biographerEarnings';
-import type { BiographerSettlement, BiographerWithdrawal } from '../mocks/types';
+import { getPlatformFeeRate } from '../data/adminDictionary';
+import type { BiographerSettlement } from '../mocks/types';
 import Annotate from '../components/annotation/Annotate';
 import './BiographerEarnings.css';
-
-type EarningsTab = 'incomes' | 'withdrawals';
-
-const tabLabels: Record<EarningsTab, string> = {
-  incomes: '订单收入明细',
-  withdrawals: '提现记录',
-};
-
-const withdrawalStatusLabels: Record<BiographerWithdrawal['status'], string> = {
-  pending: '待审核',
-  approved: '已通过',
-  rejected: '已驳回',
-  paid: '已打款',
-};
 
 export default function BiographerEarnings() {
   const { addToast } = useToast();
   const [settlement, setSettlement] = useState<BiographerSettlement | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<EarningsTab>('incomes');
   const [showWithdraw, setShowWithdraw] = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [withdrawing, setWithdrawing] = useState(false);
@@ -62,7 +48,6 @@ export default function BiographerEarnings() {
       setSettlement(updated);
       setShowWithdraw(false);
       setWithdrawAmount('');
-      setActiveTab('withdrawals');
       addToast('提现申请已提交，等待平台审核', 'success');
     } catch (err: unknown) {
       addToast(err instanceof Error && err.message ? err.message : '提现申请失败', 'error');
@@ -92,13 +77,14 @@ export default function BiographerEarnings() {
     .filter((w) => w.status === 'paid')
     .reduce((sum, w) => sum + w.amount, 0);
   const fmtMoney = (n: number) => n.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const platformFeePercent = (getPlatformFeeRate() * 100).toFixed(2).replace(/\.0+$/, '').replace(/(\.\d*?)0+$/, '$1');
 
   return (
     <div className="biographer-earnings-page">
       <header className="page-header">
         <div>
           <h1 className="page-title">结算提现</h1>
-          <p className="page-subtitle">查看服务订单阶段结算、收入与提现记录</p>
+          <p className="page-subtitle">查看服务订单阶段结算与可提现金额</p>
         </div>
       </header>
 
@@ -128,76 +114,10 @@ export default function BiographerEarnings() {
         <div className="earnings-overview-item">
           <div className="earnings-overview-label">累计已提现</div>
           <div className="earnings-overview-value">¥{fmtMoney(totalWithdrawn)}</div>
-          <div className="earnings-overview-sub">平台服务费率 {(settlement.commissionRate * 100).toFixed(0)}%，入账时已扣除</div>
+          <div className="earnings-overview-sub">当前平台服务费率 {platformFeePercent}%，仅用于新订单</div>
         </div>
       </div>
       </Annotate>
-
-      <div className="card earnings-card">
-        <Annotate id="biographer-earnings.tabs" inline>
-        <div className="earnings-tabs">
-          {(Object.keys(tabLabels) as EarningsTab[]).map((t) => (
-            <button
-              key={t}
-              className={`earnings-tab ${activeTab === t ? 'active' : ''}`}
-              onClick={() => setActiveTab(t)}
-              type="button"
-            >
-              {tabLabels[t]}
-            </button>
-          ))}
-        </div>
-        </Annotate>
-
-        <div className="earnings-list">
-          {activeTab === 'incomes' &&
-            (settlement.incomes.length === 0 ? (
-              <div className="admin-table-empty">暂无收入明细</div>
-            ) : (
-              <div className="admin-table-wrap">
-              <table className="admin-table">
-                <thead>
-                  <tr><th>订单号</th><th>入账金额</th><th>平台抽佣</th><th>入账时间</th></tr>
-                </thead>
-                <tbody>
-                  {settlement.incomes.map((item) => (
-                    <tr key={item.orderNo}>
-                      <td>{item.orderNo}</td>
-                      <td><span className="earnings-amount income">+¥{item.amount.toFixed(2)}</span></td>
-                      <td><span className="earnings-commission">¥{item.commission.toFixed(2)}</span></td>
-                      <td>{new Date(item.createdAt).toLocaleString()}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              </div>
-            ))}
-
-          {activeTab === 'withdrawals' &&
-            (settlement.withdrawals.length === 0 ? (
-              <div className="admin-table-empty">暂无提现记录</div>
-            ) : (
-              <div className="admin-table-wrap">
-              <table className="admin-table">
-                <thead>
-                  <tr><th>提现金额</th><th>状态</th><th>申请时间</th><th>打款时间</th></tr>
-                </thead>
-                <tbody>
-                  {settlement.withdrawals.map((w) => (
-                    <tr key={w.id}>
-                      <td><span className="earnings-amount">-¥{w.amount.toFixed(2)}</span></td>
-                      <td><span className={`earnings-status ${w.status}`}>{withdrawalStatusLabels[w.status]}</span></td>
-                      <td>{new Date(w.appliedAt).toLocaleString()}</td>
-                      <td>{w.paidAt ? new Date(w.paidAt).toLocaleString() : <span className="admin-table-muted">—</span>}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              </div>
-            ))}
-
-        </div>
-      </div>
 
       <Annotate id="biographer-earnings.withdraw-modal">
       <Modal
@@ -219,7 +139,7 @@ export default function BiographerEarnings() {
             <strong>微信零钱（当前登录账号）</strong>
           </div>
           <p className="earnings-withdraw-tip">
-            当前可提现 <strong>¥{settlement.availableAmount.toFixed(2)}</strong>。单笔最低 ¥100，申请提交后平台 1-3 个工作日内审核打款；平台服务费（{(settlement.commissionRate * 100).toFixed(0)}%）已在入账时扣除，提现不再重复收费。
+            当前可提现 <strong>¥{settlement.availableAmount.toFixed(2)}</strong>。单笔最低 ¥100，申请提交后平台 1-3 个工作日内审核打款；提现不再重复收取平台服务费。
           </p>
           <div className="earnings-withdraw-row">
             <label>提现金额（元）</label>

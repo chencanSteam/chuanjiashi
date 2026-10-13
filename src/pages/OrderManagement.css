@@ -122,6 +122,43 @@
   padding: 0;
 }
 
+.order-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 16px 20px;
+  border-top: 1px solid var(--border-light);
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.order-pagination-pages, .order-pagination-slot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.order-pagination-pages button {
+  min-width: 34px;
+  padding: 6px 10px;
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  background: var(--card-bg);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.order-pagination-pages button.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+.order-pagination-pages button:disabled { opacity: .45; cursor: not-allowed; }
+.order-pagination-gap { padding: 0 2px; color: var(--text-muted); }
+
 .order-cell-id {
   font-family: monospace;
   color: var(--text-secondary);

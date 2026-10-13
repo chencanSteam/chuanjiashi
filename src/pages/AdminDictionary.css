@@ -818,3 +818,45 @@
     margin-left: 0;
   }
 }
+
+/* 通用字典：分类导航与统一值表格 */
+.admin-dict-page-header h1 { margin: 0; font-size: 24px; }
+.admin-dict-page-header { align-items: center; }
+.admin-dict-nav { display: block; }
+.admin-dict-nav-title { margin: 14px 20px 20px; font-size: 16px; color: var(--text); }
+.admin-dict-group { margin-bottom: 14px; }
+.admin-dict-group-name { margin: 0 20px 6px; color: var(--text-muted); font-size: 12px; font-weight: 600; }
+.admin-dict-category-line { display: flex; align-items: center; padding-right: 10px; }
+.admin-dict-category-line .admin-dict-nav-item { flex: 1; min-width: 0; margin: 2px 0 2px 12px; text-align: left; border: 0; cursor: pointer; }
+.admin-dict-category-delete { display: none; border: 0; background: none; color: var(--text-muted); cursor: pointer; }
+.admin-dict-category-line:hover .admin-dict-category-delete { display: inline-flex; }
+.admin-dict-category-delete:hover { color: #dc2626; }
+.admin-dict-header { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+.admin-dict-header h2 { margin: 0; font-size: 18px; }
+.admin-dict-header p { margin: 4px 0 0; color: var(--text-muted); font-size: 12px; }
+.admin-dict-header .admin-dict-tools { display: flex; align-items: center; flex-wrap: wrap; }
+.admin-dict-header .admin-dict-tools select { height: 36px; min-width: 110px; padding: 0 10px; border: 1px solid var(--border-light); border-radius: 6px; background: #fff; color: var(--text); }
+.admin-dict-table-scroll { overflow-x: auto; }
+.admin-dict-table-head, .admin-dict-table-row { grid-template-columns: minmax(180px, 1.3fr) minmax(190px, 1.4fr) minmax(100px, .7fr) 90px 150px 175px; min-width: 940px; column-gap: 14px; }
+.admin-dict-table-row { min-height: 62px; padding-top: 8px; padding-bottom: 8px; box-sizing: border-box; }
+.admin-dict-table-body { overflow: visible; }
+.admin-dict-name > div { min-width: 0; }
+.admin-dict-name strong, .admin-dict-name small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.admin-dict-name small { margin-top: 4px; color: var(--text-muted); font-size: 11px; }
+.admin-dict-value { color: var(--primary); font-size: 14px; overflow-wrap: anywhere; }
+.admin-dict-table-footer { display: flex; align-items: center; justify-content: space-between; text-align: left; }
+.admin-dict-table-footer > div { display: flex; align-items: center; gap: 10px; }
+.admin-dict-table-footer button { padding: 5px 9px; border: 1px solid var(--border-light); border-radius: 6px; background: #fff; color: var(--text); cursor: pointer; }
+.admin-dict-table-footer button:disabled { opacity: .45; cursor: not-allowed; }
+.admin-dict-form-row input:disabled { background: #f5f5f4; color: var(--text-muted); }
+.admin-dict-form-row textarea { box-sizing: border-box; width: 100%; padding: 9px 10px; border: 1px solid var(--border-light); border-radius: 8px; font: inherit; font-size: 13px; resize: vertical; }
+.admin-dict-form-row textarea:focus { border-color: var(--primary); outline: none; }
+.admin-dict-hint { margin: 0; color: var(--text-muted); font-size: 12px; }
+.admin-dict-page .admin-dict-modal-overlay { align-items: center; }
+@media (max-width: 900px) {
+  .admin-dict-nav { display: flex; gap: 12px; align-items: center; width: 100%; overflow-x: auto; padding: 10px; }
+  .admin-dict-nav-title, .admin-dict-group-name { display: none; }
+  .admin-dict-group { display: flex; margin: 0; }
+  .admin-dict-category-line { flex: 0 0 auto; padding: 0; }
+  .admin-dict-category-line .admin-dict-nav-item { white-space: nowrap; margin: 0; }
+}

@@ -1,15 +1,24 @@
 .bs-orders { margin: 0 0 24px; padding: 24px; border: 1px solid var(--border-light); border-radius: 14px; background: var(--card-bg); font-family: var(--font-family-sans); }
+.bs-orders-detail-only { display: contents; }
 .bs-head, .bs-row, .bs-actions, .bs-filters { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
 .bs-head h2 { font-size: 20px; margin: 0 0 8px; }
 .bs-head p, .bs-order p, .bs-muted, .bs-settlements p, .bs-empty { font-size: 13px; color: var(--text-secondary); line-height: 1.8; }
 .bs-filters { justify-content: flex-start; margin: 20px 0; }
-.bs-filters input, .bs-filters select, .bs-action-form input, .bs-action-form textarea { border: 1px solid var(--border-medium); background: #fff; border-radius: 8px; padding: 10px 12px; font: inherit; font-size: 14px; min-width: 0; }
-.bs-filters input { flex: 1; min-width: 160px; }
+.bs-search { display: flex; align-items: center; gap: 8px; background: var(--bg-secondary); border: 1px solid var(--border-light); border-radius: 8px; padding: 0 12px; min-width: 240px; color: var(--text-muted); }
+.bs-search input { flex: 1; border: none; background: transparent; padding: 8px 0; font-size: 14px; outline: none; color: var(--text); min-width: 0; }
+.bs-filters select { padding: 8px 12px; border: 1px solid var(--border-light); border-radius: 8px; background: var(--card-bg); font-size: 14px; color: var(--text); outline: none; }
+.bs-action-form input, .bs-action-form textarea { border: 1px solid var(--border-medium); background: #fff; border-radius: 8px; padding: 10px 12px; font: inherit; font-size: 14px; min-width: 0; }
 .bs-order { border-top: 1px solid var(--border-light); padding: 20px 0 4px; margin-top: 14px; }
 .bs-order h3 { font-size: 17px; margin: 16px 0 8px; }
 .bs-row small { color: var(--text-muted); overflow-wrap: anywhere; }
 .bs-badge { font-size: 12px; color: var(--primary); background: var(--primary-50); padding: 5px 10px; border-radius: 6px; }
 .bs-price { font-size: 20px; color: var(--primary); }
+.bs-earnings-table { min-width: 980px; }
+.bs-earnings-table td { vertical-align: middle; }
+.bs-earnings-table td strong, .bs-earnings-table td small { display: block; }
+.bs-earnings-table td strong { font-weight: 600; }
+.bs-earnings-table td small { margin-top: 4px; font-size: 12px; color: var(--text-muted); white-space: nowrap; }
+.bs-earnings-table .bs-earnings-net { color: var(--primary); font-weight: 600; }
 .bs-detail-modal { width: min(920px, 96vw); max-width: 920px; }
 .bs-detail { font-family: var(--font-family-sans); font-size: 14px; line-height: 1.7; }
 .bs-detail h3 { font-size: 20px; margin: 20px 0; }
@@ -38,4 +47,12 @@
 .bs-action-form label { display: flex; flex-direction: column; gap: 8px; }
 .bs-action-form textarea { width: 100%; box-sizing: border-box; resize: vertical; }
 .bs-orders :focus-visible, .bs-detail :focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
+.bs-pagination { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-light); }
+.bs-pagination-total { font-size: 13px; color: var(--text-secondary); }
+.bs-pagination-pages { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.bs-page-btn { border: 1px solid var(--border-light); background: var(--card-bg); color: var(--text-secondary); border-radius: 6px; padding: 6px 12px; font: inherit; font-size: 13px; cursor: pointer; }
+.bs-page-btn:hover:not(:disabled) { border-color: var(--primary); color: var(--primary); }
+.bs-page-btn.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+.bs-page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.bs-page-gap { color: var(--text-muted); padding: 0 2px; }
 @media (max-width: 640px) { .bs-orders { padding: 16px; } .bs-info, .bs-stage-payments { grid-template-columns: 1fr; } .bs-filters > * { width: 100%; } .bs-row > strong { overflow-wrap: anywhere; max-width: 100%; } }
