@@ -8,6 +8,33 @@
   margin-bottom: 2px;
 }
 
+.my-order-tabs {
+  display: flex;
+  gap: 28px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.my-order-tabs button {
+  padding: 10px 4px 12px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.my-order-tabs button.active {
+  border-bottom-color: var(--primary);
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.my-order-tabs button:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+}
+
 .my-order-stats {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -640,14 +667,11 @@
   }
 
   .my-order-filters {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
     width: 100%;
   }
 
   .my-order-filters select {
-    width: 100%;
-    min-width: 0;
+    min-width: 112px;
   }
 
   .my-order-list-body {

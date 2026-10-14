@@ -115,7 +115,7 @@ export default function BiographerWorks() {
   const selectOrder = (orderId: string) => {
     setActiveOrderId(orderId);
     const serviceOrder = readServiceOrders().find(item => item.id === orderId);
-    const latestDraft = serviceOrder?.stages.slice(1).flatMap(stage => stage.versions).at(-1);
+    const latestDraft = serviceOrder?.stages.flatMap(stage => stage.versions).at(-1);
     const draftChapters = latestDraft?.chapters?.length ? latestDraft.chapters : parseManuscriptChapters(latestDraft?.content || '');
     const initial = draftChapters.length ? draftChapters.map(chapter => ({ ...chapter, done: false, updatedAt: latestDraft?.at || null, images: [] }))
       : serviceOrder ? ['童年与成长', '求学与工作', '家庭故事', '家风与寄语'].map((title, index) => ({ id: `chapter-${index + 1}`, title, content: '', done: false, updatedAt: null, images: [] }))
