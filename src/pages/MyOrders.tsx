@@ -15,11 +15,7 @@ import {
   ShoppingBag,
   X,
   Copy,
-  User,
-  Search,
-  RotateCcw,
-  Calendar,
-  MessageCircle,
+  Star,
   CreditCard as PayIcon,
 } from 'lucide-react';
 import { orderApi } from '../api/order';
@@ -28,6 +24,8 @@ import type { Order, Biographer, BiographerOrder, RefundReasonOption } from '../
 import { refundReasonApi } from '../api/refundReason';
 import { paymentApi } from '../api/payment';
 import { useToast } from '../hooks/useToast';
+import { useAuth } from '../hooks/useAuth';
+import { readServiceOrders, serviceOrderVisible, serviceStatusLabels, SERVICE_ORDER_EVENT, type ServiceOrder } from '../data/biographerServiceOrders';
 import Annotate from '../components/annotation/Annotate';
 import { defaultBiographers, defaultRefundReasonOptions } from '../mocks/data/seed';
 import './MyOrders.css';
@@ -91,9 +89,24 @@ const bioStatusMap: Record<BiographerOrder['status'], { label: string; color: st
   after_sales: { label: '售后中', color: '#ef4444' },
 };
 
-const bioProgressNodes = ['预约采访', '提交初稿', '修改完善', '交付定稿'];
-
-const PAGE_SIZE = 10;
+/** 统一订单行：商品订单（orderApi）+ 旧版传记师订单（biographerApi）+ 新版传记师服务订单（本地服务订单库） */
+interface UnifiedOrderRow {
+  key: string;
+  kind: 'normal' | 'bio' | 'service';
+  orderId: string;
+  typeLabel: string;
+  name: string;
+  sub: string;
+  amount: number;
+  statusLabel: string;
+  statusClassName?: string;
+  statusColor?: string;
+  unifiedStatus: Order['status'];
+  createdAt: string;
+  normal?: Order;
+  bio?: BiographerOrder;
+  service?: ServiceOrder;
+}
 
 function formatCountdown(target: string): string {
   const diff = new Date(target).getTime() - Date.now();
@@ -104,7 +117,7 @@ function formatCountdown(target: string): string {
 }
 
 function useCountdown() {
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(0);
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(timer);
@@ -115,25 +128,10 @@ function useCountdown() {
 // 页面演示兜底：即使当前浏览器没有初始化订单或切换了演示账号，也始终能看到完整样例。
 const demoOrders: Order[] = [
   { id: 'ord_demo_001', userId: 'u_demo_current', type: 'biography', productId: 'prod_bio_standard', productName: '标准传记服务', amount: 1999, status: 'paid', payTime: '2026-09-06T10:20:00', createdAt: '2026-09-06T10:00:00', updatedAt: '2026-09-06T10:20:00' },
-  { id: 'ord_demo_002', userId: 'u_demo_current', type: 'book', productId: 'prod_book_hardcover', productName: '张明远的传记 · 精装实体书', amount: 288, quantity: 2, status: 'delivering', payTime: '2026-09-05T14:05:00', createdAt: '2026-09-05T14:00:00', updatedAt: '2026-09-06T09:30:00' },
+  { id: 'ord_demo_002', userId: 'u_demo_current', type: 'book', productId: 'prod_book_hardcover', productName: '张明远的传记 · 精装实体书', amount: 288, status: 'delivering', payTime: '2026-09-05T14:05:00', createdAt: '2026-09-05T14:00:00', updatedAt: '2026-09-06T09:30:00' },
   { id: 'ord_demo_003', userId: 'u_demo_current', type: 'qrcode', productId: 'prod_qrcode', productName: '家风纪念馆二维码', amount: 19.9, status: 'completed', payTime: '2026-09-03T16:40:00', createdAt: '2026-09-03T16:30:00', updatedAt: '2026-09-03T16:40:00' },
   { id: 'ord_demo_004', userId: 'u_demo_current', type: 'biographer_service', productId: 'svc_001', productName: '李传记 · 基础采访套餐', amount: 1999, status: 'paid', payTime: '2026-09-02T11:15:00', createdAt: '2026-09-02T11:00:00', updatedAt: '2026-09-02T11:15:00' },
   { id: 'ord_demo_005', userId: 'u_demo_current', type: 'video', productId: 'prod_video', productName: '家族纪念视频制作', amount: 1288, status: 'refunded', payTime: '2026-08-28T09:30:00', createdAt: '2026-08-28T09:00:00', updatedAt: '2026-08-29T15:00:00' },
-  { id: 'ord_demo_006', userId: 'u_demo_current', type: 'biographer_service', productId: 'svc_003', productName: '王传记 · 回忆录短篇版', amount: 1299, status: 'delivering', payTime: '2026-08-24T09:45:00', createdAt: '2026-08-24T09:30:00', updatedAt: '2026-08-24T09:45:00' },
-  { id: 'ord_demo_007', userId: 'u_demo_current', type: 'book', productId: 'prod_book_hardcover', productName: '家风传记 · 精装实体书', amount: 288, quantity: 1, status: 'pending_pay', expireAt: '2027-12-31T23:59:59', createdAt: '2026-09-07T10:00:00', updatedAt: '2026-09-07T10:00:00' },
-  { id: 'ord_demo_008', userId: 'u_demo_current', type: 'derivative', productId: 'prod_deriv_badge', productName: '家徽定制徽章', amount: 69, status: 'paid', payTime: '2026-09-06T20:10:00', createdAt: '2026-09-06T20:00:00', updatedAt: '2026-09-06T20:10:00' },
-  { id: 'ord_demo_009', userId: 'u_demo_current', type: 'digital_person', productId: 'prod_digital_person', productName: '数字人定制（标准版）', amount: 999, status: 'delivering', payTime: '2026-09-05T09:15:00', createdAt: '2026-09-05T09:00:00', updatedAt: '2026-09-06T11:00:00' },
-  { id: 'ord_demo_010', userId: 'u_demo_current', type: 'video', productId: 'prod_video', productName: '家族纪念视频制作', amount: 999, status: 'completed', payTime: '2026-09-01T15:40:00', createdAt: '2026-09-01T15:30:00', updatedAt: '2026-09-04T10:00:00', deliverables: [{ type: 'video', name: '家族纪念视频成片', url: '#', createdAt: '2026-09-04T10:00:00' }] },
-  { id: 'ord_demo_011', userId: 'u_demo_current', type: 'qrcode', productId: 'prod_qrcode', productName: '纪念物二维码', amount: 29.9, status: 'closed', createdAt: '2026-08-30T11:00:00', updatedAt: '2026-08-30T11:30:00' },
-  { id: 'ord_demo_012', userId: 'u_demo_current', type: 'biography', productId: 'prod_bio_standard', productName: '标准传记服务', amount: 1999, status: 'refunded', payTime: '2026-08-26T14:10:00', createdAt: '2026-08-26T14:00:00', updatedAt: '2026-08-28T09:00:00', refundRequest: { reason: '不需要该商品', reasonOptionLabel: '不需要该商品', status: 'completed', createdAt: '2026-08-27T10:00:00', processedAt: '2026-08-28T09:00:00' } },
-  { id: 'ord_demo_013', userId: 'u_demo_current', type: 'book', productId: 'prod_book_hardcover', productName: '张明远的传记 · 精装实体书', amount: 864, quantity: 3, status: 'delivering', payTime: '2026-09-04T16:05:00', createdAt: '2026-09-04T16:00:00', updatedAt: '2026-09-05T10:00:00', address: { name: '张先生', phone: '138****8003', province: '浙江省', city: '杭州市', district: '西湖区', detail: '文三路 100 号' }, logistics: { company: '顺丰速运', trackingNo: 'SF20260905001', shippedAt: '2026-09-05T10:00:00' } },
-  { id: 'ord_demo_014', userId: 'u_demo_current', type: 'derivative', productId: 'prod_deriv_scarf', productName: '姓氏图腾丝巾', amount: 129, status: 'completed', payTime: '2026-08-25T13:20:00', createdAt: '2026-08-25T13:10:00', updatedAt: '2026-08-30T09:00:00' },
-  { id: 'ord_demo_015', userId: 'u_demo_current', type: 'biographer_service', productId: 'svc_002', productName: '李传记 · 深度采访套餐', amount: 3999, status: 'paid', payTime: '2026-09-07T09:15:00', createdAt: '2026-09-07T09:00:00', updatedAt: '2026-09-07T09:15:00' },
-  { id: 'ord_demo_016', userId: 'u_demo_current', type: 'digital_person', productId: 'prod_digital_person_pro', productName: '数字人定制（高级版）', amount: 1999, status: 'completed', payTime: '2026-08-20T10:40:00', createdAt: '2026-08-20T10:30:00', updatedAt: '2026-08-28T15:00:00' },
-  { id: 'ord_demo_017', userId: 'u_demo_current', type: 'biography', productId: 'prod_bio_pdf', productName: '家族传记 · 下载 PDF', amount: 9.9, status: 'completed', payTime: '2026-08-18T08:40:00', createdAt: '2026-08-18T08:30:00', updatedAt: '2026-08-18T08:40:00', deliverables: [{ type: 'pdf', name: '家族传记.pdf', url: '#', createdAt: '2026-08-18T08:40:00' }] },
-  { id: 'ord_demo_018', userId: 'u_demo_current', type: 'qrcode', productId: 'prod_qrcode', productName: '家风纪念馆二维码', amount: 19.9, status: 'paid', payTime: '2026-09-03T19:10:00', createdAt: '2026-09-03T19:00:00', updatedAt: '2026-09-03T19:10:00' },
-  { id: 'ord_demo_019', userId: 'u_demo_current', type: 'book', productId: 'prod_book_paperback', productName: '家风传记 · 平装实体书', amount: 118, quantity: 2, status: 'completed', payTime: '2026-08-15T14:20:00', createdAt: '2026-08-15T14:10:00', updatedAt: '2026-08-22T10:00:00', address: { name: '张先生', phone: '138****8003', province: '浙江省', city: '杭州市', district: '西湖区', detail: '文三路 100 号' } },
-  { id: 'ord_demo_020', userId: 'u_demo_current', type: 'derivative', productId: 'prod_deriv_calligraphy', productName: '家训书法作品', amount: 199, status: 'closed', createdAt: '2026-08-10T09:00:00', updatedAt: '2026-08-10T09:30:00' },
 ];
 
 const demoBiographerOrders: BiographerOrder[] = [
@@ -154,13 +152,12 @@ const demoBiographerOrders: BiographerOrder[] = [
 export default function MyOrders() {
   const navigate = useNavigate();
   const { addToast } = useToast();
+  const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const [orders, setOrders] = useState<Order[]>([]);
   const [bioOrders, setBioOrders] = useState<BiographerOrder[]>([]);
   const [biographers, setBiographers] = useState<Record<string, Biographer>>({});
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const [keyword, setKeyword] = useState('');
   const [statusFilter, setStatusFilter] = useState<Order['status'] | 'all'>(() => {
     const status = searchParams.get('status');
     return statusOptions.some((option) => option.value === status) ? (status as Order['status']) : 'all';
@@ -169,30 +166,52 @@ export default function MyOrders() {
     const t = searchParams.get('type');
     return typeOptions.some((o) => o.value === t) ? (t as Order['type']) : 'all';
   });
-  // 草稿条件：输入只改草稿，点击「查询」后才应用到实际筛选；初始值与 URL 参数初始化结果保持一致
-  const [draftKeyword, setDraftKeyword] = useState('');
-  const [draftStatus, setDraftStatus] = useState<Order['status'] | 'all'>(statusFilter);
-  const [draftType, setDraftType] = useState<Order['type'] | 'all'>(typeFilter);
   const [selected, setSelected] = useState<Order | null>(null);
+  const [selectedBioOrder, setSelectedBioOrder] = useState<BiographerOrder | null>(null);
+  const [reviewedBioOrderIds, setReviewedBioOrderIds] = useState<Set<string>>(new Set());
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
   const [payingId, setPayingId] = useState<string | null>(null);
   const [refundOrder, setRefundOrder] = useState<Order | null>(null);
   const [refundReasons, setRefundReasons] = useState<RefundReasonOption[]>([]);
   const [refundReasonOptionId, setRefundReasonOptionId] = useState('');
   const [refundCustomReason, setRefundCustomReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [serviceOrders, setServiceOrders] = useState<ServiceOrder[]>([]);
+  const [serviceOrderId, setServiceOrderId] = useState<string | null>(null);
   useCountdown();
 
+  // 新版传记师服务订单：读本地服务订单库，监听变更事件刷新
   useEffect(() => {
-    loadOrders();
-  }, []);
+    const load = () => {
+      const phone = user?.phone || '';
+      setServiceOrders(readServiceOrders().filter((o) => serviceOrderVisible(o, 'customer', phone)));
+    };
+    load();
+    window.addEventListener(SERVICE_ORDER_EVENT, load);
+    window.addEventListener('storage', load);
+    return () => {
+      window.removeEventListener(SERVICE_ORDER_EVENT, load);
+      window.removeEventListener('storage', load);
+    };
+  }, [user?.phone]);
 
   const loadOrders = () => {
     setLoading(true);
     Promise.all([orderApi.list(), biographerApi.orders(), biographerApi.list(), refundReasonApi.list()])
-      .then(([orderList, bioOrderList, bioList, refundReasonList]) => {
+      .then(async ([orderList, bioOrderList, bioList, refundReasonList]) => {
         const visibleOrders = orderList.length > 0 ? orderList : demoOrders;
         const visibleBioOrders = bioOrderList.length > 0 ? bioOrderList : demoBiographerOrders;
         const visibleBiographers = bioList.length > 0 ? bioList : defaultBiographers.filter((b) => b.status === 'approved');
+        const reviewResults = await Promise.all(visibleBioOrders.map(async (order) => {
+          try {
+            const reviews = await biographerApi.getReviews(order.biographerId);
+            return [order.id, reviews.some((review) => review.orderId === order.id)] as const;
+          } catch {
+            return [order.id, false] as const;
+          }
+        }));
+        setReviewedBioOrderIds(new Set(reviewResults.filter(([, reviewed]) => reviewed).map(([id]) => id)));
         setOrders(visibleOrders);
         setBioOrders(visibleBioOrders);
         setRefundReasons(refundReasonList.length > 0 ? refundReasonList : defaultRefundReasonOptions);
@@ -211,46 +230,71 @@ export default function MyOrders() {
       .finally(() => setLoading(false));
   };
 
-  const filtered = useMemo(() => {
-    return orders.filter((o) => {
-      const matchKeyword = !keyword || o.id.includes(keyword) || o.productName.includes(keyword);
-      const matchStatus = statusFilter === 'all' || o.status === statusFilter;
-      const matchType = typeFilter === 'all' || o.type === typeFilter;
-      return matchKeyword && matchStatus && matchType;
-    });
-  }, [orders, keyword, statusFilter, typeFilter]);
+  useEffect(() => {
+    const timer = window.setTimeout(loadOrders, 0);
+    return () => window.clearTimeout(timer);
+  }, []);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const currentPage = Math.min(page, totalPages);
-  const paged = useMemo(
-    () => filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE),
-    [filtered, currentPage],
-  );
-
-  // 传记师订单：仅在「全部类型」或「传记师服务」下展示，不参与普通订单的状态筛选
-  const visibleBioOrders = useMemo(() => {
-    if (typeFilter !== 'all' && typeFilter !== 'biographer_service') return [];
-    return bioOrders;
-  }, [bioOrders, typeFilter]);
-
-  const isBioType = typeFilter === 'biographer_service';
-
-  const applyFilters = () => {
-    setKeyword(draftKeyword);
-    setStatusFilter(draftStatus);
-    setTypeFilter(draftType);
-    setPage(1);
-  };
-
-  const resetFilters = () => {
-    setDraftKeyword('');
-    setDraftStatus('all');
-    setDraftType('all');
-    setKeyword('');
-    setStatusFilter('all');
-    setTypeFilter('all');
-    setPage(1);
-  };
+  const rows = useMemo<UnifiedOrderRow[]>(() => {
+    const normalRows: UnifiedOrderRow[] = orders.map((o) => ({
+      key: `normal_${o.id}`,
+      kind: 'normal',
+      orderId: o.id,
+      typeLabel: typeLabelMap[o.type],
+      name: o.productName,
+      sub: '',
+      amount: o.amount,
+      statusLabel: statusMap[o.status].label,
+      statusClassName: statusMap[o.status].className,
+      unifiedStatus: o.status,
+      createdAt: o.createdAt,
+      normal: o,
+    }));
+    const bioRows: UnifiedOrderRow[] = bioOrders.map((o) => ({
+      key: `bio_${o.id}`,
+      kind: 'bio',
+      orderId: o.orderId || o.id,
+      typeLabel: '传记师服务',
+      name: o.serviceName,
+      sub: `传记师：${biographers[o.biographerId]?.name || '李传记'}`,
+      amount: o.amount,
+      statusLabel: bioStatusMap[o.status].label,
+      statusColor: bioStatusMap[o.status].color,
+      unifiedStatus: o.status === 'completed' ? 'completed' : 'delivering',
+      createdAt: o.createdAt,
+      bio: o,
+    }));
+    // 新版服务订单状态映射到统一状态口径：待接单/待付款→待支付，服务中→服务中
+    const serviceStatusToUnified: Record<string, Order['status']> = {
+      pending_accept: 'pending_pay',
+      pending_pay: 'pending_pay',
+      working: 'delivering',
+      completed: 'completed',
+      refunded: 'refunded',
+      closed: 'closed',
+    };
+    const serviceRows: UnifiedOrderRow[] = serviceOrders.map((o) => ({
+      key: `service_${o.id}`,
+      kind: 'service',
+      orderId: o.id,
+      typeLabel: '传记师服务',
+      name: o.service.name,
+      sub: `传记师：${o.biographerName} · 传主：${o.requirements.interviewee || '待补充'}`,
+      amount: o.amount,
+      statusLabel: serviceStatusLabels[o.status] + (o.requests.some((r) => r.status === 'pending') ? ' · 平台处理中' : ''),
+      unifiedStatus: serviceStatusToUnified[o.status] || 'delivering',
+      createdAt: o.createdAt,
+      service: o,
+    }));
+    return [...normalRows, ...bioRows, ...serviceRows]
+      .filter((r) => statusFilter === 'all' || r.unifiedStatus === statusFilter)
+      .filter((r) => {
+        if (typeFilter === 'all') return true;
+        if (typeFilter === 'biographer_service') return r.kind !== 'normal' || r.normal?.type === 'biographer_service';
+        return r.kind === 'normal' && r.normal?.type === typeFilter;
+      })
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }, [orders, bioOrders, serviceOrders, biographers, statusFilter, typeFilter]);
 
   const handlePay = async (order: Order) => {
     try {
@@ -259,10 +303,21 @@ export default function MyOrders() {
       addToast('支付成功', 'success');
       loadOrders();
       navigate(`/order-success?orderId=${order.id}`);
-    } catch (err: any) {
-      addToast(err.message || '支付失败', 'error');
+    } catch (err: unknown) {
+      addToast(err instanceof Error ? err.message : '支付失败', 'error');
     } finally {
       setPayingId(null);
+    }
+  };
+
+  // 实体订单（实体书/衍生品）服务中可确认收货，确认后订单完成
+  const handleConfirmReceipt = async (order: Order) => {
+    try {
+      await orderApi.updateStatus(order.id, 'completed');
+      addToast('已确认收货，订单完成', 'success');
+      loadOrders();
+    } catch (err: unknown) {
+      addToast(err instanceof Error ? err.message : '操作失败', 'error');
     }
   };
 
@@ -307,8 +362,8 @@ export default function MyOrders() {
       setRefundCustomReason('');
       setSelected(null);
       loadOrders();
-    } catch (err: any) {
-      addToast(err.message || '退款失败', 'error');
+    } catch (err: unknown) {
+      addToast(err instanceof Error ? err.message : '退款失败', 'error');
     } finally {
       setSubmitting(false);
     }
@@ -317,6 +372,32 @@ export default function MyOrders() {
   const canRefund = (order: Order) =>
     ['paid', 'delivering'].includes(order.status) &&
     (!order.refundRequest || order.refundRequest.status === 'rejected');
+
+  const openBioOrder = (order: BiographerOrder) => {
+    setSelectedBioOrder(order);
+    setReviewRating(5);
+  };
+
+  const submitBioReview = async () => {
+    if (!selectedBioOrder) return;
+    try {
+      setReviewSubmitting(true);
+      await biographerApi.submitReview(selectedBioOrder.id, {
+        rating: reviewRating,
+        content: '',
+        tags: [],
+      });
+      setReviewedBioOrderIds((current) => new Set(current).add(selectedBioOrder.id));
+      addToast('评价提交成功，感谢您的反馈', 'success');
+      setSelectedBioOrder(null);
+      loadOrders();
+    } catch (err: unknown) {
+      addToast(err instanceof Error ? err.message : '评价提交失败', 'error');
+    } finally {
+      setReviewSubmitting(false);
+    }
+  };
+
 
   return (
     <div className="my-orders-page">
@@ -327,40 +408,20 @@ export default function MyOrders() {
         </div>
       </header>
 
-      {(typeFilter === 'all' || typeFilter === 'biographer_service') && <BiographerServiceOrders role="customer" />}
-
       <div className="card my-order-list-card">
         <div className="card-header my-order-list-header">
           <Annotate id="my-orders.filters" inline>
           <div className="my-order-filters">
-            <div className="my-order-search">
-              <Search size={14} />
-              <input
-                type="text"
-                placeholder="搜索订单号或商品名称"
-                value={draftKeyword}
-                onChange={(e) => setDraftKeyword(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') applyFilters(); }}
-              />
-            </div>
-            {!isBioType && (
-              <select value={draftStatus} onChange={(e) => setDraftStatus(e.target.value as Order['status'] | 'all')}>
-                {statusOptions.map((s) => (
-                  <option value={s.value} key={s.value}>{s.label}</option>
-                ))}
-              </select>
-            )}
-            <select value={draftType} onChange={(e) => setDraftType(e.target.value as Order['type'] | 'all')}>
+            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as Order['status'] | 'all')}>
+              {statusOptions.map((s) => (
+                <option value={s.value} key={s.value}>{s.label}</option>
+              ))}
+            </select>
+            <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as Order['type'] | 'all')}>
               {typeOptions.map((t) => (
                 <option value={t.value} key={t.value}>{t.label}</option>
               ))}
             </select>
-            <button className="btn btn-primary btn-sm" onClick={applyFilters}>
-              <Search size={13} /> 查询
-            </button>
-            <button className="btn btn-outline btn-sm" onClick={resetFilters}>
-              <RotateCcw size={13} /> 重置
-            </button>
           </div>
           </Annotate>
         </div>
@@ -368,185 +429,120 @@ export default function MyOrders() {
         <div className="card-body my-order-list-body">
           {loading ? (
             <div className="my-order-empty">加载中…</div>
-          ) : filtered.length === 0 && visibleBioOrders.length === 0 ? (
-            isBioType ? (
-              <div className="my-order-empty">
-                <MessageCircle size={40} color="#d1d5db" />
-                <p>暂无传记师订单</p>
-                <button className="btn btn-primary" onClick={() => navigate('/biographers')}>去找传记师预约</button>
-              </div>
-            ) : (
-              <div className="my-order-empty">
-                <ShoppingBag size={40} color="#d1d5db" />
-                <p>暂无符合条件的订单</p>
-                <button className="btn btn-primary" onClick={() => navigate('/home')}>返回首页</button>
-              </div>
-            )
+          ) : rows.length === 0 ? (
+            <div className="my-order-empty">
+              <ShoppingBag size={40} color="#d1d5db" />
+              <p>暂无符合条件的订单</p>
+              <button className="btn btn-primary" onClick={() => navigate('/home')}>返回首页</button>
+            </div>
           ) : (
-            <>
-              {filtered.length > 0 && (
-                <>
-                  <div className="admin-table-wrap">
-                    <table className="admin-table">
-                      <thead>
-                        <tr>
-                          <th>订单号</th>
-                          <th>下单时间</th>
-                          <th>类型</th>
-                          <th>商品/服务</th>
-                          <th>金额</th>
-                          <th>状态</th>
-                          <th>操作</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {paged.map((order) => {
-                        const status = statusMap[order.status];
-                        const StatusIcon = status.icon;
-                        const isExpired = order.status === 'pending_pay' && order.expireAt ? new Date(order.expireAt) < new Date() : false;
-                        const canPay = order.status === 'pending_pay' && !isExpired;
-                        return (
-                          <tr key={order.id}>
-                            <td className="my-order-cell-id">{order.id}</td>
-                            <td className="my-order-cell-time">{new Date(order.createdAt).toLocaleString()}</td>
-                            <td>{typeLabelMap[order.type]}</td>
-                            <td className="admin-table-text-left my-order-cell-product">
-                              <div className="my-order-cell-product-name">
-                                {order.productName}
-                                {(order.quantity ?? 1) > 1 && <span className="my-order-cell-product-qty">×{order.quantity} 份</span>}
-                              </div>
-                              {order.sku && <div className="my-order-cell-product-sku">{order.sku}</div>}
-                            </td>
-                            <td className="my-order-cell-amount">¥{order.amount.toLocaleString()}</td>
-                            <td>
-                              <span className="my-order-cell-status">
-                                <span className={`my-order-status ${status.className}`}>
-                                  <StatusIcon size={12} /> {status.label}
-                                </span>
-                                {order.status === 'pending_pay' && order.expireAt && (
-                                  <span className={`my-order-countdown ${isExpired ? 'expired' : ''}`}>
-                                    <Clock size={10} /> {isExpired ? '已过期' : `剩 ${formatCountdown(order.expireAt)}`}
-                                  </span>
-                                )}
-                              </span>
-                            </td>
-                            <td>
-                              <button className="admin-table-link" onClick={() => setSelected(order)}>查看详情</button>
-                              {canRefund(order) && (
-                                <button className="admin-table-link" onClick={() => openRefund(order)}>申请退款</button>
-                              )}
-                              {canPay && (
-                                <button className="admin-table-link" disabled={payingId === order.id} onClick={() => handlePay(order)}>
-                                  {payingId === order.id ? '支付中…' : '去支付'}
-                                </button>
-                              )}
-                            </td>
-                            </tr>
-                        );
-                      })}
-                      </tbody>
-                    </table>
-                  </div>
-                  <div className="my-order-pagination">
-                    <span className="my-order-pagination-total">共 {filtered.length} 条</span>
-                    <div className="my-order-pagination-actions">
-                      <button className="my-order-pagination-btn" disabled={currentPage <= 1} onClick={() => setPage(currentPage - 1)}>上一页</button>
-                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                        <button
-                          key={p}
-                          className={`my-order-pagination-btn ${p === currentPage ? 'active' : ''}`}
-                          onClick={() => setPage(p)}
+            <div className="admin-table-wrap">
+              <table className="admin-table">
+                <thead>
+                  <tr><th>订单号</th><th>类型</th><th>商品 / 服务</th><th>金额</th><th>状态</th><th>下单时间</th><th>操作</th></tr>
+                </thead>
+                <tbody>
+                  {rows.map((row) => (
+                    <tr key={row.key}>
+                      <td>{row.orderId}</td>
+                      <td>{row.typeLabel}</td>
+                      <td className="admin-table-text-left">{row.name}{row.sub && <><br /><small>{row.sub}</small></>}</td>
+                      <td>¥{row.amount.toLocaleString()}</td>
+                      <td>
+                        <span
+                          className={row.statusClassName ? `my-order-status ${row.statusClassName}` : undefined}
+                          style={row.statusColor ? { color: row.statusColor, fontWeight: 600 } : undefined}
                         >
-                          {p}
-                        </button>
-                      ))}
-                      <button className="my-order-pagination-btn" disabled={currentPage >= totalPages} onClick={() => setPage(currentPage + 1)}>下一页</button>
-                    </div>
-                  </div>
-                </>
-              )}
-              {visibleBioOrders.length > 0 && (
-                <>
-                  <div className="my-bio-order-table-title">传记师服务订单</div>
-                  <div className="admin-table-wrap">
-                    <table className="admin-table">
-                      <thead>
-                        <tr>
-                          <th>服务名称</th>
-                          <th>传记师</th>
-                          <th>订单号</th>
-                          <th>金额</th>
-                          <th>采访安排</th>
-                          <th>服务进度</th>
-                          <th>状态</th>
-                          <th>操作</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {visibleBioOrders.map((o) => {
-                          const bio = biographers[o.biographerId];
-                          const doneCount = o.progress.filter((p) => p.status === 'done').length;
-                          const progressPct = Math.round((doneCount / bioProgressNodes.length) * 100);
-                          const linkedOrder = orders.find((ord) => ord.id === o.orderId);
-                          return (
-                            <tr key={o.id}>
-                              <td className="admin-table-text-left">{o.serviceName}</td>
-                              <td>
-                                {bio ? (
-                                  <span className="my-bio-cell-bio">
-                                    <User size={12} /> {bio.name} · {(bio.rating || 5).toFixed(1)} 分
-                                  </span>
-                                ) : '-'}
-                              </td>
-                              <td className="my-order-cell-id">{o.id.slice(-8)}</td>
-                              <td className="my-order-cell-amount">¥{o.amount.toLocaleString()}</td>
-                              <td>
-                                {o.schedule?.time ? (
-                                  <span className="my-bio-cell-schedule">
-                                    <span><Calendar size={12} /> {o.schedule.time}</span>
-                                    <span><MapPin size={12} /> {o.schedule.address}</span>
-                                  </span>
-                                ) : '待安排'}
-                              </td>
-                              <td>
-                                <span className="my-bio-progress">
-                                  <span className="my-bio-progress-track">
-                                    <span className="my-bio-progress-fill" style={{ width: `${progressPct}%` }} />
-                                  </span>
-                                  <span className="my-bio-progress-text">{doneCount}/{bioProgressNodes.length} · {progressPct}%</span>
-                                </span>
-                              </td>
-                              <td>
-                                <span
-                                  className="my-bio-order-status"
-                                  style={{ '--bio-status-color': bioStatusMap[o.status].color } as React.CSSProperties}
-                                >
-                                  {bioStatusMap[o.status].label}
-                                </span>
-                              </td>
-                              <td>
-                                <button
-                                  className="admin-table-link"
-                                  disabled={!linkedOrder}
-                                  title={linkedOrder ? undefined : '未找到关联订单'}
-                                  onClick={() => linkedOrder && setSelected(linkedOrder)}
-                                >
-                                  查看详情
-                                </button>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </>
-              )}
-            </>
+                          {row.statusLabel}
+                        </span>
+                        {row.kind === 'normal' && row.normal?.status === 'pending_pay' && row.normal.expireAt && (
+                          <small style={{ display: 'block', color: '#9ca3af' }}>
+                            {new Date(row.normal.expireAt) < new Date() ? '已过期' : `剩 ${formatCountdown(row.normal.expireAt)}`}
+                          </small>
+                        )}
+                      </td>
+                      <td>{new Date(row.createdAt).toLocaleString()}</td>
+                      <td>
+                        {row.kind === 'normal' && row.normal && (
+                          <>
+                            <button className="btn btn-ghost btn-sm" onClick={() => setSelected(row.normal!)}>查看详情</button>
+                            {canRefund(row.normal) && <button className="btn btn-outline btn-sm" onClick={() => openRefund(row.normal!)}>申请退款</button>}
+                            {row.normal.status === 'pending_pay' && (!row.normal.expireAt || new Date(row.normal.expireAt) > new Date()) && (
+                              <button className="btn btn-primary btn-sm" disabled={payingId === row.normal.id} onClick={() => handlePay(row.normal!)}>
+                                {payingId === row.normal.id ? '支付中…' : '去支付'}
+                              </button>
+                            )}
+                            {row.normal.status === 'delivering' && ['book', 'derivative'].includes(row.normal.type) && (
+                              <button className="btn btn-primary btn-sm" onClick={() => handleConfirmReceipt(row.normal!)}>确认收货</button>
+                            )}
+                          </>
+                        )}
+                        {row.kind === 'bio' && row.bio && (
+                          <>
+                            <button className="btn btn-ghost btn-sm" onClick={() => openBioOrder(row.bio!)}>查看详情</button>
+                            {row.bio.status === 'completed' && (
+                              reviewedBioOrderIds.has(row.bio.id) ? (
+                                <span className="my-order-reviewed-label"><CheckCircle size={13} /> 已评价</span>
+                              ) : (
+                                <button className="btn btn-primary btn-sm" onClick={() => openBioOrder(row.bio!)}>去评价</button>
+                              )
+                            )}
+                          </>
+                        )}
+                        {row.kind === 'service' && (
+                          <button className="btn btn-primary btn-sm" onClick={() => setServiceOrderId(row.orderId)}>查看服务订单</button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
         </Annotate>
       </div>
+
+      <BiographerServiceOrders role="customer" detailOnly selectedOrderId={serviceOrderId} onCloseDetail={() => setServiceOrderId(null)} />
+
+      {selectedBioOrder && (
+        <div className="modal-overlay" onClick={() => setSelectedBioOrder(null)}>
+          <div className="modal-content my-order-detail-modal" onClick={(event) => event.stopPropagation()}>
+            <div className="modal-header">
+              <h4>传记师订单详情</h4>
+              <button className="modal-close" onClick={() => setSelectedBioOrder(null)}><X size={16} /></button>
+            </div>
+            <div className="modal-body">
+              <div className="my-order-detail-row"><span>服务</span><span>{selectedBioOrder.serviceName}</span></div>
+              <div className="my-order-detail-row"><span>传记师</span><span>{biographers[selectedBioOrder.biographerId]?.name || '李传记'}</span></div>
+              <div className="my-order-detail-row"><span>订单状态</span><span className="my-order-status my-order-status-completed">已完成</span></div>
+              <div className="my-order-detail-row"><span>订单金额</span><span className="my-order-detail-amount">¥{selectedBioOrder.amount.toLocaleString()}</span></div>
+              <div className="my-order-detail-section">
+                <h5><CheckCircle size={14} /> 服务进度</h5>
+                <p className="my-order-detail-remark">采访、初稿、修改和终稿均已完成。演示资料：本订单专用于体验评价流程。</p>
+              </div>
+              {reviewedBioOrderIds.has(selectedBioOrder.id) ? (
+                <div className="my-order-review-notice"><CheckCircle size={15} /> 该订单已完成评价</div>
+              ) : (
+                <div className="my-order-detail-section">
+                  <h5><Star size={14} /> 评价服务</h5>
+                  <div className="my-order-review-stars interactive" role="radiogroup" aria-label="服务评分">
+                    {[1, 2, 3, 4, 5].map((score) => (
+                      <button type="button" key={score} aria-label={`${score} 星`} aria-pressed={reviewRating === score} onClick={() => setReviewRating(score)}>
+                        <Star size={24} className={score <= reviewRating ? 'filled' : ''} />
+                      </button>
+                    ))}
+                  </div>
+                  <div className="my-order-detail-actions">
+                    <button className="btn btn-outline" onClick={() => setSelectedBioOrder(null)}>暂不评价</button>
+                    <button className="btn btn-primary" disabled={reviewSubmitting} onClick={submitBioReview}>{reviewSubmitting ? '提交中…' : '提交评价'}</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {selected && (
         <Annotate id="my-orders.detail-modal">
@@ -566,7 +562,7 @@ export default function MyOrders() {
               </div>
               <div className="my-order-detail-row">
                 <span>商品</span>
-                <span>{selected.productName}{(selected.quantity ?? 1) > 1 ? ` ×${selected.quantity} 份` : ''}</span>
+                <span>{selected.productName}</span>
               </div>
               <div className="my-order-detail-row">
                 <span>类型</span>
@@ -590,12 +586,6 @@ export default function MyOrders() {
                 <div className="my-order-detail-row">
                   <span>支付时间</span>
                   <span>{new Date(selected.payTime).toLocaleString()}</span>
-                </div>
-              )}
-              {selected.remark && (
-                <div className="my-order-detail-row">
-                  <span>备注</span>
-                  <span className="my-order-detail-remark">{selected.remark}</span>
                 </div>
               )}
 
