@@ -7,30 +7,41 @@ import ProtectedRoute from './components/ProtectedRoute';
 import RoleRoute from './components/RoleRoute';
 import Layout from './components/Layout';
 import AdminLayout from './components/AdminLayout';
-import PartnerLayout from './components/PartnerLayout';
 import Login from './pages/Login';
 import { useVersion } from './hooks/useVersion';
 import './App.css';
 
-// V1.0 未包含的功能（家庭空间 V1.2 / 数字家谱 V2.0 / AI家风馆 V2.0 / 数字人 V3.0 等）重定向到首页
+// 完整版才开放的后续功能。
 function V1Redirect({ children }: { children: ReactNode }) {
+  const { isFull } = useVersion();
+  return !isFull ? <Navigate to="/home" replace /> : <>{children}</>;
+}
+
+// 家庭功能从当前 V1.1 演示版开放。
+function FamilyRedirect({ children }: { children: ReactNode }) {
   const { isV1 } = useVersion();
   return isV1 ? <Navigate to="/home" replace /> : <>{children}</>;
 }
 
-// 运营后台 V1.0 模式：未开放页面重定向到用户管理
+// 运营后台后续功能仅在完整版开放。
 function AdminV1Redirect({ children }: { children: ReactNode }) {
+  const { isFull } = useVersion();
+  return !isFull ? <Navigate to="/admin/users" replace /> : <>{children}</>;
+}
+
+// 合伙人管理与分润从 V1.1 开放。
+function AdminPartnerRedirect({ children }: { children: ReactNode }) {
   const { isV1 } = useVersion();
   return isV1 ? <Navigate to="/admin/users" replace /> : <>{children}</>;
 }
 
 // 传记师「工作台」V1.0 不开放：进入传记师端默认到我的订单
 function BiographerV1Redirect({ children }: { children: ReactNode }) {
-  const { isV1 } = useVersion();
-  return isV1 ? <Navigate to="/biographer/orders" replace /> : <>{children}</>;
+  const { isFull } = useVersion();
+  return !isFull ? <Navigate to="/biographer/orders" replace /> : <>{children}</>;
 }
 
-// 移动端「家庭」模块为 V1.2 功能：V1.0 模式下回到移动端首页
+// 移动端「家庭」已并入当前 V1.1：V1.0 模式下回到移动端首页。
 function MobileFamilyV1Redirect({ children }: { children: ReactNode }) {
   const { isV1 } = useVersion();
   return isV1 ? <Navigate to="/m" replace /> : <>{children}</>;
@@ -111,7 +122,6 @@ const BookReview = lazy(() => import('./pages/BookReview'));
 const AdminDictionary = lazy(() => import('./pages/AdminDictionary'));
 const WithdrawalManagement = lazy(() => import('./pages/WithdrawalManagement'));
 const UserInvites = lazy(() => import('./pages/UserInvites'));
-const PartnerCenter = lazy(() => import('./pages/PartnerCenter'));
 const PartnerApplication = lazy(() => import('./pages/PartnerApplication'));
 const MobileInterview = lazy(() => import('./pages/mobile/MobileInterview'));
 const MobileInterviewReview = lazy(() => import('./pages/mobile/MobileInterviewReview'));
@@ -192,13 +202,10 @@ function App() {
               <Route path="/partner/apply" element={<PartnerApplication />} />
               <Route path="/biographer-apply" element={<ProtectedRoute><BiographerApply standalone /></ProtectedRoute>} />
               <Route path="/partner/login" element={<Navigate to="/" replace />} />
-              <Route path="/partner-center" element={<Navigate to="/partner" replace />} />
+              <Route path="/partner-center" element={<Navigate to="/home" replace />} />
               <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
 
-              <Route path="/partner" element={<RoleRoute role="partner"><PartnerLayout /></RoleRoute>}>
-                <Route index element={<PartnerCenter />} />
-                <Route path="*" element={<Navigate to="/partner" replace />} />
-              </Route>
+              <Route path="/partner" element={<Navigate to="/home" replace />} />
 
               <Route path="/biographer" element={<RoleRoute role="biographer"><BiographerLayout /></RoleRoute>}>
                 <Route index element={<BiographerV1Redirect><BiographerCenter /></BiographerV1Redirect>} />
@@ -215,19 +222,19 @@ function App() {
                 <Route path="dashboard" element={<AdminV1Redirect><AdminDashboard /></AdminV1Redirect>} />
                 <Route path="users" element={<UserManagement />} />
                 <Route path="biographers" element={<BiographerManagement />} />
-                <Route path="partners" element={<AdminV1Redirect><PartnerManagement /></AdminV1Redirect>} />
-                <Route path="regional-partners" element={<AdminV1Redirect><RegionalPartnerManagement /></AdminV1Redirect>} />
-                <Route path="partner-applications" element={<AdminV1Redirect><PartnerApplications /></AdminV1Redirect>} />
-                <Route path="partner-customers" element={<AdminV1Redirect><PartnerCustomersAdmin /></AdminV1Redirect>} />
+                <Route path="partners" element={<AdminPartnerRedirect><PartnerManagement /></AdminPartnerRedirect>} />
+                <Route path="regional-partners" element={<AdminPartnerRedirect><RegionalPartnerManagement /></AdminPartnerRedirect>} />
+                <Route path="partner-applications" element={<AdminPartnerRedirect><PartnerApplications /></AdminPartnerRedirect>} />
+                <Route path="partner-customers" element={<AdminPartnerRedirect><PartnerCustomersAdmin /></AdminPartnerRedirect>} />
                 <Route path="orders" element={<OrderManagement />} />
                 <Route path="products" element={<ProductManagement />} />
                 <Route path="biography-shelf" element={<BiographyShelfManagement />} />
                 <Route path="group-buy" element={<AdminV1Redirect><GroupBuyManagement /></AdminV1Redirect>} />
-                <Route path="commission-records" element={<AdminV1Redirect><CommissionRecords /></AdminV1Redirect>} />
+                <Route path="commission-records" element={<AdminPartnerRedirect><CommissionRecords /></AdminPartnerRedirect>} />
                 <Route path="book-review" element={<BookReview />} />
                 <Route path="dictionary" element={<AdminDictionary />} />
-                <Route path="withdrawals" element={<AdminV1Redirect><WithdrawalManagement /></AdminV1Redirect>} />
-                <Route path="user-invites" element={<AdminV1Redirect><UserInvites /></AdminV1Redirect>} />
+                <Route path="withdrawals" element={<AdminPartnerRedirect><WithdrawalManagement /></AdminPartnerRedirect>} />
+                <Route path="user-invites" element={<AdminPartnerRedirect><UserInvites /></AdminPartnerRedirect>} />
                 <Route path="roles" element={<AdminRolePermissions />} />
                 <Route path="notifications" element={<AdminV1Redirect><AdminNotifications /></AdminV1Redirect>} />
                 <Route path="content-review/sensitive" element={<Navigate to="/admin/sensitive-hits" replace />} />
@@ -295,7 +302,7 @@ function App() {
                 <Route path="archive" element={<LifeArchive />} />
                 <Route path="life-events" element={<LifeEvents />} />
                 <Route path="archive-enrichment" element={<ArchiveEnrichment />} />
-                <Route path="family" element={<V1Redirect><FamilySpace /></V1Redirect>} />
+                <Route path="family" element={<FamilyRedirect><FamilySpace /></FamilyRedirect>} />
                 <Route path="genealogy" element={<V1Redirect><Genealogy /></V1Redirect>} />
                 <Route path="family-hall" element={<V1Redirect><AIFamilyHall /></V1Redirect>} />
                 <Route path="digital-person" element={<V1Redirect><DigitalLife /></V1Redirect>} />
@@ -311,13 +318,13 @@ function App() {
                 <Route path="invite" element={<Invite />} />
                 <Route path="my-partner" element={<UserPartner />} />
                 <Route path="profile" element={<Profile />} />
-                <Route path="family/members" element={<V1Redirect><FamilyMemberList /></V1Redirect>} />
-                <Route path="family/members/:name" element={<V1Redirect><FamilyMemberDetail /></V1Redirect>} />
-                <Route path="family/album/:title" element={<V1Redirect><AlbumDetail /></V1Redirect>} />
-                <Route path="family/story/:title" element={<V1Redirect><StoryDetail /></V1Redirect>} />
-                <Route path="family/event/:title" element={<V1Redirect><EventDetail /></V1Redirect>} />
-                <Route path="family/notice/:index" element={<V1Redirect><NoticeDetail /></V1Redirect>} />
-                <Route path="family/memorial/:name" element={<V1Redirect><MemorialDetail /></V1Redirect>} />
+                <Route path="family/members" element={<FamilyRedirect><FamilyMemberList /></FamilyRedirect>} />
+                <Route path="family/members/:name" element={<FamilyRedirect><FamilyMemberDetail /></FamilyRedirect>} />
+                <Route path="family/album/:title" element={<FamilyRedirect><AlbumDetail /></FamilyRedirect>} />
+                <Route path="family/story/:title" element={<FamilyRedirect><StoryDetail /></FamilyRedirect>} />
+                <Route path="family/event/:title" element={<FamilyRedirect><EventDetail /></FamilyRedirect>} />
+                <Route path="family/notice/:index" element={<FamilyRedirect><NoticeDetail /></FamilyRedirect>} />
+                <Route path="family/memorial/:name" element={<FamilyRedirect><MemorialDetail /></FamilyRedirect>} />
                 <Route path="archive/media" element={<ArchiveMedia />} />
                 <Route path="archive/event/:year/edit" element={<EventEdit />} />
                 <Route path="archive/places" element={<ArchivePlaces />} />
@@ -330,16 +337,16 @@ function App() {
                 <Route path="family-hall/assessment" element={<V1Redirect><FamilyAssessment /></V1Redirect>} />
                 <Route path="family-hall/activity" element={<V1Redirect><HallActivityDetail /></V1Redirect>} />
                 <Route path="family-hall/deploy" element={<V1Redirect><FamilyHallDeploy /></V1Redirect>} />
-                <Route path="family/calendar" element={<V1Redirect><FamilyCalendar /></V1Redirect>} />
-                <Route path="family/albums" element={<V1Redirect><FamilyAlbums /></V1Redirect>} />
-                <Route path="family/stories" element={<V1Redirect><FamilyStories /></V1Redirect>} />
-                <Route path="family/child" element={<V1Redirect><FamilyChild /></V1Redirect>} />
-                <Route path="family/child/:category" element={<V1Redirect><FamilyChildCategory /></V1Redirect>} />
-                <Route path="family/relations" element={<V1Redirect><FamilyRelations /></V1Redirect>} />
-                <Route path="family/roles" element={<V1Redirect><FamilyRoles /></V1Redirect>} />
-                <Route path="family/motto" element={<V1Redirect><FamilyMotto /></V1Redirect>} />
-                <Route path="family/inherit/:id" element={<V1Redirect><FamilyInherit /></V1Redirect>} />
-                <Route path="family/events" element={<V1Redirect><FamilyEvents /></V1Redirect>} />
+                <Route path="family/calendar" element={<FamilyRedirect><FamilyCalendar /></FamilyRedirect>} />
+                <Route path="family/albums" element={<FamilyRedirect><FamilyAlbums /></FamilyRedirect>} />
+                <Route path="family/stories" element={<FamilyRedirect><FamilyStories /></FamilyRedirect>} />
+                <Route path="family/child" element={<FamilyRedirect><FamilyChild /></FamilyRedirect>} />
+                <Route path="family/child/:category" element={<FamilyRedirect><FamilyChildCategory /></FamilyRedirect>} />
+                <Route path="family/relations" element={<FamilyRedirect><FamilyRelations /></FamilyRedirect>} />
+                <Route path="family/roles" element={<FamilyRedirect><FamilyRoles /></FamilyRedirect>} />
+                <Route path="family/motto" element={<FamilyRedirect><FamilyMotto /></FamilyRedirect>} />
+                <Route path="family/inherit/:id" element={<FamilyRedirect><FamilyInherit /></FamilyRedirect>} />
+                <Route path="family/events" element={<FamilyRedirect><FamilyEvents /></FamilyRedirect>} />
                 <Route path="*" element={<Navigate to="/home" replace />} />
               </Route>
             </Routes>

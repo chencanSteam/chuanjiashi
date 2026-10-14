@@ -117,7 +117,7 @@ export default function BiographerProfileEdit({ embedded, onExit }: BiographerPr
   };
 
   if (loading) {
-    return <div className="partner-center-page"><div className="card"><div className="card-body">加载中...</div></div></div>;
+    return <div className="biographer-edit-page"><div className="card"><div className="card-body">加载中...</div></div></div>;
   }
 
   const avatarContent = form.avatar ? (

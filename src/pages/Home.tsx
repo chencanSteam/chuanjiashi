@@ -144,7 +144,7 @@ function hasInterviewSession(archiveId: string): boolean {
 
 export default function Home() {
   const navigate = useNavigate();
-  const { isV1 } = useVersion();
+  const { isV1, isFull } = useVersion();
   const { user } = useAuth();
   const archiveExists = useMemo(() => hasArchives(), []);
   // 当前账号被邀请协助的传记（协作者入口，按昵称匹配）
@@ -617,7 +617,7 @@ export default function Home() {
       )}
 
       <section className="home-services">
-        {!isV1 && (
+        {isFull && (
           <>
             <div className="service-card" onClick={() => navigate('/family-hall')}>
               <div className="service-icon" style={{ background: 'rgba(45,90,74,0.1)', color: '#2d5a4a' }}><TreePine size={22} /></div>
@@ -647,7 +647,7 @@ export default function Home() {
           <ArrowRight size={16} className="service-arrow" />
         </div>
         )}
-        {!isV1 && (
+        {isFull && (
         <div className="service-card" onClick={() => navigate('/museum')}>
           <div className="service-icon" style={{ background: 'rgba(124,58,237,0.1)', color: '#7c3aed' }}><Landmark size={22} /></div>
           <div className="service-info">
@@ -665,7 +665,7 @@ export default function Home() {
           </div>
           <ArrowRight size={16} className="service-arrow" />
         </div>
-        {!isV1 && (
+        {isFull && (
         <div className="service-card" onClick={() => navigate('/group-buy')}>
           <div className="service-icon" style={{ background: 'rgba(220,38,38,0.1)', color: '#dc2626' }}><BadgePercent size={22} /></div>
           <div className="service-info">

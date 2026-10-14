@@ -84,6 +84,11 @@ const lifeGroupItemsFull: NavItem[] = [
   { to: '/family-hall', icon: Landmark, label: 'AI家风馆' },
 ];
 
+const lifeGroupItemsV11: NavItem[] = [
+  ...lifeGroupItemsV1,
+  { to: '/family', icon: Users, label: '家庭空间' },
+];
+
 // 「服务与商城」组（V1.0 包含传记书城、找传记师、我的订单；「拼团活动」仅完整版）
 const servicesGroupItemsV1: NavItem[] = [
   { to: '/biography-shelf', icon: BookMarked, label: '传记书城' },
@@ -104,10 +109,15 @@ const digitalHumanGroupItemsFull: NavItem[] = [
   { to: '/digital-companion', icon: MessageCircleHeart, label: '数字陪伴' },
 ];
 
-// 「系统设置」组（V1.0 包含邀请有礼、合伙人；AI额度/家庭成员/存储备份仅完整版）
+// 「系统设置」组：家庭成员从当前 V1.1 开放；AI 额度与存储备份仍在完整版。
 const settingsGroupItemsV1: NavItem[] = [
   { to: '/invite', icon: Share2, label: '邀请有礼' },
   { to: '/my-partner', icon: Handshake, label: '合伙人' },
+];
+
+const settingsGroupItemsV11: NavItem[] = [
+  ...settingsGroupItemsV1,
+  { to: '/settings/family', icon: Users, label: '家庭成员' },
 ];
 
 const settingsGroupItemsFull: NavItem[] = [
@@ -150,7 +160,7 @@ const initialNotices: NoticeItem[] = [
   { id: 5, type: '审核结果', title: '家风故事修改提醒', desc: '您提交的家风故事需补充来源说明，请修改后重新提交。', time: '5 天前', read: true },
 ];
 
-function getNavGroups(isV1: boolean): NavGroup[] {
+function getNavGroups(isV1: boolean, isFull: boolean): NavGroup[] {
   // V1.0 版：传记创作、人生记录、服务与商城、系统设置（家庭空间 V1.2、数字家谱/AI家风馆 V2.0、数字人 V3.0 不开放）
   if (isV1) {
     return [
@@ -158,6 +168,14 @@ function getNavGroups(isV1: boolean): NavGroup[] {
       { key: 'creation', icon: BookOpen, label: '传记创作', items: creationGroupItemsV1 },
       { key: 'services', icon: ShoppingBag, label: '服务与商城', items: servicesGroupItemsV1 },
       { key: 'settings', icon: Settings, label: '系统设置', items: settingsGroupItemsV1 },
+    ];
+  }
+  if (!isFull) {
+    return [
+      { key: 'life', icon: FolderOpen, label: '人生记录', items: lifeGroupItemsV11 },
+      { key: 'creation', icon: BookOpen, label: '传记创作', items: creationGroupItemsV1 },
+      { key: 'services', icon: ShoppingBag, label: '服务与商城', items: servicesGroupItemsV1 },
+      { key: 'settings', icon: Settings, label: '系统设置', items: settingsGroupItemsV11 },
     ];
   }
   return [
@@ -171,14 +189,14 @@ function getNavGroups(isV1: boolean): NavGroup[] {
 
 export default function Layout() {
   const { user, logout } = useAuth();
-  const { isV1 } = useVersion();
+  const { isV1, isFull } = useVersion();
   const location = useLocation();
   const pathname = location.pathname;
   const menuPathname = pathname === '/biography/print' && location.state?.from === '/my-works'
     ? '/my-works'
     : pathname;
 
-  const navGroups = getNavGroups(isV1);
+  const navGroups = getNavGroups(isV1, isFull);
 
   // 用户手动折叠/展开的覆盖值；未覆盖时默认展开当前路由所在分组
   const [expandedOverrides, setExpandedOverrides] = useState<Record<string, boolean>>({});

@@ -18,11 +18,11 @@ export const partnerApplicationAnnotations: PageAnnotations = {
     {
       id: 'partner-application.apply-form',
       target: '合伙人申请表单（填写 / 校验 / 提交）',
-      logic: `① 表单为共用组件 PartnerApplyForm（合伙人中心空态弹窗内也是同一套），本页独占展示。
+      logic: `① 本页使用 PartnerApplyForm 展示合伙人申请表单。
 ② 必填校验仅两项：姓名、手机号，任一为空拦截并提示；邮箱、申请理由选填。
 ③ 合伙人类型四选一：省级 / 市级 / 县级 / 邀请码合伙人；类型决定「代理区域」下拉的联动层级——省级只显示省、市级到市、县级到区县，邀请码合伙人不显示代理区域。
 ④ 提交时按类型取对应行政编码与名称（regionCode / regionName）调 partnerApi.apply()；原型环境 mock 为「提交即通过审核」。
-⑤ 成功后给当前账号追加 partner 角色（addRole），toast 提示后约 1.2 秒自动跳转合伙人中心（/partner，replace 替换历史记录，返回键不会回到申请表单）；提交中按钮置为「提交中...」防重复点击。`,
+⑤ 成功后给当前账号追加 partner 角色（addRole），toast 提示后跳转“我的合伙人”（/my-partner，replace 替换历史记录）；提交中按钮置为「提交中...」防重复点击。`,
     },
   ],
 };

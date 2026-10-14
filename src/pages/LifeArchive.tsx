@@ -337,7 +337,7 @@ function getSavedDetail(year: string, archiveId: string) {
 export default function LifeArchive() {
   const navigate = useNavigate();
   const { addToast } = useToast();
-  const { isV1 } = useVersion();
+  const { isV1, isFull } = useVersion();
 
   const initialArchives = loadArchives();
   const initialArchiveId = resolveCurrentArchiveId(initialArchives);
@@ -978,7 +978,7 @@ export default function LifeArchive() {
                   </button>
                 ))}
               </div>
-              {!isV1 && (
+              {isFull && (
                 <button className="media-restore-btn" onClick={() => navigate('/photo-restore')}>
                   <Wand2 size={14} />
                   <span>老照片修复</span>
@@ -1020,7 +1020,7 @@ export default function LifeArchive() {
                 <div>该分类下暂无素材</div>
                 {canEdit && (
                   <>
-                    {!isV1 && (
+                    {isFull && (
                       <button className="media-restore-btn media-restore-btn-empty" onClick={() => navigate('/photo-restore')}>
                         <Wand2 size={14} />
                         <span>老照片修复</span>

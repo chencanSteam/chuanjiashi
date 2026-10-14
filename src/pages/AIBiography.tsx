@@ -243,7 +243,7 @@ function buildDerivedVariants(tab: DerivedTab, name: string, birthYear: string):
 export default function AIBiography() {
   const navigate = useNavigate();
   const { addToast } = useToast();
-  const { isV1 } = useVersion();
+  const { isFull } = useVersion();
   const { user } = useAuth();
   const archive = useMemo(() => loadCurrentArchive(), []);
   const archiveId = archive?.id || 'default';
@@ -1273,7 +1273,7 @@ export default function AIBiography() {
           </div>
           </Annotate>
 
-          {!isV1 && (
+          {isFull && (
             <div className="card quick-gen-card">
               <div className="card-header">
                 <h3 className="card-title">快捷生成</h3>
@@ -1294,7 +1294,7 @@ export default function AIBiography() {
         </div>
       </div>
 
-      {!isV1 && (
+      {isFull && (
       <Annotate id="biography.derived">
       <div className="card derived-card">
         <div className="card-header">

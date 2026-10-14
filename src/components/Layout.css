@@ -633,7 +633,7 @@
 
 /* 独立端 Logo */
 .admin-brand-logo,
-.partner-brand-logo {
+.biographer-brand-logo {
   width: 44px;
   height: 44px;
   border-radius: 12px;
@@ -648,7 +648,7 @@
   background: linear-gradient(135deg, #2D5A4A 0%, #1B3D32 100%);
 }
 
-.partner-brand-logo {
+.biographer-brand-logo {
   background: linear-gradient(135deg, #B8860B 0%, #D4A84B 100%);
 }
 

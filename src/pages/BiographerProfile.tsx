@@ -119,11 +119,11 @@ export default function BiographerProfile({ biographerId, embedded, onClose, onB
   }
 
   if (loading) {
-    return <div className="partner-center-page"><div className="card"><div className="card-body">加载中...</div></div></div>;
+    return <div className="biographer-profile-page"><div className="card"><div className="card-body">加载中...</div></div></div>;
   }
 
   if (!biographer) {
-    return <div className="partner-center-page"><div className="card"><div className="card-body">暂无传记师资料</div></div></div>;
+    return <div className="biographer-profile-page"><div className="card"><div className="card-body">暂无传记师资料</div></div></div>;
   }
 
   const avatarContent = biographer.avatar ? (

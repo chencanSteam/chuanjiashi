@@ -84,7 +84,6 @@ import { onboardingAnnotations } from './onboarding';
 import { orderManagementAnnotations } from './order-management';
 import { orderSuccessAnnotations } from './order-success';
 import { partnerApplicationAnnotations } from './partner-application';
-import { partnerCenterAnnotations } from './partner-center';
 import { photoRestoreAnnotations } from './photo-restore';
 import { policyListAnnotations } from './policy-list';
 import { productManagementAnnotations } from './product-management';
@@ -191,7 +190,6 @@ export const annotationPages: PageAnnotations[] = [
   orderManagementAnnotations,
   orderSuccessAnnotations,
   partnerApplicationAnnotations,
-  partnerCenterAnnotations,
   photoRestoreAnnotations,
   policyListAnnotations,
   productManagementAnnotations,

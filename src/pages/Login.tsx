@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Phone, Lock, ArrowRight, User, Briefcase, Shield, PenLine, Smartphone, MessageCircle } from 'lucide-react';
+import { Phone, Lock, ArrowRight, User, Shield, PenLine, Smartphone, MessageCircle } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/useToast';
 import { ensureDemoContent } from '../data/demoContent';
@@ -67,7 +67,6 @@ export default function Login() {
   const navigate = useNavigate();
   const { addToast } = useToast();
   const { login, addRole, isAuthenticated } = useAuth();
-  const isV1 = true;
 
   const [phone, setPhone] = useState(DEMO_PHONE);
   const [code, setCode] = useState('');
@@ -104,14 +103,11 @@ export default function Login() {
     addToast(`验证码已发送（演示环境：${newCode}）`, 'success');
   };
 
-  const enterPortal = async (targetPhone: string, targetPath: string, options?: { addPartnerRole?: boolean; addBiographerRole?: boolean; name?: string }) => {
+  const enterPortal = async (targetPhone: string, targetPath: string, options?: { addBiographerRole?: boolean; name?: string }) => {
     const { success, error } = await login(targetPhone, '123456', { name: options?.name });
     if (!success) {
       addToast(error || '登录失败', 'error');
       return;
-    }
-    if (options?.addPartnerRole) {
-      addRole('partner');
     }
     if (options?.addBiographerRole) {
       addRole('biographer');
@@ -180,13 +176,6 @@ export default function Login() {
             <span className="portal-name">用户端</span>
             <span className="portal-desc">体验 AI 采访、传记、人生档案</span>
           </button>
-          {!isV1 && (
-            <button type="button" className="portal-card partner" onClick={() => enterPortal(USER_PHONE, '/partner', { addPartnerRole: true })}>
-              <Briefcase size={24} />
-              <span className="portal-name">合伙人中心</span>
-              <span className="portal-desc">客户、收益、提现管理</span>
-            </button>
-          )}
           <button type="button" className="portal-card admin" onClick={() => enterPortal(DEMO_PHONE, '/admin')}>
             <Shield size={24} />
             <span className="portal-name">管理后台</span>

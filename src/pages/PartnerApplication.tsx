@@ -21,7 +21,7 @@ export default function PartnerApplication() {
         </header>
 
         <Annotate id="partner-application.apply-form">
-        <PartnerApplyForm onSuccess={() => navigate('/partner', { replace: true })} />
+        <PartnerApplyForm onSuccess={() => navigate('/my-partner', { replace: true })} />
         </Annotate>
       </div>
     </div>

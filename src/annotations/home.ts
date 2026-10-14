@@ -13,7 +13,7 @@ export const homeAnnotations: PageAnnotations = {
       id: 'home.empty-hero',
       target: '无档案引导区',
       logic: `① 仅当 localStorage「cj_archives」为空或解析失败时渲染，作为新用户引导；已有档案时整块不显示。
-② 「新建传记」跳转 /onboarding 建档流程；「进入家庭空间」跳转 /family，V1.0 版本（isV1）下该按钮隐藏（家庭空间为 V1.2 功能）。`,
+② 「新建传记」跳转 /onboarding 建档流程；「进入家庭空间」跳转 /family，当前 V1.1 展示版开放该按钮。`,
     },
     {
       id: 'home.start-interview',

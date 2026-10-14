@@ -62,6 +62,9 @@ const sidebarItems = [
   { key: 'help', icon: HelpCircle, label: '帮助与反馈' },
 ];
 
+const v1Sections = ['account', 'notification', 'privacy', 'help'];
+const v11Sections = ['account', 'invite', 'notification', 'privacy', 'family', 'help'];
+
 const familyMembers = [
   { name: '张一帆', role: '户主', phone: '138****1234', email: 'zhang@example.com' },
   { name: '李秀英', role: '配偶', phone: '139****5678', email: 'li@example.com' },
@@ -163,11 +166,10 @@ export default function Settings() {
   const navigate = useNavigate();
   const { section } = useParams<{ section: string }>();
   const { user, updateUser } = useAuth();
-  const { isV1 } = useVersion();
-  // V1.0 仅开放：账户信息、通知设置、隐私与安全、帮助与反馈（邀请 V1.1、家庭成员 V1.2 等回退到账户信息）
-  const v1Sections = ['account', 'notification', 'privacy', 'help'];
+  const { appVersion, isV1, isFull } = useVersion();
+  const availableSections = isV1 ? v1Sections : v11Sections;
   const active =
-    sidebarItems.some((item) => item.key === section) && (!isV1 || v1Sections.includes(section ?? ''))
+    sidebarItems.some((item) => item.key === section) && (isFull || availableSections.includes(section ?? ''))
       ? (section ?? 'account')
       : 'account';
 
@@ -204,12 +206,12 @@ export default function Settings() {
     quotaApi.get().then(setQuota).catch(() => setQuota(defaultQuota));
   }, []);
 
-  // V1.0 下访问未开放的设置分区时，地址栏同步回到账户信息
+  // 未开放的设置分区回到账户信息。
   useEffect(() => {
-    if (isV1 && section && !v1Sections.includes(section)) {
+    if (!isFull && section && !availableSections.includes(section)) {
       navigate('/settings/account', { replace: true });
     }
-  }, [isV1, section, navigate]);
+  }, [isFull, section, navigate, availableSections]);
 
   const [rewardsRefresh, setRewardsRefresh] = useState(0);
   const [savingAccount, setSavingAccount] = useState(false);
@@ -640,7 +642,7 @@ export default function Settings() {
                   <HelpCircle size={16} /> 重新观看新手指引
                 </button>
                 <div className="about-box">
-                  <div>传家世 v1.0.0</div>
+                  <div>传家世 {appVersion === 'full' ? '完整版' : appVersion.toUpperCase()}</div>
                   <div className="about-meta">© 2026 传家世科技</div>
                 </div>
               </div>

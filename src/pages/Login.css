@@ -361,11 +361,6 @@
   box-shadow: 0 6px 16px rgba(45, 90, 74, 0.1);
 }
 
-.portal-card.partner:hover {
-  border-color: #b8860b;
-  background: #fdf8ee;
-}
-
 .portal-card.admin:hover {
   border-color: #2e4a6f;
   background: #f0f4f9;
@@ -387,10 +382,6 @@
 
 .portal-card svg {
   color: var(--primary);
-}
-
-.portal-card.partner svg {
-  color: #b8860b;
 }
 
 .portal-card.admin svg {

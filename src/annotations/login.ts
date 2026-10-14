@@ -11,15 +11,15 @@ export const loginAnnotations: PageAnnotations = {
   items: [
     {
       id: 'login.version-switch',
-      target: 'V1.0 / 完整版切换开关',
-      logic: `① 点击开关在「V1.0 版本 / 完整版」间切换，调用 setAppVersion 并写入 localStorage \`cj_app_version\`，刷新后保持。
-② V1.0 版本显示用户端、管理后台、传记师端、移动端四个入口；完整版额外开放合伙人中心（V1.1）。`,
+      target: '当前演示版本',
+      logic: `① 当前分支固定展示 V1.1，登录页不提供版本切换开关。
+② 登录页显示用户端、管理后台、传记师端、移动端入口。`,
     },
     {
       id: 'login.portal-grid',
       target: '各端登录入口（端口卡片）',
       logic: `① 点击任一卡片即用对应演示账号直接登录：用户端/合伙人/移动端用 13800138003（姓名「张明远」），管理后台/传记师端用 13800138000，密码固定 123456。
-② 进入合伙人中心、传记师端时通过 addRole 追加对应角色，控制后续页面权限。
+② 进入传记师端时通过 addRole 追加对应角色，控制后续页面权限。
 ③ 本地无档案时自动写入默认演示档案（localStorage \`cj_archives\` + \`cj_current_archive_id\`）。
 ④ 已登录状态访问本页会自动跳转：有档案进 /home，无档案进 /onboarding。`,
     },

@@ -4,7 +4,7 @@ import { useVersion } from '../hooks/useVersion';
 import AnnotationToggle from './annotation/AnnotationToggle';
 import './MobileLayout.css';
 
-// 「家庭」为 V1.2 功能，V1.0 模式下隐藏
+// 原计划 V1.2 的「家庭」已并入当前 V1.1，V1.0 模式下隐藏。
 const tabs = [
   { path: '/m', label: '首页', icon: Home },
   { path: '/m/interview', label: '采访', icon: Mic },

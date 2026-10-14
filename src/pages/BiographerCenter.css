@@ -1,3 +1,13 @@
+.biographer-workbench-page .page-header {
+  margin-bottom: 20px;
+}
+
+.biographer-workbench-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
 .biographer-workbench-header {
   align-items: flex-end;
   margin-bottom: 12px;

@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import { biographerApi } from '../api/biographer';
 import type { Biographer as MockBiographer, BiographerOrder } from '../mocks/types';
 import Annotate from '../components/annotation/Annotate';
-import './PartnerCenter.css';
 import './BiographerOrders.css';
 import './BiographerCenter.css';
 
@@ -59,7 +58,7 @@ export default function BiographerCenter() {
 
   if (loading) {
     return (
-      <div className="partner-center-page">
+      <div className="biographer-workbench-page">
         <header className="page-header"><h1 className="page-title">工作台</h1></header>
         <div className="card"><div className="card-body">加载中...</div></div>
       </div>
@@ -67,7 +66,7 @@ export default function BiographerCenter() {
   }
 
   return (
-    <div className="partner-center-page">
+    <div className="biographer-workbench-page">
       <header className="page-header biographer-workbench-header">
         <div>
           <p className="biographer-workbench-eyebrow">传记师工作台</p>
@@ -94,7 +93,7 @@ export default function BiographerCenter() {
         <div className="card biographer-workbench-kpi"><CheckCircle2 size={22} color="#1B5E4B" /><div><div className="biographer-workbench-kpi-value">{stats.completed}</div><div className="biographer-workbench-kpi-label">已完成订单</div><small>累计服务客户</small></div></div>
       </div>
 
-      <div className="partner-center-dashboard">
+      <div className="biographer-workbench-dashboard">
         {biographer && (
           <Annotate id="biographer-center.profile">
           <div className="card">

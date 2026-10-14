@@ -33,13 +33,13 @@ const biographerNavItems: NavItem[] = [
 
 export default function BiographerLayout() {
   const { user, logout } = useAuth();
-  const { isV1 } = useVersion();
+  const { isFull } = useVersion();
   const navigate = useNavigate();
   const location = useLocation();
   const displayName = user?.name || user?.phone || '传记师';
   const [showUserMenu, setShowUserMenu] = useState(false);
   // V1.0 不开放「工作台」
-  const navItems = isV1 ? biographerNavItems.filter((item) => item.to !== '/biographer') : biographerNavItems;
+  const navItems = isFull ? biographerNavItems : biographerNavItems.filter((item) => item.to !== '/biographer');
 
   useEffect(() => {
     setShowUserMenu(false);
@@ -54,7 +54,7 @@ export default function BiographerLayout() {
     <div className="layout">
       <aside className="sidebar">
         <div className="brand">
-          <div className="brand-logo partner-brand-logo">
+          <div className="brand-logo biographer-brand-logo">
             <PenLine size={26} color="#fff" />
           </div>
           <div>

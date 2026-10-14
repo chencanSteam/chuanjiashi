@@ -155,19 +155,39 @@ const adminNavGroupsV1: NavGroup[] = [
   },
 ];
 
+const adminNavGroupsV11: NavGroup[] = [...adminNavGroupsV1.map((group) => {
+  if (group.key !== 'business') return group;
+  return {
+    ...group,
+    items: [
+      ...group.items,
+      { to: '/admin/partners', icon: UserCheck, label: '合伙人管理' },
+      { to: '/admin/regional-partners', icon: MapPin, label: '区域合伙人' },
+      { to: '/admin/partner-applications', icon: ClipboardList, label: '合伙人申请' },
+      { to: '/admin/partner-customers', icon: Link2, label: '客户归属' },
+      { to: '/admin/commission-records', icon: TrendingUp, label: '分润管理' },
+    ],
+  };
+}), {
+  key: 'operations',
+  icon: Settings,
+  label: '运营管理',
+  items: [{ to: '/admin/user-invites', icon: Share2, label: '用户邀请奖励' }],
+}];
+
 function isGroupActive(group: NavGroup, pathname: string): boolean {
   return group.items.some((item) => pathname.startsWith(item.to));
 }
 
 export default function AdminLayout() {
   const { user, logout } = useAuth();
-  const { isV1 } = useVersion();
+  const { isV1, isFull } = useVersion();
   const navigate = useNavigate();
   const location = useLocation();
   const pathname = location.pathname;
   const displayName = user?.name || user?.phone || '管理员';
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const navGroups = isV1 ? adminNavGroupsV1 : adminNavGroups;
+  const navGroups = isV1 ? adminNavGroupsV1 : isFull ? adminNavGroups : adminNavGroupsV11;
 
   // 用户手动折叠/展开的覆盖值；未覆盖时默认展开当前路由所在分组
   const [expandedOverrides, setExpandedOverrides] = useState<Record<string, boolean>>({});
@@ -206,7 +226,7 @@ export default function AdminLayout() {
 
         <nav className="nav">
           <ul className="nav-list">
-            {!isV1 && (
+            {isFull && (
               <li className="nav-item">
                 <NavLink
                   to={dashboardNavItem.to}
