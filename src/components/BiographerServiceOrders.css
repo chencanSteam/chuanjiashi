@@ -37,7 +37,6 @@
 .bs-stage { padding: 18px; border: 1px solid var(--border-light); border-radius: 10px; margin-bottom: 16px; }
 .bs-stage .bs-row > span { font-size: 12px; color: var(--primary); }
 .bs-stage pre { font: inherit; white-space: pre-wrap; overflow-wrap: anywhere; background: var(--bg); border-radius: 8px; padding: 16px; }
-.bs-draft-preview { white-space: pre-wrap; overflow-wrap: anywhere; background: var(--bg); border-radius: 8px; padding: 16px; line-height: 1.7; }
 .bs-history-version { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 8px 0; }
 .bs-revision-record { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border-light); }
 .bs-revision-record h5 { margin: 0 0 14px; font-size: 14px; }
