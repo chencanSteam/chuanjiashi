@@ -1,32 +1,30 @@
 import OrderServiceList from '../components/OrderServiceList';
 import { readServiceOrders, SERVICE_ORDER_EVENT, serviceStatusLabels, type ServiceOrder, type ServiceStatus } from '../data/biographerServiceOrders';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Search, RefreshCw, CreditCard, Package, CheckCircle, AlertCircle, Clock, XCircle, X, UserCheck, Calendar, MapPin, Truck, Upload, FileText, ExternalLink, Paperclip, Download, RotateCcw } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Search, RefreshCw, CreditCard, Package, CheckCircle, AlertCircle, Clock, XCircle, X, UserCheck, Calendar, MapPin, Truck, Download, RotateCcw } from 'lucide-react';
 import type { AdminOrder } from '../api/order';
-type OrderManagementOrder = AdminOrder & { quantity?: number; sku?: string; remark?: string };
+ type OrderManagementOrder = AdminOrder & { quantity?: number; sku?: string; remark?: string };
 import { useToast } from '../hooks/useToast';
-import type { BiographerOrder, Deliverable, OrderLogistics } from '../mocks/types';
+import type { BiographerOrder, OrderLogistics } from '../mocks/types';
 import Annotate from '../components/annotation/Annotate';
 import './OrderManagement.css';
 
-const typeOptions: Array<{ value: OrderManagementOrder['type'] | 'all'; label: string }> = [
+const productTypeOptions: Array<{ value: OrderManagementOrder['type'] | 'all'; label: string }> = [
   { value: 'all', label: '全部类型' },
-  { value: 'book', label: '实体书' },
-  { value: 'qrcode', label: '二维码' },
-  { value: 'biographer_service', label: '传记师服务' },
-  { value: 'biography', label: '传记导出' },
+  { value: 'biography', label: '下载 PDF' },
+  { value: 'book', label: '出版实体书' },
+  { value: 'qrcode', label: '生成二维码' },
 ];
 
-type OrderStatusFilter = OrderManagementOrder['status'] | ServiceStatus | 'all';
+type OrderTab = 'product' | 'service';
+type OrderStatusFilter = ServiceStatus | 'all';
 type UnifiedOrderRow = { kind: 'regular'; order: OrderManagementOrder } | { kind: 'service'; order: ServiceOrder };
 
-const statusOptions: Array<{ value: OrderStatusFilter; label: string }> = [
+const serviceStatusOptions: Array<{ value: OrderStatusFilter; label: string }> = [
   { value: 'all', label: '全部状态' },
-  { value: 'pending_accept', label: '待传记师接单' },
+  { value: 'pending_accept', label: '待接单' },
   { value: 'pending_pay', label: '待支付' },
-  { value: 'paid', label: '已支付' },
-  { value: 'working', label: '传记服务中' },
-  { value: 'delivering', label: '服务中' },
+  { value: 'working', label: '服务中' },
   { value: 'completed', label: '已完成' },
   { value: 'refunded', label: '已退款' },
   { value: 'closed', label: '已关闭' },
@@ -48,13 +46,28 @@ const afterSaleOptions = [
   { value: 'rejected', label: '退款已驳回' },
   { value: 'completed', label: '已退款' },
 ] as const;
+const serviceAfterSaleOptions = [
+  { value: 'all', label: '全部售后' },
+  { value: 'none', label: '无售后' },
+  { value: 'pending', label: '退款待处理' },
+  { value: 'rejected', label: '退款已驳回' },
+  { value: 'completed', label: '已退款' },
+  { value: 'help_pending', label: '平台介入中' },
+] as const;
+type AfterSaleFilter = (typeof serviceAfterSaleOptions)[number]['value'];
+const serviceAfterSaleStatus = (order: ServiceOrder): AfterSaleFilter => {
+  if (order.requests.some(request => request.type === 'help' && request.status === 'pending')) return 'help_pending';
+  const refund = order.requests.filter(request => request.type === 'refund').at(-1);
+  return refund?.status === 'resolved' ? 'completed' : refund?.status === 'rejected' ? 'rejected' : refund?.status === 'pending' ? 'pending' : 'none';
+};
+const serviceAfterSaleLabel = (order: ServiceOrder) => serviceAfterSaleOptions.find(option => option.value === serviceAfterSaleStatus(order))?.label || '无售后';
 
 const typeLabelMap: Record<OrderManagementOrder['type'], string> = {
-  biography: '传记导出',
+  biography: '下载 PDF',
   digital_person: '数字人',
   video: '视频',
-  qrcode: '二维码',
-  book: '实体书',
+  qrcode: '生成二维码',
+  book: '出版实体书',
   biographer_service: '传记师服务',
   group_buy: '团购',
   derivative: '衍生品',
@@ -67,60 +80,23 @@ interface OrderAction {
 }
 
 const isPhysicalProduct = (type: OrderManagementOrder['type']) => type === 'book' || type === 'derivative';
-const isDigitalProduct = (type: OrderManagementOrder['type']) => ['qrcode', 'video', 'digital_person', 'biography'].includes(type);
-
-const deliverableTypeOptions: Deliverable['type'][] = ['pdf', 'video', 'qrcode', 'link', 'image'];
-const deliverableTypeLabels: Record<Deliverable['type'], string> = {
-  pdf: 'PDF 文件',
-  video: '视频文件',
-  qrcode: '二维码',
-  link: '链接',
-  image: '图片',
-};
-
-// 文件类交付物：支持直接上传本地文件（也可仍填链接）
-const fileDeliverableAccept: Partial<Record<Deliverable['type'], string>> = {
-  pdf: '.pdf',
-  video: 'video/*',
-  image: 'image/*',
-};
 
 // 订单管理页只用于前端原型展示，直接使用静态 mock，不依赖账号、权限或订单接口。
 const DEMO_ORDERS: OrderManagementOrder[] = [
   {
-    id: 'ord_demo_001', userId: 'u_demo_001', userName: '张明远', userPhone: '138****8003',
-    type: 'biography', productId: 'download_default', productName: '张明远的传记 · 下载 PDF', amount: 9.9, quantity: 1,
-    status: 'completed', payTime: '2026-09-01T10:20:00', createdAt: '2026-09-01T10:18:00', updatedAt: '2026-09-01T10:30:00',
-    deliverables: [{ type: 'pdf', name: '张明远的传记.pdf', url: '#', createdAt: '2026-09-01T10:30:00' }],
+    id: 'ord_demo_001', userId: 'u_demo_current', userName: '张明远', userPhone: '13800138003',
+    type: 'biography', productId: 'prod_bio_pdf', productName: '张明远的传记 · PDF 电子版', amount: 9.9, quantity: 1,
+    status: 'paid', payTime: '2026-09-06T10:20:00', createdAt: '2026-09-06T10:00:00', updatedAt: '2026-09-06T10:20:00',
   },
   {
-    id: 'ord_demo_002', userId: 'u_demo_002', userName: '李女士', userPhone: '139****8002',
-    type: 'book', productId: 'publish_default', productName: '张明远的传记 · 出版实体书', amount: 59, quantity: 2,
-    status: 'delivering', payTime: '2026-09-02T14:05:00', createdAt: '2026-09-02T14:02:00', updatedAt: '2026-09-03T09:10:00',
-    address: { name: '李女士', phone: '139****8002', province: '江苏省', city: '苏州市', district: '姑苏区', detail: '平江路 12 号' },
-    logistics: { company: '顺丰速运', trackingNo: 'SF20260903002', shippedAt: '2026-09-03T09:10:00' },
+    id: 'ord_demo_002', userId: 'u_demo_current', userName: '张明远', userPhone: '13800138003',
+    type: 'book', productId: 'prod_book_hardcover', productName: '张明远的传记 · 精装实体书', amount: 59, quantity: 1,
+    status: 'paid', payTime: '2026-09-05T14:05:00', createdAt: '2026-09-05T14:00:00', updatedAt: '2026-09-06T09:30:00',
   },
   {
-    id: 'ord_demo_003', userId: 'u_demo_003', userName: '王先生', userPhone: '137****8003',
-    type: 'qrcode', productId: 'qrcode_default', productName: '张明远的传记 · 生成二维码', amount: 19.9, quantity: 1,
-    status: 'completed', payTime: '2026-09-03T16:40:00', createdAt: '2026-09-03T16:38:00', updatedAt: '2026-09-03T16:45:00',
-    deliverables: [{ type: 'qrcode', name: '家风纪念馆二维码', url: '#', createdAt: '2026-09-03T16:45:00' }],
-  },
-  {
-    id: 'ord_demo_004', userId: 'u_demo_004', userName: '陈女士', userPhone: '136****8004',
-    type: 'biographer_service', productId: 'bio_service_001', productName: '传记师深度采访服务', amount: 1999, quantity: 1,
-    status: 'paid', payTime: '2026-09-04T09:15:00', createdAt: '2026-09-04T09:12:00', updatedAt: '2026-09-04T09:15:00',
-  },
-  {
-    id: 'ord_demo_005', userId: 'u_demo_005', userName: '赵女士', userPhone: '135****8005',
-    type: 'book', productId: 'publish_default', productName: '家风传记 · 实体书精装版', amount: 288, quantity: 1,
-    status: 'paid', payTime: '2026-09-05T11:25:00', createdAt: '2026-09-05T11:20:00', updatedAt: '2026-09-05T11:25:00',
-  },
-  {
-    id: 'ord_demo_006', userId: 'u_demo_006', userName: '刘先生', userPhone: '134****8006',
-    type: 'biography', productId: 'download_default', productName: '家族传记 · 下载 PDF', amount: 9.9, quantity: 1,
-    status: 'refunded', payTime: '2026-09-06T13:10:00', createdAt: '2026-09-06T13:08:00', updatedAt: '2026-09-06T15:00:00',
-    refundRequest: { reason: '不需要该商品', reasonOptionLabel: '不需要该商品', status: 'completed', createdAt: '2026-09-06T14:20:00', processedAt: '2026-09-06T15:00:00' },
+    id: 'ord_demo_003', userId: 'u_demo_current', userName: '张明远', userPhone: '13800138003',
+    type: 'qrcode', productId: 'prod_qrcode', productName: '张明远的传记 · 专属二维码', amount: 19.9, quantity: 1,
+    status: 'paid', payTime: '2026-09-03T16:40:00', createdAt: '2026-09-03T16:30:00', updatedAt: '2026-09-03T16:40:00',
   },
 ];
 
@@ -129,18 +105,19 @@ export default function OrderManagement() {
   const [orders, setOrders] = useState<OrderManagementOrder[]>(DEMO_ORDERS);
   const [serviceOrders, setServiceOrders] = useState<ServiceOrder[]>(readServiceOrders);
   const [selectedServiceOrderId, setSelectedServiceOrderId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<OrderTab>('product');
   const [page, setPage] = useState(1);
   const [keyword, setKeyword] = useState('');
   const [statusFilter, setStatusFilter] = useState<OrderStatusFilter>('all');
   const [typeFilter, setTypeFilter] = useState<OrderManagementOrder['type'] | 'all'>('all');
-  const [afterSaleFilter, setAfterSaleFilter] = useState<(typeof afterSaleOptions)[number]['value']>('all');
+  const [afterSaleFilter, setAfterSaleFilter] = useState<AfterSaleFilter>('all');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   // 草稿条件：筛选控件只改草稿，点击「查询」后才应用到实际筛选
   const [draftKeyword, setDraftKeyword] = useState('');
   const [draftStatus, setDraftStatus] = useState<OrderStatusFilter>('all');
   const [draftType, setDraftType] = useState<OrderManagementOrder['type'] | 'all'>('all');
-  const [draftAfterSale, setDraftAfterSale] = useState<(typeof afterSaleOptions)[number]['value']>('all');
+  const [draftAfterSale, setDraftAfterSale] = useState<AfterSaleFilter>('all');
   const [draftDateFrom, setDraftDateFrom] = useState('');
   const [draftDateTo, setDraftDateTo] = useState('');
   const [loading, setLoading] = useState(false);
@@ -155,37 +132,9 @@ export default function OrderManagement() {
   const [deliverModalOrder, setDeliverModalOrder] = useState<OrderManagementOrder | null>(null);
   const [logistics, setLogistics] = useState<OrderLogistics>({ company: '', trackingNo: '', shippedAt: new Date().toISOString().slice(0, 16) });
 
-  const [deliverableModalOrder, setDeliverableModalOrder] = useState<OrderManagementOrder | null>(null);
-  const [deliverable, setDeliverable] = useState<Deliverable>({ type: 'link', url: '', name: '', createdAt: new Date().toISOString() });
-  const [deliverableUploading, setDeliverableUploading] = useState(false);
-  const deliverableFileRef = useRef<HTMLInputElement>(null);
-
-  const handleDeliverableFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file) return;
-    try {
-      setDeliverableUploading(true);
-      setDeliverable((prev) => ({
-        ...prev,
-        url: URL.createObjectURL(file),
-        name: prev.name.trim() || file.name.replace(/\.[^.]+$/, ''),
-      }));
-      addToast('文件已上传', 'success');
-    } catch {
-      addToast('文件上传失败', 'error');
-    } finally {
-      setDeliverableUploading(false);
-    }
-  };
-
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [batchDeliverModal, setBatchDeliverModal] = useState(false);
-  const [batchDeliverableModal, setBatchDeliverableModal] = useState(false);
   const [batchCompany, setBatchCompany] = useState('');
-  const [batchDeliverableType, setBatchDeliverableType] = useState<Deliverable['type']>('link');
-  const [batchDeliverableName, setBatchDeliverableName] = useState('');
-  const [batchDeliverableUrl, setBatchDeliverableUrl] = useState('');
   const [batchSubmitting, setBatchSubmitting] = useState(false);
 
   useEffect(() => {
@@ -216,7 +165,7 @@ export default function OrderManagement() {
       setBatchSubmitting(true);
       const shippedAt = new Date().toISOString();
       setOrders((prev) => prev.map((order, idx) => physicalSelected.some((item) => item.id === order.id)
-        ? { ...order, status: 'delivering', updatedAt: shippedAt, logistics: { company: batchCompany, trackingNo: `SF${Date.now().toString().slice(-6)}${idx.toString().padStart(2, '0')}`, shippedAt } }
+        ? { ...order, updatedAt: shippedAt, logistics: { company: batchCompany, trackingNo: `SF${Date.now().toString().slice(-6)}${idx.toString().padStart(2, '0')}`, shippedAt } }
         : order));
       addToast(`已批量发货 ${physicalSelected.length} 单`, 'success');
       setBatchDeliverModal(false);
@@ -224,33 +173,6 @@ export default function OrderManagement() {
       setSelectedIds(new Set());
     } catch (err: unknown) {
       addToast(err instanceof Error ? err.message : '批量发货失败', 'error');
-    } finally {
-      setBatchSubmitting(false);
-    }
-  };
-
-  const handleBatchDeliverable = async () => {
-    if (!batchDeliverableName.trim() || !batchDeliverableUrl.trim()) {
-      addToast('请填写交付物名称和链接', 'error');
-      return;
-    }
-    if (digitalSelected.length === 0) {
-      addToast('没有可上传交付物的数字订单', 'error');
-      return;
-    }
-    try {
-      setBatchSubmitting(true);
-      const createdAt = new Date().toISOString();
-      setOrders((prev) => prev.map((order) => digitalSelected.some((item) => item.id === order.id)
-        ? { ...order, status: 'delivering', updatedAt: createdAt, deliverables: [...(order.deliverables || []), { type: batchDeliverableType, name: batchDeliverableName, url: batchDeliverableUrl, createdAt }] }
-        : order));
-      addToast(`已批量上传交付物 ${digitalSelected.length} 单`, 'success');
-      setBatchDeliverableModal(false);
-      setBatchDeliverableName('');
-      setBatchDeliverableUrl('');
-      setSelectedIds(new Set());
-    } catch (err: unknown) {
-      addToast(err instanceof Error ? err.message : '批量上传失败', 'error');
     } finally {
       setBatchSubmitting(false);
     }
@@ -266,35 +188,31 @@ export default function OrderManagement() {
         o.productName.includes(keyword) ||
         o.userName?.includes(keyword) ||
         o.userPhone?.includes(keyword);
-      const matchStatus = statusFilter === 'all' || o.status === statusFilter;
       const matchType = typeFilter === 'all' || o.type === typeFilter;
       const refundStatus = o.refundRequest?.status || 'none';
       const matchAfterSale = afterSaleFilter === 'all' || refundStatus === afterSaleFilter;
       const orderDate = o.createdAt.slice(0, 10);
       const matchDateFrom = !dateFrom || orderDate >= dateFrom;
       const matchDateTo = !dateTo || orderDate <= dateTo;
-      return matchKeyword && matchStatus && matchType && matchAfterSale && matchDateFrom && matchDateTo;
+      return matchKeyword && matchType && matchAfterSale && matchDateFrom && matchDateTo;
     });
-  }, [orders, keyword, statusFilter, typeFilter, afterSaleFilter, dateFrom, dateTo]);
+  }, [orders, keyword, typeFilter, afterSaleFilter, dateFrom, dateTo]);
 
   const filteredServiceOrders = useMemo(() => serviceOrders.filter((order) => {
     const query = keyword.trim().toLowerCase();
     const matchKeyword = !query || `${order.id} ${order.customerName} ${order.customerPhone} ${order.biographerName} ${order.service.name} ${order.requirements.interviewee}`.toLowerCase().includes(query);
-    const refund = order.requests.find(request => request.type === 'refund');
-    const refundStatus = refund?.status === 'resolved' ? 'completed' : refund?.status === 'rejected' ? 'rejected' : refund?.status === 'pending' ? 'pending' : 'none';
     const orderDate = order.createdAt.slice(0, 10);
     return matchKeyword
       && (statusFilter === 'all' || order.status === statusFilter)
-      && (typeFilter === 'all' || typeFilter === 'biographer_service')
-      && (afterSaleFilter === 'all' || refundStatus === afterSaleFilter)
+      && (afterSaleFilter === 'all' || serviceAfterSaleStatus(order) === afterSaleFilter)
       && (!dateFrom || orderDate >= dateFrom)
       && (!dateTo || orderDate <= dateTo);
-  }), [serviceOrders, keyword, statusFilter, typeFilter, afterSaleFilter, dateFrom, dateTo]);
+  }), [serviceOrders, keyword, statusFilter, afterSaleFilter, dateFrom, dateTo]);
 
-  const visibleRows = useMemo<UnifiedOrderRow[]>(() => [
-    ...filtered.map(order => ({ kind: 'regular' as const, order })),
-    ...filteredServiceOrders.map(order => ({ kind: 'service' as const, order })),
-  ].sort((a, b) => b.order.createdAt.localeCompare(a.order.createdAt)), [filtered, filteredServiceOrders]);
+  const visibleRows = useMemo<UnifiedOrderRow[]>(() => (activeTab === 'product'
+    ? filtered.map(order => ({ kind: 'regular' as const, order }))
+    : filteredServiceOrders.map(order => ({ kind: 'service' as const, order })))
+    .sort((a, b) => b.order.createdAt.localeCompare(a.order.createdAt)), [activeTab, filtered, filteredServiceOrders]);
   const totalPages = Math.max(1, Math.ceil(visibleRows.length / 10));
   const currentPage = Math.min(page, totalPages);
   const pagedRows = visibleRows.slice((currentPage - 1) * 10, currentPage * 10);
@@ -327,13 +245,18 @@ export default function OrderManagement() {
     setDateTo('');
     setPage(1);
   };
+  const selectTab = (tab: OrderTab) => {
+    setActiveTab(tab);
+    setSelectedIds(new Set());
+    resetFilters();
+  };
 
   const exportFilteredOrders = () => {
     const header = ['订单号', '用户', '商品/服务', '类型', '数量', '实付金额', '订单状态', '售后状态', '下单时间', '支付时间'];
     const rows = visibleRows.map(({ kind, order }) => kind === 'service' ? [
       order.id, order.customerName, `${order.service.name} · ${order.biographerName}`, '传记师服务', '1', order.amount.toFixed(2),
       serviceStatusLabels[order.status],
-      order.requests.find(request => request.type === 'refund')?.status === 'pending' ? '退款待审核' : order.status === 'refunded' ? '已退款' : '无售后',
+      serviceAfterSaleLabel(order),
       new Date(order.createdAt).toLocaleString('zh-CN'), order.paidAt ? new Date(order.paidAt).toLocaleString('zh-CN') : '-',
     ] : [
       order.id, order.userName || `用户${order.userId.slice(-4)}`, order.productName, typeLabelMap[order.type],
@@ -353,9 +276,7 @@ export default function OrderManagement() {
 
   const fulfillmentLabel = (item: OrderManagementOrder) => {
     if (item.status === 'paid') {
-      if (isPhysicalProduct(item.type)) return '待发货';
-      if (item.type === 'biographer_service') return '待开始服务';
-      return '待交付';
+      if (isPhysicalProduct(item.type)) return item.logistics ? '已发货' : '待发货';
     }
     if (item.status === 'delivering' && isPhysicalProduct(item.type)) return '已发货';
     if (item.status === 'delivering') return '服务中';
@@ -372,15 +293,15 @@ export default function OrderManagement() {
   };
 
   const toggleSelectAll = () => {
-    if (selectedIds.size === filtered.length) {
+    if (selectedIds.size === selectableOrders.length) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(filtered.map((o) => o.id)));
+      setSelectedIds(new Set(selectableOrders.map((o) => o.id)));
     }
   };
 
-  const physicalSelected = filtered.filter((o) => selectedIds.has(o.id) && isPhysicalProduct(o.type) && o.status === 'paid');
-  const digitalSelected = filtered.filter((o) => selectedIds.has(o.id) && isDigitalProduct(o.type) && o.status === 'paid');
+  const selectableOrders = filtered.filter((o) => isPhysicalProduct(o.type) && o.status === 'paid' && !o.logistics);
+  const physicalSelected = selectableOrders.filter((o) => selectedIds.has(o.id));
 
   const executeAction = () => {
     if (!confirmAction) return;
@@ -393,9 +314,9 @@ export default function OrderManagement() {
   const handleApproveRefund = (order: OrderManagementOrder) => {
     try {
       setRefundSubmitting(true);
-      setOrders((prev) => prev.map((item) => item.id === order.id ? { ...item, status: 'refunded', refundRequest: item.refundRequest ? { ...item.refundRequest, status: 'completed', processedAt: new Date().toISOString() } : item.refundRequest } : item));
+      setOrders((prev) => prev.map((item) => item.id === order.id ? { ...item, refundRequest: item.refundRequest ? { ...item.refundRequest, status: 'completed', processedAt: new Date().toISOString() } : item.refundRequest } : item));
       addToast('退款审核通过，退款已完成', 'success');
-      setSelectedOrder((current) => current?.id === order.id ? { ...current, status: 'refunded', refundRequest: current.refundRequest ? { ...current.refundRequest, status: 'completed' } : current.refundRequest } : current);
+      setSelectedOrder((current) => current?.id === order.id ? { ...current, refundRequest: current.refundRequest ? { ...current.refundRequest, status: 'completed' } : current.refundRequest } : current);
     } finally {
       setRefundSubmitting(false);
     }
@@ -431,23 +352,10 @@ export default function OrderManagement() {
       return;
     }
     const shippedAt = new Date().toISOString();
-    setOrders((prev) => prev.map((item) => item.id === deliverModalOrder.id ? { ...item, status: 'delivering', logistics: { ...logistics, shippedAt }, updatedAt: shippedAt } : item));
-    addToast('物流信息已保存，订单进入服务中', 'success');
+    setOrders((prev) => prev.map((item) => item.id === deliverModalOrder.id ? { ...item, logistics: { ...logistics, shippedAt }, updatedAt: shippedAt } : item));
+    addToast('物流信息已保存', 'success');
     setDeliverModalOrder(null);
     setLogistics({ company: '', trackingNo: '', shippedAt: new Date().toISOString().slice(0, 16) });
-  };
-
-  const handleAddDeliverable = () => {
-    if (!deliverableModalOrder) return;
-    if (!deliverable.url.trim() || !deliverable.name.trim()) {
-      addToast('请填写交付物名称，并上传文件或填写链接/地址', 'error');
-      return;
-    }
-    const createdAt = new Date().toISOString();
-    setOrders((prev) => prev.map((item) => item.id === deliverableModalOrder.id ? { ...item, status: 'delivering', deliverables: [...(item.deliverables || []), { ...deliverable, createdAt }], updatedAt: createdAt } : item));
-    addToast('交付物已保存', 'success');
-    setDeliverableModalOrder(null);
-    setDeliverable({ type: 'link', url: '', name: '', createdAt: new Date().toISOString() });
   };
 
   const renderActionButtons = (item: OrderManagementOrder) => {
@@ -464,14 +372,9 @@ export default function OrderManagement() {
         <button className="admin-table-link" onClick={() => handleViewDetail(item)}>
           详情
         </button>
-        {item.status === 'paid' && isPhysicalProduct(item.type) && (
+        {item.status === 'paid' && isPhysicalProduct(item.type) && !item.logistics && (
           <button className="admin-table-link" onClick={() => setDeliverModalOrder(item)}>
             发货
-          </button>
-        )}
-        {item.status === 'paid' && isDigitalProduct(item.type) && (
-          <button className="admin-table-link" onClick={() => setDeliverableModalOrder(item)}>
-            上传交付物
           </button>
         )}
         {item.refundRequest?.status === 'pending' && (
@@ -544,31 +447,6 @@ export default function OrderManagement() {
     );
   };
 
-  const renderDeliverables = (order: OrderManagementOrder) => {
-    if (!order.deliverables || order.deliverables.length === 0) return null;
-    return (
-      <>
-        <div className="order-detail-divider" />
-        <div className="order-detail-section">
-          <h5><FileText size={14} /> 交付物</h5>
-          <div className="order-deliverable-list">
-            {order.deliverables.map((d, idx) => (
-              <div className="order-deliverable-item" key={idx}>
-                <div className="order-deliverable-info">
-                  <span className="order-deliverable-name">{d.name}</span>
-                  <span className="order-deliverable-type">{deliverableTypeLabels[d.type]}</span>
-                </div>
-                <a className="order-deliverable-link" href={d.url} target="_blank" rel="noreferrer">
-                  <ExternalLink size={12} /> 查看
-                </a>
-              </div>
-            ))}
-          </div>
-        </div>
-      </>
-    );
-  };
-
   return (
     <div className="order-management-page">
       <header className="page-header">
@@ -583,6 +461,11 @@ export default function OrderManagement() {
         </div>
       </header>
 
+      <div className="order-management-tabs" role="tablist" aria-label="订单分类">
+        <button type="button" role="tab" aria-selected={activeTab === 'product'} className={activeTab === 'product' ? 'active' : ''} onClick={() => selectTab('product')}>商品订单</button>
+        <button type="button" role="tab" aria-selected={activeTab === 'service'} className={activeTab === 'service' ? 'active' : ''} onClick={() => selectTab('service')}>服务订单</button>
+      </div>
+
       <div className="card order-list-card">
         <div className="card-header order-list-header">
           <Annotate id="order-management.filters" inline>
@@ -591,24 +474,24 @@ export default function OrderManagement() {
               <Search size={14} />
               <input
                 type="text"
-                placeholder="搜索订单号、商品、用户…"
+                placeholder={activeTab === 'product' ? '搜索订单号、商品、用户…' : '搜索订单号、客户、传记师…'}
                 value={draftKeyword}
                 onChange={(e) => setDraftKeyword(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') applyFilters(); }}
               />
             </div>
-            <select value={draftStatus} onChange={(e) => setDraftStatus(e.target.value as OrderStatusFilter)}>
-              {statusOptions.map((s) => (
+            {activeTab === 'service' && <select value={draftStatus} onChange={(e) => setDraftStatus(e.target.value as OrderStatusFilter)}>
+              {serviceStatusOptions.map((s) => (
                 <option value={s.value} key={s.value}>{s.label}</option>
               ))}
-            </select>
-            <select value={draftType} onChange={(e) => setDraftType(e.target.value as OrderManagementOrder['type'] | 'all')}>
-              {typeOptions.map((t) => (
+            </select>}
+            {activeTab === 'product' && <select value={draftType} onChange={(e) => setDraftType(e.target.value as OrderManagementOrder['type'] | 'all')}>
+              {productTypeOptions.map((t) => (
                 <option value={t.value} key={t.value}>{t.label}</option>
               ))}
-            </select>
+            </select>}
             <select value={draftAfterSale} onChange={(e) => setDraftAfterSale(e.target.value as typeof draftAfterSale)}>
-              {afterSaleOptions.map((item) => (
+              {(activeTab === 'product' ? afterSaleOptions : serviceAfterSaleOptions).map((item) => (
                 <option value={item.value} key={item.value}>{item.label}</option>
               ))}
             </select>
@@ -627,7 +510,7 @@ export default function OrderManagement() {
           </div>
           </Annotate>
         </div>
-        {selectedIds.size > 0 && (
+        {activeTab === 'product' && selectedIds.size > 0 && (
           <Annotate id="order-management.batch">
           <div className="order-batch-bar">
             <span className="order-batch-count">已选 {selectedIds.size} 单</span>
@@ -635,11 +518,6 @@ export default function OrderManagement() {
               {physicalSelected.length > 0 && (
                 <button className="btn btn-primary btn-sm" onClick={() => setBatchDeliverModal(true)}>
                   <Truck size={14} /> 批量发货 ({physicalSelected.length})
-                </button>
-              )}
-              {digitalSelected.length > 0 && (
-                <button className="btn btn-primary btn-sm" onClick={() => setBatchDeliverableModal(true)}>
-                  <Upload size={14} /> 批量上传交付物 ({digitalSelected.length})
                 </button>
               )}
               <button className="btn btn-ghost btn-sm" onClick={() => setSelectedIds(new Set())}>取消选择</button>
@@ -657,16 +535,17 @@ export default function OrderManagement() {
               <table className="admin-table">
                 <thead>
                   <tr>
-                    <th className="admin-table-check">
+                    {activeTab === 'product' && <th className="admin-table-check">
                       <input
                         type="checkbox"
-                        checked={filtered.length > 0 && selectedIds.size === filtered.length}
+                        checked={selectableOrders.length > 0 && selectedIds.size === selectableOrders.length}
+                        disabled={selectableOrders.length === 0}
                         onChange={toggleSelectAll}
                       />
-                    </th>
+                    </th>}
                     <th>订单号</th>
                     <th>用户</th>
-                    <th>商品/服务</th>
+                    <th>{activeTab === 'product' ? '商品' : '服务'}</th>
                     <th>类型</th>
                     <th>数量</th>
                     <th>实付金额</th>
@@ -681,17 +560,15 @@ export default function OrderManagement() {
                   {pagedRows.map((row) => {
                     if (row.kind === 'service') {
                       const order = row.order;
-                      const refund = order.requests.find(request => request.type === 'refund');
-                      const help = order.requests.find(request => request.type === 'help' && request.status === 'pending');
+                      const afterSale = serviceAfterSaleStatus(order);
                       const statusClass = order.status === 'working' ? 'order-status-delivering' : order.status === 'completed' ? 'order-status-completed' : order.status === 'refunded' ? 'order-status-refunded' : order.status === 'closed' ? 'order-status-closed' : 'order-status-pending';
                       return <tr key={`service-${order.id}`}>
-                        <td className="admin-table-check"><input type="checkbox" disabled aria-label="传记师服务订单不支持批量处理" /></td>
                         <td className="order-cell-id">{order.id}</td>
                         <td><div className="order-user-name">{order.customerName}</div><div className="order-user-phone">{order.customerPhone}</div></td>
                         <td className="admin-table-text-left order-cell-product"><div className="order-product-name">{order.service.name} · {order.biographerName}</div></td>
                         <td>传记师服务</td><td>1</td><td className="order-cell-amount">¥{order.amount.toLocaleString()}</td>
-                        <td><span className={`order-status ${statusClass}`}>{serviceStatusLabels[order.status]}</span>{order.paidAt && <span className="order-fulfillment-label">{order.stages.filter(stage => stage.status === 'accepted').length}/4 个阶段已确认</span>}</td>
-                        <td>{refund ? <span className={`order-refund-review-badge ${refund.status === 'resolved' ? 'completed' : refund.status}`}>{refund.status === 'pending' ? '退款待处理' : refund.status === 'resolved' ? '已退款' : '退款已驳回'}</span> : help ? <span className="order-refund-review-badge pending">平台介入中</span> : <span className="order-no-after-sale">无售后</span>}</td>
+                        <td><span className={`order-status ${statusClass}`}>{serviceStatusLabels[order.status]}</span>{order.paidAt && <span className="order-fulfillment-label">{order.stages.filter(stage => stage.status === 'accepted').length}/{order.stages.length} 个阶段已确认</span>}</td>
+                        <td>{afterSale === 'none' ? <span className="order-no-after-sale">无售后</span> : <span className={`order-refund-review-badge ${afterSale === 'help_pending' ? 'pending' : afterSale}`}>{serviceAfterSaleLabel(order)}</span>}</td>
                         <td className="order-cell-time">{new Date(order.createdAt).toLocaleString()}</td>
                         <td className="order-cell-time">{order.paidAt ? new Date(order.paidAt).toLocaleString() : '-'}</td>
                         <td><button className="admin-table-link" onClick={() => setSelectedServiceOrderId(order.id)}>详情</button></td>
@@ -704,7 +581,7 @@ export default function OrderManagement() {
                     return (
                       <tr className={selected ? 'selected' : undefined} key={item.id}>
                         <td className="admin-table-check">
-                          <input type="checkbox" checked={selected} onChange={() => toggleSelect(item.id)} />
+                          <input type="checkbox" checked={selected} disabled={!selectableOrders.some(order => order.id === item.id)} onChange={() => toggleSelect(item.id)} />
                         </td>
                         <td className="order-cell-id">{item.id}</td>
                         <td>
@@ -716,9 +593,6 @@ export default function OrderManagement() {
                           <div className="order-product-tags">
                             {item.address && (
                               <span className="order-product-tag address-tag" title="已填写收货地址"><MapPin size={10} /> 地址</span>
-                            )}
-                            {item.deliverables && item.deliverables.length > 0 && (
-                              <span className="order-product-tag deliverable-tag" title={`已上传 ${item.deliverables.length} 个交付物`}><FileText size={10} /> 交付物 {item.deliverables.length}</span>
                             )}
                           </div>
                         </td>
@@ -799,6 +673,10 @@ export default function OrderManagement() {
                 <span className="order-detail-label">类型</span>
                 <span className="order-detail-value">{typeLabelMap[selectedOrder.type]}</span>
               </div>
+              {(selectedOrder.type === 'biography' || selectedOrder.type === 'qrcode') && <div className="order-detail-row">
+                <span className="order-detail-label">获取方式</span>
+                <span className="order-detail-value">{selectedOrder.type === 'biography' ? '客户在「我的传记」直接生成并下载当前传记 PDF' : '客户在「我的传记」生成传记网页二维码，扫码在线阅读'}</span>
+              </div>}
               <div className="order-detail-row">
                 <span className="order-detail-label">购买数量</span>
                 <span className="order-detail-value">{selectedOrder.quantity || 1}</span>
@@ -842,7 +720,6 @@ export default function OrderManagement() {
 
               {renderAddress(selectedOrder)}
               {renderLogistics(selectedOrder)}
-              {renderDeliverables(selectedOrder)}
               {selectedOrder.refundRequest && (
                 <>
                   <div className="order-detail-divider" />
@@ -947,60 +824,6 @@ export default function OrderManagement() {
         </div>
       )}
 
-      {deliverableModalOrder && (
-        <div className="modal-overlay" onClick={() => setDeliverableModalOrder(null)}>
-          <div className="modal-content order-detail-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h4>上传交付物 - {deliverableModalOrder.id}</h4>
-              <button className="modal-close" onClick={() => setDeliverableModalOrder(null)}><X size={16} /></button>
-            </div>
-            <div className="modal-body">
-              <div className="order-form-row">
-                <label>交付物类型</label>
-                <select
-                  value={deliverable.type}
-                  onChange={(e) => setDeliverable({ ...deliverable, type: e.target.value as Deliverable['type'] })}
-                >
-                  {deliverableTypeOptions.map((t) => (
-                    <option value={t} key={t}>{deliverableTypeLabels[t]}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="order-form-row">
-                <label>名称 <span className="order-form-required">*</span></label>
-                <input
-                  type="text"
-                  value={deliverable.name}
-                  onChange={(e) => setDeliverable({ ...deliverable, name: e.target.value })}
-                  placeholder="如：纪念视频成片"
-                />
-              </div>
-              <div className="order-form-row">
-                <label>文件 / 链接 <span className="order-form-required">*</span></label>
-                {fileDeliverableAccept[deliverable.type] && (
-                  <div className="order-deliverable-upload">
-                    <button type="button" className="btn btn-outline btn-sm" disabled={deliverableUploading} onClick={() => deliverableFileRef.current?.click()}>
-                      <Paperclip size={12} /> {deliverableUploading ? '上传中…' : '选择本地文件'}
-                    </button>
-                    <input ref={deliverableFileRef} type="file" accept={fileDeliverableAccept[deliverable.type]} hidden onChange={handleDeliverableFile} />
-                  </div>
-                )}
-                <input
-                  type="text"
-                  value={deliverable.url}
-                  onChange={(e) => setDeliverable({ ...deliverable, url: e.target.value })}
-                  placeholder={fileDeliverableAccept[deliverable.type] ? '上传文件后自动填入，或手动输入 https://...' : 'https://...'}
-                />
-              </div>
-              <div className="order-detail-actions">
-                <button className="btn btn-outline" onClick={() => setDeliverableModalOrder(null)}>取消</button>
-                <button className="btn btn-primary" disabled={deliverableUploading} onClick={handleAddDeliverable}><Upload size={14} /> 确认上传</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {batchDeliverModal && (
         <div className="modal-overlay" onClick={() => setBatchDeliverModal(false)}>
           <div className="modal-content order-detail-modal" onClick={(e) => e.stopPropagation()}>
@@ -1023,52 +846,6 @@ export default function OrderManagement() {
                 <button className="btn btn-outline" onClick={() => setBatchDeliverModal(false)}>取消</button>
                 <button className="btn btn-primary" disabled={batchSubmitting} onClick={handleBatchDeliver}>
                   <Truck size={14} /> {batchSubmitting ? '发货中…' : '确认批量发货'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {batchDeliverableModal && (
-        <div className="modal-overlay" onClick={() => setBatchDeliverableModal(false)}>
-          <div className="modal-content order-detail-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h4>批量上传交付物（{digitalSelected.length} 单）</h4>
-              <button className="modal-close" onClick={() => setBatchDeliverableModal(false)}><X size={16} /></button>
-            </div>
-            <div className="modal-body">
-              <p className="order-batch-hint">将为选中的数字服务订单上传相同的交付物。</p>
-              <div className="order-form-row">
-                <label>交付物类型</label>
-                <select value={batchDeliverableType} onChange={(e) => setBatchDeliverableType(e.target.value as Deliverable['type'])}>
-                  {deliverableTypeOptions.map((t) => (
-                    <option value={t} key={t}>{deliverableTypeLabels[t]}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="order-form-row">
-                <label>名称 <span className="order-form-required">*</span></label>
-                <input
-                  type="text"
-                  value={batchDeliverableName}
-                  onChange={(e) => setBatchDeliverableName(e.target.value)}
-                  placeholder="如：纪念视频成片"
-                />
-              </div>
-              <div className="order-form-row">
-                <label>链接 / 地址 <span className="order-form-required">*</span></label>
-                <input
-                  type="text"
-                  value={batchDeliverableUrl}
-                  onChange={(e) => setBatchDeliverableUrl(e.target.value)}
-                  placeholder="https://..."
-                />
-              </div>
-              <div className="order-detail-actions">
-                <button className="btn btn-outline" onClick={() => setBatchDeliverableModal(false)}>取消</button>
-                <button className="btn btn-primary" disabled={batchSubmitting} onClick={handleBatchDeliverable}>
-                  <Upload size={14} /> {batchSubmitting ? '上传中…' : '确认批量上传'}
                 </button>
               </div>
             </div>

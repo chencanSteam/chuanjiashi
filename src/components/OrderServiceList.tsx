@@ -46,7 +46,7 @@ export default function OrderServiceList({ role, earningsOnly = false, detailOnl
   };
   const applyFilters = () => { setKeyword(draftKeyword); setStatus(draftStatus); setPage(1); };
   const resetFilters = () => { setDraftKeyword(''); setDraftStatus('all'); setKeyword(''); setStatus('all'); setPage(1); };
-  const renderSettlements = (order: ServiceOrder) => <div className="bs-settlements"><p>订单全款 {money(order.amount)} · 平台服务费 {Math.round(order.commissionRate * 100)}%（{money(order.platformFee)}） · 传记师应得 {money(order.providerAmount)}</p><div className="bs-stage-payments">{order.stages.slice(1).map((stage, index) => <div key={stage.name}><strong>{stage.name} · {[30, 40, 30][index]}%</strong><b>{money(stage.amount)}</b><span>{stage.settledAt ? `已结算 · ${date(stage.settledAt)}` : order.status === 'refunded' ? '订单退款结束，停止结算' : stage.status === 'accepted' ? '待平台结算' : '验收通过后结算'}</span>{role === 'admin' && stage.status === 'accepted' && !stage.settledAt && order.status !== 'refunded' && <button className="btn btn-outline" disabled={order.requests.some(item => item.status === 'pending')} onClick={() => openAction(order, 'settle', index + 1)}>结算{stage.name}</button>}</div>)}</div></div>;
+  const renderSettlements = (order: ServiceOrder) => <div className="bs-settlements"><p>订单全款 {money(order.amount)} · 平台服务费 {Math.round(order.commissionRate * 100)}%（{money(order.platformFee)}） · 传记师应得 {money(order.providerAmount)}</p><div className="bs-stage-payments">{order.stages.map((stage, index) => <div key={stage.name}><strong>{stage.name} · {[30, 40, 30][index]}%</strong><b>{money(stage.amount)}</b><span>{stage.settledAt ? `已结算 · ${date(stage.settledAt)}` : order.status === 'refunded' ? '订单退款结束，停止结算' : stage.status === 'accepted' ? '待平台结算' : '验收通过后结算'}</span>{role === 'admin' && stage.status === 'accepted' && !stage.settledAt && order.status !== 'refunded' && <button className="btn btn-outline" disabled={order.requests.some(item => item.status === 'pending')} onClick={() => openAction(order, 'settle', index)}>结算{stage.name}</button>}</div>)}</div></div>;
   return <section className={`bs-orders order-service-view${detailOnly ? ' bs-orders-detail-only' : ''}`} aria-label={earningsOnly ? '服务订单阶段结算' : '传记师服务订单'}>
     {!detailOnly && <>
     <header className="bs-head"><div><h2>{earningsOnly ? '服务订单阶段结算' : '传记师服务订单'}</h2><p>{earningsOnly ? '初稿 30% · 校审稿 40% · 终稿 30%，用户验收后由平台确认结算' : '查看服务需求、交付进度与订单记录'}</p></div>{role === 'customer' && <button className="btn btn-outline" onClick={() => navigate('/biographers')}>选择传记师</button>}</header>
@@ -60,7 +60,7 @@ export default function OrderServiceList({ role, earningsOnly = false, detailOnl
       <table className="admin-table bs-earnings-table">
         <thead><tr><th>订单号 / 下单时间</th><th>客户</th><th>服务套餐</th><th>订单全款</th><th>传记师应得</th><th>阶段结算</th><th>订单状态</th><th>操作</th></tr></thead>
         <tbody>{paged.map(order => {
-          const payableStages = order.stages.slice(1);
+          const payableStages = order.stages;
           const settledCount = payableStages.filter(stage => !!stage.settledAt).length;
           const pendingCount = payableStages.filter(stage => stage.status === 'accepted' && !stage.settledAt).length;
           return <tr key={order.id}>
@@ -85,7 +85,7 @@ export default function OrderServiceList({ role, earningsOnly = false, detailOnl
           <td>{order.service.name}</td>
           {role !== 'customer' && <td>{order.customerName}</td>}
           <td>{money(order.amount)}</td>
-          <td><span className="bs-badge">{serviceStatusLabels[order.status]}{order.requests.some(item => item.status === 'pending') ? ' · 平台处理中' : ''}</span>{order.paidAt && <div className="admin-table-muted">{order.stages.filter(item => item.status === 'accepted').length}/4 个交付阶段已确认</div>}</td>
+          <td><span className="bs-badge">{serviceStatusLabels[order.status]}{order.requests.some(item => item.status === 'pending') ? ' · 平台处理中' : ''}</span>{order.paidAt && <div className="admin-table-muted">{order.stages.filter(item => item.status === 'accepted').length}/${order.stages.length} 个交付阶段已确认</div>}</td>
           <td><button className="admin-table-link" onClick={() => setSelectedId(order.id)}>查看详情</button></td>
         </tr>)}</tbody>
       </table>

@@ -5,15 +5,15 @@ import { parseManuscriptChapters, type ManuscriptChapter } from '../utils/biogra
 export const SERVICE_ORDER_EVENT = 'cj-service-orders-updated';
 export type ServiceRole = 'customer' | 'biographer' | 'admin';
 export type ServiceStatus = 'pending_accept' | 'pending_pay' | 'working' | 'completed' | 'closed' | 'refunded';
-export const serviceStatusLabels: Record<ServiceStatus, string> = { pending_accept: '待传记师接单', pending_pay: '待用户付款', working: '服务中', completed: '已完成', closed: '已关闭', refunded: '已退款结束' };
-export const stageNames = ['访谈与大纲', '初稿', '校审稿', '终稿'];
+export const serviceStatusLabels: Record<ServiceStatus, string> = { pending_accept: '待接单', pending_pay: '待支付', working: '服务中', completed: '已完成', closed: '已关闭', refunded: '已退款' };
+export const stageNames = ['初稿', '校审稿', '终稿'];
 export function serviceTerms(service: BiographerService): BiographerService {
   return { ...service, interviewCount: service.interviewCount || service.description.match(/\d+\s*次/)?.[0] || '2 次', wordCount: service.wordCount || service.description.match(/[\d.]+\s*万?字/)?.[0] || '5000 字', deliveryPeriod: service.deliveryPeriod || '30 天', revisionCount: service.revisionCount || '2 次', physicalBook: service.physicalBook || '不含', mediaMaterial: service.mediaMaterial || '不含' };
 }
 export interface ServiceStage { name: string; status: 'waiting' | 'review' | 'revision' | 'accepted'; versions: { content: string; fileName: string; at: string; chapters?: ManuscriptChapter[]; focusChapterId?: string; attachmentData?: string; note?: string }[]; feedback: { text: string; at: string; chapterTitle?: string }[]; acceptedAt: string; amount: number; settledAt: string }
 export interface ServiceOrder {
   id: string; customerPhone: string; customerName: string; biographerId: string; biographerName: string; biographerPhone: string;
-  demoScenario?: 'draft_review' | 'interview' | 'finished';
+  demoScenario?: 'draft_review' | 'interview' | 'finished' | 'pending_accept_demo' | 'refunded_demo' | 'closed_demo';
   service: BiographerService; requirements: BiographerBookingForm; amount: number; platformFee: number; providerAmount: number; commissionRate: number;
   status: ServiceStatus; createdAt: string; acceptedAt: string; paidAt: string; updatedAt: string; closeReason: string;
   stages: ServiceStage[]; requests: { type: 'help' | 'refund'; reason: string; status: 'pending' | 'resolved' | 'rejected'; result: string; amount: number; at: string }[];
@@ -46,7 +46,7 @@ function seedDemoServiceOrders() {
   updateServiceOrder(working.id, 'pay', asCustomer);
   updateServiceOrder(working.id, 'deliver', asBiographer, {
     stageIndex: 0,
-    text: '访谈安排：10 月 12 日晚 7 点第一次上门访谈（客户家中），10 月 19 日晚第二次补充访谈，每次约 90 分钟。\n大纲：一、童年与家乡；二、求学之路；三、下海经商；四、创业坎坷与转机；五、家庭与子女教育；六、人生感悟与寄语。',
+    text: '初稿：从童年与家乡写起，记录求学、创业、家庭和家风故事，供客户查看并提出修改意见。',
   });
 
   const completed = createServiceOrder(biographer, biographer.services[2], {
@@ -57,29 +57,24 @@ function seedDemoServiceOrders() {
   updateServiceOrder(completed.id, 'pay', asCustomer);
   updateServiceOrder(completed.id, 'deliver', asBiographer, {
     stageIndex: 0,
-    text: '访谈安排：10 月 15 日、10 月 18 日两次电话访谈，每次约 90 分钟。\n大纲：一、江南水乡的童年；二、进厂当女工的岁月；三、成家与养育子女；四、改革开放后的个体经营；五、退休生活与家风传承。',
+    text: '第一章初稿：李秀兰，1948 年生于江苏吴江。七岁丧父，随母亲缫丝度日。1965 年进镇丝绸厂当挡车工，是厂里第一批女工……（初稿，求学与工作经历细节待补充）',
+  });
+  updateServiceOrder(completed.id, 'revise', asCustomer, { stageIndex: 0, text: '请补充母亲学缫丝手艺的细节，还有她和父亲相识的经过，语气再温暖一些。' });
+  updateServiceOrder(completed.id, 'deliver', asBiographer, {
+    stageIndex: 0,
+    text: '第一章修订稿：李秀兰，1948 年生于江苏吴江。七岁丧父，随母亲缫丝度日，十三岁已能独自上机。1965 年进镇丝绸厂当挡车工，是厂里第一批女工。1969 年经媒人介绍认识同厂机修工张师傅，两人凭一手好手艺和一副热心肠，把日子过得踏实温暖……',
   });
   updateServiceOrder(completed.id, 'approve', asCustomer, { stageIndex: 0 });
   updateServiceOrder(completed.id, 'deliver', asBiographer, {
     stageIndex: 1,
-    text: '第一章初稿：李秀兰，1948 年生于江苏吴江。七岁丧父，随母亲缫丝度日。1965 年进镇丝绸厂当挡车工，是厂里第一批女工……（初稿，求学与工作经历细节待补充）',
-  });
-  updateServiceOrder(completed.id, 'revise', asCustomer, { stageIndex: 1, text: '请补充母亲学缫丝手艺的细节，还有她和父亲相识的经过，语气再温暖一些。' });
-  updateServiceOrder(completed.id, 'deliver', asBiographer, {
-    stageIndex: 1,
-    text: '第一章修订稿：李秀兰，1948 年生于江苏吴江。七岁丧父，随母亲缫丝度日，十三岁已能独自上机。1965 年进镇丝绸厂当挡车工，是厂里第一批女工。1969 年经媒人介绍认识同厂机修工张师傅，两人凭一手好手艺和一副热心肠，把日子过得踏实温暖……',
+    text: '校审稿说明：已完成全文校对——统一称谓与年代表述，修正两处时间错误，删减重复段落，新增「与父亲相识」一节，语言润色至温润平实。',
   });
   updateServiceOrder(completed.id, 'approve', asCustomer, { stageIndex: 1 });
   updateServiceOrder(completed.id, 'deliver', asBiographer, {
     stageIndex: 2,
-    text: '校审稿说明：已完成全文校对——统一称谓与年代表述，修正两处时间错误，删减重复段落，新增「与父亲相识」一节，语言润色至温润平实。',
-  });
-  updateServiceOrder(completed.id, 'approve', asCustomer, { stageIndex: 2 });
-  updateServiceOrder(completed.id, 'deliver', asBiographer, {
-    stageIndex: 3,
     text: '终稿说明：全文十二章共 3.2 万字已定稿，增补老照片说明与家谱附录，实体书排版文件同步交付，可直接安排印刷。',
   });
-  updateServiceOrder(completed.id, 'approve', asCustomer, { stageIndex: 3 });
+  updateServiceOrder(completed.id, 'approve', asCustomer, { stageIndex: 2 });
 
   // 追加演示订单：覆盖待接单 / 待付款 / 服务中各阶段 / 已完成 / 已关闭 / 已退款，分布在多位传记师与客户之间
   const asAdmin = { role: 'admin' as ServiceRole, phone: '' };
@@ -113,23 +108,22 @@ function seedDemoServiceOrders() {
   work(book(b1, 1, { phone: '13800138107', name: '吴国栋' }, '父亲吴天祥', '父子').id, b1.phone, '13800138107', 1, true);
   work(book(b3, 1, { phone: '13800138108', name: '郑立新' }, '郑立新', '本人').id, b3.phone, '13800138108', 1, true, true);
   work(book(b4, 1, { phone: '13800138109', name: '冯丽娟' }, '母亲陈玉芬', '母女').id, b4.phone, '13800138109', 2, true);
-  work(book(b2, 1, { phone: '13800138110', name: '蒋鹏飞' }, '祖父蒋寿山', '祖孙').id, b2.phone, '13800138110', 3, true);
+  work(book(b2, 1, { phone: '13800138110', name: '蒋鹏飞' }, '祖父蒋寿山', '祖孙').id, b2.phone, '13800138110', 2, true);
   const settleDemo = book(b1, 2, { phone: '13800138111', name: '沈慧敏' }, '沈慧敏', '本人', '希望突出女性在职场打拼的经历。');
   work(settleDemo.id, b1.phone, '13800138111', 2);
-  updateServiceOrder(settleDemo.id, 'settle', asAdmin, { stageIndex: 1 });
+  updateServiceOrder(settleDemo.id, 'settle', asAdmin, { stageIndex: 0 });
   // 已完成 ×3（其中一单三个结算阶段全部结清，便于演示结算视图）
   const doneAll = book(b3, 0, { phone: '13800138112', name: '韩春燕' }, '父亲韩守仁', '父女');
-  work(doneAll.id, b3.phone, '13800138112', 4);
-  [1, 2, 3].forEach(stageIndex => updateServiceOrder(doneAll.id, 'settle', asAdmin, { stageIndex }));
-  work(book(b4, 0, { phone: '13800138113', name: '曹志明' }, '曹志明', '本人').id, b4.phone, '13800138113', 4);
-  work(book(b1, 0, customer, '外婆李翠花', '祖孙').id, b1.phone, customer.phone, 4);
+  work(doneAll.id, b3.phone, '13800138112', 3);
+  [0, 1, 2].forEach(stageIndex => updateServiceOrder(doneAll.id, 'settle', asAdmin, { stageIndex }));
+  work(book(b4, 0, { phone: '13800138113', name: '曹志明' }, '曹志明', '本人').id, b4.phone, '13800138113', 3);
+  work(book(b1, 0, customer, '外婆李翠花', '祖孙').id, b1.phone, customer.phone, 3);
   // 已关闭 ×2（传记师无法承接 / 客户取消）
   const declined = book(b2, 0, { phone: '13800138114', name: '谢天佑' }, '父亲谢广坤', '父子');
   updateServiceOrder(declined.id, 'decline', { role: 'biographer', phone: b2.phone });
   const cancelled = book(b3, 1, { phone: '13800138115', name: '董雅静' }, '母亲董秀珍', '母女');
-  updateServiceOrder(cancelled.id, 'accept', { role: 'biographer', phone: b3.phone });
   updateServiceOrder(cancelled.id, 'cancel', { role: 'customer', phone: '13800138115' });
-  // 已退款结束 ×1
+  // 已退款 ×1
   const refunded = book(b1, 1, { phone: '13800138116', name: '邓建华' }, '邓建华', '本人');
   work(refunded.id, b1.phone, '13800138116', 1);
   updateServiceOrder(refunded.id, 'refund', { role: 'customer', phone: '13800138116' });
@@ -152,7 +146,16 @@ export function readServiceOrders(): ServiceOrder[] {
       const seeded = JSON.parse(localStorage.getItem(SERVICE_ORDER_KEY) || '[]');
       return Array.isArray(seeded) ? seeded : [];
     }
-    return value;
+    const orders = value as ServiceOrder[];
+    let migrated = false;
+    for (const order of orders) {
+      if (order.stages?.[0]?.name !== '访谈与大纲') continue;
+      order.stages = order.stages.slice(1);
+      order.history = order.history.filter(item => !item.text.includes('访谈与大纲'));
+      migrated = true;
+    }
+    if (migrated) localStorage.setItem(SERVICE_ORDER_KEY, JSON.stringify(orders));
+    return orders;
   } catch { return []; }
 }
 function writeOrders(orders: ServiceOrder[]) { localStorage.setItem(SERVICE_ORDER_KEY, JSON.stringify(orders)); window.dispatchEvent(new Event(SERVICE_ORDER_EVENT)); }
@@ -162,7 +165,7 @@ export function createServiceOrder(biographer: Biographer, service: BiographerSe
   const rate = defaultBiographerSettlements.find(item => item.biographerId === biographer.id)?.commissionRate ?? 0.15;
   const feeCents = Math.round(amountCents * rate), net = amountCents - feeCents;
   const first = Math.round(net * 0.3), second = Math.round(net * 0.4);
-  const installments = [0, first, second, net - first - second];
+  const installments = [first, second, net - first - second];
   const order: ServiceOrder = {
     id: `BS-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`,
     customerPhone: user.phone, customerName: user.name || '演示客户', biographerId: biographer.id, biographerName: biographer.name, biographerPhone: biographer.phone, demoScenario,
@@ -206,7 +209,7 @@ function addFinishedRevisionSample(order: ServiceOrder): boolean {
     order.stages.some(stage => stage.status !== 'accepted' || stage.versions.length !== 1 || stage.feedback.length > 0 || !!stage.versions[0].attachmentData || !!stage.versions[0].note)) return false;
   const base = Date.now() - 3 * 86400000;
   const at = (minutes: number) => new Date(base + minutes * 60000).toISOString();
-  const draft = order.stages[1];
+  const draft = order.stages[0];
   draft.versions = finishedDrafts.map((content, index) => ({
     content, fileName: '', at: at([2880, 3360, 3720][index]), chapters: parseManuscriptChapters(content),
     note: ['先交初稿，请核对童年与丝厂经历。', '已补充缫丝手艺和入厂年份，请继续核对。', '已补上与张师傅相识的经过，并按意见调整结尾。'][index],
@@ -216,13 +219,11 @@ function addFinishedRevisionSample(order: ServiceOrder): boolean {
     { text: '缫丝和年份已经准确。第二章还缺少与父亲相识的经过；第三章请补一句母亲常说的家风话语。', chapterTitle: '第二章 丝厂岁月', at: at(3480) },
   ];
   order.createdAt = at(0); order.acceptedAt = at(20); order.paidAt = at(25); order.updatedAt = at(4260);
-  order.stages[0].versions[0].at = at(1440); order.stages[0].acceptedAt = at(1500);
   draft.acceptedAt = at(3840);
-  order.stages[2].versions[0] = { content: finishedDrafts[2], fileName: '', at: at(4020), chapters: parseManuscriptChapters(finishedDrafts[2]), note: '已核对人物称谓和时间，完成全文校审。' }; order.stages[2].acceptedAt = at(4080);
-  order.stages[3].versions[0] = { content: finishedDrafts[2], fileName: '', at: at(4200), chapters: parseManuscriptChapters(finishedDrafts[2]), note: '终稿已完成排版检查，可供家庭留存。' }; order.stages[3].acceptedAt = at(4260);
+  order.stages[1].versions[0] = { content: finishedDrafts[2], fileName: '', at: at(4020), chapters: parseManuscriptChapters(finishedDrafts[2]), note: '已核对人物称谓和时间，完成全文校审。' }; order.stages[1].acceptedAt = at(4080);
+  order.stages[2].versions[0] = { content: finishedDrafts[2], fileName: '', at: at(4200), chapters: parseManuscriptChapters(finishedDrafts[2]), note: '终稿已完成排版检查，可供家庭留存。' }; order.stages[2].acceptedAt = at(4260);
   order.history = [
     { at: at(0), text: '客户提交需求订单' }, { at: at(20), text: '传记师确认接单' }, { at: at(25), text: '客户完成模拟付款' },
-    { at: at(1440), text: '传记师提交访谈与大纲' }, { at: at(1500), text: '客户验收通过访谈与大纲' },
     { at: at(2880), text: '传记师提交初稿第 1 版' }, { at: at(3000), text: '客户提出第 1 轮修改意见：童年和缫丝经历' },
     { at: at(3360), text: '传记师提交初稿第 2 版' }, { at: at(3480), text: '客户提出第 2 轮修改意见：相识经过和家风话语' },
     { at: at(3720), text: '传记师提交初稿第 3 版' }, { at: at(3840), text: '客户验收通过初稿' },
@@ -232,36 +233,45 @@ function addFinishedRevisionSample(order: ServiceOrder): boolean {
   return true;
 }
 
-/** 为当前客户补齐三笔可跨角色演示的订单；已存在的浏览器订单不会被重置。 */
+/** 为当前客户补齐各状态的跨角色演示订单；已存在的浏览器订单不会被重置。 */
 export function ensureCustomerWorkflowOrders(customer: { phone: string; name?: string }): ServiceOrder[] {
   if (!customer.phone) return [];
   const biographer = defaultBiographers.find(item => item.id === 'bio_001');
   if (!biographer) return [];
   const asBiographer = { role: 'biographer' as const, phone: biographer.phone };
   const asCustomer = { role: 'customer' as const, phone: customer.phone };
-  const scenarios: NonNullable<ServiceOrder['demoScenario']>[] = ['draft_review', 'interview', 'finished'];
+  const asAdmin = { role: 'admin' as const, phone: '' };
+  const scenarios: NonNullable<ServiceOrder['demoScenario']>[] = ['draft_review', 'interview', 'finished', 'pending_accept_demo', 'refunded_demo', 'closed_demo'];
   for (const scenario of scenarios) {
     if (readServiceOrders().some(order => order.customerPhone === customer.phone && order.demoScenario === scenario)) continue;
     const requirements: BiographerBookingForm = {
       interviewee: scenario === 'finished' ? '母亲李秀兰' : customer.name || '张明远',
       relation: scenario === 'finished' ? '母子' : '本人',
       preferredTime: '周末上午', location: '线上视频访谈', contactPhone: customer.phone,
-      remark: scenario === 'draft_review' ? '记录成长、创业和家风故事，初稿交付后由客户验收。' : scenario === 'interview' ? '先梳理访谈提纲，再整理成长经历。' : '整理母亲的生活经历，作为家庭纪念。',
+      remark: scenario === 'draft_review' ? '记录成长、创业和家风故事，初稿交付后由客户验收。' : scenario === 'interview' ? '先梳理访谈提纲，再整理成长经历。' : scenario === 'pending_accept_demo' ? '希望传记师确认档期后开始访谈。' : scenario === 'refunded_demo' ? '已付款后因时间安排变化申请退款。' : scenario === 'closed_demo' ? '希望记录家人的成长经历，待传记师确认能否承接。' : '整理母亲的生活经历，作为家庭纪念。',
     };
     const order = createServiceOrder(biographer, biographer.services[0], requirements, customer, scenario);
+    if (scenario === 'pending_accept_demo') continue;
+    if (scenario === 'closed_demo') {
+      updateServiceOrder(order.id, 'decline', asBiographer, { text: '传记师档期无法承接，订单已关闭。' });
+      continue;
+    }
     updateServiceOrder(order.id, 'accept', asBiographer);
     updateServiceOrder(order.id, 'pay', asCustomer);
+    if (scenario === 'refunded_demo') {
+      updateServiceOrder(order.id, 'refund', asCustomer, { text: '访谈尚未开始，因时间安排变化申请退款。' });
+      updateServiceOrder(order.id, 'resolve', asAdmin, { text: '平台核对后已按原支付金额退款。', amount: order.amount });
+      continue;
+    }
     if (scenario !== 'interview') {
-      updateServiceOrder(order.id, 'deliver', asBiographer, { stageIndex: 0, text: '访谈安排：周末线上完成两次访谈。写作大纲：童年与求学、离家与创业、家庭故事、家风与寄语。' });
-      updateServiceOrder(order.id, 'approve', asCustomer, { stageIndex: 0 });
       const customerDraft = demoDraft.replaceAll('张明远', customer.name || '张明远');
-      updateServiceOrder(order.id, 'deliver', asBiographer, { stageIndex: 1, text: customerDraft });
+      updateServiceOrder(order.id, 'deliver', asBiographer, { stageIndex: 0, text: customerDraft });
       if (scenario === 'finished') {
+        updateServiceOrder(order.id, 'approve', asCustomer, { stageIndex: 0 });
+        updateServiceOrder(order.id, 'deliver', asBiographer, { stageIndex: 1, text: '校审稿：已核对人物称谓和年份，补充家族照片说明，统一行文风格。\n\n' + customerDraft });
         updateServiceOrder(order.id, 'approve', asCustomer, { stageIndex: 1 });
-        updateServiceOrder(order.id, 'deliver', asBiographer, { stageIndex: 2, text: '校审稿：已核对人物称谓和年份，补充家族照片说明，统一行文风格。\n\n' + customerDraft });
+        updateServiceOrder(order.id, 'deliver', asBiographer, { stageIndex: 2, text: '终稿：完成全文校对与排版，可用于家庭留存。\n\n' + customerDraft });
         updateServiceOrder(order.id, 'approve', asCustomer, { stageIndex: 2 });
-        updateServiceOrder(order.id, 'deliver', asBiographer, { stageIndex: 3, text: '终稿：完成全文校对与排版，可用于家庭留存。\n\n' + customerDraft });
-        updateServiceOrder(order.id, 'approve', asCustomer, { stageIndex: 3 });
       }
     }
   }
@@ -270,7 +280,7 @@ export function ensureCustomerWorkflowOrders(customer: { phone: string; name?: s
   for (const order of orders) {
     if (order.customerPhone === customer.phone && addFinishedRevisionSample(order)) renamed = true;
     if (order.customerPhone === customer.phone && order.demoScenario === 'finished') {
-      const firstFeedback = order.stages[1]?.feedback[0];
+      const firstFeedback = order.stages[0]?.feedback[0];
       if (firstFeedback?.text.includes('外婆去世后的生活')) {
         firstFeedback.text = firstFeedback.text.replace('外婆去世后的生活，以及母亲学缫丝手艺', '母亲七岁丧父后的生活，以及她学缫丝手艺');
         renamed = true;
@@ -309,23 +319,23 @@ export function updateServiceOrder(id: string, action: ServiceAction, actor: { r
       requireState(actor.role === 'biographer' && order.status === 'pending_accept'); order.status = 'pending_pay'; order.acceptedAt = now; text = '传记师确认接单'; break;
     case 'decline':
     case 'cancel':
-      requireState(!order.paidAt && (order.status === 'pending_accept' || order.status === 'pending_pay') && (action === 'decline' ? actor.role === 'biographer' : actor.role === 'customer'));
+      requireState(order.status === 'pending_accept' && (action === 'decline' ? actor.role === 'biographer' : actor.role === 'customer'));
       order.status = 'closed'; order.closeReason = payload.text?.trim() || (action === 'decline' ? '档期暂不合适，无法承接' : '客户取消订单'); text = order.closeReason; break;
     case 'pay':
       requireState(actor.role === 'customer' && order.status === 'pending_pay' && !!order.acceptedAt && !order.paidAt);
       order.status = 'working'; order.paidAt = now; text = `客户模拟全款支付 ${money(order.amount)}，已开放传记师联系方式`; break;
     case 'deliver':
       requireState(actor.role === 'biographer' && order.status === 'working' && !!stage && ['waiting', 'revision'].includes(stage.status) && payload.stageIndex === stageIndex);
-      stage.versions.push({ content: payload.attachmentData ? '' : payload.text?.trim() || (stageIndex === 0 ? '访谈安排：双方电话约定时间，线上或电话访谈。大纲：成长经历、求学与工作、家庭故事、人生感悟。' : `${stage.name}示例：围绕传主的成长、事业与家庭经历整理成文，保留关键事件与个人讲述。本次提交供客户查看并提出修改意见。`), fileName: payload.fileName || '', at: now, ...(payload.chapters?.length ? { chapters: payload.chapters, focusChapterId: payload.focusChapterId } : {}), ...(payload.attachmentData ? { attachmentData: payload.attachmentData } : {}), ...(payload.note?.trim() ? { note: payload.note.trim() } : {}) });
+      stage.versions.push({ content: payload.attachmentData ? '' : payload.text?.trim() || `${stage.name}示例：围绕传主的成长、事业与家庭经历整理成文，保留关键事件与个人讲述。本次提交供客户查看并提出修改意见。`, fileName: payload.fileName || '', at: now, ...(payload.chapters?.length ? { chapters: payload.chapters, focusChapterId: payload.focusChapterId } : {}), ...(payload.attachmentData ? { attachmentData: payload.attachmentData } : {}), ...(payload.note?.trim() ? { note: payload.note.trim() } : {}) });
       stage.status = 'review'; text = `传记师提交${stage.name}，等待客户验收`; break;
     case 'revise':
     case 'approve':
       requireState(actor.role === 'customer' && order.status === 'working' && !!stage && stage.status === 'review' && payload.stageIndex === stageIndex);
       if (action === 'revise') { stage.status = 'revision'; stage.feedback.push({ text: payload.text?.trim() || '请补充关键时间和人物细节后重新提交。', at: now, chapterTitle: payload.chapterTitle }); text = `客户提出${stage.name}${payload.chapterTitle ? `「${payload.chapterTitle}」` : ''}修改意见`; }
-      else { stage.status = 'accepted'; stage.acceptedAt = now; if (stageIndex === 3) order.status = 'completed'; text = `客户验收通过${stage.name}${stageIndex > 0 ? `，生成待结算 ${money(stage.amount)}` : ''}`; } break;
+      else { stage.status = 'accepted'; stage.acceptedAt = now; if (stageIndex === order.stages.length - 1) order.status = 'completed'; text = `客户验收通过${stage.name}，生成待结算 ${money(stage.amount)}`; } break;
     case 'settle': {
       const target = order.stages[payload.stageIndex ?? -1];
-      requireState(actor.role === 'admin' && ['working', 'completed'].includes(order.status) && !!target && target.status === 'accepted' && !target.settledAt && (payload.stageIndex ?? 0) > 0);
+      requireState(actor.role === 'admin' && ['working', 'completed'].includes(order.status) && !!target && target.status === 'accepted' && !target.settledAt && (payload.stageIndex ?? -1) >= 0);
       target.settledAt = now; text = `平台确认${target.name}结算 ${money(target.amount)}`; break;
     }
     case 'help':

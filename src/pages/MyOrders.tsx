@@ -15,22 +15,24 @@ import {
   ShoppingBag,
   X,
   Copy,
+  Search,
+  RotateCcw,
   CreditCard as PayIcon,
 } from 'lucide-react';
 import type { Order, RefundReasonOption } from '../mocks/types';
 import { paymentApi } from '../api/payment';
 import { useToast } from '../hooks/useToast';
 import { useAuth } from '../hooks/useAuth';
-import { SERVICE_ORDER_EVENT, ensureCustomerWorkflowOrders, readServiceOrders, serviceStatusLabels, type ServiceOrder } from '../data/biographerServiceOrders';
+import { SERVICE_ORDER_EVENT, ensureCustomerWorkflowOrders, readServiceOrders, serviceStatusLabels, type ServiceOrder, type ServiceStatus } from '../data/biographerServiceOrders';
 import Annotate from '../components/annotation/Annotate';
 import { defaultRefundReasonOptions } from '../mocks/data/seed';
 import './MyOrders.css';
 
-const statusOptions: Array<{ value: Order['status'] | 'all'; label: string }> = [
+const serviceStatusOptions: Array<{ value: ServiceStatus | 'all'; label: string }> = [
   { value: 'all', label: '全部' },
+  { value: 'pending_accept', label: '待接单' },
   { value: 'pending_pay', label: '待支付' },
-  { value: 'paid', label: '已支付' },
-  { value: 'delivering', label: '服务中' },
+  { value: 'working', label: '服务中' },
   { value: 'completed', label: '已完成' },
   { value: 'refunded', label: '已退款' },
   { value: 'closed', label: '已关闭' },
@@ -38,14 +40,14 @@ const statusOptions: Array<{ value: Order['status'] | 'all'; label: string }> = 
 
 const typeOptions: Array<{ value: Order['type'] | 'all'; label: string }> = [
   { value: 'all', label: '全部类型' },
-  { value: 'book', label: '实体书' },
-  { value: 'derivative', label: '衍生品' },
-  { value: 'qrcode', label: '二维码' },
-  { value: 'video', label: '纪念视频' },
-  { value: 'digital_person', label: '数字人' },
-  { value: 'biography', label: '传记服务' },
+  { value: 'biography', label: '下载 PDF' },
+  { value: 'book', label: '出版实体书' },
+  { value: 'qrcode', label: '生成二维码' },
   { value: 'biographer_service', label: '传记师服务' },
 ];
+
+type OrderTab = 'product' | 'service';
+const orderTabForType = (type: Order['type']): OrderTab => type === 'biographer_service' ? 'service' : 'product';
 
 const statusMap: Record<Order['status'], { label: string; className: string; icon: typeof Clock }> = {
   pending_pay: { label: '待支付', className: 'my-order-status-pending', icon: Clock },
@@ -57,11 +59,11 @@ const statusMap: Record<Order['status'], { label: string; className: string; ico
 };
 
 const typeLabelMap: Record<Order['type'], string> = {
-  biography: '传记服务',
+  biography: '下载 PDF',
   digital_person: '数字人',
   video: '纪念视频',
-  qrcode: '二维码',
-  book: '实体书',
+  qrcode: '生成二维码',
+  book: '出版实体书',
   biographer_service: '传记师服务',
   group_buy: '团购',
   derivative: '衍生品',
@@ -82,11 +84,10 @@ interface UnifiedOrderRow {
   orderId: string;
   typeLabel: string;
   name: string;
-  sub: string;
   amount: number;
   statusLabel: string;
   statusClassName?: string;
-  unifiedStatus: Order['status'];
+  filterStatus: Order['status'] | ServiceStatus;
   createdAt: string;
   normal?: Order;
   service?: ServiceOrder;
@@ -111,10 +112,9 @@ function useCountdown() {
 
 // 固定的订单页演示数据，不受当前账号或浏览器中已有订单影响。
 const demoOrders: Order[] = [
-  { id: 'ord_demo_001', userId: 'u_demo_current', type: 'biography', productId: 'prod_bio_standard', productName: '标准传记服务', amount: 1999, status: 'paid', payTime: '2026-09-06T10:20:00', createdAt: '2026-09-06T10:00:00', updatedAt: '2026-09-06T10:20:00' },
-  { id: 'ord_demo_002', userId: 'u_demo_current', type: 'book', productId: 'prod_book_hardcover', productName: '张明远的传记 · 精装实体书', amount: 288, status: 'delivering', payTime: '2026-09-05T14:05:00', createdAt: '2026-09-05T14:00:00', updatedAt: '2026-09-06T09:30:00' },
-  { id: 'ord_demo_003', userId: 'u_demo_current', type: 'qrcode', productId: 'prod_qrcode', productName: '家风纪念馆二维码', amount: 19.9, status: 'completed', payTime: '2026-09-03T16:40:00', createdAt: '2026-09-03T16:30:00', updatedAt: '2026-09-03T16:40:00' },
-  { id: 'ord_demo_005', userId: 'u_demo_current', type: 'video', productId: 'prod_video', productName: '家族纪念视频制作', amount: 1288, status: 'refunded', payTime: '2026-08-28T09:30:00', createdAt: '2026-08-28T09:00:00', updatedAt: '2026-08-29T15:00:00' },
+  { id: 'ord_demo_001', userId: 'u_demo_current', type: 'biography', productId: 'prod_bio_pdf', productName: '张明远的传记 · PDF 电子版', amount: 9.9, status: 'paid', payTime: '2026-09-06T10:20:00', createdAt: '2026-09-06T10:00:00', updatedAt: '2026-09-06T10:20:00' },
+  { id: 'ord_demo_002', userId: 'u_demo_current', type: 'book', productId: 'prod_book_hardcover', productName: '张明远的传记 · 精装实体书', amount: 59, status: 'paid', payTime: '2026-09-05T14:05:00', createdAt: '2026-09-05T14:00:00', updatedAt: '2026-09-06T09:30:00' },
+  { id: 'ord_demo_003', userId: 'u_demo_current', type: 'qrcode', productId: 'prod_qrcode', productName: '张明远的传记 · 专属二维码', amount: 19.9, status: 'paid', payTime: '2026-09-03T16:40:00', createdAt: '2026-09-03T16:30:00', updatedAt: '2026-09-03T16:40:00' },
 ];
 
 export default function MyOrders() {
@@ -124,13 +124,21 @@ export default function MyOrders() {
   const [searchParams] = useSearchParams();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<Order['status'] | 'all'>(() => {
+  const [statusFilter, setStatusFilter] = useState<ServiceStatus | 'all'>(() => {
     const status = searchParams.get('status');
-    return statusOptions.some((option) => option.value === status) ? (status as Order['status']) : 'all';
+    return serviceStatusOptions.some((option) => option.value === status) ? (status as ServiceStatus) : 'all';
   });
   const [typeFilter, setTypeFilter] = useState<Order['type'] | 'all'>(() => {
     const t = searchParams.get('type');
     return typeOptions.some((o) => o.value === t) ? (t as Order['type']) : 'all';
+  });
+  const [appliedStatusFilter, setAppliedStatusFilter] = useState(statusFilter);
+  const [appliedTypeFilter, setAppliedTypeFilter] = useState(typeFilter);
+  const [activeTab, setActiveTab] = useState<OrderTab>(() => {
+    const type = searchParams.get('type');
+    return typeOptions.some((option) => option.value === type && option.value !== 'all')
+      ? orderTabForType(type as Order['type'])
+      : 'product';
   });
   const [selected, setSelected] = useState<Order | null>(null);
   const [payingId, setPayingId] = useState<string | null>(null);
@@ -178,45 +186,54 @@ export default function MyOrders() {
       orderId: o.id,
       typeLabel: typeLabelMap[o.type],
       name: o.productName,
-      sub: '',
       amount: o.amount,
       statusLabel: statusMap[o.status].label,
       statusClassName: statusMap[o.status].className,
-      unifiedStatus: o.status,
+      filterStatus: o.status,
       createdAt: o.createdAt,
       normal: o,
     }));
-    // 新版服务订单状态映射到统一状态口径：待接单/待付款→待支付，服务中→服务中
-    const serviceStatusToUnified: Record<string, Order['status']> = {
-      pending_accept: 'pending_pay',
-      pending_pay: 'pending_pay',
-      working: 'delivering',
-      completed: 'completed',
-      refunded: 'refunded',
-      closed: 'closed',
-    };
     const serviceRows: UnifiedOrderRow[] = serviceOrders.map((o) => ({
       key: `service_${o.id}`,
       kind: 'service',
       orderId: o.id,
       typeLabel: '传记师服务',
-      name: o.service.name,
-      sub: `传记师：${o.biographerName} · 传主：${o.requirements.interviewee || '待补充'}${o.demoScenario === 'finished' ? ' · 完整修改样例' : ''}`,
+      name: `${o.service.name} · ${o.biographerName}`,
       amount: o.amount,
-      statusLabel: serviceStatusLabels[o.status] + (o.status === 'working' ? ` · ${o.stages.filter((stage) => stage.status === 'accepted').length}/4 已确认${o.stages.some((stage) => stage.status === 'review') ? ' · 待您验收' : ''}` : '') + (o.requests.some((r) => r.status === 'pending') ? ' · 平台处理中' : ''),
-      unifiedStatus: serviceStatusToUnified[o.status] || 'delivering',
+      statusLabel: serviceStatusLabels[o.status] + (o.status === 'working' ? ` · ${o.stages.filter((stage) => stage.status === 'accepted').length}/${o.stages.length} 已确认${o.stages.some((stage) => stage.status === 'review') ? ' · 待您验收' : ''}` : '') + (o.requests.some((r) => r.status === 'pending') ? ' · 平台处理中' : ''),
+      filterStatus: o.status,
       createdAt: o.createdAt,
       service: o,
     }));
     return [...normalRows, ...serviceRows]
-      .filter((r) => statusFilter === 'all' || r.unifiedStatus === statusFilter)
+      .filter((r) => (r.kind === 'service' ? 'service' : orderTabForType(r.normal!.type)) === activeTab)
+      .filter((r) => activeTab === 'product' || appliedStatusFilter === 'all' || r.filterStatus === appliedStatusFilter)
       .filter((r) => {
-        if (typeFilter === 'all') return true;
-        if (typeFilter === 'biographer_service') return r.kind !== 'normal' || r.normal?.type === 'biographer_service';
-        return r.kind === 'normal' && r.normal?.type === typeFilter;
+        if (appliedTypeFilter === 'all') return true;
+        if (appliedTypeFilter === 'biographer_service') return r.kind !== 'normal' || r.normal?.type === 'biographer_service';
+        return r.kind === 'normal' && r.normal?.type === appliedTypeFilter;
       })
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }, [orders, serviceOrders, statusFilter, typeFilter]);
+  }, [orders, serviceOrders, activeTab, appliedStatusFilter, appliedTypeFilter]);
+
+  const visibleTypeOptions = typeOptions.filter((option) => option.value === 'all' || orderTabForType(option.value) === activeTab);
+  const selectTab = (tab: OrderTab) => {
+    setActiveTab(tab);
+    setStatusFilter('all');
+    setTypeFilter('all');
+    setAppliedStatusFilter('all');
+    setAppliedTypeFilter('all');
+  };
+  const applyFilters = () => {
+    if (activeTab === 'service') setAppliedStatusFilter(statusFilter);
+    else setAppliedTypeFilter(typeFilter);
+  };
+  const resetFilters = () => {
+    setStatusFilter('all');
+    setTypeFilter('all');
+    setAppliedStatusFilter('all');
+    setAppliedTypeFilter('all');
+  };
 
   const handlePay = async (order: Order) => {
     try {
@@ -300,20 +317,27 @@ export default function MyOrders() {
         </div>
       </header>
 
+      <div className="my-order-tabs" role="tablist" aria-label="订单分类">
+        <button type="button" role="tab" aria-selected={activeTab === 'product'} className={activeTab === 'product' ? 'active' : ''} onClick={() => selectTab('product')}>商品订单</button>
+        <button type="button" role="tab" aria-selected={activeTab === 'service'} className={activeTab === 'service' ? 'active' : ''} onClick={() => selectTab('service')}>服务订单</button>
+      </div>
+
       <div className="card my-order-list-card">
         <div className="card-header my-order-list-header">
           <Annotate id="my-orders.filters" inline>
           <div className="my-order-filters">
-            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as Order['status'] | 'all')}>
-              {statusOptions.map((s) => (
+            {activeTab === 'service' && <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as ServiceStatus | 'all')}>
+              {serviceStatusOptions.map((s) => (
                 <option value={s.value} key={s.value}>{s.label}</option>
               ))}
-            </select>
-            <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as Order['type'] | 'all')}>
-              {typeOptions.map((t) => (
+            </select>}
+            {activeTab === 'product' && <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as Order['type'] | 'all')}>
+              {visibleTypeOptions.map((t) => (
                 <option value={t.value} key={t.value}>{t.label}</option>
               ))}
-            </select>
+            </select>}
+            <button type="button" className="btn btn-primary btn-sm" onClick={applyFilters}><Search size={13} />查询</button>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={resetFilters}><RotateCcw size={13} />重置</button>
           </div>
           </Annotate>
         </div>
@@ -331,14 +355,14 @@ export default function MyOrders() {
             <div className="admin-table-wrap">
               <table className="admin-table">
                 <thead>
-                  <tr><th>订单号</th><th>类型</th><th>商品 / 服务</th><th>金额</th><th>状态</th><th>下单时间</th><th>操作</th></tr>
+                  <tr><th>订单号</th><th>类型</th><th>{activeTab === 'product' ? '商品' : '服务'}</th><th>金额</th><th>状态</th><th>下单时间</th><th>操作</th></tr>
                 </thead>
                 <tbody>
                   {rows.map((row) => (
                     <tr key={row.key}>
                       <td>{row.orderId}</td>
                       <td>{row.typeLabel}</td>
-                      <td className="admin-table-text-left">{row.name}{row.sub && <><br /><small>{row.sub}</small></>}</td>
+                      <td className="admin-table-text-left">{row.name}</td>
                       <td>¥{row.amount.toLocaleString()}</td>
                       <td>
                         <span
@@ -401,7 +425,7 @@ export default function MyOrders() {
                 </span>
               </div>
               <div className="my-order-detail-row">
-                <span>商品</span>
+                <span>{orderTabForType(selected.type) === 'product' ? '商品' : '服务'}</span>
                 <span>{selected.productName}</span>
               </div>
               <div className="my-order-detail-row">
