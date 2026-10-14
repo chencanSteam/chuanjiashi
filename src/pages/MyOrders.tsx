@@ -18,14 +18,11 @@ import {
   Star,
   CreditCard as PayIcon,
 } from 'lucide-react';
-import { orderApi } from '../api/order';
 import { biographerApi } from '../api/biographer';
 import type { Order, Biographer, BiographerOrder, RefundReasonOption } from '../mocks/types';
-import { refundReasonApi } from '../api/refundReason';
 import { paymentApi } from '../api/payment';
 import { useToast } from '../hooks/useToast';
-import { useAuth } from '../hooks/useAuth';
-import { readServiceOrders, serviceOrderVisible, serviceStatusLabels, SERVICE_ORDER_EVENT, type ServiceOrder } from '../data/biographerServiceOrders';
+import { serviceStatusLabels, type ServiceOrder } from '../data/biographerServiceOrders';
 import Annotate from '../components/annotation/Annotate';
 import { defaultBiographers, defaultRefundReasonOptions } from '../mocks/data/seed';
 import './MyOrders.css';
@@ -89,7 +86,7 @@ const bioStatusMap: Record<BiographerOrder['status'], { label: string; color: st
   after_sales: { label: '售后中', color: '#ef4444' },
 };
 
-/** 统一订单行：商品订单（orderApi）+ 旧版传记师订单（biographerApi）+ 新版传记师服务订单（本地服务订单库） */
+/** 订单页统一展示用的行数据。 */
 interface UnifiedOrderRow {
   key: string;
   kind: 'normal' | 'bio' | 'service';
@@ -125,7 +122,7 @@ function useCountdown() {
   return now;
 }
 
-// 页面演示兜底：即使当前浏览器没有初始化订单或切换了演示账号，也始终能看到完整样例。
+// 固定的订单页演示数据，不受当前账号或浏览器中已有订单影响。
 const demoOrders: Order[] = [
   { id: 'ord_demo_001', userId: 'u_demo_current', type: 'biography', productId: 'prod_bio_standard', productName: '标准传记服务', amount: 1999, status: 'paid', payTime: '2026-09-06T10:20:00', createdAt: '2026-09-06T10:00:00', updatedAt: '2026-09-06T10:20:00' },
   { id: 'ord_demo_002', userId: 'u_demo_current', type: 'book', productId: 'prod_book_hardcover', productName: '张明远的传记 · 精装实体书', amount: 288, status: 'delivering', payTime: '2026-09-05T14:05:00', createdAt: '2026-09-05T14:00:00', updatedAt: '2026-09-06T09:30:00' },
@@ -149,10 +146,11 @@ const demoBiographerOrders: BiographerOrder[] = [
   },
 ];
 
+const demoServiceOrders: ServiceOrder[] = [];
+
 export default function MyOrders() {
   const navigate = useNavigate();
   const { addToast } = useToast();
-  const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const [orders, setOrders] = useState<Order[]>([]);
   const [bioOrders, setBioOrders] = useState<BiographerOrder[]>([]);
@@ -177,57 +175,19 @@ export default function MyOrders() {
   const [refundReasonOptionId, setRefundReasonOptionId] = useState('');
   const [refundCustomReason, setRefundCustomReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [serviceOrders, setServiceOrders] = useState<ServiceOrder[]>([]);
+  const serviceOrders = demoServiceOrders;
   const [serviceOrderId, setServiceOrderId] = useState<string | null>(null);
   useCountdown();
 
-  // 新版传记师服务订单：读本地服务订单库，监听变更事件刷新
-  useEffect(() => {
-    const load = () => {
-      const phone = user?.phone || '';
-      setServiceOrders(readServiceOrders().filter((o) => serviceOrderVisible(o, 'customer', phone)));
-    };
-    load();
-    window.addEventListener(SERVICE_ORDER_EVENT, load);
-    window.addEventListener('storage', load);
-    return () => {
-      window.removeEventListener(SERVICE_ORDER_EVENT, load);
-      window.removeEventListener('storage', load);
-    };
-  }, [user?.phone]);
-
   const loadOrders = () => {
     setLoading(true);
-    Promise.all([orderApi.list(), biographerApi.orders(), biographerApi.list(), refundReasonApi.list()])
-      .then(async ([orderList, bioOrderList, bioList, refundReasonList]) => {
-        const visibleOrders = orderList.length > 0 ? orderList : demoOrders;
-        const visibleBioOrders = bioOrderList.length > 0 ? bioOrderList : demoBiographerOrders;
-        const visibleBiographers = bioList.length > 0 ? bioList : defaultBiographers.filter((b) => b.status === 'approved');
-        const reviewResults = await Promise.all(visibleBioOrders.map(async (order) => {
-          try {
-            const reviews = await biographerApi.getReviews(order.biographerId);
-            return [order.id, reviews.some((review) => review.orderId === order.id)] as const;
-          } catch {
-            return [order.id, false] as const;
-          }
-        }));
-        setReviewedBioOrderIds(new Set(reviewResults.filter(([, reviewed]) => reviewed).map(([id]) => id)));
-        setOrders(visibleOrders);
-        setBioOrders(visibleBioOrders);
-        setRefundReasons(refundReasonList.length > 0 ? refundReasonList : defaultRefundReasonOptions);
-        const map: Record<string, Biographer> = {};
-        visibleBiographers.forEach((b) => (map[b.id] = b));
-        setBiographers(map);
-      })
-      .catch(() => {
-        setOrders(demoOrders);
-        setBioOrders(demoBiographerOrders);
-        setRefundReasons(defaultRefundReasonOptions);
-        const map: Record<string, Biographer> = {};
-        defaultBiographers.filter((b) => b.status === 'approved').forEach((b) => (map[b.id] = b));
-        setBiographers(map);
-      })
-      .finally(() => setLoading(false));
+    setOrders(demoOrders);
+    setBioOrders(demoBiographerOrders);
+    setRefundReasons(defaultRefundReasonOptions);
+    const map: Record<string, Biographer> = {};
+    defaultBiographers.filter((b) => b.status === 'approved').forEach((b) => (map[b.id] = b));
+    setBiographers(map);
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -311,14 +271,9 @@ export default function MyOrders() {
   };
 
   // 实体订单（实体书/衍生品）服务中可确认收货，确认后订单完成
-  const handleConfirmReceipt = async (order: Order) => {
-    try {
-      await orderApi.updateStatus(order.id, 'completed');
-      addToast('已确认收货，订单完成', 'success');
-      loadOrders();
-    } catch (err: unknown) {
-      addToast(err instanceof Error ? err.message : '操作失败', 'error');
-    }
+  const handleConfirmReceipt = (order: Order) => {
+    setOrders((current) => current.map((item) => item.id === order.id ? { ...item, status: 'completed', updatedAt: new Date().toISOString() } : item));
+    addToast('已确认收货，订单完成', 'success');
   };
 
   const copyOrderId = (id: string) => {
@@ -349,19 +304,20 @@ export default function MyOrders() {
     }
     try {
       setSubmitting(true);
-      await orderApi.refund(refundOrder.id, {
+      const request = {
         reason: selectedReason.label,
         reasonOptionId: selectedReason.id,
         reasonOptionLabel: selectedReason.label,
         customReason: selectedReason.isOther ? customReason : undefined,
         createdAt: new Date().toISOString(),
-      });
+        status: 'pending' as const,
+      };
+      setOrders((current) => current.map((item) => item.id === refundOrder.id ? { ...item, refundRequest: request } : item));
       addToast('退款申请已提交，等待平台审核', 'success');
       setRefundOrder(null);
       setRefundReasonOptionId('');
       setRefundCustomReason('');
       setSelected(null);
-      loadOrders();
     } catch (err: unknown) {
       addToast(err instanceof Error ? err.message : '退款失败', 'error');
     } finally {
@@ -503,7 +459,7 @@ export default function MyOrders() {
         </Annotate>
       </div>
 
-      <BiographerServiceOrders role="customer" detailOnly selectedOrderId={serviceOrderId} onCloseDetail={() => setServiceOrderId(null)} />
+      {serviceOrderId && <BiographerServiceOrders role="customer" detailOnly selectedOrderId={serviceOrderId} onCloseDetail={() => setServiceOrderId(null)} />}
 
       {selectedBioOrder && (
         <div className="modal-overlay" onClick={() => setSelectedBioOrder(null)}>
