@@ -18,6 +18,10 @@ import { useToast } from '../hooks/useToast';
 import { biographerApi } from '../api/biographer';
 import { loadJson, saveJson } from '../data/aiMock';
 import type { BiographerOrder } from '../mocks/types';
+import { readServiceOrders } from '../data/biographerServiceOrders';
+import { parseManuscriptChapters, workStorageKey } from '../utils/biographerWorkChapters';
+import { useAuth } from '../hooks/useAuth';
+import { useSearchParams } from 'react-router-dom';
 import Annotate from '../components/annotation/Annotate';
 import {
   loadBiographerVersions,
@@ -57,10 +61,6 @@ function chapterStatus(c: WorkChapter): ChapterStatus {
   return c.content.trim() ? 'draft' : 'empty';
 }
 
-function workStorageKey(orderId: string) {
-  return `cj_biographer_work_${orderId}`;
-}
-
 function genId() {
   return `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 }
@@ -93,7 +93,9 @@ function mockPolish(text: string): string {
 
 export default function BiographerWorks() {
   const { addToast } = useToast();
-  const [orders, setOrders] = useState<BiographerOrder[]>([]);
+  const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const [orders, setOrders] = useState<Pick<BiographerOrder, 'id' | 'serviceName' | 'customerName' | 'userId'>[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeOrderId, setActiveOrderId] = useState('');
   const [chapters, setChapters] = useState<WorkChapter[]>([]);
@@ -112,7 +114,14 @@ export default function BiographerWorks() {
   // 加载某订单的传记章节（无则按模板初始化）
   const selectOrder = (orderId: string) => {
     setActiveOrderId(orderId);
-    const loaded = loadJson<WorkChapter[]>(workStorageKey(orderId), seedChapters());
+    const serviceOrder = readServiceOrders().find(item => item.id === orderId);
+    const latestDraft = serviceOrder?.stages.slice(1).flatMap(stage => stage.versions).at(-1);
+    const draftChapters = latestDraft?.chapters?.length ? latestDraft.chapters : parseManuscriptChapters(latestDraft?.content || '');
+    const initial = draftChapters.length ? draftChapters.map(chapter => ({ ...chapter, done: false, updatedAt: latestDraft?.at || null, images: [] }))
+      : serviceOrder ? ['童年与成长', '求学与工作', '家庭故事', '家风与寄语'].map((title, index) => ({ id: `chapter-${index + 1}`, title, content: '', done: false, updatedAt: null, images: [] }))
+        : seedChapters();
+    const loaded = loadJson<WorkChapter[]>(workStorageKey(orderId), initial);
+    if (!localStorage.getItem(workStorageKey(orderId))) saveJson(workStorageKey(orderId), loaded);
     setChapters(loaded);
     setActiveChapterId(loaded[0]?.id || '');
     let savedVersions = loadBiographerVersions(orderId);
@@ -137,12 +146,21 @@ export default function BiographerWorks() {
       .then((list) => {
         // 进行中的订单才有传记可修改
         const editable = list.filter((o) => !['completed', 'after_sales'].includes(o.status));
-        setOrders(editable);
-        if (editable.length > 0) selectOrder(editable[0].id);
+        const shared = readServiceOrders().filter(order => order.biographerPhone === user?.phone && order.status === 'working')
+          .map(order => ({ id: order.id, serviceName: order.service.name, customerName: order.customerName, userId: order.customerPhone }));
+        const merged = [...shared, ...editable.filter(order => !shared.some(item => item.id === order.id))];
+        setOrders(merged);
+        const requestedId = searchParams.get('serviceOrder');
+        if (merged.length > 0) selectOrder(merged.find(order => order.id === requestedId)?.id || merged[0].id);
       })
-      .catch(() => setOrders([]))
+      .catch(() => {
+        const shared = readServiceOrders().filter(order => order.biographerPhone === user?.phone && order.status === 'working')
+          .map(order => ({ id: order.id, serviceName: order.service.name, customerName: order.customerName, userId: order.customerPhone }));
+        setOrders(shared);
+        if (shared.length > 0) selectOrder(shared.find(order => order.id === searchParams.get('serviceOrder'))?.id || shared[0].id);
+      })
       .finally(() => setLoading(false));
-  }, []);
+  }, [user?.phone, searchParams]);
 
   const activeOrder = orders.find((o) => o.id === activeOrderId);
   const activeChapter = chapters.find((c) => c.id === activeChapterId) || null;
