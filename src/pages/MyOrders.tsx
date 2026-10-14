@@ -25,7 +25,7 @@ import { refundReasonApi } from '../api/refundReason';
 import { paymentApi } from '../api/payment';
 import { useToast } from '../hooks/useToast';
 import { useAuth } from '../hooks/useAuth';
-import { readServiceOrders, serviceOrderVisible, serviceStatusLabels, SERVICE_ORDER_EVENT, type ServiceOrder } from '../data/biographerServiceOrders';
+import { ensureCustomerWorkflowOrders, readServiceOrders, serviceOrderVisible, serviceStatusLabels, SERVICE_ORDER_EVENT, type ServiceOrder } from '../data/biographerServiceOrders';
 import Annotate from '../components/annotation/Annotate';
 import { defaultBiographers, defaultRefundReasonOptions } from '../mocks/data/seed';
 import './MyOrders.css';
@@ -183,8 +183,9 @@ export default function MyOrders() {
 
   // 新版传记师服务订单：读本地服务订单库，监听变更事件刷新
   useEffect(() => {
+    const phone = user?.phone || '';
+    if (phone) ensureCustomerWorkflowOrders({ phone, name: user?.name || `用户${phone.slice(-4)}` });
     const load = () => {
-      const phone = user?.phone || '';
       setServiceOrders(readServiceOrders().filter((o) => serviceOrderVisible(o, 'customer', phone)));
     };
     load();
@@ -194,7 +195,7 @@ export default function MyOrders() {
       window.removeEventListener(SERVICE_ORDER_EVENT, load);
       window.removeEventListener('storage', load);
     };
-  }, [user?.phone]);
+  }, [user?.phone, user?.name]);
 
   useEffect(() => {
     loadOrders();
@@ -278,7 +279,7 @@ export default function MyOrders() {
       orderId: o.id,
       typeLabel: '传记师服务',
       name: o.service.name,
-      sub: `传记师：${o.biographerName} · 传主：${o.requirements.interviewee || '待补充'}`,
+      sub: `传记师：${o.biographerName} · 传主：${o.requirements.interviewee || '待补充'}${o.demoScenario === 'finished' ? ' · 完整修改样例' : ''}`,
       amount: o.amount,
       statusLabel: serviceStatusLabels[o.status] + (o.requests.some((r) => r.status === 'pending') ? ' · 平台处理中' : ''),
       unifiedStatus: serviceStatusToUnified[o.status] || 'delivering',

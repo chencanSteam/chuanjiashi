@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Phone } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/useToast';
 import Modal from './ui/Modal';
-import { SERVICE_ORDER_EVENT, money, phoneUnlocked, readServiceOrders, serviceOrderVisible, serviceStatusLabels, updateServiceOrder, type ServiceAction, type ServiceOrder, type ServiceRole, type ServiceStatus } from '../data/biographerServiceOrders';
+import { SERVICE_ORDER_EVENT, money, phoneUnlocked, readServiceOrders, serviceOrderVisible, serviceStatusLabels, updateServiceOrder, type ServiceAction, type ServiceOrder, type ServiceRole, type ServiceStage, type ServiceStatus } from '../data/biographerServiceOrders';
+import { parseManuscriptChapters, readWorkChapters, type ManuscriptChapter } from '../utils/biographerWorkChapters';
 import './BiographerServiceOrders.css';
 
 const date = (value: string) => new Date(value).toLocaleString('zh-CN', { hour12: false });
@@ -15,27 +16,77 @@ export default function BiographerServiceOrders({ role, earningsOnly = false, mo
   const [selectedId, setSelectedId] = useState<string | null>(() => params.get('serviceOrder'));
   const [keyword, setKeyword] = useState(''); const [status, setStatus] = useState<ServiceStatus | 'all'>('all');
   const [action, setAction] = useState<{ orderId: string; kind: ServiceAction; stageIndex?: number } | null>(null);
+  const [reading, setReading] = useState<{ orderId: string; stageIndex: number; versionIndex: number } | null>(null);
+  const [chapterId, setChapterId] = useState('');
+  const [deliveryMode, setDeliveryMode] = useState<'existing' | 'attachment'>('existing');
+  const [attachmentData, setAttachmentData] = useState('');
+  const [deliveryNote, setDeliveryNote] = useState('');
+  const [readerChapterId, setReaderChapterId] = useState('');
   const [text, setText] = useState(''); const [fileName, setFileName] = useState(''); const [refundAmount, setRefundAmount] = useState('');
   const phone = user?.phone || '';
   const ownOrders = orders.filter(item => serviceOrderVisible(item, role, phone));
   const visible = ownOrders.filter(item => (status === 'all' || item.status === status) && `${item.id} ${item.customerName} ${item.biographerName} ${item.service.name} ${item.requirements.interviewee}`.includes(keyword.trim()));
   const selected = ownOrders.find(item => item.id === (controlledId !== undefined ? controlledId : selectedId));
   const actionOrder = ownOrders.find(item => item.id === action?.orderId);
+  const readingOrder = ownOrders.find(item => item.id === reading?.orderId);
+  const readingStage = readingOrder?.stages[reading?.stageIndex ?? -1];
+  const readingVersion = readingStage?.versions[reading?.versionIndex ?? -1];
+  const readerChapters = readingVersion?.chapters?.length ? readingVersion.chapters : parseManuscriptChapters(readingVersion?.content || '');
+  const activeReaderChapter = readerChapters.find(chapter => chapter.id === readerChapterId) || readerChapters[0];
+  const getActionChapters = (order: ServiceOrder, stageIndex: number, kind: ServiceAction): ManuscriptChapter[] => {
+    const stage = order.stages[stageIndex];
+    if (kind === 'deliver') {
+      const saved = readWorkChapters(order.id);
+      if (saved.length) return saved;
+    }
+    const latest = stage?.versions.at(-1);
+    return latest?.chapters?.length ? latest.chapters : parseManuscriptChapters(latest?.content || '');
+  };
+  const actionChapters = actionOrder && action?.stageIndex !== undefined && ['deliver', 'revise'].includes(action.kind)
+    ? getActionChapters(actionOrder, action.stageIndex, action.kind) : [];
+  const chosenChapter = actionChapters.find(chapter => chapter.id === chapterId);
+  const deliveryChapters = deliveryMode === 'existing' && action?.kind === 'deliver'
+    ? chapterId === 'all' ? actionChapters.filter(chapter => chapter.content.trim()) : chosenChapter ? [chosenChapter] : [] : [];
+  const deliveryText = deliveryChapters.map(chapter => `${chapter.title}\n\n${chapter.content}`).join('\n\n');
   useEffect(() => {
     const sync = () => setOrders(readServiceOrders());
     window.addEventListener('storage', sync); window.addEventListener(SERVICE_ORDER_EVENT, sync); window.addEventListener('focus', sync);
     return () => { window.removeEventListener('storage', sync); window.removeEventListener(SERVICE_ORDER_EVENT, sync); window.removeEventListener('focus', sync); };
   }, []);
-  const openAction = (order: ServiceOrder, kind: ServiceAction, stageIndex?: number) => {
-    setAction({ orderId: order.id, kind, stageIndex }); setText(''); setFileName(''); setRefundAmount(String(order.amount));
+  const openAction = (order: ServiceOrder, kind: ServiceAction, stageIndex?: number, preferredChapterId?: string) => {
+    const choices = stageIndex === undefined ? [] : getActionChapters(order, stageIndex, kind);
+    const chosen = choices.find(chapter => chapter.id === preferredChapterId) || choices[0];
+    setAction({ orderId: order.id, kind, stageIndex }); setChapterId(kind === 'deliver' ? 'all' : chosen?.id || '');
+    setDeliveryMode(choices.length ? 'existing' : 'attachment'); setDeliveryNote(''); setAttachmentData('');
+    setText(''); setFileName(''); setRefundAmount(String(order.amount));
+  };
+  const selectAttachment = (file?: File) => {
+    setFileName(''); setAttachmentData('');
+    if (!file) return;
+    if (file.size > 1024 * 1024) { addToast('演示附件请小于 1 MB', 'error'); return; }
+    const reader = new FileReader();
+    reader.onload = () => { setFileName(file.name); setAttachmentData(String(reader.result)); };
+    reader.onerror = () => addToast('读取附件失败，请重新选择', 'error');
+    reader.readAsDataURL(file);
   };
   const execute = () => {
     if (!action) return;
+    if (action.kind === 'revise' && !text.trim()) { addToast('请填写具体修改意见', 'error'); return; }
+    if (action.kind === 'deliver' && deliveryMode === 'existing' && (!deliveryChapters.length || !deliveryChapters.some(chapter => chapter.content.trim()))) { addToast('请选择有正文的稿件', 'error'); return; }
+    if (action.kind === 'deliver' && deliveryMode === 'attachment' && !attachmentData) { addToast('请先选择稿件附件', 'error'); return; }
     try {
-      updateServiceOrder(action.orderId, action.kind, { role, phone }, { text, fileName, stageIndex: action.stageIndex, amount: refundAmount === '' ? undefined : Number(refundAmount) });
+      updateServiceOrder(action.orderId, action.kind, { role, phone }, { text: action.kind === 'deliver' ? deliveryText : text, fileName: action.kind === 'deliver' && deliveryMode === 'attachment' ? fileName : '', attachmentData: action.kind === 'deliver' && deliveryMode === 'attachment' ? attachmentData : undefined, note: action.kind === 'deliver' ? deliveryNote : undefined, stageIndex: action.stageIndex, amount: refundAmount === '' ? undefined : Number(refundAmount), chapters: deliveryChapters.length ? deliveryChapters : undefined, focusChapterId: action.kind === 'deliver' && deliveryMode === 'existing' && chapterId !== 'all' ? chapterId : undefined, chapterTitle: action.kind === 'revise' ? chosenChapter?.title : undefined });
       setAction(null); addToast(`${actionLabels[action.kind]}成功`, 'success');
     } catch (error) { addToast(error instanceof Error ? error.message : '操作失败，请重试', 'error'); }
   };
+  const renderRevisionRecord = (order: ServiceOrder, stage: ServiceStage, stageIndex: number) => stage.versions.length > 0 && <div className="bs-revision-record">
+    <h5>稿件与修改记录 <span>{stage.versions.length} 版 · {stage.feedback.length} 轮意见</span></h5>
+    {stage.versions.map((version, versionIndex) => <Fragment key={`${version.at}-${versionIndex}`}>
+      <div className="bs-record-entry"><span className="bs-record-dot" /><div><strong>传记师提交第 {versionIndex + 1} 版{version.focusChapterId && version.chapters?.length === 1 ? ` · ${version.chapters[0].title}` : version.chapters?.length && version.chapters.length > 1 ? ' · 全文' : ''}</strong><small>{date(version.at)}</small>{version.note && <p>留言：{version.note}</p>}<button className="btn btn-ghost btn-sm" onClick={() => setReading({ orderId: order.id, stageIndex, versionIndex })}>查看第 {versionIndex + 1} 版稿件</button></div></div>
+      {stage.feedback[versionIndex] && <div className="bs-record-entry bs-record-feedback"><span className="bs-record-dot" /><div><strong>客户第 {versionIndex + 1} 轮修改意见{stage.feedback[versionIndex].chapterTitle ? ` · ${stage.feedback[versionIndex].chapterTitle}` : ''}</strong><small>{date(stage.feedback[versionIndex].at)}</small><p>{stage.feedback[versionIndex].text}</p></div></div>}
+    </Fragment>)}
+    {stage.acceptedAt && <div className="bs-record-entry bs-record-approved"><span className="bs-record-dot" /><div><strong>客户验收通过</strong><small>{date(stage.acceptedAt)}</small></div></div>}
+  </div>;
   const renderSettlements = (order: ServiceOrder) => <div className="bs-settlements"><p>订单全款 {money(order.amount)} · 平台服务费 {Math.round(order.commissionRate * 100)}%（{money(order.platformFee)}） · 传记师应得 {money(order.providerAmount)}</p><div className="bs-stage-payments">{order.stages.slice(1).map((stage, index) => <div key={stage.name}><strong>{stage.name} · {[30, 40, 30][index]}%</strong><b>{money(stage.amount)}</b><span>{stage.settledAt ? `已结算 · ${date(stage.settledAt)}` : order.status === 'refunded' ? '订单退款结束，停止结算' : stage.status === 'accepted' ? '待平台结算' : '验收通过后结算'}</span>{role === 'admin' && stage.status === 'accepted' && !stage.settledAt && order.status !== 'refunded' && <button className="btn btn-outline" disabled={order.requests.some(item => item.status === 'pending')} onClick={() => openAction(order, 'settle', index + 1)}>结算{stage.name}</button>}</div>)}</div></div>;
   return <>{!modalOnly && <section className="bs-orders" aria-label={earningsOnly ? '服务订单阶段结算' : '传记师服务订单'}>
     <header className="bs-head"><div><h2>{earningsOnly ? '服务订单阶段结算' : '传记师服务订单'}</h2><p>{earningsOnly ? '初稿 30% · 校审稿 40% · 终稿 30%，用户验收后由平台确认结算' : '查看服务需求、交付进度与订单记录'}</p></div>{role === 'customer' && <button className="btn btn-outline" onClick={() => navigate('/biographers')}>选择传记师</button>}</header>
@@ -87,13 +138,15 @@ export default function BiographerServiceOrders({ role, earningsOnly = false, mo
           const latest = stage.versions.at(-1); const current = selected.stages.findIndex(item => item.status !== 'accepted') === index;
           const enabled = selected.status === 'working' && current && !selected.requests.some(item => item.status === 'pending');
           return <article className="bs-stage" key={stage.name}><div className="bs-row"><h4>{index + 1}. {stage.name}</h4><span>{stage.status === 'accepted' ? '验收通过' : stage.status === 'review' ? '待用户验收' : stage.status === 'revision' ? '待修改重提' : '待提交'}</span></div>
-            {latest ? <><p className="bs-muted">第 {stage.versions.length} 版 · {date(latest.at)}{latest.fileName ? ` · 附件：${latest.fileName}` : ''}</p><pre>{latest.content}</pre>{stage.versions.length > 1 && <details><summary>查看历史版本</summary>{stage.versions.slice(0, -1).map((version, number) => <div key={number}><p>第 {number + 1} 版 · {date(version.at)}</p><pre>{version.content}</pre></div>)}</details>}</> : <p className="bs-muted">{index === 0 ? '电话约定访谈后，传记师提交访谈安排及写作大纲。' : '前一阶段验收通过后，提交本阶段稿件。'}</p>}
-            {stage.feedback.map((feedback, number) => <div className="bs-feedback" key={number}><strong>客户修改意见 {number + 1} · {stage.status === 'revision' && number === stage.feedback.length - 1 ? '待处理' : '已重提稿件'}</strong><p>{feedback.text}</p><small>{date(feedback.at)}</small></div>)}
+            {latest ? <><p className="bs-muted">当前第 {stage.versions.length} 版 · {date(latest.at)}{latest.fileName ? ` · 附件：${latest.fileName}` : ''}</p><p className="bs-draft-preview">{latest.content ? `${latest.content.slice(0, 130)}${latest.content.length > 130 ? '…' : ''}` : `附件稿件：${latest.fileName}`}</p><button className="btn btn-outline btn-sm" onClick={() => setReading({ orderId: selected.id, stageIndex: index, versionIndex: stage.versions.length - 1 })}>查看当前稿件</button>{renderRevisionRecord(selected, stage, index)}</> : <p className="bs-muted">{index === 0 ? '前一阶段完成后，传记师提交本阶段稿件。' : '前一阶段验收通过后，提交本阶段稿件。'}</p>}
             <div className="bs-actions">{role === 'biographer' && enabled && ['waiting', 'revision'].includes(stage.status) && <button className="btn btn-primary" onClick={() => openAction(selected, 'deliver', index)}>提交{stage.name}</button>}{role === 'customer' && enabled && stage.status === 'review' && <><button className="btn btn-primary" onClick={() => openAction(selected, 'approve', index)}>验收通过{stage.name}</button><button className="btn btn-outline" onClick={() => openAction(selected, 'revise', index)}>提出修改意见</button></>}</div>
           </article>;
         })}</section>{role !== 'customer' && <section className="bs-section"><h4>阶段结算</h4>{renderSettlements(selected)}</section>}</>}
-        <details className="bs-section"><summary>订单处理记录</summary>{[...selected.history].reverse().map((item, index) => <p key={index}><small>{date(item.at)}</small><br />{item.text.replace('（尚未付款）', '')}</p>)}</details>
+        <details className="bs-section"><summary>订单操作日志</summary>{[...selected.history].reverse().map((item, index) => <p key={index}><small>{date(item.at)}</small><br />{item.text.replace('（尚未付款）', '')}</p>)}</details>
       </div>}
+    </Modal>
+    <Modal open={!!readingVersion} title={readingStage ? `${readingStage.name} · 第 ${(reading?.versionIndex ?? 0) + 1} 版` : '查看稿件'} onClose={() => setReading(null)} className="bs-reader-modal">
+      {readingVersion && <div className="bs-reader"><p className="bs-muted">提交时间：{date(readingVersion.at)}</p>{readingVersion.note && <p className="bs-delivery-note">传记师留言：{readingVersion.note}</p>}{readingVersion.attachmentData ? <p><a className="btn btn-outline" href={readingVersion.attachmentData} download={readingVersion.fileName}>下载稿件附件：{readingVersion.fileName}</a></p> : readingVersion.fileName && !readingVersion.content ? <p>附件名称：{readingVersion.fileName}</p> : <>{readerChapters.length > 1 && <nav className="bs-chapter-list" aria-label="稿件章节">{readerChapters.map(chapter => <button type="button" key={chapter.id} className={activeReaderChapter?.id === chapter.id ? 'active' : ''} onClick={() => setReaderChapterId(chapter.id)}>{chapter.title}</button>)}</nav>}{activeReaderChapter?.title !== '全文' && <h4>{activeReaderChapter?.title}</h4>}<pre>{activeReaderChapter?.content || readingVersion.content}</pre></>}{role === 'customer' && readingOrder?.status === 'working' && readingStage?.status === 'review' && reading?.versionIndex === readingStage.versions.length - 1 && <button className="btn btn-outline" onClick={() => { openAction(readingOrder, 'revise', reading.stageIndex, activeReaderChapter?.id); setReading(null); }}>提出修改意见</button>}<p className="bs-muted">阅读后可返回订单详情验收，或提出修改意见。</p></div>}
     </Modal>
     <Modal open={!!action && !!actionOrder} title={action ? actionLabels[action.kind] : ''} onClose={() => setAction(null)} footer={<><button className="btn btn-outline" onClick={() => setAction(null)}>返回</button><button className="btn btn-primary" onClick={execute}>{action ? (actionLabels[action.kind].startsWith('确认') ? actionLabels[action.kind] : `确认${actionLabels[action.kind]}`) : '确认'}</button></>}>
       {action && actionOrder && <div className="bs-action-form">
@@ -101,8 +154,9 @@ export default function BiographerServiceOrders({ role, earningsOnly = false, mo
         {action.kind === 'accept' && <p>确认可按订单约定的套餐、价格、交付周期与修改轮次承接服务。</p>}
         {action.kind === 'approve' && <p>确认{actionOrder.stages[action.stageIndex ?? 0].name}符合约定。{(action.stageIndex ?? 0) > 0 ? '验收通过后将生成该阶段待结算记录。' : '确认后传记师可开始初稿创作。'}</p>}
         {action.kind === 'settle' && <p>将本阶段 {money(actionOrder.stages[action.stageIndex ?? 0].amount)} 标记为已结算，仅演示记录，不实际打款。</p>}
-        {!['pay', 'accept', 'approve', 'settle'].includes(action.kind) && <label>{action.kind === 'deliver' ? '稿件正文 / 访谈安排与大纲' : '说明或处理意见'}<textarea aria-label="服务操作内容" rows={7} value={text} onChange={e => setText(e.target.value)} placeholder={action.kind === 'deliver' ? '输入或粘贴正文，留空可提交示例内容演示' : '可填写具体说明，留空使用演示内容'} /></label>}
-        {action.kind === 'deliver' && <label>稿件附件（演示记录文件名）<input type="file" accept=".pdf,.doc,.docx,.txt" onChange={e => setFileName(e.target.files?.[0]?.name || '')} /><small>{fileName || '可直接粘贴正文完成交付演示'}</small></label>}
+        {action.kind === 'deliver' && <><div className="bs-delivery-modes" role="group" aria-label="稿件交付方式"><button type="button" className={deliveryMode === 'existing' ? 'active' : ''} onClick={() => setDeliveryMode('existing')}>选择已有稿件</button><button type="button" className={deliveryMode === 'attachment' ? 'active' : ''} onClick={() => setDeliveryMode('attachment')}>上传附件</button></div>{deliveryMode === 'existing' ? <>{actionChapters.length > 0 && <label>选择稿件<select value={chapterId} onChange={event => setChapterId(event.target.value)}><option value="all">全文（全部篇章）</option>{actionChapters.map(chapter => <option key={chapter.id} value={chapter.id}>{chapter.title}</option>)}</select></label>}<label>稿件正文<textarea aria-label="稿件正文" rows={7} readOnly value={deliveryText} placeholder="暂无已保存的稿件正文，请在传记修改中完成篇章，或改用上传附件" /></label></> : <label>稿件附件<input type="file" accept=".pdf,.doc,.docx,.txt,.md" onChange={event => selectAttachment(event.target.files?.[0])} /><small>{fileName ? `已选择：${fileName}` : '支持 PDF、Word、TXT、Markdown；演示附件不超过 1 MB'}</small></label>}<label>传记师留言（选填）<textarea aria-label="传记师留言" rows={3} value={deliveryNote} onChange={event => setDeliveryNote(event.target.value)} placeholder="给客户说明本次稿件的修改重点或需要核对的内容" /></label></>}
+        {action.kind === 'revise' && actionChapters.length > 0 && <label>意见对应篇章<select value={chapterId} onChange={event => setChapterId(event.target.value)}>{actionChapters.map(chapter => <option key={chapter.id} value={chapter.id}>{chapter.title}</option>)}</select></label>}
+        {!['pay', 'accept', 'approve', 'settle', 'deliver'].includes(action.kind) && <label>{action.kind === 'revise' ? '具体修改意见' : '说明或处理意见'}<textarea aria-label="服务操作内容" rows={7} value={text} onChange={e => setText(e.target.value)} placeholder={action.kind === 'revise' ? '请写明需要补充、核对或修改的内容' : '可填写具体说明，留空使用演示内容'} /></label>}
         {action.kind === 'resolve' && actionOrder.requests.some(item => item.status === 'pending' && item.type === 'refund') && <><label>协商退款金额<input aria-label="协商退款金额" type="number" value={refundAmount} onChange={e => setRefundAmount(e.target.value)} /></label><p>订单实付 {money(actionOrder.amount)}，请结合已完成工作和既有结算协商处理。退款处理完成后结束该订单。</p></>}
       </div>}
     </Modal>
