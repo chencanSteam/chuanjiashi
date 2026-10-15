@@ -27,7 +27,7 @@ export default function BiographerServiceOrders({ role, earningsOnly = false, de
   const [text, setText] = useState(''); const [fileName, setFileName] = useState(''); const [refundAmount, setRefundAmount] = useState('');
   const phone = user?.phone || '';
   const ownOrders = orders.filter(item => serviceOrderVisible(item, role, phone));
-  const visible = ownOrders.filter(item => (status === 'all' || item.status === status) && `${item.id} ${item.customerName} ${item.biographerName} ${item.service.name}`.includes(keyword.trim()));
+  const visible = ownOrders.filter(item => (!earningsOnly || item.stages.some(stage => !!stage.settledAt)) && (status === 'all' || item.status === status) && `${item.id} ${item.customerName} ${item.biographerName} ${item.service.name}`.includes(keyword.trim()));
   const pageSize = 10; const totalPages = Math.max(1, Math.ceil(visible.length / pageSize)); const current = Math.min(page, totalPages);
   const paged = visible.slice((current - 1) * pageSize, current * pageSize);
   const pageNumbers = totalPages > 7
@@ -102,26 +102,23 @@ export default function BiographerServiceOrders({ role, earningsOnly = false, de
     <header className="bs-head"><div><h2>{earningsOnly ? '服务订单阶段结算' : '传记师服务订单'}</h2><p>{earningsOnly ? '初稿 30% · 校审稿 40% · 终稿 30%，用户验收后由平台确认结算' : '查看服务需求、交付进度与订单记录'}</p></div>{role === 'customer' && <button className="btn btn-outline" onClick={() => navigate('/biographers')}>选择传记师</button>}</header>
     <div className="bs-filters">
       <div className="bs-search"><Search size={14} /><input aria-label="搜索服务订单" placeholder="搜索订单号、客户或套餐" value={draftKeyword} onChange={e => setDraftKeyword(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') applyFilters(); }} /></div>
-      <select aria-label="服务订单状态" value={draftStatus} onChange={e => setDraftStatus(e.target.value as ServiceStatus | 'all')}><option value="all">全部服务状态</option>{Object.entries(serviceStatusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
+      {!earningsOnly && <select aria-label="服务订单状态" value={draftStatus} onChange={e => setDraftStatus(e.target.value as ServiceStatus | 'all')}><option value="all">全部服务状态</option>{Object.entries(serviceStatusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>}
       <button className="btn btn-primary btn-sm" onClick={applyFilters}><Search size={13} /> 查询</button>
       <button className="btn btn-ghost btn-sm" onClick={resetFilters}><RotateCcw size={13} /> 重置</button>
     </div>
-    {visible.length === 0 ? <p className="bs-empty">暂无符合条件的服务订单{role === 'customer' ? '，可先选择传记师提交需求。' : '。'}</p> : earningsOnly ? <div className="admin-table-wrap">
+    {visible.length === 0 ? <p className="bs-empty">{earningsOnly ? '暂无已结算记录。' : `暂无符合条件的服务订单${role === 'customer' ? '，可先选择传记师提交需求。' : '。'}`}</p> : earningsOnly ? <div className="admin-table-wrap">
       <table className="admin-table bs-earnings-table">
-        <thead><tr><th>订单号 / 下单时间</th><th>客户</th><th>服务套餐</th><th>订单全款</th><th>传记师应得</th><th>阶段结算</th><th>订单状态</th><th>操作</th></tr></thead>
+        <thead><tr><th>订单号 / 下单时间</th><th>客户</th><th>服务套餐</th><th>订单全款</th><th>已结算金额</th><th>结算阶段</th></tr></thead>
         <tbody>{paged.map(order => {
-          const payableStages = order.stages;
-          const settledCount = payableStages.filter(stage => !!stage.settledAt).length;
-          const pendingCount = payableStages.filter(stage => stage.status === 'accepted' && !stage.settledAt).length;
+          const settledStages = order.stages.filter(stage => !!stage.settledAt);
+          const settledAmount = settledStages.reduce((sum, stage) => sum + stage.amount, 0);
           return <tr key={order.id}>
             <td><strong>{order.id}</strong><small>{date(order.createdAt)}</small></td>
             <td>{order.customerName}</td>
             <td>{order.service.name}</td>
             <td>{money(order.amount)}</td>
-            <td className="bs-earnings-net">{money(order.providerAmount)}<small>平台服务费 {money(order.platformFee)}</small></td>
-            <td>已结算 {settledCount}/{payableStages.length}{pendingCount > 0 && <small>待结算 {pendingCount} 阶段</small>}</td>
-            <td><span className="bs-badge">{serviceStatusLabels[order.status]}</span>{order.requests.some(item => item.status === 'pending') && <small>平台处理中</small>}</td>
-            <td><button className="admin-table-link" onClick={() => setSelectedId(order.id)}>查看详情</button></td>
+            <td className="bs-earnings-net">{money(settledAmount)}</td>
+            <td>{settledStages.map(stage => stage.name).join('、')}</td>
           </tr>;
         })}</tbody>
       </table>
