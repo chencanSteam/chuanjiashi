@@ -18,7 +18,7 @@ import { useToast } from '../hooks/useToast';
 import { biographerApi } from '../api/biographer';
 import { loadJson, saveJson } from '../data/aiMock';
 import type { BiographerOrder } from '../mocks/types';
-import { readServiceOrders } from '../data/biographerServiceOrders';
+import { readServiceOrders, type ServiceOrder } from '../data/biographerServiceOrders';
 import { parseManuscriptChapters, workStorageKey } from '../utils/biographerWorkChapters';
 import { useAuth } from '../hooks/useAuth';
 import { useSearchParams } from 'react-router-dom';
@@ -41,6 +41,25 @@ interface WorkChapter {
 }
 
 type ChapterStatus = 'empty' | 'draft' | 'done';
+type WorkStage = '初稿' | '校审稿' | '最终稿' | '已完成';
+type WorkOrder = Pick<BiographerOrder, 'id' | 'serviceName' | 'customerName' | 'userId'> & { stage: WorkStage };
+
+function legacyOrderStage(status: BiographerOrder['status']): WorkStage {
+  if (status === 'completed') return '已完成';
+  if (status === 'final_submitted') return '最终稿';
+  if (status === 'draft_submitted' || status === 'modifying') return '校审稿';
+  return '初稿';
+}
+
+function serviceOrderStage(order: ServiceOrder): WorkStage {
+  if (order.status === 'completed') return '已完成';
+  const current = order.stages.find(stage => stage.status !== 'accepted');
+  return current?.name === '校审稿' ? '校审稿' : current?.name === '终稿' ? '最终稿' : '初稿';
+}
+
+function completedLast(orders: WorkOrder[]): WorkOrder[] {
+  return orders.sort((a, b) => Number(a.stage === '已完成') - Number(b.stage === '已完成'));
+}
 
 const chapterStatusMap: Record<ChapterStatus, { label: string; className: string }> = {
   empty: { label: '未撰写', className: 'work-chapter-status empty' },
@@ -95,7 +114,7 @@ export default function BiographerWorks() {
   const { addToast } = useToast();
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
-  const [orders, setOrders] = useState<Pick<BiographerOrder, 'id' | 'serviceName' | 'customerName' | 'userId'>[]>([]);
+  const [orders, setOrders] = useState<WorkOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeOrderId, setActiveOrderId] = useState('');
   const [chapters, setChapters] = useState<WorkChapter[]>([]);
@@ -144,20 +163,21 @@ export default function BiographerWorks() {
     biographerApi
       .myOrders()
       .then((list) => {
-        // 进行中的订单才有传记可修改
-        const editable = list.filter((o) => !['completed', 'after_sales'].includes(o.status));
-        const shared = readServiceOrders().filter(order => order.biographerPhone === user?.phone && order.status === 'working')
-          .map(order => ({ id: order.id, serviceName: order.service.name, customerName: order.customerName, userId: order.customerPhone }));
-        const merged = [...shared, ...editable.filter(order => !shared.some(item => item.id === order.id))];
+        const editable = list.filter((o) => o.status !== 'after_sales')
+          .map(order => ({ ...order, stage: legacyOrderStage(order.status) }));
+        const shared = readServiceOrders().filter(order => order.biographerPhone === user?.phone && ['working', 'completed'].includes(order.status))
+          .map(order => ({ id: order.id, serviceName: order.service.name, customerName: order.customerName, userId: order.customerPhone, stage: serviceOrderStage(order) }));
+        const merged = completedLast([...shared, ...editable.filter(order => !shared.some(item => item.id === order.id))]);
         setOrders(merged);
         const requestedId = searchParams.get('serviceOrder');
         if (merged.length > 0) selectOrder(merged.find(order => order.id === requestedId)?.id || merged[0].id);
       })
       .catch(() => {
-        const shared = readServiceOrders().filter(order => order.biographerPhone === user?.phone && order.status === 'working')
-          .map(order => ({ id: order.id, serviceName: order.service.name, customerName: order.customerName, userId: order.customerPhone }));
-        setOrders(shared);
-        if (shared.length > 0) selectOrder(shared.find(order => order.id === searchParams.get('serviceOrder'))?.id || shared[0].id);
+        const shared = readServiceOrders().filter(order => order.biographerPhone === user?.phone && ['working', 'completed'].includes(order.status))
+          .map(order => ({ id: order.id, serviceName: order.service.name, customerName: order.customerName, userId: order.customerPhone, stage: serviceOrderStage(order) }));
+        const sorted = completedLast(shared);
+        setOrders(sorted);
+        if (sorted.length > 0) selectOrder(sorted.find(order => order.id === searchParams.get('serviceOrder'))?.id || sorted[0].id);
       })
       .finally(() => setLoading(false));
   }, [user?.phone, searchParams]);
@@ -330,7 +350,7 @@ export default function BiographerWorks() {
       <header className="page-header">
         <div>
           <h1 className="page-title">传记修改</h1>
-          <p className="page-subtitle">选择进行中的订单，撰写和修改传记章节内容</p>
+          <p className="page-subtitle">选择订单，撰写和修改传记章节内容</p>
         </div>
         {activeOrder && (
           <div className="work-header-actions">
@@ -338,7 +358,7 @@ export default function BiographerWorks() {
               <BookOpen size={15} />
               <select value={activeOrderId} onChange={(e) => selectOrder(e.target.value)}>
                 {orders.map((o) => (
-                  <option value={o.id} key={o.id}>{o.serviceName} · {o.customerName || o.userId}</option>
+                  <option value={o.id} key={o.id}>{o.serviceName} · {o.customerName || o.userId} · {o.stage}</option>
                 ))}
               </select>
             </div>
@@ -350,7 +370,7 @@ export default function BiographerWorks() {
       </header>
 
       {orders.length === 0 ? (
-        <div className="card"><div className="card-body"><div className="admin-table-empty">暂无进行中的传记订单</div></div></div>
+        <div className="card"><div className="card-body"><div className="admin-table-empty">暂无传记订单</div></div></div>
       ) : (
         <>
         <div className="work-version-bar">

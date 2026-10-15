@@ -25,7 +25,7 @@ export default function BiographerServiceOrders({ role, earningsOnly = false, mo
   const [text, setText] = useState(''); const [fileName, setFileName] = useState(''); const [refundAmount, setRefundAmount] = useState('');
   const phone = user?.phone || '';
   const ownOrders = orders.filter(item => serviceOrderVisible(item, role, phone));
-  const visible = ownOrders.filter(item => (status === 'all' || item.status === status) && `${item.id} ${item.customerName} ${item.biographerName} ${item.service.name} ${item.requirements.interviewee}`.includes(keyword.trim()));
+  const visible = ownOrders.filter(item => (!earningsOnly || item.stages.some(stage => !!stage.settledAt)) && (status === 'all' || item.status === status) && `${item.id} ${item.customerName} ${item.biographerName} ${item.service.name} ${item.requirements.interviewee}`.includes(keyword.trim()));
   const selected = ownOrders.find(item => item.id === (controlledId !== undefined ? controlledId : selectedId));
   const actionOrder = ownOrders.find(item => item.id === action?.orderId);
   const readingOrder = ownOrders.find(item => item.id === reading?.orderId);
@@ -88,14 +88,20 @@ export default function BiographerServiceOrders({ role, earningsOnly = false, mo
     {stage.acceptedAt && <div className="bs-record-entry bs-record-approved"><span className="bs-record-dot" /><div><strong>客户验收通过</strong><small>{date(stage.acceptedAt)}</small></div></div>}
   </div>;
 
-  const renderSettlements = (order: ServiceOrder) => <div className="bs-settlements"><p>订单全款 {money(order.amount)} · 平台服务费 {Math.round(order.commissionRate * 100)}%（{money(order.platformFee)}） · 传记师应得 {money(order.providerAmount)}</p><div className="bs-stage-payments">{order.stages.map((stage, index) => <div key={stage.name}><strong>{stage.name} · {[30, 40, 30][index]}%</strong><b>{money(stage.amount)}</b><span>{stage.settledAt ? `已结算 · ${date(stage.settledAt)}` : order.status === 'refunded' ? '订单退款结束，停止结算' : stage.status === 'accepted' ? '待平台结算' : '验收通过后结算'}</span>{role === 'admin' && stage.status === 'accepted' && !stage.settledAt && order.status !== 'refunded' && <button className="btn btn-outline" disabled={order.requests.some(item => item.status === 'pending')} onClick={() => openAction(order, 'settle', index)}>结算{stage.name}</button>}</div>)}</div></div>;
+  const renderSettlements = (order: ServiceOrder, settledOnly = false) => {
+    const stages = settledOnly ? order.stages.filter(stage => !!stage.settledAt) : order.stages;
+    return <div className="bs-settlements">
+      <p>{settledOnly ? `已结算金额 ${money(stages.reduce((sum, stage) => sum + stage.amount, 0))}` : `订单全款 ${money(order.amount)} · 平台服务费 ${Math.round(order.commissionRate * 100)}%（${money(order.platformFee)}） · 传记师应得 ${money(order.providerAmount)}`}</p>
+      <div className="bs-stage-payments">{stages.map(stage => <div key={stage.name}><strong>{stage.name} · {[30, 40, 30][order.stages.indexOf(stage)]}%</strong><b>{money(stage.amount)}</b><span>{stage.settledAt ? `已结算 · ${date(stage.settledAt)}` : order.status === 'refunded' ? '订单退款结束，停止结算' : stage.status === 'accepted' ? '待平台结算' : '验收通过后结算'}</span>{role === 'admin' && stage.status === 'accepted' && !stage.settledAt && order.status !== 'refunded' && <button className="btn btn-outline" disabled={order.requests.some(item => item.status === 'pending')} onClick={() => openAction(order, 'settle', order.stages.indexOf(stage))}>结算{stage.name}</button>}</div>)}</div>
+    </div>;
+  };
   return <>{!modalOnly && <section className="bs-orders" aria-label={earningsOnly ? '服务订单阶段结算' : '传记师服务订单'}>
     <header className="bs-head"><div><h2>{earningsOnly ? '服务订单阶段结算' : '传记师服务订单'}</h2><p>{earningsOnly ? '初稿 30% · 校审稿 40% · 终稿 30%，用户验收后由平台确认结算' : '查看服务需求、交付进度与订单记录'}</p></div>{role === 'customer' && <button className="btn btn-outline" onClick={() => navigate('/biographers')}>选择传记师</button>}</header>
-    <div className="bs-filters"><input aria-label="搜索服务订单" placeholder="搜索订单号、人物或套餐" value={keyword} onChange={e => setKeyword(e.target.value)} /><select aria-label="服务订单状态" value={status} onChange={e => setStatus(e.target.value as ServiceStatus | 'all')}><option value="all">全部服务状态</option>{Object.entries(serviceStatusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></div>
-    {visible.length === 0 ? <p className="bs-empty">暂无符合条件的服务订单{role === 'customer' ? '，可先选择传记师提交需求。' : '。'}</p> : earningsOnly ? visible.map(order => <article className="bs-order" key={order.id}>
-      <div className="bs-row"><small>{order.id} · {date(order.createdAt)}</small><span className="bs-badge">{serviceStatusLabels[order.status]}{order.requests.some(item => item.status === 'pending') ? ' · 平台处理中' : ''}</span></div>
-      <div className="bs-row"><div><h3>{order.biographerName} · {order.service.name}</h3><p>传主：{order.requirements.interviewee || '待补充'} · 客户：{order.customerName}</p></div><strong className="bs-price">{money(order.amount)}</strong></div>
-      {renderSettlements(order)}
+    <div className="bs-filters"><input aria-label="搜索服务订单" placeholder="搜索订单号、人物或套餐" value={keyword} onChange={e => setKeyword(e.target.value)} />{!earningsOnly && <select aria-label="服务订单状态" value={status} onChange={e => setStatus(e.target.value as ServiceStatus | 'all')}><option value="all">全部服务状态</option>{Object.entries(serviceStatusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>}</div>
+    {visible.length === 0 ? <p className="bs-empty">{earningsOnly ? '暂无已结算记录。' : `暂无符合条件的服务订单${role === 'customer' ? '，可先选择传记师提交需求。' : '。'}`}</p> : earningsOnly ? visible.map(order => <article className="bs-order" key={order.id}>
+      <div className="bs-row"><small>{order.id} · {date(order.createdAt)}</small></div>
+      <div className="bs-row"><div><h3>{order.biographerName} · {order.service.name}</h3><p>传主：{order.requirements.interviewee || '待补充'} · 客户：{order.customerName}</p></div></div>
+      {renderSettlements(order, true)}
     </article>) : (
       <div className="admin-table-wrap">
         <table className="admin-table">
