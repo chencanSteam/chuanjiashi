@@ -119,7 +119,7 @@ function EnrollmentPage({ standalone }: { standalone?: boolean }) {
     <div className="enroll-layout"><div>
       {canEdit ? <section className="enroll-card">
         <div className="enroll-tabs">{['基本资料', '作品案例', '确认提交'].map((label, index) => <button key={label} type="button" className={step === index ? 'selected' : ''} onClick={() => { setStep(index); setError(''); }}>{index + 1}. {label}</button>)}</div>
-        {form.reason && <div className="enroll-notice"><strong>审核意见</strong><p>{form.reason}</p></div>}
+        {form.reason && <div className="enroll-notice"><strong>不通过原因 / 需补充资料</strong><p>{form.reason}</p></div>}
         <form noValidate onSubmit={e => { e.preventDefault(); if(step < 2) { setStep(step + 1); setError(''); } else submit(); }}>
           {step === 0 && <div className="enroll-fields">
             <div className="enroll-section-heading"><h2>实名认证</h2><p>填写与身份证一致的真实姓名和身份证号，申请资料与对外服务统一使用真实姓名。</p></div>
@@ -157,10 +157,10 @@ function EnrollmentPage({ standalone }: { standalone?: boolean }) {
           <footer className="enroll-actions"><button type="button" className="btn btn-outline" disabled={busy} onClick={persist}>保存草稿</button><div>{step > 0 && <button type="button" className="btn btn-ghost" onClick={() => { setStep(step - 1); setError(''); }}>上一步</button>}<button type="submit" className="btn btn-primary" disabled={busy}>{step === 2 ? '提交入驻申请' : '下一步'}<ArrowRight size={16} /></button></div></footer>
         </form>
       </section> : <section className="enroll-card">
-        <div className={`enroll-status enroll-status-${form.status}`}><CheckCircle2 size={28} /><div><h2>{statusLabels[form.status]}</h2><p>{form.status === 'pending' ? '资料已收到，预计 1～3 个工作日完成审核。请留意本页进度。' : form.status === 'approved' ? '平台已完成审核，确认合作并缴纳 1,000 元押金后即可开通。' : form.status === 'active' ? '您已完成入驻，可进入传记师工作台。' : form.reason}</p></div></div>
+        <div className={`enroll-status enroll-status-${form.status}`}><CheckCircle2 size={28} /><div><h2>{statusLabels[form.status]}</h2><p>{form.status === 'pending' ? '资料已收到，预计 1～3 个工作日完成审核。请留意本页进度。' : form.status === 'approved' ? '平台已完成审核，确认合作并缴纳 1,000 元押金后即可开通。' : form.status === 'active' ? '您已完成入驻，可进入传记师工作台。' : `不通过原因 / 需补充资料：${form.reason}`}</p></div></div>
         <EnrollmentSummary record={form} />
         {['supplement', 'rejected'].includes(form.status) && <button className="btn btn-primary" onClick={() => { setEditing(true); setStep(0); }}>修改资料重新提交</button>}
-        {form.status === 'pending' && <p className="enroll-muted">资料审核期间暂不可修改；如需补充，平台将在审核意见中说明。</p>}
+        {form.status === 'pending' && <p className="enroll-muted">资料审核期间暂不可修改；如需补充，平台会在审核结果中说明。</p>}
         {form.status === 'approved' && <div className="enroll-cooperation"><h3>确认合作并缴纳押金</h3><p>身份与收款安排已由平台人工确认，具体订单报酬在接单前确认。</p><CooperationRules /><section className="enroll-deposit"><div><h3>入驻押金</h3><strong>¥1,000</strong><p>{form.depositPaidAt ? `已模拟缴纳 · ${time(form.depositPaidAt)}` : '审核已通过，缴纳押金后开通接单；申请与审核阶段不收费。'}</p></div></section><label className="enroll-check"><input type="checkbox" checked={cooperation} onChange={e => setCooperation(e.target.checked)} /><span>我已阅读并同意以上合作规则（版本 V1.0）</span></label><button className="btn btn-primary" onClick={activate}>{form.depositPaidAt ? '确认合作并开通' : '确认合作并缴纳押金'}</button></div>}
         {form.status === 'active' && <button className="btn btn-primary" onClick={openWorkbench}>进入传记师工作台 <ArrowRight size={16} /></button>}
         {error && <p className="enroll-error" role="alert">{error}</p>}
@@ -173,6 +173,31 @@ function EnrollmentPage({ standalone }: { standalone?: boolean }) {
   </main>;
 }
 function CooperationRules() { return <div className="enroll-rules">{rules.map(([title, text]) => <div key={title}><strong>{title}</strong><p>{text}</p></div>)}</div>; }
-export function EnrollmentSummary({ record }: { record: Enrollment }) {
-  return <div className="enroll-summary"><dl>{[['真实姓名', record.name], ['身份证号', record.idCard ? (record.idCard.length > 8 ? `${record.idCard.slice(0, 3)}${'*'.repeat(record.idCard.length - 7)}${record.idCard.slice(-4)}` : '*'.repeat(record.idCard.length)) : ''], ['实名认证', record.identityVerifiedAt ? '已实名认证（模拟）' : '待实名认证'], ['联系方式', record.phone], ['服务城市', record.cities.map(cityLabel).join('、')], ['从业年限', record.experience ? `${record.experience} 年` : ''], ['入驻押金', record.depositPaidAt ? `¥1,000 · 已模拟缴纳` : record.status === 'approved' ? '¥1,000 · 待缴纳' : '审核通过后缴纳，当前无需缴纳'], ['擅长领域', record.specialties.join('、')], ['个人介绍', record.intro], ['作品名称', record.workTitle], ['作品说明', record.workDescription]].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value || '未填写'}</dd></div>)}</dl>{record.workUrl && validWorkUrl(record.workUrl) && <p><a href={record.workUrl} target="_blank" rel="noopener noreferrer">查看作品链接 ↗</a></p>}{record.files.map((file, index) => <p key={`${file.name}-${index}`}><a href={file.data} download={file.name}>下载查看：{file.name}</a></p>)}</div>;
+export function EnrollmentSummary({ record, audit = false, showFullId = false }: { record: Enrollment; audit?: boolean; showFullId?: boolean }) {
+  const idCard = record.idCard && !showFullId
+    ? record.idCard.length > 8 ? `${record.idCard.slice(0, 3)}${'*'.repeat(record.idCard.length - 7)}${record.idCard.slice(-4)}` : '*'.repeat(record.idCard.length)
+    : record.idCard;
+  const fields = [
+    ['真实姓名', record.name], ['身份证号', idCard], ['实名认证', record.identityVerifiedAt ? '已实名认证（模拟）' : '待实名认证'],
+    ['联系方式', record.phone], ['服务城市', record.cities.map(cityLabel).join('、')],
+    ['从业年限', record.experience ? `${record.experience} 年` : ''],
+    ['入驻押金', record.depositPaidAt ? '¥1,000 · 已模拟缴纳' : record.status === 'approved' ? '¥1,000 · 待缴纳' : '审核通过后缴纳，当前无需缴纳'],
+    ['擅长领域', record.specialties.join('、')], ['个人介绍', record.intro],
+    ['作品名称', record.workTitle], ['作品说明', record.workDescription],
+  ];
+  return <div className="enroll-summary"><dl>
+    {fields.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value || '未填写'}</dd></div>)}
+    {audit && <>
+      <div><dt>申请账号</dt><dd>{record.owner || '未填写'}</dd></div>
+      <div><dt>申请头像</dt><dd>{record.avatar ? '已上传（见上方预览）' : '未上传'}</dd></div>
+      <div><dt>认证时间</dt><dd>{record.identityVerifiedAt ? time(record.identityVerifiedAt) : '未认证'}</dd></div>
+      <div><dt>作品链接</dt><dd>{record.workUrl ? validWorkUrl(record.workUrl) ? <a href={record.workUrl} target="_blank" rel="noopener noreferrer">{record.workUrl} ↗</a> : `${record.workUrl}（链接格式无效）` : '未填写'}</dd></div>
+      <div><dt>作品附件</dt><dd>{record.files.length ? record.files.map((file, index) => <div key={`${file.name}-${index}`}>{file.data ? <a href={file.data} download={file.name}>{file.name} ↓</a> : file.name}</div>) : '未上传'}</dd></div>
+      <div><dt>资料授权</dt><dd>{record.consent ? '已确认资料真实、作品已授权或脱敏，并同意用于入驻审核' : '未确认'}</dd></div>
+      <div><dt>提交时间</dt><dd>{record.submittedAt ? time(record.submittedAt) : '未提交'}</dd></div>
+    </>}
+  </dl>
+    {!audit && record.workUrl && validWorkUrl(record.workUrl) && <p><a href={record.workUrl} target="_blank" rel="noopener noreferrer">查看作品链接 ↗</a></p>}
+    {!audit && record.files.map((file, index) => <p key={`${file.name}-${index}`}><a href={file.data} download={file.name}>下载查看：{file.name}</a></p>)}
+  </div>;
 }

@@ -78,6 +78,15 @@
   cursor: pointer;
 }
 
+.sh-filter-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.sh-filter-actions .btn {
+  white-space: nowrap;
+}
+
 .sh-list-body {
   padding: 0;
 }
@@ -123,6 +132,17 @@
 .sh-source {
   max-width: 200px;
   font-size: 13px;
+}
+
+.sh-source strong,
+.sh-source small {
+  display: block;
+}
+
+.sh-source small {
+  margin-top: 4px;
+  color: var(--text-muted);
+  font-size: 12px;
 }
 
 .sh-context {

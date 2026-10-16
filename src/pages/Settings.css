@@ -412,6 +412,14 @@
   outline: none;
 }
 
+.invite-withdrawal-account {
+  display: block;
+  margin-top: 4px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 .invite-records {
   margin-top: 16px;
 }

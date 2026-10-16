@@ -68,12 +68,16 @@
 .enroll-rules > div:last-child p { margin-bottom: 0; }
 .enroll-rule-panel { margin-top: 20px; }
 .enroll-admin { margin-bottom: 24px; }
-.enroll-admin-head, .enroll-admin-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.enroll-admin-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
 .enroll-admin-head { margin-bottom: 18px; }
-.enroll-admin-row { padding: 14px 0; border-top: 1px solid var(--border-light); }
-.enroll-admin-row small { display: block; color: var(--text-muted); margin-top: 6px; }
-.enroll-admin-row > span { color: var(--primary); font-size: 13px; }
-.enroll-admin-preview { max-width: 900px; margin-top: 20px; }
+.enroll-review-table { min-width: 900px; }
+.enroll-review-table .admin-table-text-left { max-width: 260px; }
+.enroll-review-status { display: inline-block; padding: 4px 9px; border-radius: 6px; color: var(--primary); background: var(--primary-50); white-space: nowrap; font-size: 12px; }
+.enroll-review-status.pending, .enroll-review-status.supplement { color: #94610a; background: #fff7e7; }
+.enroll-review-status.rejected { color: #aa3e34; background: #fff0ee; }
+.modal-content.enroll-review-modal { max-width: 900px; margin-bottom: 0; }
+.enroll-review-modal .modal-body { padding: 24px 28px; }
+.enroll-review-actions { display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
 @media (max-width: 760px) {
   .enroll-standalone { padding: 12px 16px 36px; }
   .enroll-layout { grid-template-columns: 1fr; }

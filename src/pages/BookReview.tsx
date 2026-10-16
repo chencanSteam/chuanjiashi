@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 import { Search, BookOpen, CheckCircle, XCircle, AlertCircle, User, Hash, DollarSign, Calendar, FileText, Bookmark, Type, BarChart3 } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 import Annotate from '../components/annotation/Annotate';
@@ -20,6 +20,17 @@ const statusMap: Record<PublicBook['status'], { label: string; className: string
   rejected: { label: '已拒绝', className: 'book-status-rejected' },
   off_shelf: { label: '已下架', className: 'book-status-off-shelf' },
 };
+
+interface BookFilters {
+  keyword: string;
+  status: PublicBook['status'] | 'all';
+  category: string;
+  priceType: 'all' | 'free' | 'paid';
+  dateFrom: string;
+  dateTo: string;
+}
+
+const emptyFilters: BookFilters = { keyword: '', status: 'all', category: 'all', priceType: 'all', dateFrom: '', dateTo: '' };
 
 const mockBooks: PublicBook[] = [
   { id: 'review-001', archiveId: 'archive-001', userId: 'u_demo_001', title: '张明远：一位苏州企业家的六十年', author: '张立群', intro: '从苏州老巷走到创业舞台，记录一个普通中国家庭的奋斗与传承。', category: '企业家', price: 0, isFree: true, status: 'approved', views: 1820, likes: 96, sales: 236, collects: 42, shares: 18, createdAt: '2026-09-08T15:56:57' },
@@ -57,8 +68,8 @@ function createMockBiography(book: PublicBook): Biography {
 export default function BookReview() {
   const { addToast } = useToast();
   const [books, setBooks] = useState<PublicBook[]>(mockBooks);
-  const [keyword, setKeyword] = useState('');
-  const [statusFilter, setStatusFilter] = useState<PublicBook['status'] | 'all'>('all');
+  const [filters, setFilters] = useState<BookFilters>({ ...emptyFilters });
+  const [appliedFilters, setAppliedFilters] = useState<BookFilters>({ ...emptyFilters });
   const [loading] = useState(false);
   const [selectedBook, setSelectedBook] = useState<PublicBook | null>(null);
   const [selectedBiography, setSelectedBiography] = useState<Biography | null>(null);
@@ -67,12 +78,32 @@ export default function BookReview() {
   const [rejectReason, setRejectReason] = useState('');
   const [rejectingBook, setRejectingBook] = useState<PublicBook | null>(null);
 
+  const categories = Array.from(new Set(books.map((book) => book.category))).sort((a, b) => a.localeCompare(b, 'zh-CN'));
   const visibleBooks = books.filter((book) => {
-    const matchesStatus = statusFilter === 'all' || book.status === statusFilter;
-    const query = keyword.trim().toLowerCase();
+    const matchesStatus = appliedFilters.status === 'all' || book.status === appliedFilters.status;
+    const query = appliedFilters.keyword.trim().toLowerCase();
     const matchesKeyword = !query || `${book.title} ${book.author} ${book.userId}`.toLowerCase().includes(query);
-    return matchesStatus && matchesKeyword;
+    const matchesCategory = appliedFilters.category === 'all' || book.category === appliedFilters.category;
+    const matchesPrice = appliedFilters.priceType === 'all' || (appliedFilters.priceType === 'free' ? book.isFree : !book.isFree);
+    const submittedDate = book.createdAt.slice(0, 10);
+    const matchesDate = (!appliedFilters.dateFrom || submittedDate >= appliedFilters.dateFrom)
+      && (!appliedFilters.dateTo || submittedDate <= appliedFilters.dateTo);
+    return matchesStatus && matchesKeyword && matchesCategory && matchesPrice && matchesDate;
   });
+
+  const handleQuery = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (filters.dateFrom && filters.dateTo && filters.dateFrom > filters.dateTo) {
+      addToast('提交时间的结束日期不能早于开始日期', 'error');
+      return;
+    }
+    setAppliedFilters({ ...filters });
+  };
+
+  const resetFilters = () => {
+    setFilters({ ...emptyFilters });
+    setAppliedFilters({ ...emptyFilters });
+  };
 
   const handleReview = (book: PublicBook, status: PublicBook['status']) => {
     setBooks((current) => current.map((item) => item.id === book.id ? { ...item, status } : item));
@@ -100,22 +131,36 @@ export default function BookReview() {
       <div className="card book-review-list-card">
         <div className="card-header book-review-list-header">
           <Annotate id="book-review.filters" inline>
-          <div className="book-review-filters">
+          <form className="book-review-filters" onSubmit={handleQuery}>
             <div className="book-review-search">
               <Search size={14} />
               <input
                 type="text"
-                placeholder="搜索标题、作者…"
-                value={keyword}
-                onChange={(e) => setKeyword(e.target.value)}
+                aria-label="搜索传记标题、作者或用户ID"
+                placeholder="搜索标题、作者、用户ID"
+                value={filters.keyword}
+                onChange={(e) => setFilters((current) => ({ ...current, keyword: e.target.value }))}
               />
             </div>
-            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as PublicBook['status'] | 'all')}>
+            <select aria-label="审核状态" value={filters.status} onChange={(e) => setFilters((current) => ({ ...current, status: e.target.value as BookFilters['status'] }))}>
               {statusFilterOptions.map((s) => (
                 <option value={s.value} key={s.value}>{s.label}</option>
               ))}
             </select>
-          </div>
+            <select aria-label="传记分类" value={filters.category} onChange={(e) => setFilters((current) => ({ ...current, category: e.target.value }))}>
+              <option value="all">全部分类</option>
+              {categories.map((category) => <option value={category} key={category}>{category}</option>)}
+            </select>
+            <select aria-label="定价类型" value={filters.priceType} onChange={(e) => setFilters((current) => ({ ...current, priceType: e.target.value as BookFilters['priceType'] }))}>
+              <option value="all">全部定价</option>
+              <option value="free">免费</option>
+              <option value="paid">付费</option>
+            </select>
+            <label className="book-review-date">提交时间<input type="date" aria-label="提交开始日期" value={filters.dateFrom} onChange={(e) => setFilters((current) => ({ ...current, dateFrom: e.target.value }))} /></label>
+            <span className="book-review-date-separator">至</span>
+            <input className="book-review-date-input" type="date" aria-label="提交结束日期" value={filters.dateTo} onChange={(e) => setFilters((current) => ({ ...current, dateTo: e.target.value }))} />
+            <div className="book-review-filter-actions"><button className="btn btn-primary" type="submit">查询</button><button className="btn btn-outline" type="button" onClick={resetFilters}>重置</button></div>
+          </form>
           </Annotate>
         </div>
         <Annotate id="book-review.list">

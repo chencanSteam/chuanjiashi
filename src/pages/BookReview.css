@@ -73,6 +73,38 @@
   outline: none;
 }
 
+.book-review-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.book-review-date input,
+.book-review-date-input {
+  padding: 7px 10px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+  background: var(--card-bg);
+  color: var(--text);
+  font: inherit;
+}
+
+.book-review-date-separator {
+  color: var(--text-muted);
+}
+
+.book-review-filter-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.book-review-filter-actions .btn {
+  white-space: nowrap;
+}
+
 .book-review-list-body {
   padding: 0;
 }

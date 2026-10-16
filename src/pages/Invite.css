@@ -122,6 +122,13 @@
   border-color: var(--primary);
 }
 
+.invite-withdrawal-reason {
+  margin-top: 4px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 .invite-rules-toggle {
   display: inline-flex;
   align-items: center;

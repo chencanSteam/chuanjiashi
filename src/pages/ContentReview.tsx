@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Navigate, useParams } from 'react-router-dom';
 import {
   BookOpen,
@@ -41,7 +41,7 @@ const refundStatusMap = {
 type RefundStatusKey = keyof typeof refundStatusMap;
 
 const orderTypeLabels: Record<AdminOrder['type'], string> = {
-  biography: '传记服务',
+  biography: '传记导出',
   digital_person: '数字人',
   video: '视频',
   qrcode: '二维码',
@@ -102,6 +102,11 @@ function ContentReviewSection() {
   const [refundFilter, setRefundFilter] = useState<'all' | RefundStatusKey>('all');
   const [refundKeyword, setRefundKeyword] = useState('');
   const [refundTypeFilter, setRefundTypeFilter] = useState<'all' | AdminOrder['type']>('all');
+  const [appliedRefundFilters, setAppliedRefundFilters] = useState<{
+    status: 'all' | RefundStatusKey;
+    keyword: string;
+    type: 'all' | AdminOrder['type'];
+  }>({ status: 'all', keyword: '', type: 'all' });
   const [refundRejectOrder, setRefundRejectOrder] = useState<AdminOrder | null>(null);
   const [selectedRefundOrder, setSelectedRefundOrder] = useState<AdminOrder | null>(null);
   const [refundRejectionReason, setRefundRejectionReason] = useState('');
@@ -203,12 +208,22 @@ function ContentReviewSection() {
   const filteredRefunds = refundOrders.filter((order) => {
     const refund = order.refundRequest;
     const statusKey = (refund?.status || 'pending') as RefundStatusKey;
-    const query = refundKeyword.trim().toLowerCase();
+    const query = appliedRefundFilters.keyword.trim().toLowerCase();
     const matchesKeyword = !query || `${order.id} ${order.userName} ${order.userPhone} ${order.productName}`.toLowerCase().includes(query);
-    return (refundFilter === 'all' || statusKey === refundFilter)
-      && (refundTypeFilter === 'all' || order.type === refundTypeFilter)
+    return (appliedRefundFilters.status === 'all' || statusKey === appliedRefundFilters.status)
+      && (appliedRefundFilters.type === 'all' || order.type === appliedRefundFilters.type)
       && matchesKeyword;
   });
+  const queryRefunds = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setAppliedRefundFilters({ status: refundFilter, keyword: refundKeyword, type: refundTypeFilter });
+  };
+  const resetRefundFilters = () => {
+    setRefundFilter('all');
+    setRefundKeyword('');
+    setRefundTypeFilter('all');
+    setAppliedRefundFilters({ status: 'all', keyword: '', type: 'all' });
+  };
 
   if (!sectionValid) {
     return <Navigate to="/admin/content-review/books" replace />;
@@ -363,7 +378,7 @@ function ContentReviewSection() {
         <Annotate id="content-review.refund-review">
         <div className="card">
           <div className="card-header review-refund-header">
-            <div className="review-refund-toolbar">
+            <form className="review-refund-toolbar" onSubmit={queryRefunds}>
               <div className="review-refund-search">
                 <Search size={15} />
                 <input value={refundKeyword} onChange={(e) => setRefundKeyword(e.target.value)} placeholder="搜索订单号、客户、商品" />
@@ -381,11 +396,12 @@ function ContentReviewSection() {
                 <option value="qrcode">二维码</option>
                 <option value="biographer_service">传记师服务</option>
               </select>
-            </div>
+              <div className="review-refund-filter-actions"><button className="btn btn-primary" type="submit">查询</button><button className="btn btn-outline" type="button" onClick={resetRefundFilters}>重置</button></div>
+            </form>
           </div>
           <div className="card-body review-body">
             {filteredRefunds.length === 0 ? (
-              <div className="admin-table-empty">暂无退款申请</div>
+              <div className="admin-table-empty">{refundOrders.length ? '暂无符合条件的退款申请' : '暂无退款申请'}</div>
             ) : (
               <div className="admin-table-wrap">
               <table className="admin-table">
@@ -393,7 +409,7 @@ function ContentReviewSection() {
                   <tr>
                     <th>订单号</th>
                     <th>客户</th>
-                    <th>商品</th>
+                    <th>商品类型</th>
                     <th>订单金额</th>
                     <th>退款金额</th>
                     <th>退款原因</th>
@@ -411,10 +427,7 @@ function ContentReviewSection() {
                   <tr key={order.id}>
                     <td>{order.id}</td>
                     <td>{order.userName || '未知用户'}（{order.userPhone || order.userId}）</td>
-                    <td>
-                      <div>{order.productName}</div>
-                      <div className="review-refund-sub">{orderTypeLabels[order.type] || order.type}</div>
-                    </td>
+                    <td>{orderTypeLabels[order.type] || order.type}</td>
                     <td>¥{order.amount.toLocaleString()}</td>
                     <td className="review-refund-amount">¥{(REFUND_AMOUNT_DEMO[order.id] ?? order.amount).toLocaleString()}</td>
                     <td className="admin-table-text-left">

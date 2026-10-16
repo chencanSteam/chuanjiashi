@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Plus, Search, Tags, X as XIcon } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 import { sensitiveWordsApi } from '../api/sensitiveWords';
@@ -12,7 +12,7 @@ const categoryMap: Record<SensitiveWordCategory, { label: string; className: str
   violence: { label: '暴力恐怖', className: 'sw-badge cat-violence' },
   ads: { label: '广告营销', className: 'sw-badge cat-ads' },
   abuse: { label: '人身攻击', className: 'sw-badge cat-abuse' },
-  custom: { label: '自定义', className: 'sw-badge cat-custom' },
+  custom: { label: '其他', className: 'sw-badge cat-custom' },
 };
 
 const actionMap: Record<SensitiveWordAction, { label: string; className: string; desc: string }> = {
@@ -30,6 +30,12 @@ export default function SensitiveWords() {
   const [actionFilter, setActionFilter] = useState<'all' | SensitiveWordAction>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'enabled' | 'disabled'>('all');
   const [keyword, setKeyword] = useState('');
+  const [appliedFilters, setAppliedFilters] = useState<{
+    category: 'all' | SensitiveWordCategory;
+    action: 'all' | SensitiveWordAction;
+    status: 'all' | 'enabled' | 'disabled';
+    keyword: string;
+  }>({ category: 'all', action: 'all', status: 'all', keyword: '' });
 
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<SensitiveWord | null>(null);
@@ -49,21 +55,27 @@ export default function SensitiveWords() {
 
   useEffect(load, []);
 
-  const stats = useMemo(() => ({
-    total: words.length,
-    enabled: words.filter((w) => w.enabled).length,
-    block: words.filter((w) => w.action === 'block').length,
-    review: words.filter((w) => w.action === 'review').length,
-  }), [words]);
-
   const filtered = useMemo(() => words.filter((w) => {
-    if (categoryFilter !== 'all' && w.category !== categoryFilter) return false;
-    if (actionFilter !== 'all' && w.action !== actionFilter) return false;
-    if (statusFilter === 'enabled' && !w.enabled) return false;
-    if (statusFilter === 'disabled' && w.enabled) return false;
-    if (keyword && !w.word.includes(keyword.trim())) return false;
+    if (appliedFilters.category !== 'all' && w.category !== appliedFilters.category) return false;
+    if (appliedFilters.action !== 'all' && w.action !== appliedFilters.action) return false;
+    if (appliedFilters.status === 'enabled' && !w.enabled) return false;
+    if (appliedFilters.status === 'disabled' && w.enabled) return false;
+    if (appliedFilters.keyword && !w.word.includes(appliedFilters.keyword.trim())) return false;
     return true;
-  }), [words, categoryFilter, actionFilter, statusFilter, keyword]);
+  }), [words, appliedFilters]);
+
+  const queryWords = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setAppliedFilters({ category: categoryFilter, action: actionFilter, status: statusFilter, keyword });
+  };
+
+  const resetFilters = () => {
+    setCategoryFilter('all');
+    setActionFilter('all');
+    setStatusFilter('all');
+    setKeyword('');
+    setAppliedFilters({ category: 'all', action: 'all', status: 'all', keyword: '' });
+  };
 
   const openCreate = () => {
     setEditing(null);
@@ -155,17 +167,10 @@ export default function SensitiveWords() {
         </Annotate>
       </header>
 
-      <div className="sw-stats">
-        <div className="card sw-stat-card"><div className="sw-stat-value">{stats.total}</div><div className="sw-stat-label">词库总数</div></div>
-        <div className="card sw-stat-card"><div className="sw-stat-value">{stats.enabled}</div><div className="sw-stat-label">启用中</div></div>
-        <div className="card sw-stat-card"><div className="sw-stat-value">{stats.block}</div><div className="sw-stat-label">直接拦截</div></div>
-        <div className="card sw-stat-card"><div className="sw-stat-value">{stats.review}</div><div className="sw-stat-label">转人工复核</div></div>
-      </div>
-
       <div className="card sw-list-card">
         <div className="card-header sw-list-header">
           <Annotate id="sensitive-words.filter">
-          <div className="sw-filters">
+          <form className="sw-filters" onSubmit={queryWords}>
             <div className="sw-search">
               <Search size={16} />
               <input
@@ -192,12 +197,13 @@ export default function SensitiveWords() {
               <option value="enabled">启用</option>
               <option value="disabled">停用</option>
             </select>
-          </div>
+            <div className="sw-filter-actions"><button className="btn btn-primary" type="submit">查询</button><button className="btn btn-outline" type="button" onClick={resetFilters}>重置</button></div>
+          </form>
           </Annotate>
         </div>
         <div className="card-body sw-list-body">
           {filtered.length === 0 ? (
-            <div className="admin-table-empty">暂无敏感词</div>
+            <div className="admin-table-empty">{words.length ? '暂无符合条件的敏感词' : '暂无敏感词'}</div>
           ) : (
             <Annotate id="sensitive-words.table">
             <div className="admin-table-wrap">

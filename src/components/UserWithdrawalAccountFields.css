@@ -1,0 +1,17 @@
+.user-withdrawal-account-fields {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 18px;
+  font-size: 13px;
+}
+
+.user-withdrawal-account-fields span,
+.user-withdrawal-account-fields small {
+  color: var(--text-secondary);
+}
+
+.user-withdrawal-account-fields strong {
+  color: var(--text);
+  font-weight: 600;
+}

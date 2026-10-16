@@ -3,9 +3,11 @@ import { Share2, Copy, Users, Wallet, TrendingUp, Info, ChevronDown, ChevronUp }
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/useToast';
 import { commissionApi } from '../api/commission';
+import { readUserWithdrawalDemos, saveUserWithdrawalDemo } from '../data/userWithdrawalDemo';
 import { loadRegisteredUsers, loadUserInvites } from '../data/userInviteData';
 import type { CommissionRecord, WithdrawalRecord } from '../mocks/types';
 import Annotate from '../components/annotation/Annotate';
+import UserWithdrawalRequestModal from '../components/UserWithdrawalRequestModal';
 import './Invite.css';
 
 const rewardStatusLabels: Record<string, string> = {
@@ -48,6 +50,7 @@ export default function Invite() {
   const [withdrawals, setWithdrawals] = useState<WithdrawalRecord[]>([]);
   const [amount, setAmount] = useState('');
   const [withdrawing, setWithdrawing] = useState(false);
+  const [withdrawOpen, setWithdrawOpen] = useState(false);
   const [showRules, setShowRules] = useState(false);
   const [refresh, setRefresh] = useState(0);
 
@@ -63,9 +66,13 @@ export default function Invite() {
   useEffect(() => {
     commissionApi.summary().then(setSummary).catch(() => {});
     commissionApi.list().then(setRewards).catch(() => setRewards([]));
-    commissionApi.withdrawals().then(setWithdrawals).catch(() => setWithdrawals([]));
+    commissionApi.withdrawals().then((list) => {
+      const details = new Map(readUserWithdrawalDemos().map((item) => [item.id, item]));
+      setWithdrawals(list.map((item) => ({ ...item, status: details.get(item.id)?.status || item.status })));
+    }).catch(() => setWithdrawals([]));
   }, [refresh]);
 
+  const withdrawalDetails = new Map(readUserWithdrawalDemos().map((item) => [item.id, item]));
   const inviteCode = user?.inviteCode || '—';
   const inviteUrl = `${window.location.origin}${window.location.pathname}#/login?invite=${inviteCode}`;
   const copy = async (value: string, label: string) => {
@@ -87,6 +94,7 @@ export default function Invite() {
   }, [rewards]);
 
   const handleWithdraw = async () => {
+    if (withdrawing) return;
     const value = parseFloat(amount);
     if (!value || value <= 0) {
       addToast('请输入正确的提现金额', 'error');
@@ -96,11 +104,17 @@ export default function Invite() {
       addToast('提现金额不能超过可提现余额', 'error');
       return;
     }
+    if (!user?.phone) {
+      addToast('当前登录账号缺少手机号', 'error');
+      return;
+    }
     setWithdrawing(true);
     try {
-      await commissionApi.withdraw(value);
+      const withdrawal = await commissionApi.withdraw(value);
+      saveUserWithdrawalDemo(withdrawal, user.name || user.phone, user.phone);
       addToast('提现申请已提交，等待平台审核', 'success');
       setAmount('');
+      setWithdrawOpen(false);
       setRefresh((v) => v + 1);
     } catch (err) {
       addToast(err instanceof Error ? err.message : '提现申请失败', 'error');
@@ -216,21 +230,21 @@ export default function Invite() {
           <Annotate id="invite.withdraw">
           <div className="invite-withdraw-row">
             <span className="invite-withdraw-balance">可提现余额 <strong>¥{summary.settled.toFixed(2)}</strong></span>
-            <input type="number" min="0" placeholder="输入提现金额" value={amount} onChange={(e) => setAmount(e.target.value)} />
-            <button className="btn btn-primary" disabled={withdrawing} onClick={handleWithdraw}>{withdrawing ? '提交中…' : '申请提现'}</button>
+            <button className="btn btn-primary" onClick={() => setWithdrawOpen(true)}>申请提现</button>
           </div>
           </Annotate>
           {withdrawals.length > 0 && (
             <div className="admin-table-wrap" style={{ marginTop: 14 }}>
             <table className="admin-table">
               <thead>
-                <tr><th>提现金额</th><th>状态</th><th>申请时间</th><th>处理时间</th></tr>
+                <tr><th>提现金额</th><th>收款账户</th><th>状态</th><th>申请时间</th><th>处理时间</th></tr>
               </thead>
               <tbody>
                 {withdrawals.map((w) => (
                   <tr key={w.id}>
                     <td>¥{w.amount.toFixed(2)}</td>
-                    <td>{withdrawalStatusLabels[w.status] || w.status}</td>
+                    <td>{withdrawalDetails.get(w.id)?.account || '—'}</td>
+                    <td>{withdrawalStatusLabels[w.status] || w.status}{withdrawalDetails.get(w.id)?.rejectionReason && <div className="invite-withdrawal-reason">拒绝理由：{withdrawalDetails.get(w.id)?.rejectionReason}</div>}</td>
                     <td>{new Date(w.appliedAt).toLocaleString()}</td>
                     <td>{w.paidAt ? new Date(w.paidAt).toLocaleString() : <span className="admin-table-muted">—</span>}</td>
                   </tr>
@@ -257,6 +271,16 @@ export default function Invite() {
           )}
         </div>
       </div>
+      <UserWithdrawalRequestModal
+        open={withdrawOpen}
+        balance={summary.settled}
+        amount={amount}
+        phone={user?.phone || ''}
+        submitting={withdrawing}
+        onAmountChange={setAmount}
+        onClose={() => setWithdrawOpen(false)}
+        onSubmit={handleWithdraw}
+      />
     </div>
   );
 }

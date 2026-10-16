@@ -148,6 +148,15 @@
   background: #fff;
 }
 
+.review-refund-filter-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.review-refund-filter-actions .btn {
+  white-space: nowrap;
+}
+
 .review-refund-amount {
   color: #1b5e4b;
   font-weight: 600;

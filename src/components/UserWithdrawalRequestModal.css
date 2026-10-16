@@ -1,0 +1,30 @@
+.user-withdrawal-request-balance {
+  margin-bottom: 16px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.user-withdrawal-request-balance strong {
+  margin-left: 4px;
+  color: var(--primary);
+  font-size: 17px;
+}
+
+.user-withdrawal-request-amount {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.user-withdrawal-request-amount input {
+  width: 100%;
+  min-height: 38px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  background: var(--card-bg);
+  color: var(--text);
+  font: inherit;
+}

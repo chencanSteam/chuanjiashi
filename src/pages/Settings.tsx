@@ -37,9 +37,11 @@ import { regions } from '../data/regions';
 import type { AIQuota } from '../mocks/types';
 import { openGuide } from '../components/GuideTour';
 import { commissionApi } from '../api/commission';
+import { readUserWithdrawalDemos, saveUserWithdrawalDemo } from '../data/userWithdrawalDemo';
 import type { CommissionRecord as MockCommissionRecord, WithdrawalRecord as MockWithdrawalRecord } from '../mocks/types';
 import type { UserReward, UserWithdrawal } from '../data/userInviteData';
 import Annotate from '../components/annotation/Annotate';
+import UserWithdrawalRequestModal from '../components/UserWithdrawalRequestModal';
 import './Settings.css';
 
 const defaultQuota: AIQuota = {
@@ -761,12 +763,14 @@ function mapCommissionToUserReward(r: MockCommissionRecord): UserReward {
 }
 
 function mapWithdrawalToUserWithdrawal(w: MockWithdrawalRecord): UserWithdrawal {
+  const detail = readUserWithdrawalDemos().find((item) => item.id === w.id);
   return {
     id: w.id,
     userId: w.userId,
     userName: w.partnerName || w.userId,
     amount: w.amount,
-    status: w.status as UserWithdrawal['status'],
+    status: (detail?.status || w.status) as UserWithdrawal['status'],
+    remark: detail?.rejectionReason,
     createdAt: w.appliedAt,
     processedAt: w.paidAt,
   };
@@ -775,6 +779,8 @@ function mapWithdrawalToUserWithdrawal(w: MockWithdrawalRecord): UserWithdrawal 
 function MyInvite({ user, refresh, onWithdraw }: { user: { phone: string; name?: string; inviteCode?: string } | null; refresh: number; onWithdraw: () => void }) {
   const { addToast } = useToast();
   const [amount, setAmount] = useState('');
+  const [withdrawOpen, setWithdrawOpen] = useState(false);
+  const [withdrawing, setWithdrawing] = useState(false);
   const [summary, setSummary] = useState({ total: 0, settled: 0, pending: 0, frozen: 0, inviteCount: 0 });
   const [rewards, setRewards] = useState<UserReward[]>([]);
   const [withdrawals, setWithdrawals] = useState<UserWithdrawal[]>([]);
@@ -813,6 +819,7 @@ function MyInvite({ user, refresh, onWithdraw }: { user: { phone: string; name?:
 
   if (!user) return null;
 
+  const withdrawalDetails = new Map(readUserWithdrawalDemos().map((item) => [item.id, item]));
   const inviteUrl = `${window.location.origin}${window.location.pathname}#/login?invite=${user.inviteCode}`;
 
   const copyCode = () => {
@@ -826,18 +833,28 @@ function MyInvite({ user, refresh, onWithdraw }: { user: { phone: string; name?:
   };
 
   const handleWithdraw = async () => {
+    if (withdrawing) return;
     const value = parseFloat(amount);
     if (!value || value <= 0) {
       addToast('请输入正确的提现金额', 'error');
       return;
     }
+    if (!user.phone) {
+      addToast('当前登录账号缺少手机号', 'error');
+      return;
+    }
+    setWithdrawing(true);
     try {
-      await commissionApi.withdraw(value);
+      const withdrawal = await commissionApi.withdraw(value);
+      saveUserWithdrawalDemo(withdrawal, user.name || user.phone, user.phone);
       addToast('提现申请已提交', 'success');
       setAmount('');
+      setWithdrawOpen(false);
       onWithdraw();
     } catch (err: any) {
       addToast(err.message || '提现申请失败，余额不足', 'error');
+    } finally {
+      setWithdrawing(false);
     }
   };
 
@@ -877,11 +894,7 @@ function MyInvite({ user, refresh, onWithdraw }: { user: { phone: string; name?:
         </div>
 
         <div className="invite-withdraw">
-          <label>申请提现</label>
-          <div className="invite-withdraw-input">
-            <input type="number" placeholder="输入提现金额" value={amount} onChange={(e) => setAmount(e.target.value)} />
-            <button className="btn btn-primary" onClick={handleWithdraw}>提现</button>
-          </div>
+          <button className="btn btn-primary" onClick={() => setWithdrawOpen(true)}>申请提现</button>
         </div>
 
         <div className="invite-records">
@@ -905,13 +918,23 @@ function MyInvite({ user, refresh, onWithdraw }: { user: { phone: string; name?:
           ) : (
             withdrawals.map((w: UserWithdrawal) => (
               <div className="invite-record" key={w.id}>
-                <span>¥{w.amount.toFixed(2)}</span>
+                <span>¥{w.amount.toFixed(2)}{withdrawalDetails.get(w.id)?.account && <small className="invite-withdrawal-account">{withdrawalDetails.get(w.id)?.account}</small>}{w.remark && <small className="invite-withdrawal-account">拒绝理由：{w.remark}</small>}</span>
                 <span className={`invite-record-status ${w.status}`}>{w.status === 'pending' ? '审核中' : w.status === 'paid' ? '已打款' : w.status === 'approved' ? '已通过' : '已拒绝'}</span>
               </div>
             ))
           )}
         </div>
       </div>
+      <UserWithdrawalRequestModal
+        open={withdrawOpen}
+        balance={stats.balance}
+        amount={amount}
+        phone={user.phone}
+        submitting={withdrawing}
+        onAmountChange={setAmount}
+        onClose={() => setWithdrawOpen(false)}
+        onSubmit={handleWithdraw}
+      />
     </div>
   );
 }

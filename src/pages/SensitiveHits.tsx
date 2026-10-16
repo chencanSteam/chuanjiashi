@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState, type FormEvent, type ReactNode } from 'react';
 import { Search, ShieldAlert } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 import type { SensitiveHit, SensitiveHitSourceType, SensitiveHitStatus, SensitiveWordCategory } from '../mocks/types';
@@ -28,6 +28,7 @@ const statusMap: Record<SensitiveHitStatus, { label: string; className: string }
 };
 
 const formatTime = (iso: string) => new Date(iso).toLocaleString('zh-CN', { hour12: false });
+const biographyName = (sourceTitle: string) => sourceTitle.match(/《([^》]+)》/)?.[1] || sourceTitle;
 
 const mockHits: SensitiveHit[] = [
   { id: 'hit-001', wordId: 'word-001', word: '加微信', category: 'ads', action: 'review', sourceType: 'biography_chapter', sourceTitle: '传记《张明远：一位苏州企业家的六十年》第2章', context: '那几年生意刚有起色，来找我的人渐渐多了。有位年轻人递给我一张名片，说以后有事可以加微信联系，我当时还不太会用智能手机，只好请女儿教了我半天。', userId: 'u_demo_001', userName: '张明远', status: 'pending', createdAt: '2026-09-08T13:04:12' },
@@ -52,15 +53,27 @@ export default function SensitiveHits() {
   const [hits, setHits] = useState<SensitiveHit[]>(mockHits);
   const [statusFilter, setStatusFilter] = useState<'all' | SensitiveHitStatus>('all');
   const [keyword, setKeyword] = useState('');
+  const [appliedFilters, setAppliedFilters] = useState<{ status: 'all' | SensitiveHitStatus; keyword: string }>({ status: 'all', keyword: '' });
 
   const filtered = useMemo(() => {
-    const kw = keyword.trim();
+    const kw = appliedFilters.keyword.trim();
     return hits.filter((h) => {
-      if (statusFilter !== 'all' && h.status !== statusFilter) return false;
+      if (appliedFilters.status !== 'all' && h.status !== appliedFilters.status) return false;
       if (kw && !h.word.includes(kw) && !h.sourceTitle.includes(kw) && !h.context.includes(kw)) return false;
       return true;
     });
-  }, [hits, statusFilter, keyword]);
+  }, [hits, appliedFilters]);
+
+  const queryHits = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setAppliedFilters({ status: statusFilter, keyword });
+  };
+
+  const resetFilters = () => {
+    setStatusFilter('all');
+    setKeyword('');
+    setAppliedFilters({ status: 'all', keyword: '' });
+  };
 
   const handleProcess = async (hit: SensitiveHit, status: 'blocked' | 'released') => {
     const actionLabel = status === 'blocked' ? '拦截' : '放行';
@@ -79,7 +92,7 @@ export default function SensitiveHits() {
       <div className="card sh-list-card">
         <div className="card-header sh-list-header">
           <Annotate id="sensitive-hits.filter">
-          <div className="sh-filters">
+          <form className="sh-filters" onSubmit={queryHits}>
             <div className="sh-search">
               <Search size={16} />
               <input
@@ -95,12 +108,13 @@ export default function SensitiveHits() {
               <option value="blocked">已拦截</option>
               <option value="released">已放行</option>
             </select>
-          </div>
+            <div className="sh-filter-actions"><button className="btn btn-primary" type="submit">查询</button><button className="btn btn-outline" type="button" onClick={resetFilters}>重置</button></div>
+          </form>
           </Annotate>
         </div>
         <div className="card-body sh-list-body">
           {filtered.length === 0 ? (
-            <div className="admin-table-empty">暂无命中记录</div>
+            <div className="admin-table-empty">{hits.length ? '暂无符合条件的命中记录' : '暂无命中记录'}</div>
           ) : (
             <Annotate id="sensitive-hits.table">
             <div className="admin-table-wrap">
@@ -124,7 +138,7 @@ export default function SensitiveHits() {
                   <td><span className="sh-word"><ShieldAlert size={12} />{hit.word}</span></td>
                   <td><span className={categoryMap[hit.category].className}>{categoryMap[hit.category].label}</span></td>
                   <td>{sourceTypeMap[hit.sourceType]}</td>
-                  <td className="admin-table-text-left sh-source">{hit.sourceTitle}</td>
+                  <td className="admin-table-text-left sh-source"><strong>{biographyName(hit.sourceTitle)}</strong><small>上传账号：{hit.userId}</small></td>
                   <td className="admin-table-text-left sh-context">{highlightHitWord(hit.context, hit.word)}</td>
                   <td>{hit.userName}</td>
                   <td>{formatTime(hit.createdAt)}</td>
